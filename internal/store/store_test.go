@@ -45,14 +45,10 @@ func newLibrary(t *testing.T) (*sql.DB, string) {
 
 // lesson returns a lesson row in chapter ch-countdown.
 func lesson(uuid, slug, typ string, position int64, readme string) Lesson {
-	l := Lesson{
+	return Lesson{
 		UUID: uuid, ChapterUUID: "ch-countdown", Position: position, Slug: slug, Title: "Lesson " + slug, Type: typ,
-		Required: true, Difficulty: 10, Readme: readme, CreatedAt: created, LastMod: created, SyncedAt: created,
+		Required: true, Difficulty: 4, Readme: readme, CreatedAt: created, LastMod: created,
 	}
-	if typ == "type_code" || typ == "type_code_tests" {
-		l.CodeLastMod = sql.NullString{String: created, Valid: true}
-	}
-	return l
 }
 
 // record returns a record whose rows all belong to uuid: each row lists its values after the
@@ -286,7 +282,7 @@ func TestPutRewritesInPlace(t *testing.T) {
 	old := quizLesson()
 	changed := quizLesson()
 	changed.Lesson.Readme = "# Mission Quiz\n\nA zenith of a quiz.\n"
-	changed.Lesson.LastMod, changed.Lesson.SyncedAt = edited, edited
+	changed.Lesson.LastMod = edited
 	changed.Rows[1].Vals[2] = "Which constant says when the window opens?"
 	if diff := LessonDiff(old.Lesson, changed.Lesson); !slices.Equal(diff, []string{"readme", "last_mod"}) {
 		t.Errorf("LessonDiff = %v, want [readme last_mod]", diff)

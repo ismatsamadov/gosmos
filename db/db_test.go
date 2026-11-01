@@ -206,9 +206,9 @@ const (
 )
 
 func lesson(uuid, typ string, position int) string {
-	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-		VALUES ('` + uuid + `', 'ch1', ` + string(rune('0'+position)) + `, '` + uuid + `', 'A lesson', '` + typ + `', 1, 10, 'Read me.',
-		'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`
+	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		VALUES ('` + uuid + `', 'ch1', ` + string(rune('0'+position)) + `, '` + uuid + `', 'A lesson', '` + typ + `', 1, 3, 'Read me.',
+		'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')`
 }
 
 // validate checks the file at path as `library check` does: read-only, as it is.

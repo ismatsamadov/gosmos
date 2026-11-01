@@ -46,7 +46,7 @@ README.md starts with this block, every line exactly as shown, in this order:
   title: The Launch Checklist
   type: code
   position: 0
-  difficulty: 10
+  difficulty: 3
   topics: printing, variables
   ---
 
@@ -55,7 +55,7 @@ README.md starts with this block, every line exactly as shown, in this order:
   type        code (passes when the program prints expected_output.txt exactly),
               code_tests (passes when go test passes) or quiz
   position    the lesson's place in its chapter, counted from 0; unique in its chapter
-  difficulty  a whole number from 1 up
+  difficulty  a whole number from 1 (easiest) to 10
   topics      comma-separated, one space after each comma, in alphabetical order, no
               repeats; write "topics:" with nothing after it for none
 
@@ -275,8 +275,8 @@ func (p *Package) parseReadme(text string) error {
 	if p.Position, err = strconv.ParseInt(values["position"], 10, 64); err != nil || p.Position < 0 {
 		return fmt.Errorf("position %q is not a whole number from 0 up", values["position"])
 	}
-	if p.Difficulty, err = strconv.ParseInt(values["difficulty"], 10, 64); err != nil || p.Difficulty < 1 {
-		return fmt.Errorf("difficulty %q is not a whole number from 1 up", values["difficulty"])
+	if p.Difficulty, err = strconv.ParseInt(values["difficulty"], 10, 64); err != nil || p.Difficulty < 1 || p.Difficulty > 10 {
+		return fmt.Errorf("difficulty %q is not a whole number from 1 (easiest) to 10", values["difficulty"])
 	}
 	if t := values["topics"]; t != "" {
 		for _, topic := range strings.Split(t, ",") {

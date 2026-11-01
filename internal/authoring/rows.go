@@ -1,7 +1,6 @@
 package authoring
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"maps"
@@ -19,16 +18,16 @@ var ErrUnsupported = errors.New("packages hold code, code_tests and quiz lessons
 
 // Times are the timestamps a lesson's row carries, in RFC 3339 UTC.
 type Times struct {
-	Created, Modified, Synced string
+	Created, Modified string
 }
 
 // Record returns the rows of the lesson the package makes, with the given uuid, in the given
-// chapter. A code lesson's code_last_mod is its Modified time.
+// chapter.
 func (p Package) Record(uuid, chapterUUID string, t Times) store.Record {
 	l := store.Lesson{
 		UUID: uuid, ChapterUUID: chapterUUID, Position: p.Position, Slug: p.Slug, Title: p.Title,
 		Type: lessonType[p.Type], Required: true, Difficulty: p.Difficulty, Readme: p.Readme,
-		CreatedAt: t.Created, LastMod: t.Modified, SyncedAt: t.Synced,
+		CreatedAt: t.Created, LastMod: t.Modified,
 	}
 	var rows []store.Row
 	add := func(table string, vals ...any) {
@@ -50,7 +49,6 @@ func (p Package) Record(uuid, chapterUUID string, t Times) store.Record {
 			}
 		}
 	default:
-		l.CodeLastMod = sql.NullString{String: t.Modified, Valid: true}
 		var expected any
 		if p.Expected != nil {
 			expected = *p.Expected

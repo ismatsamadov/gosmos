@@ -29,8 +29,6 @@ type Lesson struct {
 	Difficulty         int64
 	Readme             string
 	CreatedAt, LastMod string
-	CodeLastMod        sql.NullString
-	SyncedAt           string
 }
 
 // Row is a row of one of a lesson's part tables, its values in the order of the table's
@@ -135,14 +133,13 @@ func Put(tx *sql.Tx, rec Record) error {
 			}
 		}
 	}
-	if _, err := tx.Exec(`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	if _, err := tx.Exec(`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(uuid) DO UPDATE SET chapter_uuid = excluded.chapter_uuid, position = excluded.position, slug = excluded.slug,
 			title = excluded.title, type = excluded.type, required = excluded.required, difficulty = excluded.difficulty,
-			readme = excluded.readme, created_at = excluded.created_at, last_mod = excluded.last_mod,
-			code_last_mod = excluded.code_last_mod, synced_at = excluded.synced_at`,
+			readme = excluded.readme, created_at = excluded.created_at, last_mod = excluded.last_mod`,
 		r.UUID, r.ChapterUUID, r.Position, r.Slug, r.Title, r.Type, boolInt(r.Required), r.Difficulty, r.Readme,
-		r.CreatedAt, r.LastMod, r.CodeLastMod, r.SyncedAt); err != nil {
+		r.CreatedAt, r.LastMod); err != nil {
 		return fmt.Errorf("lesson row: %w", err)
 	}
 	if partsChanged {
@@ -258,9 +255,9 @@ func renderVals(vals []any) string {
 func Get(q Querier, uuid string) (Lesson, bool, error) {
 	var r Lesson
 	var req int64
-	err := q.QueryRow(`SELECT uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at
+	err := q.QueryRow(`SELECT uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod
 		FROM lesson WHERE uuid = ?`, uuid).
-		Scan(&r.UUID, &r.ChapterUUID, &r.Position, &r.Slug, &r.Title, &r.Type, &req, &r.Difficulty, &r.Readme, &r.CreatedAt, &r.LastMod, &r.CodeLastMod, &r.SyncedAt)
+		Scan(&r.UUID, &r.ChapterUUID, &r.Position, &r.Slug, &r.Title, &r.Type, &req, &r.Difficulty, &r.Readme, &r.CreatedAt, &r.LastMod)
 	if errors.Is(err, sql.ErrNoRows) {
 		return r, false, nil
 	}
@@ -271,7 +268,7 @@ func Get(q Querier, uuid string) (Lesson, bool, error) {
 	return r, true, nil
 }
 
-// LessonDiff names the fields in which two rows of the same lesson differ, synced_at aside.
+// LessonDiff names the fields in which two rows of the same lesson differ.
 func LessonDiff(a, b Lesson) []string {
 	var d []string
 	for _, f := range []struct {
@@ -288,7 +285,6 @@ func LessonDiff(a, b Lesson) []string {
 		{a.Readme != b.Readme, "readme"},
 		{a.CreatedAt != b.CreatedAt, "created_at"},
 		{a.LastMod != b.LastMod, "last_mod"},
-		{a.CodeLastMod != b.CodeLastMod, "code_last_mod"},
 	} {
 		if f.differs {
 			d = append(d, f.name)

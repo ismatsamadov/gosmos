@@ -123,7 +123,8 @@ type Migration struct {
 // step runs in one transaction, with foreign keys checked before it commits.
 //
 // The step from 6 to 7 gives the library its library_info row (a new uuid, the title from
-// opt.Title or else the first course's or the file's name, and version 1), and moves the
+// opt.Title or else the first course's or the file's name, and version 1), puts lesson
+// difficulties on format 7's scale of 1 to 10 (old score + 6, divided by 7), and moves the
 // learner's data into the learner database opt.Learner, under a library row for the file
 // (location: its absolute path). That transaction commits first. Only then is the library
 // rebuilt without the learner tables, in one transaction that checks every other table kept
@@ -230,9 +231,11 @@ func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, e
 }
 
 // migrate6to7 makes format 7 inside the library, once its learner data is in the learner
-// database: the learner tables go, code_lesson gains solution_note and quiz_answer explanation,
-// library_info (holding info) and lesson_hint are new, and the file gets format 7's mark.
-// Every table it keeps must hold as many rows as before.
+// database: the learner tables go; lesson loses code_last_mod and synced_at, and its difficulty
+// goes from the old scores, about 5 to 70, to 1 to 10; code_lesson gains solution_note and
+// quiz_answer explanation; library_info (holding info) and lesson_hint are new; and the file
+// gets format 7's mark. Every table it keeps must hold as many rows as before, and the search
+// index must still match the lessons.
 func migrate6to7(ctx context.Context, tx *sql.Tx, info Info) error {
 	before, err := tableRows(ctx, tx)
 	if err != nil {
@@ -243,6 +246,13 @@ func migrate6to7(ctx context.Context, tx *sql.Tx, info Info) error {
 			return fmt.Errorf("dropping %s: %w", t, err)
 		}
 		delete(before, t)
+	}
+	// Each lesson keeps its id, the search index's key.
+	if err := rebuild(ctx, tx, 7, "lesson", `
+		INSERT INTO new_lesson (id, uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		SELECT id, uuid, chapter_uuid, position, slug, title, type, required, min(10, max(1, (difficulty + 6) / 7)), readme, created_at, last_mod
+		FROM lesson`); err != nil {
+		return err
 	}
 	if err := rebuild(ctx, tx, 7, "code_lesson", `
 		INSERT INTO new_code_lesson (lesson_uuid, lesson_type, prog_lang, expected_output)
@@ -273,6 +283,9 @@ func migrate6to7(ctx context.Context, tx *sql.Tx, info Info) error {
 	}
 	if after["library_info"] != 1 || after["lesson_hint"] != 0 {
 		return fmt.Errorf("library_info holds %d rows and lesson_hint %d, not 1 and 0", after["library_info"], after["lesson_hint"])
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO lesson_search(lesson_search, rank) VALUES ('integrity-check', 1)`); err != nil {
+		return fmt.Errorf("the search index no longer matches the lessons: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`PRAGMA application_id = %d`, ApplicationID)); err != nil {
 		return err

@@ -325,14 +325,14 @@ func lesson(ctx context.Context, args []string, out io.Writer) error {
 			return fmt.Errorf("position %d of chapter %s is taken by lesson %s", pkg.Position, *chapterSlug, holder)
 		}
 		t := now()
-		times := authoring.Times{Created: t, Modified: t, Synced: t}
+		times := authoring.Times{Created: t, Modified: t}
 		var diff []string
 		if exists {
 			cur, _, err := store.Get(tx, uuid)
 			if err != nil {
 				return err
 			}
-			times = authoring.Times{Created: cur.CreatedAt, Modified: cur.LastMod, Synced: cur.SyncedAt}
+			times = authoring.Times{Created: cur.CreatedAt, Modified: cur.LastMod}
 			rec := pkg.Record(uuid, chapterUUID, times)
 			parts, err := store.ReadParts(tx, uuid)
 			if err != nil {
@@ -342,7 +342,7 @@ func lesson(ctx context.Context, args []string, out io.Writer) error {
 				fmt.Fprintf(out, "lesson %s: unchanged (%s)\n", name, uuid)
 				return nil
 			}
-			times.Modified, times.Synced = t, t
+			times.Modified = t
 		}
 		if err := store.Put(tx, pkg.Record(uuid, chapterUUID, times)); err != nil {
 			return err

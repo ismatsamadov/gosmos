@@ -6,7 +6,6 @@ package authoring
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -112,7 +111,7 @@ func TestRecordAndLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	times := Times{Created: "2026-11-01T10:00:00Z", Modified: "2026-11-01T10:00:00Z", Synced: "2026-11-01T10:00:00Z"}
+	times := Times{Created: "2026-11-01T10:00:00Z", Modified: "2026-11-01T10:00:00Z"}
 	for _, name := range examples {
 		p, err := Read(example(name))
 		if err != nil {
@@ -141,11 +140,6 @@ func TestRecordAndLoad(t *testing.T) {
 	}
 	if problems, err := db.Validate(context.Background(), d); err != nil || len(problems) > 0 {
 		t.Error(problems, err)
-	}
-	var codeLastMod sql.NullString
-	d.QueryRow(`SELECT code_last_mod FROM lesson WHERE slug = 'mission-quiz'`).Scan(&codeLastMod)
-	if codeLastMod.Valid {
-		t.Error("a quiz has a code_last_mod")
 	}
 }
 
@@ -212,7 +206,9 @@ func TestReadRefuses(t *testing.T) {
 		{"a bad slug", "launch-window", map[string]string{"README.md": front(with(0, "slug: Launch_Window")...)}, `slug "Launch_Window" is not lowercase`},
 		{"an unknown type", "launch-window", map[string]string{"README.md": front(with(2, "type: video")...)}, `type "video" is not code, code_tests or quiz`},
 		{"a negative position", "launch-window", map[string]string{"README.md": front(with(3, "position: -1")...)}, `position "-1" is not a whole number from 0 up`},
-		{"no difficulty", "launch-window", map[string]string{"README.md": front(with(4, "difficulty: 0")...)}, `difficulty "0" is not a whole number from 1 up`},
+		{"no difficulty", "launch-window", map[string]string{"README.md": front(with(4, "difficulty: 0")...)}, `difficulty "0" is not a whole number from 1 (easiest) to 10`},
+		{"a difficulty over 10", "launch-window", map[string]string{"README.md": front(with(4, "difficulty: 11")...)}, `difficulty "11" is not a whole number from 1 (easiest) to 10`},
+		{"an old difficulty score", "launch-window", map[string]string{"README.md": front(with(4, "difficulty: 40")...)}, `difficulty "40" is not a whole number from 1 (easiest) to 10`},
 		{"topics out of order", "launch-window", map[string]string{"README.md": front(with(5, "topics: printing, constants")...)}, "topics: constants, printing"},
 		{"a topic twice", "launch-window", map[string]string{"README.md": front(with(5, "topics: printing, printing")...)}, "topics lists a topic twice"},
 		{"blanks after a value", "launch-window", map[string]string{"README.md": front(with(1, "title: The Launch Window ")...)}, "front matter must read exactly"},
@@ -295,7 +291,7 @@ func indent(text string) string {
 
 // The examples the help shows are what Read takes, so writers can start from them.
 func TestLayoutExamplesAreValid(t *testing.T) {
-	front := "---\nslug: launch-checklist\ntitle: The Launch Checklist\ntype: code\nposition: 0\ndifficulty: 10\ntopics: printing, variables\n---\n"
+	front := "---\nslug: launch-checklist\ntitle: The Launch Checklist\ntype: code\nposition: 0\ndifficulty: 3\ntopics: printing, variables\n---\n"
 	hints := "Look at what clock.go defines: the number you need is already there.\n\n" +
 		"fmt.Printf puts each value you give it where a %d stands, in order.\n\n" +
 		"Compare your output with the expected one character by character, the newline too.\n"

@@ -73,18 +73,16 @@ CREATE TABLE lesson (
   type          TEXT NOT NULL CHECK (type IN ('type_code', 'type_code_tests', 'type_choice',
                                               'type_cli', 'type_github_checks', 'type_interview_chat')),
   required      INTEGER NOT NULL CHECK (required IN (0, 1)),
-  difficulty    INTEGER NOT NULL CHECK (difficulty > 0),             -- the source's difficulty score
-  readme        TEXT NOT NULL,                                       -- Markdown, images and videos removed
+  difficulty    INTEGER NOT NULL CHECK (difficulty BETWEEN 1 AND 10),  -- 1 (easiest) to 10
+  readme        TEXT NOT NULL,                                         -- Markdown, no pictures or videos
   created_at    TEXT NOT NULL CHECK (created_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(created_at) IS NOT NULL),
   last_mod      TEXT NOT NULL CHECK (last_mod GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(last_mod) IS NOT NULL),
-  code_last_mod TEXT CHECK (code_last_mod IS NULL OR (code_last_mod GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(code_last_mod) IS NOT NULL)),
-  synced_at     TEXT NOT NULL CHECK (synced_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(synced_at) IS NOT NULL),
   UNIQUE (chapter_uuid, position),
   UNIQUE (chapter_uuid, slug),
   UNIQUE (uuid, type)                          -- what the per-type tables reference
 ) STRICT;
--- last_mod and code_last_mod are when the lesson and its starter code last changed at their
--- source, and synced_at is when the producer last wrote the lesson.
+-- created_at is when the lesson was first written, and last_mod when it last changed; the
+-- author tool sets both.
 
 CREATE TABLE lesson_topic (
   lesson_uuid TEXT NOT NULL REFERENCES lesson(uuid) ON DELETE CASCADE,
@@ -203,8 +201,7 @@ CREATE TABLE cli_lesson (
   -- says where.
   base_url_default      TEXT CHECK (base_url_default <> '' AND base_url_default <> 'override'),
   -- 1: the lesson needs the address of your own server, such as an app you deployed, and
-  -- suggests none (the source marks these 'override'). The learner database's
-  -- project.base_url holds it.
+  -- suggests none. The learner database's project.base_url holds it.
   asks_for_base_url     INTEGER NOT NULL DEFAULT 0 CHECK (asks_for_base_url IN (0, 1)),
   use_agent_prompt      INTEGER NOT NULL CHECK (use_agent_prompt IN (0, 1)),
   contains_complete_dir INTEGER NOT NULL CHECK (contains_complete_dir IN (0, 1)),

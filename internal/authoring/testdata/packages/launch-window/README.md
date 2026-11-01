@@ -3,7 +3,7 @@ slug: launch-window
 title: The Launch Window
 type: code
 position: 0
-difficulty: 10
+difficulty: 1
 topics: constants, printing
 ---
 # The Launch Window

@@ -45,9 +45,9 @@ func exec(t *testing.T, path string, stmts ...string) {
 }
 
 func lesson(uuid, chapter, typ string, position int) string {
-	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-		VALUES ('` + uuid + `', '` + chapter + `', ` + string(rune('0'+position)) + `, '` + uuid + `', 'Lesson ` + uuid + `', '` + typ + `', 1, 20,
-		'# A lesson\n\nRead this first.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`
+	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		VALUES ('` + uuid + `', '` + chapter + `', ` + string(rune('0'+position)) + `, '` + uuid + `', 'Lesson ` + uuid + `', '` + typ + `', 1, 3,
+		'# A lesson\n\nRead this first.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')`
 }
 
 // smallLibrary is an invented course with a lesson of every type.

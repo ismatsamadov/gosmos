@@ -3,7 +3,7 @@ slug: mission-quiz
 title: Mission Check
 type: quiz
 position: 2
-difficulty: 5
+difficulty: 2
 topics:
 ---
 # Mission Check

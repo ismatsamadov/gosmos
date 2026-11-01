@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -225,8 +226,11 @@ func dump(t *testing.T, d *sql.DB, skip ...string) string {
 	return b.String()
 }
 
-// oldColumns are the columns tables had before format 7 gave them new ones.
+// oldColumns are the columns format 7 kept as they were, of the tables it changed: lesson lost
+// two columns and has its difficulty on a new scale (TestMigrateRescalesDifficulty), and
+// code_lesson and quiz_answer gained one each.
 var oldColumns = map[string]string{
+	"lesson":      "id, uuid, chapter_uuid, position, slug, title, type, required, readme, created_at, last_mod",
 	"code_lesson": "lesson_uuid, lesson_type, prog_lang, expected_output",
 	"quiz_answer": "lesson_uuid, question_position, position, answer, is_correct",
 }
@@ -458,6 +462,55 @@ func TestMigrateFrom6MovesTheLearnersData(t *testing.T) {
 	// VACUUM leaves no copy of the learner's data in the library's file.
 	if b, _ := os.ReadFile(path); bytes.Contains(b, []byte(noteBody)) || bytes.Contains(b, []byte("half done")) {
 		t.Error("the library's file still holds the learner's data")
+	}
+}
+
+// Format 7's difficulty runs from 1 to 10; the scores of older formats, from about 5 to 70,
+// become min(10, max(1, (score + 6) / 7)). Each lesson keeps its id, so the search index still
+// finds it, and the columns code_last_mod and synced_at are gone.
+func TestMigrateRescalesDifficulty(t *testing.T) {
+	scores := map[string]int{"one": 1, "five": 5, "eight": 8, "fifteen": 15, "forty-nine": 49, "fifty": 50, "seventy": 70, "ninety": 90}
+	want := map[string]int{"one": 1, "five": 1, "eight": 2, "fifteen": 3, "forty-nine": 7, "fifty": 8, "seventy": 10, "ninety": 10}
+	stmts := []string{
+		`INSERT INTO course VALUES ('c1', 'learn-orbits', 'Learn Orbits', 'Course', 'Short.', 'Long.', 0)`,
+		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-launch', 'Launch', 'Lift off.')`,
+	}
+	position := 0
+	for _, slug := range slices.Sorted(maps.Keys(scores)) {
+		stmts = append(stmts, fmt.Sprintf(`INSERT INTO lesson (id, uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
+			VALUES (%d, 'l-%s', 'ch1', %d, '%s', 'Lesson %s', 'type_interview_chat', 1, %d, 'The %s lesson talks about orbit%s.',
+			'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`, 100+position*7, slug, position, slug, slug, scores[slug], slug, slug),
+			`INSERT INTO interview_lesson VALUES ('l-`+slug+`', 'type_interview_chat', 'Talk about it.', NULL)`)
+		position++
+	}
+	path := v6File(t, "orbits.sqlite", stmts...)
+	_, d := migrated(t, path, MigrateOptions{})
+	for slug, w := range want {
+		var got, id int
+		if err := d.QueryRow(`SELECT difficulty, id FROM lesson WHERE slug = ?`, slug).Scan(&got, &id); err != nil {
+			t.Fatal(err)
+		}
+		if got != w {
+			t.Errorf("%s: a score of %d became %d, want %d", slug, scores[slug], got, w)
+		}
+		var found int
+		if err := d.QueryRow(`SELECT rowid FROM lesson_search WHERE lesson_search MATCH ?`, `"orbit`+slug+`"`).Scan(&found); err != nil || found != id {
+			t.Errorf("%s: the search index finds row %d (%v), want the lesson's id %d", slug, found, err, id)
+		}
+	}
+	for _, column := range []string{"code_last_mod", "synced_at"} {
+		if n := count(t, d, `SELECT count(*) FROM pragma_table_info('lesson') WHERE name = ?`, column); n != 0 {
+			t.Errorf("lesson still has %s", column)
+		}
+	}
+	for _, tc := range []struct {
+		difficulty int
+		ok         bool
+	}{{0, false}, {1, true}, {10, true}, {11, false}} {
+		_, err := d.Exec(`UPDATE lesson SET difficulty = ? WHERE slug = 'one'`, tc.difficulty)
+		if (err == nil) != tc.ok {
+			t.Errorf("difficulty %d: err = %v, want ok = %v", tc.difficulty, err, tc.ok)
+		}
 	}
 }
 

@@ -26,11 +26,13 @@ A producer fills the tables; nothing in a library belongs to a learner.
   - `course` (kind 'Course' or 'Guided Project'), then `chapter`, then `lesson`.
   - Each list is ordered by `position`, counted from 0, and unique within its parent.
   - The sidebar shows this order exactly.
-- **Lessons**: every lesson has exactly one row in the table for its type.
+- **Lessons**: every lesson has exactly one row in the table for its type. `difficulty` runs
+  from 1 (easiest) to 10. `created_at` is when the lesson was first written and `last_mod`
+  when it last changed; the author tool sets both.
 
   | `lesson.type` | Table | What the app does |
   |---|---|---|
-  | `type_code` | `code_lesson` + `starter_file` | Builds and runs the program; it passes when stdout equals `expected_output` |
+  | `type_code` | `code_lesson` + `starter_file` | Builds and runs the program; it passes when stdout equals `expected_output`, ignoring `\r` before a newline, spaces and tabs at the ends of lines, and newlines at the end |
   | `type_code_tests` | `code_lesson` + `starter_file` | Runs `go test`; it passes when every test passes and the output reports no failed case |
   | `type_choice` | `quiz_lesson`, `quiz_question`, `quiz_answer` | Grades each question against its one right answer |
   | `type_cli` | `cli_lesson`, `cli_step` and its parts | Runs the steps in order: commands under `/bin/zsh -c` in the course's folder, HTTP requests to the learner's server, each checked by its tests |
@@ -51,9 +53,10 @@ A producer fills the tables; nothing in a library belongs to a learner.
     answers.
 
   `go run ./cmd/library verify <file>` runs every code lesson with the Go toolchain: it must
-  pass with its solution and fail with its starter, every run within 10 s. With `--teaching`
-  it also requires the hints, solution notes and explanations above, as the built-in
-  courses do.
+  pass with its solution and fail with its starter, every run within 10 s. The solution must
+  print `expected_output` exactly; the starter must not match it even the way the app
+  compares. With `--teaching` it also requires the hints, solution notes and explanations
+  above, as the built-in courses do.
 - **Command-line steps**:
   - `${name}` in commands, URLs, headers and bodies is replaced with values captured by
     earlier steps. `${baseURL}` is the learner's server: the address the lesson suggests
@@ -105,4 +108,6 @@ notes, their code, the hints and solutions they looked at, and their review sche
 row names its library by `library_info.uuid` and its lesson by uuid, so updating a library
 never touches the learner's data. Libraries of format 6 and older kept the learner's data
 inside the library; `go run ./cmd/library migrate <file> --learner <learner.sqlite>` moves it
-into the learner database and leaves the library content only.
+into the learner database and leaves the library content only. The same migration puts
+`difficulty` on the 1 to 10 scale (the old score plus 6, divided by 7) and drops the lesson
+columns `code_last_mod` and `synced_at`.

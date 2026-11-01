@@ -21,6 +21,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/jobloom/gosmos/db"
 )
@@ -53,6 +54,12 @@ func verify(ctx context.Context, path, course string, teaching bool, out io.Writ
 	if err != nil {
 		return false, errors.New("verify runs lessons with the go command, which is not on PATH")
 	}
+	gv := command(ctx, time.Minute, "", goEnv(), goBin, "env", "GOVERSION")
+	goVersion := strings.TrimSpace(gv.stdout)
+	if gv.exit != 0 || gv.err != nil || !strings.HasPrefix(goVersion, "go") {
+		return false, fmt.Errorf("go env GOVERSION: %s", firstLine(gv.stdout+gv.stderr))
+	}
+	goMod := "module lesson\n\ngo " + languageVersion(goVersion) + "\n"
 	d, recovered, err := db.Inspect(path)
 	if err != nil {
 		return false, err
@@ -74,7 +81,7 @@ func verify(ctx context.Context, path, course string, teaching bool, out io.Writ
 	}
 	problems := 0
 	for _, l := range ls {
-		for _, p := range verifyLesson(ctx, goBin, l) {
+		for _, p := range verifyLesson(ctx, goBin, goMod, l) {
 			fmt.Fprintf(out, "%s: %s\n", l.name, p)
 			problems++
 		}
@@ -231,7 +238,7 @@ func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLess
 }
 
 // verifyLesson returns the problems of one code lesson.
-func verifyLesson(ctx context.Context, goBin string, l *codeLesson) []string {
+func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson) []string {
 	var problems []string
 	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	if len(l.solution) == 0 {
@@ -248,7 +255,7 @@ func verifyLesson(ctx context.Context, goBin string, l *codeLesson) []string {
 		problems = append(problems, testsThatCannotFail(l.starter)...)
 	}
 	for _, side := range []string{"solution", "starter"} {
-		r, err := runLesson(ctx, goBin, l, side == "solution")
+		r, err := runLesson(ctx, goBin, goMod, l, side == "solution")
 		if err != nil {
 			add("could not be run with its %s: %v", side, err)
 			continue
@@ -277,8 +284,8 @@ func verifyLesson(ctx context.Context, goBin string, l *codeLesson) []string {
 			add("the solution prints %s, not the expected %s", clip(r.stdout), clip(l.expected.String))
 		case side == "starter" && tests && r.built && r.exit == 0:
 			add("the starter passes its tests: they should fail until the learner solves the lesson")
-		case side == "starter" && !tests && r.built && r.exit == 0 && r.stdout == l.expected.String:
-			add("the starter already prints the expected output")
+		case side == "starter" && !tests && r.built && r.exit == 0 && normalizeOutput(r.stdout) == normalizeOutput(l.expected.String):
+			add("the starter already prints the expected output") // as the app's Submit compares them
 		}
 	}
 	return problems
@@ -295,8 +302,9 @@ type result struct {
 }
 
 // runLesson builds the lesson with its solution or its starter in a temporary folder and runs
-// it: the program for a code lesson, the compiled tests for a code_tests lesson.
-func runLesson(ctx context.Context, goBin string, l *codeLesson, solved bool) (result, error) {
+// it: the program for a code lesson, the compiled tests for a code_tests lesson. A lesson
+// without a go.mod gets goMod, as the app gives it one.
+func runLesson(ctx context.Context, goBin, goMod string, l *codeLesson, solved bool) (result, error) {
 	var r result
 	dir, err := os.MkdirTemp("", "gosmos-verify-")
 	if err != nil {
@@ -325,11 +333,11 @@ func runLesson(ctx context.Context, goBin string, l *codeLesson, solved bool) (r
 		hasMod = hasMod || f.name == "go.mod"
 	}
 	if !hasMod {
-		if err := os.WriteFile(filepath.Join(src, "go.mod"), []byte("module lesson\n\ngo 1.24\n"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(src, "go.mod"), []byte(goMod), 0o644); err != nil {
 			return r, err
 		}
 	}
-	env := append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOPROXY=off", "GOFLAGS=", "CGO_ENABLED=0")
+	env := goEnv()
 	bin := filepath.Join(dir, "lesson.bin")
 	build := []string{"build", "-o", bin, "."}
 	if l.typ == "type_code_tests" {
@@ -357,6 +365,29 @@ func runLesson(ctx context.Context, goBin string, l *codeLesson, solved bool) (r
 	}
 	r.exit, r.stdout, r.stderr, r.took, r.timedOut = c.exit, c.stdout, c.stderr, c.took, c.timedOut
 	return r, nil
+}
+
+// goEnv is the environment verify builds lessons in: the go command found on PATH, with
+// nothing that would switch toolchains, workspaces or module proxies.
+func goEnv() []string {
+	return append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOPROXY=off", "GOFLAGS=", "CGO_ENABLED=0")
+}
+
+// languageVersion is the Go version the app writes into the go.mod of a lesson folder that has
+// none (Toolchain.languageVersion): the major and minor of what `go env GOVERSION` says, such
+// as 1.27 for go1.27.3, or 1.22 when there is no telling. A lesson verifies with the Go its
+// learners run it with, and may use what that Go has.
+func languageVersion(v string) string {
+	parts := strings.FieldsFunc(strings.ReplaceAll(v, "go", ""), func(r rune) bool { return r == '.' })
+	if len(parts) < 2 {
+		return "1.22"
+	}
+	minor := []rune(parts[1])
+	n := 0
+	for n < len(minor) && unicode.IsNumber(minor[n]) {
+		n++
+	}
+	return parts[0] + "." + string(minor[:n])
 }
 
 type commandResult struct {
@@ -439,6 +470,18 @@ func testsThatCannotFail(files []starterFile) []string {
 		}
 	}
 	return problems
+}
+
+// normalizeOutput is how the app compares a program's output with the expected output when it
+// grades a Submit (GoRunner.normalizeOutput): \r\n counts as \n, spaces and tabs at the end of
+// a line do not count, and neither do newlines at the end. The solution must still print the
+// expected output exactly; the starter must not pass even the app's looser comparison.
+func normalizeOutput(s string) string {
+	lines := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	for i, l := range lines {
+		lines[i] = strings.TrimRight(l, " \t")
+	}
+	return strings.TrimRight(strings.Join(lines, "\n"), "\n")
 }
 
 // buildError returns the first line of go build output that says what is wrong, past the
