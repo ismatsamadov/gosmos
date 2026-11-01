@@ -209,7 +209,7 @@ import Testing
                                            StarterFile(name: "main_test.go", content: "tests", isReadonly: true)])
 
     func lesson() -> LessonDetail {
-        LessonDetail(summary: LessonSummary(id: "ws-lesson", chapterID: "h", title: "T", type: .codeTests, required: true),
+        LessonDetail(library: Fixtures.libraryID, summary: LessonSummary(id: "ws-lesson", chapterID: "h", title: "T", type: .codeTests, required: true),
                      courseID: "c", courseTitle: "C", chapterTitle: "H", readme: "", difficulty: 1,
                      topics: [], content: .codeTests(code))
     }
@@ -257,6 +257,35 @@ import Testing
         _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
         #expect(try String(contentsOf: tests, encoding: .utf8) == "tests")
         #expect(FileManager.default.fileExists(atPath: ws.folder(for: l).appendingPathComponent("go.mod").path))
+    }
+
+    /// A library is a file anyone can hand you, and its uuids are any text. Whatever they say,
+    /// a lesson's folder is one folder inside the work folder: preparing it writes nothing
+    /// outside, and a review starting over removes nothing else.
+    @Test func uuidsNeverLeaveTheWorkFolder() throws {
+        let root = try Fixtures.tempDir("escape")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let work = root.appendingPathComponent("caches/gosmos/work", isDirectory: true)
+        let ws = Workspace(root: work)
+        let kept = root.appendingPathComponent("caches/gosmos/kept.txt")
+        try FileManager.default.createDirectory(at: kept.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "kept".write(to: kept, atomically: true, encoding: .utf8)
+        for (library, id) in [("..", ".."), (".", "."), ("..", "lesson"), ("library", ".."), ("library", "."), ("library", ""), ("../..", "../..")] {
+            let l = LessonDetail(library: library, summary: LessonSummary(id: id, chapterID: "h", title: "T", type: .codeTests, required: true),
+                                 courseID: "c", courseTitle: "C", chapterTitle: "H", readme: "# T", difficulty: 1,
+                                 topics: [], content: .codeTests(code))
+            for space in [ws, ws.review] {
+                // <root>/<library>/<lesson>: two folders down, neither of them "." or "..".
+                let folder = space.folder(for: l).pathComponents, root = space.root.pathComponents
+                let below = folder.starts(with: root) ? Array(folder.dropFirst(root.count)) : []
+                #expect(below.count == 2 && below.allSatisfy { $0 != "." && $0 != ".." }, "\(library) \(id): \(folder.joined(separator: "/"))")
+                _ = try space.prepare(l, code: code, saved: [:], goVersion: "1.27")
+            }
+            try ws.review.remove(l)
+        }
+        #expect((try? String(contentsOf: kept, encoding: .utf8)) == "kept")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("caches").path) == ["gosmos"])
+        #expect(try FileManager.default.contentsOfDirectory(atPath: kept.deletingLastPathComponent().path).sorted() == ["kept.txt", "work"])
     }
 }
 

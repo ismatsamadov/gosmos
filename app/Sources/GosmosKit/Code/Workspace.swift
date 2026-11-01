@@ -15,9 +15,10 @@ public struct EditorFile: Hashable, Sendable {
 }
 
 /// Lesson folders for building, running and testing code, and for opening it in an editor:
-/// ~/Library/Caches/Gosmos/work/<lesson>/ holds the readme, your files, the read-only
-/// tests and go.mod, so `go build` and `go test` work there in a terminal too. Hidden files
-/// are never written; they are added at build time.
+/// ~/Library/Caches/Gosmos/work/<library>/<lesson>/ holds the readme, your files, the
+/// read-only tests and go.mod, so `go build` and `go test` work there in a terminal too.
+/// Hidden files are never written; they are added at build time. A review works in a
+/// workspace of its own (`review`), so it never touches the lesson's folder.
 ///
 /// The folder is disposable: your code lives in the database (code_file). Preparing a folder
 /// writes what the database holds, unless the file on disk is newer, which means you edited
@@ -54,9 +55,22 @@ public struct Workspace: Sendable {
         return removed
     }
 
-    /// The lesson's folder, named by its uuid (slugs repeat across chapters).
+    /// Where reviews redo lessons: work/review/<library>/<lesson>/.
+    public var review: Workspace { Workspace(root: root.appendingPathComponent("review", isDirectory: true)) }
+
+    /// The lesson's folder, named by its library's uuid and its own (slugs repeat across
+    /// chapters, and lesson uuids only need to be unique within their library).
     public func folder(for lesson: LessonDetail) -> URL {
-        root.appendingPathComponent(lesson.id.replacingOccurrences(of: "/", with: "-"), isDirectory: true)
+        root.appendingPathComponent(Workspace.folderName(lesson.library), isDirectory: true)
+            .appendingPathComponent(Workspace.folderName(lesson.id), isDirectory: true)
+    }
+
+    /// A uuid as the name of one folder. A library is a file anyone can hand you, and its
+    /// uuids are any text: "/" would add folders, and "", "." or ".." would name the folder
+    /// above, or the one above that, which a review starting over would remove.
+    static func folderName(_ uuid: String) -> String {
+        let name = uuid.replacingOccurrences(of: "/", with: "-")
+        return name.isEmpty || name == "." || name == ".." ? "-" + name : name
     }
 
     /// What preparing a folder found.
@@ -122,6 +136,13 @@ public struct Workspace: Sendable {
             }
         }
         return Prepared(folder: dir, files: files, readBack: readBack)
+    }
+
+    /// Removes the lesson's folder, if there is one.
+    public func remove(_ lesson: LessonDetail) throws {
+        let dir = folder(for: lesson)
+        guard FileManager.default.fileExists(atPath: dir.path) else { return }
+        try FileManager.default.removeItem(at: dir)
     }
 
     /// Writes one of your files into the lesson folder.

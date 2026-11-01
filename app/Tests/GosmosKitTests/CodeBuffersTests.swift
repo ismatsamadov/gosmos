@@ -2,34 +2,6 @@ import Foundation
 import Testing
 @testable import GosmosKit
 
-/// Holds a load where it asks for the Go version, until opened, so a test can type while the
-/// load is under way.
-private actor Gate {
-    private var isOpen = false
-    private var held: [CheckedContinuation<Void, Never>] = []
-    private var watchers: [CheckedContinuation<Void, Never>] = []
-
-    /// Waits here until the gate opens.
-    func pass() async {
-        guard !isOpen else { return }
-        for watcher in watchers { watcher.resume() }
-        watchers = []
-        await withCheckedContinuation { held.append($0) }
-    }
-
-    /// Returns once something waits at the gate.
-    func somethingWaits() async {
-        guard held.isEmpty else { return }
-        await withCheckedContinuation { watchers.append($0) }
-    }
-
-    func open() {
-        isOpen = true
-        for waiter in held { waiter.resume() }
-        held = []
-    }
-}
-
 /// What the buffers asked to remember across launches: whether a file is still in conflict.
 @MainActor private final class Remembered {
     var files: [String: Bool] = [:]
@@ -40,6 +12,7 @@ private actor Gate {
 @Suite struct CodeBuffersTests {
     struct Bench {
         let db: AppDatabase
+        let learner: LearnerDatabase
         let dir: URL
         let lesson: LessonDetail
         let code: CodeExercise
@@ -49,19 +22,20 @@ private actor Gate {
             let (db, dir) = try Fixtures.database()
             self.db = db
             self.dir = dir
+            learner = try await Fixtures.learner(in: dir)
             lesson = try #require(try await db.lesson(Fixtures.codeLesson))
             code = try #require(lesson.code)
             workspace = Workspace(root: dir.appendingPathComponent("work"))
         }
 
         var file: URL { workspace.folder(for: lesson).appendingPathComponent("main.go") }
-        func stored() async throws -> String? { try await db.codeFiles(for: lesson.id)["main.go"]?.content }
+        func stored() async throws -> String? { try await learner.codeFiles(for: lesson.ref)["main.go"]?.content }
         func onDisk() throws -> String { try String(contentsOf: file, encoding: .utf8) }
 
         /// Buffers opened with `saved` as code_file had it, whose load waits at `gate`.
         @MainActor
         fileprivate func buffers(saved: [String: CodeFileRecord] = [:], gate: Gate, remembered: @escaping @MainActor (String, Bool) -> Void = { _, _ in }) -> CodeBuffers {
-            CodeBuffers(lesson: lesson, exercise: code, saved: saved, database: db, workspace: workspace, unsettled: [],
+            CodeBuffers(lesson: lesson, exercise: code, saved: saved, learner: learner, workspace: workspace, unsettled: [],
                         goVersion: { await gate.pass(); return "1.27" }, remember: remembered)
         }
     }
@@ -98,7 +72,7 @@ private actor Gate {
         let bench = try await Bench()
         defer { try? FileManager.default.removeItem(at: bench.dir) }
         let earlier = CodeFileRecord(name: "main.go", content: "package main // saved\n", updatedAt: Fixtures.ts)
-        try await bench.db.saveCode(lesson: bench.lesson.id, files: [earlier])
+        try await bench.learner.saveCode(bench.lesson.ref, files: [earlier])
         try FileManager.default.createDirectory(at: bench.file.deletingLastPathComponent(), withIntermediateDirectories: true)
         try "package main // theirs\n".write(to: bench.file, atomically: true, encoding: .utf8) // newer than code_file
         let gate = Gate(), remembered = Remembered()
@@ -129,7 +103,7 @@ private actor Gate {
         let bench = try await Bench()
         defer { try? FileManager.default.removeItem(at: bench.dir) }
         let earlier = CodeFileRecord(name: "main.go", content: "package main // saved\n", updatedAt: Fixtures.ts)
-        try await bench.db.saveCode(lesson: bench.lesson.id, files: [earlier])
+        try await bench.learner.saveCode(bench.lesson.ref, files: [earlier])
         try FileManager.default.createDirectory(at: bench.file.deletingLastPathComponent(), withIntermediateDirectories: true)
         try "package main // theirs\n".write(to: bench.file, atomically: true, encoding: .utf8)
         let gate = Gate()
@@ -139,5 +113,62 @@ private actor Gate {
         #expect(buffers.isLoaded && buffers.files.first { $0.name == "main.go" }?.text == "package main // theirs\n")
         #expect(try await bench.stored() == "package main // theirs\n")
         #expect(try await buffers.flush() && buffers.conflict == nil)
+    }
+}
+
+extension CodeBuffersTests {
+    /// A review redoes a lesson from its starter code, in a folder of its own: your saved code
+    /// and the lesson's folder stay as they are, and the next review starts over.
+    @Test @MainActor func aReviewStartsFromTheStarterAndKeepsNothing() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let starter = try #require(bench.code.starterFiles.first { $0.name == "main.go" }?.content)
+        let mine = CodeFileRecord(name: "main.go", content: "package main // mine\n", updatedAt: Fixtures.ts)
+        try await bench.learner.saveCode(bench.lesson.ref, files: [mine])
+        let review = bench.workspace.review
+        let gate = Gate()
+        await gate.open()
+        func reviewBuffers() -> CodeBuffers {
+            CodeBuffers(lesson: bench.lesson, exercise: bench.code, saved: [:], learner: nil, workspace: review, unsettled: [],
+                        goVersion: { await gate.pass(); return "1.27" }, remember: { _, _ in })
+        }
+        let buffers = reviewBuffers()
+        await buffers.load()
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        #expect(buffers.isLoaded && main.text == starter)
+        #expect(buffers.folder == review.folder(for: bench.lesson) && buffers.folder != bench.workspace.folder(for: bench.lesson))
+        main.text = "package main // review try\n"
+        #expect(try await buffers.flush())
+        let tried = review.folder(for: bench.lesson).appendingPathComponent("main.go")
+        #expect(try String(contentsOf: tried, encoding: .utf8) == "package main // review try\n")
+        #expect(try await bench.stored() == mine.content) // your saved code is untouched
+        #expect(!FileManager.default.fileExists(atPath: bench.file.path)) // and the lesson's folder too
+
+        let again = reviewBuffers()
+        await again.load()
+        #expect(again.files.first { $0.name == "main.go" }?.text == starter)
+    }
+
+    /// The conflicts a review meets in its own folder stay there: the lesson's list of files
+    /// left in conflict (which decides what its next opening keeps) is never written, and
+    /// leaving keeps nothing.
+    @Test @MainActor func aReviewsConflictsAreNotRemembered() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let review = bench.workspace.review
+        let gate = Gate(), remembered = Remembered()
+        await gate.open()
+        let buffers = CodeBuffers(lesson: bench.lesson, exercise: bench.code, saved: [:], learner: nil, workspace: review, unsettled: [],
+                                  goVersion: { await gate.pass(); return "1.27" }, remember: { remembered.files[$0] = $1 })
+        await buffers.load()
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        try "package main // another editor\n".write(to: review.folder(for: bench.lesson).appendingPathComponent("main.go"),
+                                                     atomically: true, encoding: .utf8)
+        main.text = "package main // redo\n"
+        #expect(try await buffers.flush() == false && buffers.conflict == "main.go")
+        // Quitting with no choice made: a review has nothing to keep.
+        #expect(try await buffers.settle(within: .milliseconds(50)).isEmpty)
+        #expect(try await buffers.resolveConflict(keepMine: true)?.value == true)
+        #expect(remembered.files.isEmpty)
     }
 }

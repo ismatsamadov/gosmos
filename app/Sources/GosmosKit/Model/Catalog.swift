@@ -156,6 +156,8 @@ public struct Catalog: Sendable {
 
 /// A lesson with its text, its facts and what its type holds.
 public struct LessonDetail: Sendable {
+    /// The uuid of the library it is in.
+    public let library: String
     public let summary: LessonSummary
     public let courseID: String
     public let courseTitle: String
@@ -163,10 +165,13 @@ public struct LessonDetail: Sendable {
     public let readme: String
     public let difficulty: Int
     public let topics: [String]
+    /// Hints to reveal one at a time, in order.
+    public let hints: [Hint]
     public let content: LessonContent
 
-    public init(summary: LessonSummary, courseID: String, courseTitle: String, chapterTitle: String, readme: String,
-                difficulty: Int, topics: [String], content: LessonContent) {
+    public init(library: String, summary: LessonSummary, courseID: String, courseTitle: String, chapterTitle: String, readme: String,
+                difficulty: Int, topics: [String], hints: [Hint] = [], content: LessonContent) {
+        self.library = library
         self.summary = summary
         self.courseID = courseID
         self.courseTitle = courseTitle
@@ -174,10 +179,12 @@ public struct LessonDetail: Sendable {
         self.readme = readme
         self.difficulty = difficulty
         self.topics = topics
+        self.hints = hints
         self.content = content
     }
 
     public var id: String { summary.id }
+    public var ref: LessonRef { LessonRef(library: library, lesson: summary.id) }
     public var title: String { summary.title }
     public var type: LessonType { summary.type }
 
@@ -193,19 +200,21 @@ public struct LessonDetail: Sendable {
 /// A lesson found by search. Full-text search finds and ranks it; the excerpt shown under it
 /// comes from the readme as the app renders it (ReadmeTexts).
 public struct SearchHit: Identifiable, Hashable, Sendable {
-    public let id: String
+    public let ref: LessonRef
     public let title: String
     public let courseTitle: String
     public let chapterTitle: String
     public let type: LessonType
 
-    public init(id: String, title: String, courseTitle: String, chapterTitle: String, type: LessonType) {
-        self.id = id
+    public init(ref: LessonRef, title: String, courseTitle: String, chapterTitle: String, type: LessonType) {
+        self.ref = ref
         self.title = title
         self.courseTitle = courseTitle
         self.chapterTitle = chapterTitle
         self.type = type
     }
+
+    public var id: LessonRef { ref }
 }
 
 /// An excerpt of text around the first word a query matches, with the matching words marked.

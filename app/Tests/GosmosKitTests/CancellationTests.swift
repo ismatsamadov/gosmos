@@ -35,6 +35,8 @@ import Testing
     @Test @MainActor func rapidCancellationNeverReports() async throws {
         let (db, dir) = try Fixtures.database()
         defer { try? FileManager.default.removeItem(at: dir) }
+        let learner = try await Fixtures.learner(in: dir)
+        let ref = Fixtures.ref(Fixtures.codeLesson)
         let texts = ReadmeTexts(), banner = Banner()
         let query = "greeting"
         var task: Task<Void, Never>?
@@ -43,13 +45,13 @@ import Testing
                 task?.cancel()
                 task = Task { @MainActor in
                     do {
-                        let found = try await texts.search(typed, in: db)
+                        let found = try await texts.search(typed, in: [db])
                         _ = try await db.lesson(Fixtures.codeLesson)
-                        _ = try await db.note(for: Fixtures.codeLesson)
-                        _ = try await db.codeFiles(for: Fixtures.codeLesson)
-                        try await db.markOpened(Fixtures.codeLesson)
+                        _ = try await learner.note(for: ref)
+                        _ = try await learner.codeFiles(for: ref)
+                        try await learner.markOpened(ref)
                         guard !Task.isCancelled else { return }
-                        banner.results = found.hits.map(\.id)
+                        banner.results = found.hits.map(\.ref.lesson)
                     } catch {
                         banner.report(error)
                     }
@@ -68,15 +70,17 @@ import Testing
     /// In a cancelled task the database refuses to write, so leaving a lesson saves in a task
     /// of its own, which a newer lesson or library cancelling the caller does not stop.
     @Test func savingOutlivesACancelledCaller() async throws {
-        let (db, dir) = try Fixtures.database()
+        let dir = try Fixtures.tempDir("cancel")
         defer { try? FileManager.default.removeItem(at: dir) }
+        let learner = try await Fixtures.learner(in: dir)
+        let ref = Fixtures.ref(Fixtures.codeLesson)
         let caller = Task { () -> Bool in
             withUnsafeCurrentTask { $0?.cancel() }
-            let refused = (try? await db.saveNote(Fixtures.codeLesson, body: "lost")) == nil
-            await Task { try? await db.saveNote(Fixtures.codeLesson, body: "kept") }.value
+            let refused = (try? await learner.saveNote(ref, body: "lost")) == nil
+            await Task { try? await learner.saveNote(ref, body: "kept") }.value
             return refused
         }
         #expect(await caller.value)
-        #expect(try await db.note(for: Fixtures.codeLesson) == "kept")
+        #expect(try await learner.note(for: ref) == "kept")
     }
 }

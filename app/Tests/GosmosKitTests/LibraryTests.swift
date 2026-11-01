@@ -10,6 +10,7 @@ enum KitchenLibrary {
     static let boil = "kitchen-boil-water", salt = "kitchen-measure-salt", acid = "kitchen-which-acid"
     static let oven = "kitchen-check-oven", publish = "garden-publish-plan", explain = "garden-explain-soil"
     static let kitchen = "course-kitchen", garden = "course-garden"
+    static let library = "library-kitchen"
 
     static let saltTests = """
     package main
@@ -33,6 +34,7 @@ enum KitchenLibrary {
         }
         try queue.write { db in
             let t = Fixtures.ts
+            try db.execute(sql: "INSERT INTO library_info(singleton, uuid, title, version) VALUES (1, ?, ?, ?)", arguments: [library, "Kitchen", "2"])
             for (uuid, title, kind, position) in [(kitchen, "Kitchen Chemistry", "Course", 0), (garden, "Garden Planner", "Guided Project", 1)] {
                 try db.execute(sql: "INSERT INTO course(uuid, slug, title, kind, short_description, description, position) VALUES (?,?,?,?,?,?,?)",
                                arguments: [uuid, uuid, title, kind, "", "", position])
@@ -44,9 +46,9 @@ enum KitchenLibrary {
             }
             func lesson(_ uuid: String, _ chapter: String, _ position: Int, _ title: String, _ type: String, _ readme: String) throws {
                 try db.execute(sql: """
-                    INSERT INTO lesson(uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, synced_at)
-                    VALUES (?,?,?,?,?,?,1,4,?,?,?,?)
-                    """, arguments: [uuid, chapter, position, uuid, title, type, readme, t, t, t])
+                    INSERT INTO lesson(uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+                    VALUES (?,?,?,?,?,?,1,4,?,?,?)
+                    """, arguments: [uuid, chapter, position, uuid, title, type, readme, t, t])
             }
 
             try lesson(boil, "kitchen-basics", 0, "Boil Water", "type_code", "# Boil Water\n\nPrint `bubbles`.")
@@ -185,8 +187,12 @@ final class ResumeOnce: @unchecked Sendable {
         let url = dir.appendingPathComponent("kitchen.gosmos")
         try KitchenLibrary.build(at: url)
 
-        // Opened through the same open-and-check path as the app's.
+        // Opened through the same open-and-check path as the app's; your study data goes into a
+        // learner database of its own.
         let db = try AppDatabase(url: url)
+        #expect(db.info == LibraryInfo(uuid: KitchenLibrary.library, title: "Kitchen"))
+        let learner = try LearnerDatabase(url: dir.appendingPathComponent("learner.sqlite"), schema: Fixtures.learnerSchemaURL)
+        try await learner.registerLibrary(db.info, location: url.path)
         let catalog = try await db.catalog()
         #expect(catalog.courses.map(\.title) == ["Kitchen Chemistry", "Garden Planner"])
         #expect(catalog.courses.map(\.isGuidedProject) == [false, true])
@@ -216,9 +222,10 @@ final class ResumeOnce: @unchecked Sendable {
         _ = state.pick(0, for: 0)
         let second = state.submit()
         #expect(second.map(\.right) == [true] && state.allCorrect)
-        try await db.addAnswers(KitchenLibrary.acid, first + second)
-        try await db.setDone(KitchenLibrary.acid, true)
-        #expect(try await db.doneLessons() == [KitchenLibrary.acid])
+        let acid = LessonRef(library: KitchenLibrary.library, lesson: KitchenLibrary.acid)
+        try await learner.recordAnswers(acid, first + second)
+        try await learner.setDone(acid, true)
+        #expect(try await learner.done() == [KitchenLibrary.library: [KitchenLibrary.acid]])
 
         // The command-line lesson, against a local server standing in for yours.
         guard case .cli(let cli)? = try await db.lesson(KitchenLibrary.oven)?.content else { Issue.record("cli"); return }
@@ -232,8 +239,8 @@ final class ResumeOnce: @unchecked Sendable {
             }
         }
         defer { server.stop() }
-        try await db.setServerAddress("http://127.0.0.1:\(server.port)", for: "http://localhost:8080")
-        let base = try await db.baseURL(for: cli, course: KitchenLibrary.kitchen)
+        try await learner.setServerAddress("http://127.0.0.1:\(server.port)", for: "http://localhost:8080")
+        let base = try await learner.baseURL(for: cli, library: KitchenLibrary.library, course: KitchenLibrary.kitchen)
         #expect(base == .suggested("http://localhost:8080", yours: "http://127.0.0.1:\(server.port)"))
         let run = await CLIChecker(environment: ["PATH": "/usr/bin:/bin"]).run(cli, directory: dir.path, baseURL: base.url)
         #expect(run.status == .passed, "\(run.report)")

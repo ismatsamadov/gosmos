@@ -12,7 +12,6 @@ struct SettingsView: View {
             Tab("General", systemImage: "gearshape", value: "general") { GeneralSettings() }
             Tab("Editor", systemImage: "character.cursor.ibeam", value: "editor") { EditorSettings() }
             Tab("Go", systemImage: "chevron.left.forwardslash.chevron.right", value: "go") { GoSettings() }
-            Tab("Sync", systemImage: "arrow.triangle.2.circlepath", value: "sync") { SyncSettings() }
         }
         .frame(width: 560)
         .scenePadding()
@@ -25,30 +24,29 @@ struct GeneralSettings: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent("File") {
-                    Text(app.libraryURL.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? "None")
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .textSelection(.enabled)
-                }
-                HStack {
-                    Button("Change…") { app.chooseLibrary() }
-                        .disabled(app.isOpeningLibrary)
-                    if let url = app.libraryURL {
-                        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                ForEach(app.shelf) { library in
+                    LabeledContent {
+                        if library.isBuiltIn {
+                            Text("Built in").foregroundStyle(Theme.secondaryText)
+                        } else {
+                            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([library.url]) }
+                                .help(library.url.path)
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(library.title)
+                            Text(library.error?.title ?? "\(library.catalog.lessonCount) lessons, \(app.done[library.id]?.count ?? 0) done")
+                                .font(.caption)
+                                .foregroundStyle(Theme.secondaryText)
+                        }
                     }
                 }
+                Button("Open Library…") { app.chooseLibrary() }
+                    .disabled(app.learner == nil || app.isAddingLibrary)
             } header: {
-                Text("Library")
+                Text("Libraries")
             } footer: {
-                Text("A library is one SQLite file: its courses and your progress in them.")
-            }
-            if app.database != nil {
-                Section("Lessons") {
-                    LabeledContent("In the library", value: "\(app.catalog.lessonCount)")
-                    LabeledContent("Done", value: "\(app.done.count)")
-                }
+                Text("The courses built into Gosmos, then the library files you opened. Gosmos only reads them; your progress stays on this Mac.")
             }
         }
         .formStyle(.grouped)
@@ -149,50 +147,3 @@ struct GoMissingView: View {
     }
 }
 
-struct SyncSettings: View {
-    @Environment(AppModel.self) private var app
-
-    var body: some View {
-        @Bindable var app = app
-        Form {
-            if app.git == nil {
-                Section("Sync") {
-                    Text(app.syncOffReason ?? "No library is open.")
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                syncSection
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    @ViewBuilder private var syncSection: some View {
-        @Bindable var app = app
-            Section {
-                LabeledContent("Last push") {
-                    Text(app.preferences.lastPush.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "Never")
-                }
-                if let error = app.syncError {
-                    Label(error.localizedDescription, systemImage: "exclamationmark.triangle.fill")
-                        .symbolRenderingMode(.multicolor)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if case .staleLock = error {
-                        Button("Remove Lock File") { Task { await app.removeStaleLock() } }
-                            .disabled(app.isSyncing)
-                    }
-                }
-                HStack {
-                    Button("Commit and Push Now") { Task { await app.commitAndPush() } }
-                        .disabled(app.isSyncing)
-                    Button("Pull") { app.pullNow() }
-                        .disabled(app.isSyncing || app.isOpeningLibrary)
-                    if app.isSyncing { ProgressView().controlSize(.small) }
-                }
-            } header: {
-                Text("Sync")
-            } footer: {
-                Text("The library sits in a git repository. Gosmos never pulls, commits or pushes on its own: use Commit and Push Now or Pull here or in the File menu. It commits only the library file and never merges; a conflict is shown here.")
-            }
-    }
-}

@@ -22,25 +22,19 @@ public struct ParsedLesson: Sendable {
     }
 }
 
-/// Parsed lessons kept for the recently opened ones. Lessons are named by id, which another
-/// library or a pull can reuse with new text, so the cache is cleared whenever a library opens.
+/// Parsed lessons kept for the recently opened ones, by library and lesson.
 public actor ReadmeCache {
-    private var parsed: [String: ParsedLesson] = [:]
-    private var order: [String] = []
+    private var parsed: [LessonRef: ParsedLesson] = [:]
+    private var order: [LessonRef] = []
 
     public init() {}
 
     public func parsed(for lesson: LessonDetail) -> ParsedLesson {
-        if let cached = parsed[lesson.id] { return cached }
+        if let cached = parsed[lesson.ref] { return cached }
         let result = ParsedLesson(lesson)
-        parsed[lesson.id] = result
-        order.append(lesson.id)
+        parsed[lesson.ref] = result
+        order.append(lesson.ref)
         if order.count > 120 { parsed[order.removeFirst()] = nil }
         return result
-    }
-
-    public func clear() {
-        parsed = [:]
-        order = []
     }
 }

@@ -15,7 +15,7 @@ struct CodeLessonView: View {
             PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.62, minFirst: 180, minSecond: 140) {
                 EditorPane(session: session)
             } second: {
-                ConsolePane(session: session)
+                ConsolePane(session: session, comesBackForReview: lesson.comesBackForReview)
             }
         }
         .alert(
@@ -29,6 +29,16 @@ struct CodeLessonView: View {
         } message: { name in
             Text("You changed \(name) here, and it changed in the lesson folder too, since it was last saved. Which version do you want to keep?")
         }
+        .sheet(isPresented: Binding(get: { lesson.showingSolution }, set: { lesson.showingSolution = $0 })) {
+            SolutionCompareView(files: solutionFiles, note: session.exercise.solutionNote) { lesson.showingSolution = false }
+        }
+    }
+
+    /// The solution's files, each beside your version as the editor holds it now.
+    private var solutionFiles: [SolutionCompareView.File] {
+        session.exercise.solutionFiles.map { solution in
+            SolutionCompareView.File(solution, yours: session.files.first { $0.name == solution.name }?.text ?? "")
+        }
     }
 }
 
@@ -38,29 +48,12 @@ struct EditorPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                if session.files.count > 1 {
-                    Picker("File", selection: Binding(get: { session.activeIndex }, set: { session.activeIndex = $0 })) {
-                        ForEach(Array(session.files.enumerated()), id: \.offset) { i, file in
-                            Label(file.name, systemImage: file.readOnly ? "lock" : "doc.text").tag(i)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    // The selected file's white label needs the deeper fill in dark mode.
-                    .tint(Theme.prominent)
-                } else if let file = session.activeFile {
-                    Label(file.name, systemImage: file.readOnly ? "lock" : "doc.text")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Theme.secondaryText)
-                }
-                Spacer()
-                if session.activeFile?.readOnly == true {
-                    Text("Read only")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondaryText)
-                }
+            // The files as segments while they fit beside the buttons, else as a pop-up menu,
+            // whose lock then says a file is read-only when there is no room to.
+            ViewThatFits(in: .horizontal) {
+                fileBar(segmented: true)
+                fileBar(segmented: false)
+                fileBar(segmented: false, saysReadOnly: false)
             }
             .padding(.horizontal, 12)
             .frame(height: 38)
@@ -90,6 +83,45 @@ struct EditorPane: View {
         }
         .background(Color(nsColor: SyntaxTheme.xcode.background))
     }
+
+    /// The file in the editor, chosen from the lesson's files, and the editor's buttons.
+    private func fileBar(segmented: Bool, saysReadOnly: Bool = true) -> some View {
+        HStack(spacing: 10) {
+            if session.files.count > 1 {
+                let picker = Picker("File", selection: Binding(get: { session.activeIndex }, set: { session.activeIndex = $0 })) {
+                    ForEach(Array(session.files.enumerated()), id: \.offset) { i, file in
+                        Label(file.name, systemImage: file.readOnly ? "lock" : "doc.text").tag(i)
+                    }
+                }
+                .labelsHidden()
+                if segmented {
+                    picker
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                        // The selected file's white label needs the deeper fill in dark mode.
+                        .tint(Theme.prominent)
+                } else {
+                    // Narrower than its longest file's name when the pane is narrow.
+                    picker.pickerStyle(.menu)
+                }
+            } else if let file = session.activeFile {
+                Label(file.name, systemImage: file.readOnly ? "lock" : "doc.text")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            Spacer(minLength: 0)
+            if saysReadOnly, session.activeFile?.readOnly == true {
+                Text("Read only")
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize()
+            }
+            if session.activeFile != nil {
+                EditorButtons(session: session)
+                    .fixedSize()
+            }
+        }
+    }
 }
 
 /// The editor for one file. Typing changes only the buffer's text, which only this view
@@ -103,13 +135,53 @@ struct FileEditor: View {
         CodeEditorView(
             text: $buffer.text,
             highlighter: Highlighting.forFile(buffer.name),
+            lineSyntax: LineSyntax(fileName: buffer.name),
             fontSize: app.editorFontSize,
             // Typing before your code has loaded could be lost, so it waits for the load.
             isEditable: session.isLoaded && !buffer.readOnly,
             showsLineNumbers: app.showLineNumbers,
             accessibilityLabel: buffer.readOnly ? "\(buffer.name), read only" : buffer.name,
+            proxy: session.editor,
             onIdle: { _ in session.save() }
         )
+    }
+}
+
+/// Format, Toggle Comment, Outdent and Indent at the end of the file bar, as in the Editor
+/// menu. A button that can't act on the file says why in its help.
+struct EditorButtons: View {
+    let session: CodeSession
+
+    var body: some View {
+        HStack(spacing: 2) {
+            button(.format, "Format Code", help: "Format with gofmt (⇧⌥F)") {
+                Image(systemName: "wand.and.stars")
+            }
+            button(.toggleComment, "Toggle Comment", help: "Comment or Uncomment Lines (⌘/)") {
+                Text(verbatim: "//")
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+            }
+            button(.outdent, "Outdent", help: "Outdent (⌥⌘[)") {
+                Image(systemName: "decrease.indent")
+            }
+            button(.indent, "Indent", help: "Indent (⌥⌘])") {
+                Image(systemName: "increase.indent")
+            }
+        }
+        .buttonStyle(.borderless)
+        .symbolRenderingMode(.hierarchical)
+    }
+
+    private func button(_ command: EditorCommand, _ title: String, help: String, @ViewBuilder label: () -> some View) -> some View {
+        let reason = session.whyUnavailable(command)
+        return Button { session.perform(command) } label: {
+            label()
+                .frame(width: 26, height: 24)
+                .contentShape(Rectangle())
+        }
+        .disabled(reason != nil)
+        .help(reason ?? help)
+        .accessibilityLabel(title)
     }
 }
 
@@ -152,6 +224,8 @@ struct CodeLoadFailed: View {
 
 struct ConsolePane: View {
     let session: CodeSession
+    /// The last pass put the lesson in review.
+    let comesBackForReview: Bool
     @Environment(AppModel.self) private var app
 
     var body: some View {
@@ -189,7 +263,7 @@ struct ConsolePane: View {
             }
             .padding(8)
             ScrollView {
-                ConsoleBody(session: session)
+                ConsoleBody(session: session, comesBackForReview: comesBackForReview)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 14)
@@ -204,23 +278,26 @@ struct RunStatusBar: View {
     let session: CodeSession
 
     var body: some View {
-        let shown = session.isRunning ? nil : session.result
+        // A Format that failed shows until the next Format or run, even while a run goes on.
+        let format = session.formatFailure
+        let running = session.isRunning && format == nil
+        let shown = format ?? (session.isRunning ? nil : session.result)
         HStack(spacing: 8) {
             // One icon that stays and changes, so its bounce plays when a Submit passes; during
             // a run it is the turning spinner symbol the command-line steps use.
-            Image(systemName: session.isRunning ? "progress.indicator" : shown.map { Self.symbol($0.status) } ?? "terminal")
+            Image(systemName: running ? "progress.indicator" : shown.map { Self.symbol($0.status) } ?? "terminal")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(session.isRunning ? .primary : shown.map { Self.color($0.status) } ?? .secondary)
+                .foregroundStyle(running ? .primary : shown.map { Self.color($0.status) } ?? .secondary)
                 .contentTransition(.symbolEffect(.replace))
-                .runningSymbolEffect(session.isRunning)
+                .runningSymbolEffect(running)
                 .symbolEffect(.bounce, value: session.passCount)
-            if session.isRunning {
+            if running {
                 Text(session.resultWasSubmit ? "Submitting…" : "Running…")
             } else if let result = shown {
                 Text(result.status.label)
                     .fontWeight(.semibold)
                     .foregroundStyle(Self.color(result.status))
-                Text(session.resultWasSubmit ? "Submit" : "Run")
+                Text(format != nil ? "Format" : session.resultWasSubmit ? "Submit" : "Run")
                     .foregroundStyle(Theme.secondaryText)
                 if let summary = result.tests?.summary {
                     // The tests' own count, as they print it.
@@ -233,7 +310,7 @@ struct RunStatusBar: View {
                     .foregroundStyle(Theme.secondaryText)
             }
             Spacer()
-            if let result = session.result, !session.isRunning {
+            if let result = shown {
                 Text(result.duration.shortText)
                     .monospacedDigit()
                     .foregroundStyle(Theme.secondaryText)
@@ -275,10 +352,24 @@ struct RunStatusBar: View {
 
 struct ConsoleBody: View {
     let session: CodeSession
+    let comesBackForReview: Bool
 
     var body: some View {
-        if let result = session.result {
+        if let failure = session.formatFailure {
+            // gofmt's messages, naming the file; the code stayed as it was.
+            LongText(text: failure.output)
+        } else if let result = session.result {
             VStack(alignment: .leading, spacing: 10) {
+                if result.status == .passed, session.resultWasSubmit, comesBackForReview {
+                    Label("This lesson comes back for review in a day, to make it stick.", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                // What failed comes first: each failing test by name, with its own messages.
+                if result.status == .failed, !result.failedTests.isEmpty {
+                    FailingTests(tests: result.failedTests)
+                }
                 // The cases and the comparison were made off the main actor with the result.
                 if let parsed = result.tests, !parsed.cases.isEmpty {
                     if !parsed.before.isEmpty { LongText(text: parsed.before) }
@@ -302,6 +393,37 @@ struct ConsoleBody: View {
                 .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// The Go tests that failed, by name, each with the messages it logged, above the output.
+struct FailingTests: View {
+    let tests: [FailedTest]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(tests.count == 1 ? "1 test failed" : "\(tests.count) tests failed")
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.failure)
+            ForEach(Array(tests.enumerated()), id: \.offset) { _, test in
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(test.name, systemImage: "xmark.circle.fill")
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .symbolRenderingMode(.multicolor)
+                    ForEach(Array(test.messages.enumerated()), id: \.offset) { _, message in
+                        Text(message)
+                            .font(.system(size: 12, design: .monospaced))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.leading, 22)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 

@@ -1,11 +1,12 @@
 # Gosmos, the app
 
 A native macOS app (SwiftUI, with AppKit where SwiftUI falls short) for studying Go courses
-offline. It opens a **library**: one SQLite file with courses, their lessons and your progress
-in them (`../docs/library-format.md` is the format). Any library works the same. The app checks
-your code with your own Go toolchain and keeps your study data in the library file; when the
-file sits in a git work tree, it commits, pushes and pulls it when you ask. How it is built is
-in `../docs/architecture.md`, how it looks in `../docs/design.md`.
+offline. It reads **libraries**: SQLite files of courses and their lessons
+(`../docs/library-format.md` is the format), the ones built into the app and any you open. Any
+library works the same, and the app only reads it. The app checks your code with your own Go
+toolchain and keeps everything you do in its **learner database** on this Mac; it never runs
+git and syncs nothing. How it is built is in `../docs/architecture.md`, how it looks in
+`../docs/design.md`.
 
 ## Build, install, run
 
@@ -18,10 +19,10 @@ make install
 That builds `build/Gosmos.app` (release build, Info.plist, icon, ad-hoc signature) and
 copies it to `~/Applications`. Open it from Spotlight or Launchpad. `make app` only builds.
 
-The app opens the library its `LibraryPath` setting names, or none the first time. Open one
-with File > Open Library… (⌘O) or File > Open Recent, or in Settings > General. Before any of it is shown, a
-library passes the format's checks, the same as `go run ./cmd/library check <file>`; a file
-that fails is refused with the problems the checks found.
+The sidebar shows the courses built into the app (the libraries in `../courses/`), then the
+libraries you added with File > Open Library… (⌘O) or in Settings > General. Before any of it is
+shown, a library passes the format's checks, the same as `go run ./cmd/library check <file>`;
+a file that fails is refused with the problems the checks found.
 
 ## Test
 
@@ -30,19 +31,21 @@ make test                      # go vet ./..., go test ./... and swift test
 swift test --package-path app  # the app's tests only
 ```
 
-The tests build their own libraries from `db/schema.sql` in `$TMPDIR`, with made-up lessons;
-no test reads a real library. Some run a real `go build` / `go test` and are skipped when Go
-is not installed. The git tests use a throwaway repository and bare remote in `$TMPDIR`.
+The tests build their own libraries from `db/schema.sql` and learner databases from
+`db/learner.sql` in `$TMPDIR`, with made-up lessons; no test reads a real library or the real
+learner database. Some run a real `go build` / `go test` and are skipped when Go is not
+installed.
 
 ## Where things are
 
 | What | Where |
 |---|---|
-| Lessons and your study data | The library file (progress, attempts, notes, code, projects, server addresses, settings) |
-| Lesson folders for building and running | `~/Library/Caches/Gosmos/work/<lesson uuid>/`, disposable; each run keeps its build files in `work/.runs` while it lasts |
-| Settings for this Mac | UserDefaults `io.github.jobloom.Gosmos`: the library's path and recent libraries, the Go path, window layout, the last push |
+| Lessons | The libraries, read only: built into the app (`Contents/Resources/Courses`) or files you opened |
+| Your study data | `~/Library/Application Support/Gosmos/learner.sqlite` (the libraries you use, progress, attempts, notes, code, projects, server addresses, hints and solutions looked at, the review schedule, editor settings) |
+| Lesson folders for building and running | `~/Library/Caches/Gosmos/work/<library uuid>/<lesson uuid>/`, disposable; a redo for review gets its own under `work/review/`, made afresh each time; each run keeps its build files in `work/.runs` while it lasts |
+| Settings for this Mac | UserDefaults `io.github.jobloom.Gosmos`: the Go path, window layout, files left in conflict |
 
-Your code lives in the database. To run it, the app writes a lesson's files to its work
+Your code lives in the learner database. To run it, the app writes a lesson's files to its work
 folder (your files, the read-only tests, `go.mod`, the readme) and builds there; hidden
 helper files are added with `go build -overlay`. Edits you make in another editor (Lesson >
 Open Lesson Folder in Editor) are taken in when you come back to the app and before every
@@ -61,21 +64,6 @@ replaces that suggestion for every lesson that makes it, and Use Suggested goes 
 lesson that checks a server you deployed suggests none and asks for your server's address,
 which the course keeps.
 
-## Git
-
-When it opens a library, the app asks git whether the file sits in a work tree (`git -C <its
-folder> rev-parse --show-toplevel`) and whether git tracks the file. If it does, Commit and
-Push Now and Pull (in the File menu and Settings > Sync) work on it; the app never pulls,
-commits or pushes on its own. A commit takes only the library file (`git commit --only`, which leaves anything else
-you staged alone) and then pushes. A pull is `git pull --ff-only`, with the file closed while
-git replaces it. The app never merges; a conflict or a failed push shows under the sidebar and
-in Settings > Sync. A library outside a work tree, or one git does not track, stays on this
-Mac, and Settings > Sync says so.
-
-Git steps run one at a time, and git is never killed outright: a step that takes too long
-gets SIGTERM and time to remove its lock file. If `.git/index.lock` is left over while no git
-is running, the app says so and offers to remove it.
-
 ## Keyboard
 
 | Keys | Action |
@@ -83,35 +71,46 @@ is running, the app says so and offers to remove it.
 | ⌘R | Run (or Run Checks) |
 | ⌘↩ | Submit |
 | ⌘. | Stop |
+| ⌘O | Open a library |
 | ⌘] / ⌘[ | Next / previous lesson |
 | ⌥⌘← / ⌥⌘→ | Back / forward through lessons you visited |
 | 1 to 5 | Pick a quiz answer |
 | ⇧⌘D | Mark as done |
+| ⇧⌘H / ⌥⌘S | Show the next hint / the solution |
+| ⇧⌘Y | Review |
 | ⇧⌘R / ⇧⌘O | Reveal the lesson folder in Finder / open it in your editor |
 | ⌥⌘I | Show the inspector (note and lesson facts) |
 | ⌘= / ⌘- / ⌘0 | Bigger / smaller / actual-size code |
+| ⇧⌥F | Format the file with gofmt |
+| ⌘/ | Comment or uncomment the selected lines |
+| ⌥⌘] / ⌥⌘[ | Indent / outdent the selected lines |
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `Sources/GosmosKit` | Models and services, no SwiftUI or AppKit: the database (GRDB), readmes (swift-markdown), the Go lexer, process running, the Go toolchain, code runs, command-line checks, git |
+| `Sources/GosmosKit` | Models and services, no SwiftUI or AppKit: the libraries and the learner database (GRDB), the teaching rules, readmes (swift-markdown), the Go lexer, process running, the Go toolchain, code runs, gofmt, command-line checks |
 | `Sources/Gosmos` | The SwiftUI app: models, views, rendering |
 | `Tests/GosmosKitTests` | Swift Testing tests |
 | `Packages/` | Local packages: the HTTP client for checks, jq, the code editor |
 | `Resources/` | `Info.plist` and `AppIcon.icns` |
-| `scripts/bundle.sh` | Assembles and signs the .app (`make app` runs it) |
+| `scripts/bundle.sh` | Assembles and signs the .app, with `../db/learner.sql` and the libraries in `../courses/` (`make app` runs it) |
 | `scripts/make-icon.sh` | Redraws `Resources/AppIcon.icns` from `scripts/make-icon.swift` |
 
 ## Scripted runs
 
-Two launch arguments help with screenshots and debugging; they are read from the command line
+Launch arguments help with screenshots and debugging; they are read from the command line
 only and never stored:
 
 ```sh
-open -n build/Gosmos.app --args -GosmosOpenLesson <lesson uuid> -GosmosLaunchAction run
+open -n build/Gosmos.app --args -GosmosDataFolder /tmp/gosmos-shots -GosmosOpenLesson <library uuid>/<lesson uuid> -GosmosLaunchAction run
 ```
 
-The action is one of `run`, `submit`, `check`, `answer` (answers a quiz), `footer` (scrolls to
-the part below the readme), `settings` (opens Settings), `walk` (opens the next ten lessons) or
-`search:<text>` (types a search). `-LibraryPath <file>` opens another library for that launch.
+`-GosmosDataFolder <folder>` keeps the learner database and the lesson folders there instead of
+your own. `-GosmosOpenLesson` takes `<library uuid>/<lesson uuid>`, or a lesson uuid alone. The
+action is one of `run`, `submit`, `check`, `answer` (answers a quiz), `footer` (scrolls to the
+part below the readme), `hints` (shows every hint that may show), `solution` (shows the
+solution), `format` (formats the file in the editor with gofmt), `comment` (comments out the
+editor's first line, or uncomments it), `review` (shows the review), `redo-submit` (opens the
+lesson as a redo for review and submits it), `settings` (opens Settings) or `search:<text>`
+(types a search).

@@ -48,7 +48,8 @@ public actor CodeSaver {
         case disk
     }
 
-    let database: AppDatabase
+    /// Where your code is kept; nil for a review's fresh copy, which lives only in its folder.
+    let learner: LearnerDatabase?
     let workspace: Workspace
     let lesson: LessonDetail
     private var saved: [String: String]
@@ -60,8 +61,8 @@ public actor CodeSaver {
 
     /// `saved` is each editable file's text as code_file and the folder hold it now;
     /// `unsettled` names files still in conflict from an earlier session.
-    public init(database: AppDatabase, workspace: Workspace, lesson: LessonDetail, saved: [String: String], unsettled: Set<String> = []) {
-        self.database = database
+    public init(learner: LearnerDatabase?, workspace: Workspace, lesson: LessonDetail, saved: [String: String], unsettled: Set<String> = []) {
+        self.learner = learner
         self.workspace = workspace
         self.lesson = lesson
         self.saved = saved
@@ -190,7 +191,7 @@ public actor CodeSaver {
         let kept = unsettled.sorted().filter { texts[$0] != nil }
         guard !kept.isEmpty else { return [] }
         let now = Clock.now()
-        try await database.saveCode(lesson: lesson.id, files: kept.compactMap { name in
+        try await learner?.saveCode(lesson.ref, files: kept.compactMap { name in
             texts[name].map { CodeFileRecord(name: name, content: $0, updatedAt: now) }
         })
         return kept
@@ -200,7 +201,7 @@ public actor CodeSaver {
     private func write(_ files: [(name: String, text: String)], toDisk: Bool) async throws {
         guard !files.isEmpty else { return }
         let now = Clock.now()
-        try await database.saveCode(lesson: lesson.id, files: files.map { CodeFileRecord(name: $0.name, content: $0.text, updatedAt: now) })
+        try await learner?.saveCode(lesson.ref, files: files.map { CodeFileRecord(name: $0.name, content: $0.text, updatedAt: now) })
         if toDisk {
             for f in files { try workspace.write(lesson, name: f.name, content: f.text) }
         }

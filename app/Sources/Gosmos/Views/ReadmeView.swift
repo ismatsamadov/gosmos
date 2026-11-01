@@ -3,8 +3,9 @@ import CodeEditor
 import GosmosKit
 import SwiftUI
 
-/// A lesson's readme as native text, in a readable column centered in its pane, with
-/// anything the lesson type adds (quiz, checks, done button) below it.
+/// A lesson's readme as native text, in a readable column centered in its pane, then the
+/// lesson's help (hints and its reference solution), then anything the lesson type adds
+/// (quiz, checks, done button).
 struct ReadmeColumn<Footer: View>: View {
     let lesson: LessonModel
     @ViewBuilder var footer: Footer
@@ -20,6 +21,14 @@ struct ReadmeColumn<Footer: View>: View {
                     // A readme that is only its title shows no reading block.
                     if !lesson.parsed.readme.isEmpty {
                         MarkdownBlocks(blocks: lesson.parsed.readme)
+                    }
+                    if !lesson.hints.hints.isEmpty {
+                        HintsPanel(state: lesson.hints, lockedReason: lockedReason) { lesson.revealHint() }
+                            .padding(.top, 24)
+                    }
+                    if lesson.hasSolution {
+                        SolutionRow(lesson: lesson)
+                            .padding(.top, lesson.hints.hints.isEmpty ? 24 : 10)
                     }
                     footer
                         .padding(.top, 24)
@@ -37,18 +46,59 @@ struct ReadmeColumn<Footer: View>: View {
         }
         .textSelection(.enabled)
         .environment(\.openURL, OpenURLAction { url in
-            // A link whose path names a lesson of this database opens it here; the rest open
+            // A link whose path names a lesson of this library opens it here; the rest open
             // in the browser.
-            if let id = url.pathComponents.last(where: { app.summary($0) != nil }) {
-                app.open(id)
+            let library = lesson.detail.library
+            if let id = url.pathComponents.last(where: { app.summary(LessonRef(library: library, lesson: $0)) != nil }) {
+                app.open(LessonRef(library: library, lesson: id))
                 return .handled
             }
             return .systemAction
         })
     }
+
+    /// Why the last hint waits: for a failed Submit, or a failed run of the checks.
+    private var lockedReason: String {
+        lesson.checks != nil ? "The last hint opens after the checks fail once." : "The last hint opens after a Submit that fails."
+    }
 }
 
 enum ReadmeColumnAnchor: Hashable { case footer }
+
+/// The lesson's reference solution: a button that shows it beside your code, and what a look
+/// does. Before you pass, looking is fine but brings the lesson back for review; after, it
+/// changes nothing.
+struct SolutionRow: View {
+    let lesson: LessonModel
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(caption)
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("Show Solution") { lesson.showSolution() }
+                .secondaryGlassButton()
+                .controlSize(.small)
+                .help("Show the solution beside your code (⌥⌘S)")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .contain)
+    }
+
+    private var caption: String {
+        if lesson.isDone { return "Compare your code with the lesson's solution." }
+        if lesson.solutionWasViewed { return "You looked at the solution, so the lesson comes back for review a day after you pass it." }
+        return "Stuck? Looking at the solution is fine; the lesson then comes back for review a day after you pass it."
+    }
+}
 
 /// Eyebrow, title and done mark.
 struct LessonHeader: View {
@@ -69,7 +119,7 @@ struct LessonHeader: View {
                 Text(detail.title)
                     .font(.system(size: Theme.headingSize(1), weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
-                let done = app.isDone(detail.id)
+                let done = app.isDone(detail.ref)
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 20))
                     .foregroundStyle(.tint)
@@ -83,9 +133,9 @@ struct LessonHeader: View {
 
     private var eyebrow: String {
         let detail = lesson.detail
-        var parts = [detail.type.label]
-        if let loc = app.catalog.location(of: detail.id) {
-            let chapter = app.catalog.courses[loc.course].chapters[loc.chapter]
+        var parts = [lesson.isReview ? "Redo for review" : detail.type.label]
+        if let catalog = app.library(detail.library)?.catalog, let loc = catalog.location(of: detail.id) {
+            let chapter = catalog.courses[loc.course].chapters[loc.chapter]
             parts.append("Chapter \(loc.chapter + 1) · Lesson \(loc.lesson + 1) of \(chapter.lessons.count)")
         }
         if !detail.summary.required { parts.append("Optional") }

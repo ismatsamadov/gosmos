@@ -18,6 +18,21 @@ cp "$binary" "$app/Contents/MacOS/Gosmos"
 cp "$here/Resources/Info.plist" "$app/Contents/Info.plist"
 cp "$here/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 
+# The learner database's schema, from which the app makes ~/Library/Application Support/Gosmos/
+# learner.sqlite on first launch.
+repo=$(cd "$here/.." && pwd)
+if [ ! -f "$repo/db/learner.sql" ]; then
+	echo "bundle.sh: $repo/db/learner.sql is missing" >&2
+	exit 1
+fi
+cp "$repo/db/learner.sql" "$app/Contents/Resources/learner.sql"
+
+# The course libraries built into the app, opened read-only and immutable.
+mkdir -p "$app/Contents/Resources/Courses"
+for course in "$repo"/courses/*.sqlite; do
+	if [ -e "$course" ]; then cp "$course" "$app/Contents/Resources/Courses/"; fi
+done
+
 # Resource bundles SwiftPM puts next to the binary (GRDB's privacy manifest).
 for bundle in "$(dirname "$binary")"/*.bundle; do
 	if [ -e "$bundle" ]; then cp -R "$bundle" "$app/Contents/Resources/"; fi

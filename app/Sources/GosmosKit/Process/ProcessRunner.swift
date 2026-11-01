@@ -2,15 +2,13 @@ import Darwin
 import Foundation
 import os
 
-/// Which processes `ProcessRunner.terminateAll` stops. Lesson programs (builds, runs,
-/// command-line checks) are stopped when the app quits; git is not, because a killed git
-/// leaves .git/index.lock behind and every later commit and pull fails.
+/// Which processes `ProcessRunner.terminateAll` stops: lesson programs (builds, runs,
+/// command-line checks) are stopped when the app quits.
 public struct ProcessKind: Hashable, Sendable {
     public let name: String
     public init(_ name: String) { self.name = name }
 
     public static let lesson = ProcessKind("lesson")
-    public static let git = ProcessKind("git")
 }
 
 /// One program to run: a resolved path, an argument array (never a shell string), an
@@ -29,14 +27,13 @@ public struct ProcessRequest: Sendable {
     /// Stop whatever is left in the process group once the process exits.
     public var killGroupOnExit = false
     public var kind: ProcessKind = .lesson
-    /// How a timeout or a cancellation stops the program: nil kills the process group at
-    /// once (SIGKILL); a grace period sends SIGTERM first, so the program can clean up (git
-    /// removes its lock file), and SIGKILL only if it is still running when the period ends.
-    public var gracePeriod: Duration?
+    /// Bytes for standard input, written as the program reads them, then closed. Without
+    /// them, standard input is /dev/null.
+    public var input: Data?
 
     public init(executable: String, arguments: [String], directory: String, environment: [String: String],
                 timeout: Duration = .seconds(60), outputLimit: Int = 256 << 10, killGroupOnExit: Bool = false,
-                kind: ProcessKind = .lesson, gracePeriod: Duration? = nil) {
+                kind: ProcessKind = .lesson, input: Data? = nil) {
         self.executable = executable
         self.arguments = arguments
         self.directory = directory
@@ -45,7 +42,7 @@ public struct ProcessRequest: Sendable {
         self.outputLimit = outputLimit
         self.killGroupOnExit = killGroupOnExit
         self.kind = kind
-        self.gracePeriod = gracePeriod
+        self.input = input
     }
 }
 
@@ -69,14 +66,14 @@ public struct ProcessOutput: Sendable {
 
 /// Runs programs with posix_spawn. Each run starts in a process group of its own, so a
 /// timeout or a cancelled task kills everything it started, and both output pipes are read
-/// at once, so neither can fill up and stall the program.
+/// at once, so neither can fill up and stall the program. Standard input, when there is
+/// any, is written between those reads, for the same reason.
 public enum ProcessRunner {
     private static let running = OSAllocatedUnfairLock<[pid_t: ProcessKind]>(initialState: [:])
 
     /// Kills the process groups of one kind still running: lesson programs when the app
-    /// quits. Git is never stopped this way; it gets SIGTERM and a grace period instead.
+    /// quits.
     public static func terminateAll(_ kind: ProcessKind = .lesson) {
-        guard kind != .git else { return }
         for (pid, k) in running.withLock({ $0 }) where k == kind { kill(-pid, SIGKILL) }
     }
 
@@ -123,15 +120,21 @@ public enum ProcessRunner {
         }
         var outPipe: [Int32] = [-1, -1]
         var errPipe: [Int32] = [-1, -1]
-        guard pipe(&outPipe) == 0, pipe(&errPipe) == 0 else {
+        var inPipe: [Int32] = [-1, -1]
+        guard pipe(&outPipe) == 0, pipe(&errPipe) == 0, request.input == nil || pipe(&inPipe) == 0 else {
             result.launchError = String(cString: strerror(errno))
+            for fd in outPipe + errPipe + inPipe where fd >= 0 { close(fd) }
             return result
         }
 
         var actions: posix_spawn_file_actions_t?
         posix_spawn_file_actions_init(&actions)
         defer { posix_spawn_file_actions_destroy(&actions) }
-        posix_spawn_file_actions_addopen(&actions, 0, "/dev/null", O_RDONLY, 0)
+        if request.input != nil {
+            posix_spawn_file_actions_adddup2(&actions, inPipe[0], 0)
+        } else {
+            posix_spawn_file_actions_addopen(&actions, 0, "/dev/null", O_RDONLY, 0)
+        }
         posix_spawn_file_actions_adddup2(&actions, outPipe[1], 1)
         posix_spawn_file_actions_adddup2(&actions, errPipe[1], 2)
         posix_spawn_file_actions_addchdir(&actions, request.directory)
@@ -163,9 +166,11 @@ public enum ProcessRunner {
         let rc = posix_spawn(&pid, executable, &actions, &attributes, argv, envp)
         close(outPipe[1])
         close(errPipe[1])
+        if inPipe[0] >= 0 { close(inPipe[0]) }
         guard rc == 0 else {
             close(outPipe[0])
             close(errPipe[0])
+            if inPipe[1] >= 0 { close(inPipe[1]) }
             result.launchError = "\(executable): \(String(cString: strerror(rc)))"
             return result
         }
@@ -173,34 +178,35 @@ public enum ProcessRunner {
         running.withLock { $0[child] = kind }
         defer { running.withLock { _ = $0.removeValue(forKey: child) } }
 
+        // Standard input never blocks the loop, and a program that stops reading it ends the
+        // writing with EPIPE, not with a SIGPIPE that would stop the app.
+        let input = request.input ?? Data()
+        var written = 0
+        if inPipe[1] >= 0 {
+            _ = fcntl(inPipe[1], F_SETNOSIGPIPE, 1)
+            _ = fcntl(inPipe[1], F_SETFL, fcntl(inPipe[1], F_GETFL) | O_NONBLOCK)
+            if input.isEmpty {
+                close(inPipe[1])
+                inPipe[1] = -1
+            }
+        }
+
         var combined = Data(), stdout = Data(), stderr = Data()
         let limit = request.outputLimit
+        // Standard output, standard error, and standard input while there is more to write.
         var fds = [pollfd(fd: outPipe[0], events: Int16(POLLIN), revents: 0),
-                   pollfd(fd: errPipe[0], events: Int16(POLLIN), revents: 0)]
+                   pollfd(fd: errPipe[0], events: Int16(POLLIN), revents: 0),
+                   pollfd(fd: inPipe[1], events: Int16(POLLOUT), revents: 0)]
         var buffer = [UInt8](repeating: 0, count: 64 << 10)
         let deadline = started + request.timeout
         var exited = false
         var exitedAt: ContinuousClock.Instant?
         var status: Int32 = 0
         var dropped = false
-        var terminatedAt: ContinuousClock.Instant?
-        var killed = false
 
         func stopGroup(_ why: () -> Void) {
             why()
-            if request.gracePeriod != nil {
-                kill(-pid, SIGTERM)
-                terminatedAt = clock.now
-            } else {
-                kill(-pid, SIGKILL)
-                killed = true
-            }
-        }
-        /// After SIGTERM, SIGKILL once the grace period is over.
-        func escalate() {
-            guard !killed, !exited, let at = terminatedAt, let grace = request.gracePeriod, clock.now - at >= grace else { return }
             kill(-pid, SIGKILL)
-            killed = true
         }
         func reap() {
             guard !exited else { return }
@@ -218,10 +224,9 @@ public enum ProcessRunner {
             if cancel?.isCancelled == true { stopGroup { result.cancelled = true } }
         }
 
-        while fds.contains(where: { $0.fd >= 0 }) {
+        while fds[0].fd >= 0 || fds[1].fd >= 0 {
             reap()
             checkLimits()
-            escalate()
             if let at = exitedAt, clock.now - at > request.waitDelay { break }
             let n = poll(&fds, nfds_t(fds.count), 50)
             if n < 0 {
@@ -230,6 +235,19 @@ public enum ProcessRunner {
             }
             if n == 0 { continue }
             for i in fds.indices where fds[i].fd >= 0 && fds[i].revents != 0 {
+                if i == 2 {
+                    // As much of the input as the pipe takes now; the rest at the next poll.
+                    let fd = fds[i].fd
+                    let w = input.withUnsafeBytes { bytes in
+                        bytes.baseAddress.map { write(fd, $0 + written, bytes.count - written) } ?? -1
+                    }
+                    if w > 0 { written += w }
+                    if written == input.count || (w < 0 && errno != EAGAIN && errno != EINTR) {
+                        close(fd)
+                        fds[i].fd = -1
+                    }
+                    continue
+                }
                 let r = read(fds[i].fd, &buffer, buffer.count)
                 if r > 0 {
                     let chunk = buffer[0..<r]
@@ -253,7 +271,6 @@ public enum ProcessRunner {
             reap()
             if exited { break }
             checkLimits()
-            escalate()
             usleep(10_000)
         }
 
