@@ -1,0 +1,469 @@
+# Apogee: the story bible
+
+Every Gosmos course in the Apogee series follows this bible. It fixes the world (company,
+stations, satellites, people), the code the learner grows, and how lessons are written. When
+a lesson needs something this file doesn't have, add it here first, then use it.
+
+Everything in this world is invented: the company, its customers, the people, the places and
+the satellites. Only the physics is real.
+
+## The company
+
+**Apogee** sells ground-station time by the pass. Small-satellite operators book contacts
+through Apogee's API; Apogee predicts the passes, points a dish, sends the operator's signed
+commands up, brings their data down and delivers it within minutes of loss of signal.
+
+- **Mission:** "Every pass counts." A missed pass is a satellite nobody heard from for an
+  orbit, and a customer whose data is ninety minutes late.
+- **Size:** 38 people. Founded 2023 in Port Ellery by Tomás Ferreira-Lund (now CTO) and
+  a CEO who never appears on stage.
+- **Network:** five ground stations, from the Arctic to the far south.
+- **Fleet:** three satellites of its own (the Pipits, used to test every change before a
+  customer sees it) and five customer satellites under contract.
+- **Rooms:** the ops room at headquarters is **the Fishbowl** (glass on three sides). Its
+  big screen, listing the next passes, is **the Board**.
+- **Culture:** everything runs in UTC; checklists before cleverness; a failure gets a name,
+  a reason and a line in the log. New engineers' first program writes the message the ops
+  room sends up to Pipit-1, which echoes it back on its beacon.
+
+**The learner** is the newest backend engineer, never named, always "you". Story time runs
+from Monday 1 March 2027 (day one) to the end of June 2027 (first solo on-call week). Each
+course chapter is roughly a week.
+
+## Ground stations
+
+| Code | Name | Lat, lon | Alt | Mask | Dishes and bands | Character |
+|---|---|---|---|---|---|---|
+| YST | Ystmark | 77.8° N, 2.0° E | 40 m | 5° | two 3.7 m dishes under radomes; S, X | Arctic island; sees every polar orbit on almost every revolution |
+| PEL | Port Ellery | 46.9° N, 38.1° W | 25 m | 5° | one 3.0 m dish, one UHF yagi array; UHF, S | Headquarters' rooftop; the test station |
+| SQT | Salar Quieto | 23.4° S, 104.6° W | 3,840 m | 3° | a 5.4 m and a 2.4 m dish; S, X | High salt flat; flat horizon, dry air |
+| LAN | Lantern Atoll | 1.8° S, 82.5° E | 3 m | 8° | one 3.7 m dish, UHF yagis; UHF, S | Equatorial; best for low-inclination orbits |
+| CWR | Cape Wren | 53.9° S, 95.0° W | 110 m | 5° | one 3.7 m dish; S, X | Remote, unstaffed; windiest site |
+
+Coordinates are invented for exercises and deliberately land in open ocean: don't map them.
+Latitude is positive north, longitude positive east.
+
+- **Ystmark.** Polar night from November to February; radome heaters; arctic foxes chew
+  cables, so the conduits are fox-proof. The fiber to the mainland fails in storms, and the
+  station falls back to a slow satellite backhaul. Storms stow the dishes.
+- **Port Ellery.** Sea fog, gulls on the yagis, and the only station you can walk to. Every
+  new piece of software runs here first, against a Pipit.
+- **Salar Quieto.** At 3,840 m, people walk slowly and dust gets everywhere. Its 3° mask is
+  the lowest in the network; huge day-night temperature swings make the dish's pointing
+  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita.
+- **Lantern Atoll.** Tropical downpours fade the X-band link (rain fade), so it has none.
+  Diesel power, salt corrosion, a caretaker on site. A high horizon of palm trees gives it
+  the network's highest mask.
+- **Cape Wren.** Nobody lives there; a contractor visits monthly. The dish stows itself when
+  the wind passes 72 km/h, and tracks with a warning from 50 km/h.
+
+## The fleet
+
+| ID | Name | Operator | Orbit | Radio | Payload and story |
+|---|---|---|---|---|---|
+| `pipit-1` | Pipit-1 | Apogee | 525 km, 97.5° (sun-synchronous) | UHF beacon 437.250 MHz, 9.6 kbps | 3U test cubesat; echoes uplinked messages on its beacon. Since a cold night in 2025 its beacon sits about 1.2 kHz high |
+| `pipit-2` | Pipit-2 | Apogee | 550 km, 97.6° (SSO) | S-band 2245 MHz down, 2065 MHz up, 4 Mbps | 6U software-defined-radio testbed; the first satellite to get signed commands |
+| `pipit-3` | Pipit-3 | Apogee | 510 km, 97.4° (SSO) | S-band, X-band test | 6U; launches on 5 April 2027 (chapter 6); its first acquisition is a Doppler hunt |
+| `furrow-a` | Furrow-A | Furrowlight | 510 km, 97.4° (SSO) | X-band 8150 MHz, 150 Mbps; S-band control | 16U multispectral crop imager; big files, demanding customer |
+| `furrow-b` | Furrow-B | Furrowlight | 510 km, 97.4° (SSO) | as Furrow-A | Same plane as Furrow-A, half an orbit behind |
+| `brine-3` | Brine-3 | Brinewatch | 480 km, 53.0° | S-band 2230 MHz, 1 Mbps | 6U ship-tracking receiver. Never rises over Ystmark (its orbit doesn't reach far enough north). Brine-1 was lost at launch; Brine-2 never left its deployer |
+| `thistle` | Thistle | Kessick Polytechnic | 415 km, 51.6°, decaying | UHF beacon 435.900 MHz, 1200 bps | 2U student cubesat with a radiation counter. Like Brine-3, never rises over Ystmark. Sends garbage frames from chapter 12; re-enters in chapter 17 |
+| `cirrine-1` | Cirrine-1 | Cirrine Atmospherics | 600 km, 97.8° (SSO) | S-band 2280 MHz, 10 Mbps | 12U weather sounder (GNSS radio occultation); the customer that almost got a replayed command |
+
+Useful numbers (with Earth radius 6371 km and μ = 398600.4418 km³/s²):
+
+| Altitude | Period | Orbits per day | Slant range at 0° / 10° / 90° |
+|---|---|---|---|
+| 415 km | 92.72 min | 15.53 | — / 1479.05 km / 415 km |
+| 525 km | 94.99 min | 15.16 | 2639.16 km / 1755.35 km / 525 km |
+| 550 km | 95.50 min | 15.08 | — / 1815.08 km / 550 km |
+| 600 km | 96.54 min | 14.92 | — |
+
+A range rate of 7 km/s shifts a 437.25 MHz beacon by about ±10.2 kHz; a range rate of
+6.5 km/s shifts a 2245 MHz downlink by about ±48.7 kHz.
+
+Customers, all invented: **Furrowlight** (crop imaging), **Brinewatch** (ship tracking),
+**Kessick Polytechnic** (a university), **Cirrine Atmospherics** (weather).
+
+## People
+
+Seven recurring characters. A story beat uses one of them, rarely two. First names in lessons.
+
+**Nkem Halloran**, staff backend engineer, your onboarding buddy and reviewer. Short, kind,
+exact. Asks one question at a time and likes smaller code.
+> "Works. Now make it say what it means."
+> "What does the satellite see if this line runs twice?"
+
+**Ingrid Achterberg**, flight operations lead, runs the Fishbowl. Ops voice: UTC times,
+checklists, "Copy," "Negative." Calm under pressure; owns the Board and the go/no-go poll.
+> "AOS 04:12. Checklist done by 04:02. Questions after LOS."
+
+**Tomás Ferreira-Lund**, co-founder and CTO, a radio engineer. Enthusiastic, explains
+physics with everyday images, keeps the orbit formulas in a battered notebook.
+> "It's coming at you at seven kilometers a second. Of course its voice sounds higher!"
+
+**Sunniva Ruud**, Ystmark station chief. Telegraphic, weather first, because the backhaul
+is slow and so is everything else up there.
+> "Wind 64, gusts 81. Dish 1 stowed. Coffee holding."
+
+**Paz Ormaechea**, station engineer at Salar Quieto. Chatty voice memos, nicknames for
+everything, jokes about the altitude.
+> "Hola from 3,840 meters, where even the bits are short of breath."
+
+**Yusra Belkadi**, customer success. Turns customer panic into requirements; every message
+starts with a summary line.
+> "TL;DR: Furrowlight wants every missing chunk listed by number before nine."
+
+**Mirela Dunn**, security engineer, guardian of the uplink. Skeptical, precise, never
+unkind. Signs off reviews with "LGTM once it fails closed."
+> "Your code accepts the command. Now show me the one it refuses."
+
+Minor characters, in a sentence at most: **Professor Elspeth Marr** and her student
+**Joss Imbert** (Kessick Polytechnic, Thistle's team); **Hollis Vey** (Furrowlight's ops
+manager, writes subject lines in capitals).
+
+## The codebase
+
+The learner's code grows into **groundctl**, the Go module behind Apogee's ground segment.
+Early lessons are one `package main` file; the types below appear in the chapter that
+teaches what they need, and chapter 15 splits them into packages.
+
+- **Module:** `apogee/groundctl`. It has no dot in its first element on purpose: the app
+  treats such imports as local and never runs `go mod tidy` for them.
+- **Services** (named in stories, never built whole): `passplan` (predicts passes, builds
+  the schedule, feeds the Board), `tlmd` (telemetry ingest and validation), `uplinkd`
+  (signs and sends commands), `dlinkd` (downlink reassembly and delivery), `pager`
+  (anomaly rules and on-call pages), and `gctl`, the engineers' command-line tool.
+- **Packages:** `orbit`, `fleet`, `schedule`, `telemetry`, `uplink`, `downlink`, `alert`,
+  `board`.
+
+The canonical types. A lesson uses only the fields it needs, but never renames one or
+changes its type.
+
+```go
+// Band is a radio band.
+type Band string
+
+const (
+	UHF   Band = "UHF"
+	SBand Band = "S"
+	XBand Band = "X"
+)
+
+// Station is one of Apogee's ground stations.
+type Station struct {
+	Code       string  // "YST": three capital letters
+	Name       string  // "Ystmark"
+	LatDeg     float64 // north is positive
+	LonDeg     float64 // east is positive
+	MaskDeg    float64 // lowest usable elevation
+	Bands      []Band
+	Stowed     bool
+	StowReason string
+}
+
+// Orbit is a circular orbit.
+type Orbit struct {
+	AltKm  float64
+	IncDeg float64
+}
+
+// Mode is a satellite's operating mode: NOMINAL, SAFE, DETUMBLE or LEOP.
+type Mode string
+
+// Satellite is a spacecraft Apogee talks to.
+type Satellite struct {
+	ID       string // "pipit-1"
+	Name     string // "Pipit-1"
+	Operator string // "Apogee", "Furrowlight", ...
+	Orbit    Orbit
+	Bands    []Band
+	Mode     Mode
+}
+
+// Pass is one contact between a satellite and a station.
+type Pass struct {
+	SatID      string
+	Station    string    // station code
+	AOS        time.Time // acquisition of signal
+	LOS        time.Time // loss of signal
+	MaxElevDeg float64
+}
+
+// TelemetryFrame is one decoded housekeeping frame.
+type TelemetryFrame struct {
+	SatID string
+	Seq   uint32
+	At    time.Time
+	BattV float64
+	TempC float64
+	Mode  Mode
+}
+
+// Command is one telecommand on its way up.
+type Command struct {
+	SatID string
+	Seq   uint64 // strictly increasing per satellite
+	Op    string // "PING", "SET_MODE", "DUMP_FILE", "REBOOT"
+	Args  []string
+	Sig   string // hex HMAC-SHA256 of the canonical form
+}
+
+// Downlink is a file coming down in numbered chunks.
+type Downlink struct {
+	SatID  string
+	File   string
+	Total  int            // number of chunks
+	Chunks map[int][]byte // by chunk number, from 0
+	CRC32  uint32         // of the whole file
+}
+
+// Severity ranks an anomaly.
+type Severity int
+
+const (
+	Info Severity = iota
+	Warning
+	Critical
+)
+
+// Anomaly is something the pager should hear about.
+type Anomaly struct {
+	SatID    string
+	Rule     string
+	Severity Severity
+	At       time.Time
+	Detail   string
+}
+```
+
+Wire formats, used the same way in every lesson:
+
+- **Telemetry line:** satellite, sequence number, UTC time, then `key=value` fields, one
+  space apart:
+  `thistle 4182 2027-05-11T04:13:07Z batt_v=7.91 temp_c=-4.5 mode=NOMINAL`
+- **Pass ID:** satellite, station, orbit number padded to five digits: `pipit-1/PEL/04182`.
+- **Canonical command** (what gets signed): fields joined by `|`, arguments last:
+  `pipit-2|118|SET_MODE|SAFE`. On the wire:
+  `CMD pipit-2 118 SET_MODE SAFE sig=<64 hex digits>`.
+- **Pipit beacon:** 12 bytes. 0–1 the sync bytes `"AP"` (0x41 0x50); 2 the satellite number;
+  3–4 sequence (big-endian uint16); 5 mode code; 6–7 battery in millivolts (big-endian
+  uint16); 8–9 temperature in tenths of °C (big-endian int16); 10 flags; 11 the XOR of
+  bytes 0–10.
+- **Downlink chunks** are numbered from 0; the file's CRC-32 (IEEE) is sent last.
+
+Limits ops uses everywhere: battery FULL from 8.2 V, OK from 7.2 V, LOW from 6.6 V, below
+that CRITICAL (safe mode follows); Cape Wren tracks with a warning from 50 km/h of wind and
+stows at 72 km/h; battery temperature limits −10 °C to 45 °C.
+
+## Recurring situations
+
+| Situation | What happens | Chapters |
+|---|---|---|
+| Pass prep | Pre-pass checklist, go/no-go poll, a countdown to AOS | 1, 5, 6 |
+| The Board | Making the ops room's screen readable and right | 3, 8, 11 |
+| Launch week | Pipit-3's first acquisition: a Doppler hunt for a faint beacon | 6 |
+| Weather | Ystmark storms and Cape Wren wind stow dishes; passes move | 5, 10, 18 |
+| Thistle's decline | Garbage frames, duplicates, then a last pass before re-entry | 12, 13, 17 |
+| Furrowlight escalations | Missing chunks, data volumes, a pass that moved | 2, 8, 9, 17 |
+| Uplink security | Mirela's reviews, signatures, replays, mutants in the tests | 13, 14, 15 |
+| On call | A page at 03:00, a stuck uplink, a cache gone wrong | 18 |
+
+## Glossary
+
+Gloss a term in a short clause the first time a lesson uses it, then use it freely.
+
+| Term | Meaning |
+|---|---|
+| AOS | Acquisition of signal: the satellite rises into a station's view and the link starts |
+| LOS | Loss of signal: the satellite sets and the link ends |
+| Pass | One AOS-to-LOS window of one satellite over one station; also called a contact |
+| Elevation | The satellite's angle above the horizon, 0° to 90° |
+| Azimuth | Compass direction to the satellite, 0° north, clockwise |
+| Mask | The lowest elevation a station can use (trees, hills, noise) |
+| Max elevation | The highest point of a pass; low passes are short and weak |
+| Slant range | Straight-line distance from dish to satellite |
+| Footprint | The patch of Earth from which a satellite is above the mask |
+| Inclination | Tilt of the orbit to the equator; it caps how far north or south the ground track reaches |
+| SSO | Sun-synchronous orbit: near-polar, passes over each place at the same local time |
+| Period | Time for one orbit (about 95 minutes for these satellites) |
+| LEOP | Launch and early orbit phase: the first days after launch |
+| Beacon | A short status message a satellite broadcasts without being asked |
+| Telemetry (TLM) | Housekeeping data coming down: battery, temperatures, mode |
+| Telecommand | A command going up; at Apogee, always signed |
+| Uplink / downlink | Ground to space / space to ground |
+| Frame | One unit of telemetry on the wire |
+| Sync bytes | Fixed bytes that mark where a frame starts |
+| Checksum, CRC | A short number computed from data to catch corruption |
+| Doppler shift | The frequency change caused by the satellite moving toward or away from you |
+| Range rate | How fast the slant range changes; negative while the satellite approaches |
+| Link budget | The sum of gains and losses that says whether a signal will be strong enough |
+| Path loss | How much a signal weakens over distance, in decibels |
+| Margin | Received signal minus what the receiver needs; positive is good |
+| dB, dBm | Decibels: a ratio, and a power relative to one milliwatt |
+| Rain fade | Rain absorbing high-frequency (X-band) signals |
+| Stow | Park a dish safely, usually for wind |
+| Safe mode | A satellite's minimal state after a fault: beacon on, payload off |
+| Detumble | Stopping a satellite's rotation, typically just after deployment |
+| Sequence number | A counter in each frame or command; gaps and repeats mean trouble |
+| Replay | Resending an old, validly signed command; counters stop it |
+| HMAC | A signature made with a shared secret key; Apogee uses HMAC-SHA256 |
+| Page | An alert that wakes the on-call engineer |
+
+## Style guide
+
+### Voice
+
+Second person, present tense: "You open the pass log." Concise, warm, precise. Explain like
+a good colleague next to the learner: no hype, no jokes at the learner's expense, no "simply"
+or "just". Prefer concrete numbers to adjectives. American spelling.
+
+### A lesson is short and hands-on
+
+Lessons should feel like doing, not reading. Each one teaches **one idea** and has the
+learner use it right away.
+
+- **Readme: 60 to 200 words, most about 100**, counting code. A concept that needs more than
+  about 200 words becomes two lessons.
+- **Shape**, always in this order:
+  1. **Story beat:** one or two sentences that say why this matters today. Never a page.
+  2. **The idea:** one to three sentences.
+  3. **One tiny example:** at most eight lines, about something other than the task, and
+     never the solution.
+  4. **`## Your task`:** one to three sentences, or up to three numbered steps. Name the
+     function or line to change.
+  5. Optionally, one callout of one or two sentences (`> [!TIP]`, `> [!NOTE]` or
+     `> [!WARNING]`) for a trap or a term.
+- No H1 heading: the app shows the title. `## Your task` is usually the only heading.
+- Leave out what this lesson doesn't need, even if it's true. When a learner might wonder,
+  point ahead in a sentence ("Why the `&`? Next lesson.") instead of explaining now.
+- No lists of rules, no history, no tangents, no "in this lesson you will learn".
+
+Template:
+
+````markdown
+<Story beat: one or two sentences.>
+
+<The idea: one to three sentences.>
+
+```go
+<one tiny example>
+```
+
+## Your task
+
+<What to change or write, in one to three sentences.>
+````
+
+### Quizzes are quick checks
+
+- A quiz follows the lesson or two whose idea it checks. It is never where an idea is taught.
+- **1 to 3 questions**, each with 2 to 5 answers, exactly one right. Most have 3 answers.
+- A question is one line (the format allows nothing else). Put any code the questions refer
+  to in the quiz's readme, eight lines at most, and keep that readme to 60 to 120 words.
+- Wrong answers are plausible mistakes, not jokes. No "all of the above", no trick wording,
+  no answer that is right under some reading. Vary the position of the right answer.
+- Title them "Quick Check: <topic>".
+
+### Mix and rhythm
+
+- About 83% of lessons are code (`code`, checked by output) or tests (`code_tests`), about
+  17% quizzes.
+- Use `code` when the output shows the idea at a glance; use `code_tests` when edge cases
+  matter or the learner writes a function.
+- Most chapters end with a slightly larger lesson that combines the chapter's ideas, still
+  within the word limit.
+
+### Code style
+
+- gofmt, tabs, standard library only, Go 1.27. Idiomatic names (Effective Go): MixedCaps,
+  initialisms in one case (`ID`, `AOS`, `LOS`, `CRC`, `HMAC`, `UTC`).
+- Units in names: `AltKm`, `MaskDeg`, `FreqHz`, `BattV`, `BattMV`, `TempC`, `RateMbps`,
+  `MarginDB`. Times are `time.Time` in UTC, durations `time.Duration`.
+- Small functions: a solution's function is rarely longer than 15 lines.
+- Every function in starter code has a one-line doc comment saying what it does.
+- Errors: lowercase, no final punctuation, wrapped with `%w` when they carry context.
+- No global variables except constants and the lesson's fixed data.
+- Never print the wall clock, random values or map iteration order.
+
+### Starter code and solutions
+
+- The starter builds, runs and fails the check for the lesson's reason: wrong output or a
+  failing test, never a panic. The exception is a lesson about something the compiler
+  checks (an unused import, a missing method, an unexported name, an import cycle): then
+  the starter fails to build with exactly the message the lesson explains, and the
+  syllabus entry names it.
+- The place to change is obvious: a function returning a zero value, a placeholder string,
+  or at most one `// TODO:` line naming the action. The solution removes the TODO.
+- The solution changes only what the task asks, usually 1 to 10 lines. It never adds a
+  file: every file a solution touches is in the starter, and the solution includes every
+  editable starter file, changed or not.
+- Lessons in the same chapter may reuse the previous lesson's solution as the next starter.
+
+### Tests
+
+- Read-only `main_test.go` in `package main`, standard library only. Every `*_test.go` file
+  is read-only, so a learner never edits a test file.
+- Each `TestXxx` checks one function. More than three cases go in a table with names from
+  the story, run with `t.Run`.
+- Failure messages read `call = got, want want`: `stationCode() = "TODO", want "PEL"`. Use
+  `%q` for strings, `%v` otherwise, and a tolerance for floats:
+  `math.Abs(got-want) > 0.01` with `%.2f` in the message.
+- `t.Errorf` when the other checks still make sense; `t.Fatalf` when they don't.
+- Cover the normal case, a boundary, and the mistake learners actually make.
+- Concurrency tests are correct by construction for a right solution: they never rely on
+  timing luck or the race detector (the app doesn't use `-race`). Sleeps are 50 ms at most.
+- In the testing chapter, where learners write checks themselves, their code goes in an
+  editable non-test file (`checks.go`, `cases.go`) and the read-only test calls it. The
+  test proves the checks work by running them against planted mutants in a re-executed test
+  binary (`os.Args[0] -test.run=...` with an environment variable naming the mutant).
+
+### Expected output
+
+- Only stdout is compared, and the program must exit with status 0.
+- The app ignores trailing spaces and final newlines, but write none anyway.
+- ASCII unless the lesson is about text encoding; at most about 15 lines.
+
+### What the app does that writers must know
+
+- Code runs in a folder whose `go.mod` reads `module lesson` and the learner's Go version
+  (`go 1.27`), unless the starter brings its own `go.mod`. A `code` lesson is built and
+  run, and Submit compares its stdout; a `code_tests` lesson runs
+  `go test -count=1 -timeout 10s` on Run and on Submit.
+- `go test` runs part of `go vet`: starter code must pass it. Never write
+  `fmt.Printf(msg)` with a variable format string.
+- The app reads `go test` output for cases between lines of ten or more dashes and for lines
+  like "3 passed, 1 failed". Tests must not print either.
+- Every run takes well under 2 seconds on a laptop; the app stops runs at 10.
+
+## Naming rules
+
+- **Everything invented.** No real companies, people, products or places. Before a new name
+  ships, search the web for its exact spelling. If it belongs to a real company, product,
+  place, flown or announced space mission, or a person with a public profile, pick another.
+  Generic words (birds, plants) may turn up in tiny or cancelled projects; record such
+  overlaps below and keep the name only if nobody would mistake one for the other.
+- **Name checks** (web search, 2026-11-01): nothing real was found for Furrowlight,
+  Brinewatch, Cirrine Atmospherics, Kessick Polytechnic, Ystmark, Port Ellery, Salar
+  Quieto, Lantern Atoll, Cape Wren, Thistle as a satellite, or the cast's full names.
+  Known overlaps: a small satellite project called "Pipit" was cancelled before launch and
+  never had a numbered series, so Pipit-1 to Pipit-3 stay. (A rename should keep five
+  letters, so lesson 1.3's "29 bytes" stays true.) The Salar Quieto engineer was renamed
+  from an earlier draft because that name belongs to a public figure.
+- **Satellites:** IDs lowercase with hyphens (`pipit-1`, `furrow-a`); display names as in
+  the fleet table (`Pipit-1`, `Furrow-A`).
+- **Stations:** three capital letters (`YST`) and the name (`Ystmark`). Never abbreviate a
+  name otherwise.
+- **Characters:** first name in story beats; spellings exactly as above, accents included
+  (Tomás).
+- **Course, chapter and lesson slugs:** lowercase letters, digits and single hyphens, two
+  to five words. Lesson slugs are unique across the whole course, not just the chapter.
+- **Titles:** Title Case, two to five words, specific: "The Pre-Pass Checklist", not
+  "Statements". Quizzes are "Quick Check: <topic>".
+- **Files:** `main.go`, `main_test.go`; other files named for what they hold
+  (`station.go`, `checks.go`); package folders are one lowercase word.
+- **Topics** (front matter), from this list, alphabetical in each lesson: bytes, channels,
+  comments, compiler-errors, conditionals, constants, context, conversions, defer, errors,
+  formatting, functions, generics, goroutines, interfaces, loops, maps, methods, modules,
+  multiple-returns, mutexes, packages, pointers, printing, programs, runes, select, slices,
+  sorting, statements, strings, structs, switch, testing, time, types, variables.
