@@ -45,17 +45,21 @@ Latitude is positive north, longitude positive east.
 
 - **Ystmark.** Polar night from November to February; radome heaters; arctic foxes chew
   cables, so the conduits are fox-proof. The fiber to the mainland fails in storms, and the
-  station falls back to a slow satellite backhaul. Storms stow the dishes.
+  station falls back to a slow satellite backhaul. Storms stow the dishes: like Cape Wren's,
+  they stow when the wind passes 72 km/h.
 - **Port Ellery.** Sea fog, gulls on the yagis, and the only station you can walk to. Every
   new piece of software runs here first, against a Pipit.
 - **Salar Quieto.** At 3,840 m, people walk slowly and dust gets everywhere. Its 3° mask is
   the lowest in the network; huge day-night temperature swings make the dish's pointing
-  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita.
+  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita. The
+  only road up is the Quebrada Añil.
 - **Lantern Atoll.** Tropical downpours fade the X-band link (rain fade), so it has none.
   Diesel power, salt corrosion, a caretaker on site. A high horizon of palm trees gives it
   the network's highest mask.
 - **Cape Wren.** Nobody lives there; a contractor visits monthly. The dish stows itself when
   the wind passes 72 km/h, and tracks with a warning from 50 km/h.
+- **The test van.** A mobile station based at Port Ellery, with one 1.2 m dish, S-band only.
+  It carries the dish to sites for calibration.
 
 ## The fleet
 
@@ -381,7 +385,7 @@ Template:
 - Units in names: `AltKm`, `MaskDeg`, `FreqHz`, `BattV`, `BattMV`, `TempC`, `RateMbps`,
   `MarginDB`. Times are `time.Time` in UTC, durations `time.Duration`.
 - Small functions: a solution's function is rarely longer than 15 lines.
-- Every function in starter code has a one-line doc comment saying what it does.
+- Every function in starter code except `main` has a one-line doc comment saying what it does.
 - Errors: lowercase, no final punctuation, wrapped with `%w` when they carry context.
 - No global variables except constants and the lesson's fixed data.
 - Never print the wall clock, random values or map iteration order.
@@ -421,7 +425,9 @@ Template:
 ### Expected output
 
 - Only stdout is compared, and the program must exit with status 0.
-- The app ignores trailing spaces and final newlines, but write none anyway.
+- `expected_output.txt` is exactly what the solution prints, its final newline included:
+  `library verify` compares it byte for byte. The app, grading a learner, ignores line endings,
+  trailing spaces and final newlines, and verify checks that the starter fails even then.
 - ASCII unless the lesson is about text encoding; at most about 15 lines.
 
 ### What the app does that writers must know

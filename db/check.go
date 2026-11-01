@@ -41,13 +41,14 @@ type Querier interface {
 // Validate runs the checks docs/library-format.md says a library must pass before the app
 // opens it, and returns one line for each problem:
 //
-//  1. application_id is 1196447556 and user_version is this format's version;
+//  1. application_id is 1196641619 ('GSMS') and user_version is this format's version;
 //  2. quick_check is ok and foreign_key_check finds nothing;
 //  3. every lesson has exactly one row in the table for its type, of the matching type;
 //  4. every quiz question has exactly one right answer;
 //  5. every cli_step has its command or request row, matching its kind;
 //  6. every solution_file solves an editable starter file of its lesson: one neither hidden
-//     nor read-only.
+//     nor read-only;
+//  7. library_info holds exactly one row.
 //
 // The other checks run only once the first passes, since a file of another format may not have
 // the tables they read, and only on a file quick_check finds whole. Validate writes nothing. An
@@ -65,10 +66,12 @@ func Validate(ctx context.Context, d Querier) (Problems, error) {
 		return p, nil
 	}
 	switch {
+	case app == LegacyApplicationID && version <= 6:
+		add("application_id is %d and user_version %d: the library is of format %d, from before format %d; library migrate brings it up to date", app, version, version, Version)
 	case app != ApplicationID:
 		add("application_id is %d, not %d: the file is not a Gosmos library", app, ApplicationID)
 	case version < Version:
-		add("user_version is %d, not %d: the library is of an older format; migrating brings it up to date", version, Version)
+		add("user_version is %d, not %d: the library is of an older format; library migrate brings it up to date", version, Version)
 	case version > Version:
 		add("user_version is %d, not %d: the library is of a newer format than this program knows", version, Version)
 	}
@@ -186,6 +189,14 @@ func Validate(ctx context.Context, d Querier) (Problems, error) {
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("solution files: %w", err)
+	}
+
+	var infos int
+	if err := d.QueryRowContext(ctx, `SELECT count(*) FROM library_info`).Scan(&infos); err != nil {
+		return nil, fmt.Errorf("library_info: %w", err)
+	}
+	if infos != 1 {
+		add("library_info holds %d rows, not exactly 1", infos)
 	}
 	return p, nil
 }

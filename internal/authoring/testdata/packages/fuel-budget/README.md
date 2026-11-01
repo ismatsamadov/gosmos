@@ -3,7 +3,7 @@ slug: fuel-budget
 title: The Fuel Budget
 type: code_tests
 position: 1
-difficulty: 20
+difficulty: 3
 topics: functions, testing
 ---
 # The Fuel Budget

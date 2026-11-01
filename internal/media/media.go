@@ -422,6 +422,15 @@ func (s spans) at(i int) (span, bool) {
 
 var mdParser = goldmark.New().Parser()
 
+// OneParagraph reports whether md is a single Markdown paragraph: text that may use inline
+// Markdown, such as code spans, emphasis and links, but no headings, lists, quotes, code
+// blocks, HTML blocks or thematic breaks.
+func OneParagraph(md string) bool {
+	doc := mdParser.Parse(text.NewReader([]byte(md)))
+	first := doc.FirstChild()
+	return first != nil && first.NextSibling() == nil && first.Kind() == ast.KindParagraph
+}
+
 var reRawCode = regexp.MustCompile(`(?is)<(pre|code)\b[^>]*>.*?</(?:pre|code)\s*>`)
 
 // codeSpans returns the parts of md that are code, as CommonMark reads it: the lines of fenced

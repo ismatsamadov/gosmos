@@ -2,5 +2,5 @@
 app/Packages/JQ/Sources/CJQ/** linguist-vendored
 app/Packages/JQ/Sources/COniguruma/** linguist-vendored
 
-# The database is binary; git should never try to merge or diff it as text.
-data/apogee.sqlite binary
+# Course libraries are binary SQLite files; git never diffs or merges them as text.
+courses/*.sqlite binary

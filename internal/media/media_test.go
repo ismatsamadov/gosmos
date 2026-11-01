@@ -334,3 +334,26 @@ func TestCodeSpansCoverCode(t *testing.T) {
 		t.Fatal("bad fixture")
 	}
 }
+
+func TestOneParagraph(t *testing.T) {
+	for md, want := range map[string]bool{
+		"Look at what `clock.go` defines.":                        true,
+		"A hint that wraps\nonto a second line, with *emphasis*.": true,
+		"See [the fmt docs](https://pkg.go.dev/fmt) for `%d`.":    true,
+		"":                            false,
+		"Two paragraphs.\n\nNot one.": false,
+		"# A heading":                 false,
+		"- a list item":               false,
+		"1. a numbered item":          false,
+		"> a quote":                   false,
+		"```go\nfmt.Println()\n```":   false,
+		"    indented code":           false,
+		"<div>an HTML block</div>":    false,
+		"Text\n---":                   false, // a heading, by its underline
+		"---":                         false,
+	} {
+		if got := OneParagraph(md); got != want {
+			t.Errorf("OneParagraph(%q) = %v, want %v", md, got, want)
+		}
+	}
+}

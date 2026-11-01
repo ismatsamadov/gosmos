@@ -42,7 +42,7 @@ func TestHelperInterruptedWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range 400 {
-		if _, err := tx.Exec(`INSERT INTO setting VALUES (?, ?)`, fmt.Sprintf("unfinished.%03d", i), strings.Repeat("x", 4000)); err != nil {
+		if _, err := tx.Exec(`INSERT INTO lesson_hint VALUES ('l1', ?, ?)`, i+1, fmt.Sprintf("Unfinished hint %03d: %s", i, strings.Repeat("x", 4000))); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -95,7 +95,7 @@ func crash(t *testing.T, path string) {
 func crashLibrary(t *testing.T) (string, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "library.sqlite")
-	d, err := Create(path)
+	d, err := Create(path, Info{Title: "Crash Course", Version: "1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,8 +104,8 @@ func crashLibrary(t *testing.T) (string, string) {
 		course, chapter, lesson("l1", "type_choice", 0),
 		`INSERT INTO quiz_lesson VALUES ('l1', 'type_choice', 0)`,
 		`INSERT INTO quiz_question VALUES ('l1', 0, 'Why write tests?')`,
-		`INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'To find out sooner.', 1), ('l1', 0, 1, 'For the badge.', 0)`,
-		`INSERT INTO setting VALUES ('editor.font_size', '14')`,
+		`INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'To find out sooner.', 1, NULL), ('l1', 0, 1, 'For the badge.', 0, NULL)`,
+		`INSERT INTO lesson_hint VALUES ('l1', 0, 'Think about when you would rather find a bug.')`,
 	)
 	d, err = sql.Open("sqlite", path)
 	if err != nil {

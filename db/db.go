@@ -1,9 +1,11 @@
-// Package db creates, opens, checks and migrates Gosmos libraries: SQLite files whose tables
-// are db/schema.sql, embedded here.
+// Package db creates, opens, checks and migrates Gosmos course libraries, SQLite files whose
+// tables are db/schema.sql, and makes and opens the learner databases of db/learner.sql that
+// migrating moves a library's learner data into. Both schemas are embedded here.
 package db
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	_ "embed"
 	"errors"
@@ -26,31 +28,62 @@ import (
 //go:embed schema.sql
 var Schema string
 
-// Version is the schema version, and ApplicationID the mark of a Gosmos database, as
+// Version is the format's version, and ApplicationID the mark of a Gosmos course library, as
 // schema.sql sets them with PRAGMA user_version and PRAGMA application_id.
 var (
-	Version       = pragmaValue(Schema, "user_version")
-	ApplicationID = pragmaValue(Schema, "application_id")
+	Version       = pragmaValue("schema.sql", Schema, "user_version")
+	ApplicationID = pragmaValue("schema.sql", Schema, "application_id")
 )
+
+// LegacyApplicationID ('GPWD') marks a library of format 6 or older, from before the app was
+// called Gosmos. Only Migrate opens such a file.
+const LegacyApplicationID = 1196447556
 
 // ErrNotFound is returned by Open for a file that does not exist.
 var ErrNotFound = errors.New("no database file")
 
-func pragmaValue(schema, name string) int {
+func pragmaValue(file, schema, name string) int {
 	m := regexp.MustCompile(`(?im)^\s*PRAGMA\s+` + name + `\s*=\s*(\d+)\s*;`).FindStringSubmatch(schema)
 	if m == nil {
-		panic("db: schema.sql does not set " + name)
+		panic("db: " + file + " does not set " + name)
 	}
 	n, err := strconv.Atoi(m[1])
 	if err != nil {
-		panic("db: bad " + name + " in schema.sql: " + m[1])
+		panic("db: bad " + name + " in " + file + ": " + m[1])
 	}
 	return n
 }
 
-// Create makes a new, empty library at path from schema.sql, creating its folder if needed.
-// Nothing may exist at path yet.
-func Create(path string) (*sql.DB, error) {
+// Info is a library's library_info row: which library the file is.
+type Info struct {
+	UUID    string // never changes: the learner database refers to the library by it
+	Title   string // such as Apogee
+	Version string // the content's version, such as 1
+}
+
+// NewUUID returns a new random uuid (version 4).
+func NewUUID() string {
+	var b [16]byte
+	rand.Read(b[:]) // never fails: crypto/rand stops the program if it cannot read
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+// ReadInfo reads a library's library_info row.
+func ReadInfo(ctx context.Context, q Querier) (Info, error) {
+	var i Info
+	err := q.QueryRowContext(ctx, `SELECT uuid, title, version FROM library_info`).Scan(&i.UUID, &i.Title, &i.Version)
+	if errors.Is(err, sql.ErrNoRows) {
+		return i, errors.New("the library has no library_info row")
+	}
+	return i, err
+}
+
+// Create makes a new, empty library at path from schema.sql, creating its folder if needed,
+// with info as its library_info row; a new uuid if info has none. Nothing may exist at path
+// yet.
+func Create(path string, info Info) (*sql.DB, error) {
 	if _, err := os.Lstat(path); err == nil {
 		return nil, fmt.Errorf("creating %s: something already exists there", path)
 	} else if !errors.Is(err, fs.ErrNotExist) {
@@ -59,21 +92,27 @@ func Create(path string) (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, fmt.Errorf("creating %s: %w", path, err)
 	}
+	if info.UUID == "" {
+		info.UUID = NewUUID()
+	}
 	d, err := connect(path)
 	if err != nil {
 		return nil, err
 	}
-	if err := create(d); err != nil {
+	if err := create(d, Schema, func(tx *sql.Tx) error {
+		_, err := tx.Exec(`INSERT INTO library_info (singleton, uuid, title, version) VALUES (1, ?, ?, ?)`, info.UUID, info.Title, info.Version)
+		return err
+	}); err != nil {
 		d.Close()
+		os.Remove(path)
 		return nil, fmt.Errorf("creating %s: %w", path, err)
 	}
 	return d, nil
 }
 
-// Open opens the existing database at path. It must be a Gosmos database. One of an older
-// schema version is migrated to this program's, one version at a time, each step in one
-// transaction (migrate.go); a newer one, or one no migration reaches, is refused and left as
-// it is.
+// Open opens the existing library at path to write to it. It must be a Gosmos library of this
+// program's format. One of an older format is refused and left as it is: bringing it up to date
+// may move learner data into a learner database, which only Migrate (library migrate) does.
 func Open(path string) (*sql.DB, error) {
 	info, err := os.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -95,7 +134,7 @@ func Open(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := upgrade(d); err != nil {
+	if err := checkFormat(d); err != nil {
 		d.Close()
 		return nil, fmt.Errorf("opening %s: %w", path, err)
 	}
@@ -103,8 +142,7 @@ func Open(path string) (*sql.DB, error) {
 }
 
 // Inspect opens the existing file at path to read it as it is: read-only, without the checks
-// and migrations Open makes, so that Validate can say what is wrong with any file instead of
-// refusing it. Nothing is written through it. An interrupted write is the one thing set right
+// Open makes, so that Validate can say what is wrong with any file instead of refusing it. Nothing is written through it. An interrupted write is the one thing set right
 // first: a read-only connection cannot read past the journal it left, so Inspect has SQLite
 // roll it back (Recover) and reports that it did.
 func Inspect(path string) (d *sql.DB, recovered bool, err error) {
@@ -182,9 +220,8 @@ func connect(path string) (*sql.DB, error) {
 	return d, nil
 }
 
-// upgrade checks that the file is a Gosmos database of this schema version, and migrates
-// it if it is older and every migration it needs exists.
-func upgrade(d *sql.DB) error {
+// checkFormat checks that the file is a Gosmos library of this program's format.
+func checkFormat(d *sql.DB) error {
 	var mode string
 	if err := d.QueryRow(`PRAGMA journal_mode`).Scan(&mode); err != nil {
 		return err
@@ -196,27 +233,25 @@ func upgrade(d *sql.DB) error {
 	if err := d.QueryRow(`SELECT (SELECT application_id FROM pragma_application_id), (SELECT user_version FROM pragma_user_version)`).Scan(&app, &version); err != nil {
 		return err
 	}
-	switch {
-	case app != ApplicationID:
-		return fmt.Errorf("not a Gosmos database (application_id %d)", app)
-	case version > Version:
-		return fmt.Errorf("the database is schema version %d, newer than this program's %d; update the program", version, Version)
-	}
-	for v := version; v < Version; v++ {
-		if migrations[v] == nil {
-			return fmt.Errorf("the database is schema version %d and no migration takes version %d to %d", version, v, v+1)
-		}
-	}
-	for v := version; v < Version; v++ {
-		if err := migrate(context.Background(), d, v); err != nil {
-			return err
-		}
-	}
-	return nil
+	return formatError(app, version)
 }
 
-// create runs schema.sql on an empty database, in one transaction.
-func create(d *sql.DB) error {
+// formatError says why a file with this application_id and user_version is not a library of
+// this program's format, or returns nil if it is one.
+func formatError(app, version int) error {
+	switch {
+	case app == ApplicationID && version == Version:
+		return nil
+	case app == ApplicationID && version > Version:
+		return fmt.Errorf("the library is of format %d, newer than this program's %d; update the program", version, Version)
+	case app == ApplicationID || app == LegacyApplicationID && version <= 6:
+		return fmt.Errorf("the library is of format %d, older than %d; library migrate brings it up to date", version, Version)
+	}
+	return fmt.Errorf("not a Gosmos library (application_id %d)", app)
+}
+
+// create runs a schema on an empty database, and then fill, in one transaction.
+func create(d *sql.DB, schema string, fill func(*sql.Tx) error) error {
 	var objects int
 	if err := d.QueryRow(`SELECT count(*) FROM sqlite_schema`).Scan(&objects); err != nil {
 		return err
@@ -229,8 +264,13 @@ func create(d *sql.DB) error {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.Exec(Schema); err != nil {
-		return fmt.Errorf("schema.sql: %w", err)
+	if _, err := tx.Exec(schema); err != nil {
+		return fmt.Errorf("the schema: %w", err)
+	}
+	if fill != nil {
+		if err := fill(tx); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

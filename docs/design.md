@@ -95,10 +95,10 @@ calm typography, and every action on the keyboard. Nothing in it looks like a we
 ## Settings
 
 A standard Settings window with grouped forms:
-- General: the repository folder.
+- General: the libraries, the built-in courses first and then each file you opened, with
+  their lesson counts and how many you have done; Open Library….
 - Editor: font size, line numbers.
 - Go: toolchain path and the detected version.
-- Sync: Commit and Push Now, Pull, and the last push.
 
 ## Icon
 

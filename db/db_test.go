@@ -7,14 +7,18 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
 
+// testInfo is the library_info row of the libraries the tests make.
+var testInfo = Info{UUID: "6f1d8a52-3c1e-4b7a-9d2e-5a0c7e3b9f14", Title: "Learn Passes", Version: "1"}
+
 func newDB(t *testing.T) (*sql.DB, string) {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "data", "gosmos.sqlite")
-	d, err := Create(path)
+	path := filepath.Join(t.TempDir(), "courses", "passes.sqlite")
+	d, err := Create(path, testInfo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,10 +51,12 @@ func TestCreate(t *testing.T) {
 	}{
 		{`PRAGMA journal_mode`, "delete"},
 		{`PRAGMA foreign_keys`, "1"},
-		{`PRAGMA user_version`, "6"},
-		{`PRAGMA application_id`, "1196447556"},
-		{`SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('course', 'chapter', 'lesson', 'lesson_topic', 'code_lesson', 'starter_file', 'quiz_lesson', 'quiz_question', 'quiz_answer', 'cli_lesson', 'cli_step', 'cli_http_test', 'github_lesson', 'interview_lesson', 'progress', 'attempt', 'note', 'code_file', 'project', 'setting', 'server_address', 'solution_file')`, "22"},
+		{`PRAGMA user_version`, "7"},
+		{`PRAGMA application_id`, "1196641619"},
+		{`SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('library_info', 'course', 'chapter', 'lesson', 'lesson_topic', 'lesson_hint', 'code_lesson', 'starter_file', 'solution_file', 'quiz_lesson', 'quiz_question', 'quiz_answer', 'cli_lesson', 'cli_step', 'cli_http_test', 'github_lesson', 'interview_lesson')`, "17"},
+		{`SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('progress', 'attempt', 'note', 'code_file', 'project', 'server_address', 'setting')`, "0"},
 		{`SELECT count(*) FROM sqlite_schema WHERE type = 'trigger'`, "3"},
+		{`SELECT uuid || ' ' || title || ' ' || version FROM library_info`, testInfo.UUID + " Learn Passes 1"},
 	} {
 		var got string
 		if err := d.QueryRow(tc.query).Scan(&got); err != nil {
@@ -60,11 +66,52 @@ func TestCreate(t *testing.T) {
 			t.Errorf("%s = %s, want %s", tc.query, got, tc.want)
 		}
 	}
-	if Version != 6 || ApplicationID != 1196447556 {
-		t.Errorf("Version, ApplicationID = %d, %d; want what schema.sql sets", Version, ApplicationID)
+	if Version != 7 || ApplicationID != 1196641619 || LearnerVersion != 1 || LearnerApplicationID != 1196641612 {
+		t.Errorf("Version, ApplicationID, LearnerVersion, LearnerApplicationID = %d, %d, %d, %d; want what the schemas set",
+			Version, ApplicationID, LearnerVersion, LearnerApplicationID)
 	}
 	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
 		t.Errorf("a new database fails its checks: %v %v", p, err)
+	}
+	if info, err := ReadInfo(context.Background(), d); err != nil || info != testInfo {
+		t.Errorf("ReadInfo = %+v, %v; want %+v", info, err, testInfo)
+	}
+}
+
+func TestCreateMakesAUUID(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "new.sqlite")
+	d, err := Create(path, Info{Title: "Orbits", Version: "2026.1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	info, err := ReadInfo(context.Background(), d)
+	if err != nil || !reUUID.MatchString(info.UUID) || info.Title != "Orbits" || info.Version != "2026.1" {
+		t.Errorf("ReadInfo = %+v, %v", info, err)
+	}
+}
+
+func TestCreateRefusesAnEmptyTitle(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "untitled.sqlite")
+	if d, err := Create(path, Info{Version: "1"}); err == nil {
+		d.Close()
+		t.Fatal("Create made a library without a title")
+	}
+	if _, err := os.Stat(path); err == nil {
+		t.Error("a refused Create left a file behind")
+	}
+}
+
+var reUUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+
+func TestNewUUID(t *testing.T) {
+	seen := map[string]bool{}
+	for range 1000 {
+		u := NewUUID()
+		if !reUUID.MatchString(u) || seen[u] {
+			t.Fatalf("NewUUID = %q: not a new version 4 uuid", u)
+		}
+		seen[u] = true
 	}
 }
 
@@ -73,7 +120,7 @@ func TestCreateRefusesAnExistingPath(t *testing.T) {
 	empty := filepath.Join(t.TempDir(), "empty.sqlite")
 	os.WriteFile(empty, nil, 0o644)
 	for _, p := range []string{path, empty, t.TempDir()} {
-		if d, err := Create(p); err == nil {
+		if d, err := Create(p, testInfo); err == nil {
 			d.Close()
 			t.Errorf("Create(%s) made a database where something already was", p)
 		}
@@ -85,12 +132,14 @@ func TestOpen(t *testing.T) {
 		name  string
 		setup []string // run on a new database before it is opened again
 		ok    bool
+		err   string
 	}{
 		{name: "a database it made", ok: true},
 		{name: "one left in WAL mode", setup: []string{`PRAGMA journal_mode = WAL`}, ok: true},
-		{name: "an older schema no migration reaches", setup: []string{`PRAGMA user_version = 2`}},
-		{name: "a newer schema", setup: []string{`PRAGMA user_version = 7`}},
-		{name: "not a Gosmos file", setup: []string{`PRAGMA application_id = 42`}},
+		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 7; library migrate brings it up to date"},
+		{name: "an older format", setup: []string{`PRAGMA user_version = 6`}, err: "older than 7"},
+		{name: "a newer format", setup: []string{`PRAGMA user_version = 8`}, err: "newer than this program's 7"},
+		{name: "not a Gosmos file", setup: []string{`PRAGMA application_id = 42`}, err: "not a Gosmos library (application_id 42)"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			d, path := newDB(t)
@@ -101,8 +150,8 @@ func TestOpen(t *testing.T) {
 			if err == nil {
 				defer d.Close()
 			}
-			if (err == nil) != tc.ok {
-				t.Fatalf("Open: err = %v, want ok = %v", err, tc.ok)
+			if (err == nil) != tc.ok || err != nil && !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("Open: err = %v, want ok = %v, %q", err, tc.ok, tc.err)
 			}
 			if !tc.ok {
 				if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
@@ -157,9 +206,9 @@ const (
 )
 
 func lesson(uuid, typ string, position int) string {
-	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-		VALUES ('` + uuid + `', 'ch1', ` + string(rune('0'+position)) + `, '` + uuid + `', 'A lesson', '` + typ + `', 1, 10, 'Read me.',
-		'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`
+	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		VALUES ('` + uuid + `', 'ch1', ` + string(rune('0'+position)) + `, '` + uuid + `', 'A lesson', '` + typ + `', 1, 3, 'Read me.',
+		'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')`
 }
 
 // validate checks the file at path as `library check` does: read-only, as it is.
@@ -210,26 +259,36 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			name:  "a whole quiz lesson",
-			stmts: append(quiz, `INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'Because.', 1)`, `INSERT INTO quiz_answer VALUES ('l1', 0, 1, 'No.', 0)`),
+			stmts: append(quiz, `INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'Because.', 1, NULL)`, `INSERT INTO quiz_answer VALUES ('l1', 0, 1, 'No.', 0, NULL)`),
 		},
 		{
 			name:  "another kind of file",
 			stmts: []string{`PRAGMA application_id = 42`},
-			want:  []string{"application_id is 42, not 1196447556: the file is not a Gosmos library"},
+			want:  []string{"application_id is 42, not 1196641619: the file is not a Gosmos library"},
+		},
+		{
+			name:  "a library of format 6",
+			stmts: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`},
+			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 7; library migrate brings it up to date"},
 		},
 		{
 			name:  "an older format",
-			stmts: []string{`PRAGMA user_version = 3`},
-			want:  []string{"user_version is 3, not 6: the library is of an older format; migrating brings it up to date"},
+			stmts: []string{`PRAGMA user_version = 6`},
+			want:  []string{"user_version is 6, not 7: the library is of an older format; library migrate brings it up to date"},
 		},
 		{
 			name:  "a newer format",
-			stmts: []string{`PRAGMA user_version = 7`},
-			want:  []string{"user_version is 7, not 6: the library is of a newer format than this program knows"},
+			stmts: []string{`PRAGMA user_version = 8`},
+			want:  []string{"user_version is 8, not 7: the library is of a newer format than this program knows"},
+		},
+		{
+			name:  "no library_info row",
+			stmts: []string{`DELETE FROM library_info`},
+			want:  []string{"library_info holds 0 rows, not exactly 1"},
 		},
 		{
 			name:   "a damaged page",
-			stmts:  append(quiz, `INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'Because.', 1)`),
+			stmts:  append(quiz, `INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'Because.', 1, NULL)`),
 			damage: "quiz_answer",
 			want:   []string{"quick_check: "},
 		},
@@ -239,9 +298,9 @@ func TestValidate(t *testing.T) {
 			want:  []string{"the file is not an SQLite database SQLite can read: "},
 		},
 		{
-			name:  "progress for a lesson that is not there",
-			stmts: []string{`PRAGMA foreign_keys = OFF`, `INSERT INTO progress VALUES ('nowhere', '2026-01-01T00:00:00Z', NULL)`},
-			want:  []string{"foreign key: progress row 1 points at a missing lesson row"},
+			name:  "a hint for a lesson that is not there",
+			stmts: []string{`PRAGMA foreign_keys = OFF`, `INSERT INTO lesson_hint VALUES ('nowhere', 0, 'Look closer.')`},
+			want:  []string{"foreign key: lesson_hint row 1 points at a missing lesson row"},
 		},
 		{
 			name:  "a lesson without its per-type row",
@@ -256,7 +315,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:  "a quiz question without a right answer",
-			stmts: append(quiz, `INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'No.', 0)`),
+			stmts: append(quiz, `INSERT INTO quiz_answer VALUES ('l1', 0, 0, 'No.', 0, NULL)`),
 			want:  []string{"quiz question 0 of lesson l1 has 0 right answers, want 1"},
 		},
 		{
@@ -271,7 +330,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "solutions for files the learner does not edit",
-			stmts: []string{lesson("l1", "type_code_tests", 0), `INSERT INTO code_lesson VALUES ('l1', 'type_code_tests', 'go', NULL)`,
+			stmts: []string{lesson("l1", "type_code_tests", 0), `INSERT INTO code_lesson VALUES ('l1', 'type_code_tests', 'go', NULL, NULL)`,
 				`INSERT INTO starter_file VALUES ('l1', 'sum.go', 0, 'package main', 0, 0), ('l1', 'sum_test.go', 1, 'package main', 0, 1)`,
 				`INSERT INTO solution_file VALUES ('l1', 'sum.go', 'package main // solved'), ('l1', 'sum_test.go', 'package main'), ('l1', 'extra.go', 'package main')`},
 			want: []string{"solution_file extra.go of lesson l1 solves no editable starter file",

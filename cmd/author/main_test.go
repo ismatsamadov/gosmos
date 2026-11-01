@@ -41,7 +41,7 @@ func mustAuthor(t *testing.T, args ...string) string {
 func library(t *testing.T) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "apogee.sqlite")
-	d, err := db.Create(path)
+	d, err := db.Create(path, db.Info{Title: "Apogee", Version: "1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,17 +116,17 @@ func TestAuthorALibrary(t *testing.T) {
 		t.Fatal(problems, err)
 	}
 	for query, want := range map[string]int{
-		`SELECT count(*) FROM lesson`:                                                          3,
-		`SELECT count(*) FROM lesson WHERE uuid IN (?, ?, ?)`:                                  3,
-		`SELECT count(*) FROM starter_file`:                                                    5,
-		`SELECT count(*) FROM starter_file WHERE is_hidden = 1`:                                1,
-		`SELECT count(*) FROM starter_file WHERE is_readonly = 1`:                              2,
-		`SELECT count(*) FROM solution_file`:                                                   2,
-		`SELECT count(*) FROM code_lesson WHERE expected_output IS NOT NULL`:                   1,
-		`SELECT count(*) FROM quiz_answer WHERE is_correct = 1`:                                2,
-		`SELECT count(*) FROM lesson_topic`:                                                    4,
-		`SELECT count(*) FROM lesson WHERE type = 'type_choice' AND code_last_mod IS NULL`:     1,
-		`SELECT count(*) FROM lesson WHERE type <> 'type_choice' AND code_last_mod = last_mod`: 2,
+		`SELECT count(*) FROM lesson`:                                        3,
+		`SELECT count(*) FROM lesson WHERE uuid IN (?, ?, ?)`:                3,
+		`SELECT count(*) FROM starter_file`:                                  5,
+		`SELECT count(*) FROM starter_file WHERE is_hidden = 1`:              1,
+		`SELECT count(*) FROM starter_file WHERE is_readonly = 1`:            2,
+		`SELECT count(*) FROM solution_file`:                                 2,
+		`SELECT count(*) FROM code_lesson WHERE expected_output IS NOT NULL`: 1,
+		`SELECT count(*) FROM quiz_answer WHERE is_correct = 1`:              2,
+		`SELECT count(*) FROM lesson_topic`:                                  4,
+		`SELECT count(*) FROM lesson WHERE created_at = last_mod`:            3,
+		`SELECT count(*) FROM lesson WHERE difficulty BETWEEN 1 AND 3`:       3,
 	} {
 		var args []any
 		if strings.Contains(query, "IN (?") {
@@ -231,12 +231,11 @@ func TestReplaceInPlace(t *testing.T) {
 		}
 	}
 	chapter := authoring.ChapterUUID("learn-launches", "1-countdown")
-	exec(`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-			VALUES ('made-elsewhere', '`+chapter+`', 0, 'mission-quiz', 'Old quiz', 'type_choice', 1, 5, 'Old.', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', NULL, '2026-01-01T00:00:00Z')`,
+	exec(`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+			VALUES ('made-elsewhere', '`+chapter+`', 0, 'mission-quiz', 'Old quiz', 'type_choice', 1, 5, 'Old.', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
 		`INSERT INTO quiz_lesson VALUES ('made-elsewhere', 'type_choice', 0)`,
 		`INSERT INTO quiz_question VALUES ('made-elsewhere', 0, 'Old?')`,
-		`INSERT INTO quiz_answer VALUES ('made-elsewhere', 0, 0, 'Yes', 1), ('made-elsewhere', 0, 1, 'No', 0)`,
-		`INSERT INTO progress VALUES ('made-elsewhere', '2026-10-31T10:00:00Z', NULL)`)
+		`INSERT INTO quiz_answer VALUES ('made-elsewhere', 0, 0, 'Yes', 1, NULL), ('made-elsewhere', 0, 1, 'No', 0, NULL)`)
 	quiz := copyPackage(t, "mission-quiz")
 	front := filepath.Join(quiz, "README.md")
 	b, _ = os.ReadFile(front)
@@ -245,10 +244,10 @@ func TestReplaceInPlace(t *testing.T) {
 		t.Errorf("replacing a lesson made elsewhere: %q", out)
 	}
 	if n := count(t, other, `SELECT count(*) FROM lesson WHERE uuid = 'made-elsewhere' AND title = 'Mission Check'`); n != 1 {
-		t.Error("the lesson made elsewhere was not replaced in place")
+		t.Error("the lesson made elsewhere was not replaced in place, under its own uuid")
 	}
-	if n := count(t, other, `SELECT count(*) FROM progress WHERE lesson_uuid = 'made-elsewhere'`); n != 1 {
-		t.Error("the learner's progress on the replaced lesson is gone")
+	if n := count(t, other, `SELECT count(*) FROM quiz_answer WHERE lesson_uuid = 'made-elsewhere' AND explanation IS NOT NULL`); n != 5 {
+		t.Errorf("%d answers of the replaced quiz have explanations, want 5", n)
 	}
 }
 
@@ -260,7 +259,18 @@ func TestAuthorRefuses(t *testing.T) {
 	b, _ := os.ReadFile(front)
 	os.WriteFile(front, bytes.Replace(bytes.Replace(b, []byte("launch-window"), []byte("second-window"), 1), []byte("position: 0"), []byte("position: 1"), 1), 0o644)
 	bad := copyPackage(t, "mission-quiz")
-	os.WriteFile(filepath.Join(bad, "quiz.md"), []byte("## Pick one\n\n- [x] A\n- [x] B\n"), 0o644)
+	os.WriteFile(filepath.Join(bad, "quiz.md"), []byte("## Pick one\n\n- [x] A\n  > Why A.\n- [x] B\n  > Why B.\n"), 0o644)
+	unexplained := copyPackage(t, "mission-quiz")
+	os.WriteFile(filepath.Join(unexplained, "quiz.md"), []byte("## Pick one\n\n- [x] A\n  > Why A.\n- [ ] B\n"), 0o644)
+	hintless := copyPackage(t, "launch-window")
+	os.Remove(filepath.Join(hintless, "hints.md"))
+	oneHint := copyPackage(t, "launch-window")
+	os.WriteFile(filepath.Join(oneHint, "hints.md"), []byte("Look at the constant.\n"), 0o644)
+	noteless := copyPackage(t, "fuel-budget")
+	os.Remove(filepath.Join(noteless, "solution_note.md"))
+	oldScore := copyPackage(t, "fuel-budget")
+	readme, _ := os.ReadFile(filepath.Join(oldScore, "README.md"))
+	os.WriteFile(filepath.Join(oldScore, "README.md"), bytes.Replace(readme, []byte("difficulty: 3"), []byte("difficulty: 40"), 1), 0o644)
 	before, _ := os.ReadFile(path)
 
 	for _, tc := range []struct {
@@ -271,6 +281,11 @@ func TestAuthorRefuses(t *testing.T) {
 	}{
 		{"a position another lesson has", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", taken}, 1, "position 1 of chapter 1-countdown is taken by lesson fuel-budget"},
 		{"a broken package", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", bad}, 1, `has 2 right answers, want exactly one`},
+		{"a quiz answer without an explanation", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", unexplained}, 1, `answer "B" of question "Pick one" has no explanation`},
+		{"a code lesson without hints", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", hintless}, 1, "a code lesson's package needs hints.md: 2 or 3 hints"},
+		{"a code lesson with one hint", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", oneHint}, 1, "hints.md has 1 hint; a code lesson has 2 or 3"},
+		{"a code lesson without a solution note", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", noteless}, 1, "a code lesson's package needs solution_note.md"},
+		{"a difficulty off the scale", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", oldScore}, 1, `difficulty "40" is not a whole number from 1 (easiest) to 10`},
 		{"an unknown course", []string{"lesson", path, "--course", "learn-landings", "--chapter", "1-countdown", example("launch-window")}, 1, "the library has no course learn-landings"},
 		{"an unknown chapter", []string{"lesson", path, "--course", "learn-launches", "--chapter", "9-orbit", example("launch-window")}, 1, "course learn-launches has no chapter 9-orbit"},
 		{"no chapter flag", []string{"lesson", path, "--course", "learn-launches", example("launch-window")}, 2, "--course and --chapter are required"},
@@ -304,12 +319,12 @@ func TestAuthorChecksTheLibrary(t *testing.T) {
 	if _, err := d.Exec(`PRAGMA foreign_keys = OFF`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.Exec(`INSERT INTO note VALUES ('no-such-lesson', 'Lost.', '2026-11-01T10:00:00Z')`); err != nil {
+	if _, err := d.Exec(`INSERT INTO lesson_hint VALUES ('no-such-lesson', 0, 'Lost.')`); err != nil {
 		t.Fatal(err)
 	}
 	d.Close()
 	code, _, errOut := author(t, "lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", example("launch-window"))
-	if code != 1 || !strings.Contains(errOut, "nothing was written") || !strings.Contains(errOut, "foreign key: note") {
+	if code != 1 || !strings.Contains(errOut, "nothing was written") || !strings.Contains(errOut, "foreign key: lesson_hint") {
 		t.Errorf("import into a library that fails its checks: %d %q", code, errOut)
 	}
 	if n := count(t, path, `SELECT count(*) FROM lesson`); n != 0 {
@@ -319,7 +334,8 @@ func TestAuthorChecksTheLibrary(t *testing.T) {
 
 func TestHelp(t *testing.T) {
 	code, out, _ := author(t, "help")
-	if code != 0 || !strings.Contains(out, "A lesson package is a folder:") || !strings.Contains(out, "author lesson <file>") {
+	if code != 0 || !strings.Contains(out, "A lesson package is a folder:") || !strings.Contains(out, "author lesson <file>") ||
+		!strings.Contains(out, "hints.md holds 2 or 3 hints") || !strings.Contains(out, "solution_note.md says why") || !strings.Contains(out, `two spaces, "> ", then the`) {
 		t.Errorf("help: %d %q", code, out[:min(len(out), 200)])
 	}
 }

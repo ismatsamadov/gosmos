@@ -1,7 +1,9 @@
 package main
 
 // verify runs every code lesson of a library with the Go toolchain, in a temporary folder:
-// with its solution the lesson must pass, and with its starter it must not.
+// with its solution the lesson must pass, and with its starter it must not. With --teaching it
+// also wants what the app teaches with: 2 or 3 hints and a solution note for every code lesson,
+// and an explanation for every quiz answer.
 
 import (
 	"bytes"
@@ -19,6 +21,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/jobloom/gosmos/db"
 )
@@ -43,13 +46,20 @@ type starterFile struct {
 
 func (f starterFile) editable() bool { return !f.hidden && !f.readonly }
 
-// verify checks the code lessons of the library at path, of one course if course is set,
-// printing one line per problem. It reports whether there were none.
-func verify(ctx context.Context, path, course string, out io.Writer) (bool, error) {
+// verify checks the code lessons of the library at path, of one course if course is set, and
+// with teaching the hints, solution notes and quiz explanations too, printing one line per
+// problem. It reports whether there were none.
+func verify(ctx context.Context, path, course string, teaching bool, out io.Writer) (bool, error) {
 	goBin, err := osexec.LookPath("go")
 	if err != nil {
 		return false, errors.New("verify runs lessons with the go command, which is not on PATH")
 	}
+	gv := command(ctx, time.Minute, "", goEnv(), goBin, "env", "GOVERSION")
+	goVersion := strings.TrimSpace(gv.stdout)
+	if gv.exit != 0 || gv.err != nil || !strings.HasPrefix(goVersion, "go") {
+		return false, fmt.Errorf("go env GOVERSION: %s", firstLine(gv.stdout+gv.stderr))
+	}
+	goMod := "module lesson\n\ngo " + languageVersion(goVersion) + "\n"
 	d, recovered, err := db.Inspect(path)
 	if err != nil {
 		return false, err
@@ -71,7 +81,7 @@ func verify(ctx context.Context, path, course string, out io.Writer) (bool, erro
 	}
 	problems := 0
 	for _, l := range ls {
-		for _, p := range verifyLesson(ctx, goBin, l) {
+		for _, p := range verifyLesson(ctx, goBin, goMod, l) {
 			fmt.Fprintf(out, "%s: %s\n", l.name, p)
 			problems++
 		}
@@ -79,10 +89,94 @@ func verify(ctx context.Context, path, course string, out io.Writer) (bool, erro
 			return false, ctx.Err()
 		}
 	}
-	if problems == 0 {
-		fmt.Fprintf(out, "ok: %d code lessons of %s pass with their solutions and fail with their starters\n", len(ls), path)
+	answers := 0
+	if teaching {
+		lines, n, err := teachingProblems(ctx, d, course)
+		if err != nil {
+			return false, err
+		}
+		for _, line := range lines {
+			fmt.Fprintln(out, line)
+		}
+		problems += len(lines)
+		answers = n
+	}
+	switch {
+	case problems > 0:
+	case teaching:
+		fmt.Fprintf(out, "ok: %s: every code lesson passes with its solution and fails with its starter, and has 2 or 3 hints and a solution note; every quiz answer has an explanation (%s, %s)\n", path, plural(len(ls), "code lesson"), plural(answers, "quiz answer"))
+	default:
+		fmt.Fprintf(out, "ok: %s: every code lesson passes with its solution and fails with its starter (%s)\n", path, plural(len(ls), "code lesson"))
 	}
 	return problems == 0, nil
+}
+
+// teachingProblems finds the code lessons without 2 or 3 hints or without a solution note, and
+// the quiz answers without an explanation, of one course if course is set. It returns a line
+// for each, in the lessons' order, and how many quiz answers it looked at.
+func teachingProblems(ctx context.Context, d *sql.DB, course string) ([]string, int, error) {
+	from := `FROM lesson l JOIN chapter ch ON ch.uuid = l.chapter_uuid JOIN course co ON co.uuid = ch.course_uuid`
+	where := ``
+	var args []any
+	if course != "" {
+		where = ` AND co.slug = ?`
+		args = append(args, course)
+	}
+	name := `co.slug || '/' || ch.slug || '/' || l.slug`
+	order := ` ORDER BY co.position, ch.position, l.position`
+	var lines []string
+	rows, err := d.QueryContext(ctx, `SELECT `+name+`, (SELECT count(*) FROM lesson_hint h WHERE h.lesson_uuid = l.uuid), c.solution_note IS NULL
+		`+from+` JOIN code_lesson c ON c.lesson_uuid = l.uuid WHERE 1`+where+order, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	for rows.Next() {
+		var lesson string
+		var hints int
+		var noNote bool
+		if err := rows.Scan(&lesson, &hints, &noNote); err != nil {
+			rows.Close()
+			return nil, 0, err
+		}
+		if hints < 2 || hints > 3 {
+			lines = append(lines, fmt.Sprintf("%s: has %s, not 2 or 3", lesson, plural(hints, "hint")))
+		}
+		if noNote {
+			lines = append(lines, fmt.Sprintf("%s: has no solution note", lesson))
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	var answers int
+	if err := d.QueryRowContext(ctx, `SELECT count(*) `+from+` JOIN quiz_answer a ON a.lesson_uuid = l.uuid WHERE 1`+where, args...).Scan(&answers); err != nil {
+		return nil, 0, err
+	}
+	rows, err = d.QueryContext(ctx, `SELECT `+name+`, a.question_position, a.position, a.answer
+		`+from+` JOIN quiz_answer a ON a.lesson_uuid = l.uuid WHERE a.explanation IS NULL`+where+order+`, a.question_position, a.position`, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var lesson, answer string
+		var question, position int
+		if err := rows.Scan(&lesson, &question, &position, &answer); err != nil {
+			return nil, 0, err
+		}
+		lines = append(lines, fmt.Sprintf("%s: answer %d of question %d (%s) has no explanation", lesson, position+1, question+1, clip(answer)))
+	}
+	return lines, answers, rows.Err()
+}
+
+// plural says how many of a thing there are, such as "1 hint" or "0 hints".
+func plural(n int, thing string) string {
+	if n == 1 {
+		return "1 " + thing
+	}
+	return fmt.Sprintf("%d %ss", n, thing)
 }
 
 func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLesson, error) {
@@ -144,7 +238,7 @@ func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLess
 }
 
 // verifyLesson returns the problems of one code lesson.
-func verifyLesson(ctx context.Context, goBin string, l *codeLesson) []string {
+func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson) []string {
 	var problems []string
 	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	if len(l.solution) == 0 {
@@ -161,7 +255,7 @@ func verifyLesson(ctx context.Context, goBin string, l *codeLesson) []string {
 		problems = append(problems, testsThatCannotFail(l.starter)...)
 	}
 	for _, side := range []string{"solution", "starter"} {
-		r, err := runLesson(ctx, goBin, l, side == "solution")
+		r, err := runLesson(ctx, goBin, goMod, l, side == "solution")
 		if err != nil {
 			add("could not be run with its %s: %v", side, err)
 			continue
@@ -190,8 +284,8 @@ func verifyLesson(ctx context.Context, goBin string, l *codeLesson) []string {
 			add("the solution prints %s, not the expected %s", clip(r.stdout), clip(l.expected.String))
 		case side == "starter" && tests && r.built && r.exit == 0:
 			add("the starter passes its tests: they should fail until the learner solves the lesson")
-		case side == "starter" && !tests && r.built && r.exit == 0 && r.stdout == l.expected.String:
-			add("the starter already prints the expected output")
+		case side == "starter" && !tests && r.built && r.exit == 0 && normalizeOutput(r.stdout) == normalizeOutput(l.expected.String):
+			add("the starter already prints the expected output") // as the app's Submit compares them
 		}
 	}
 	return problems
@@ -208,8 +302,9 @@ type result struct {
 }
 
 // runLesson builds the lesson with its solution or its starter in a temporary folder and runs
-// it: the program for a code lesson, the compiled tests for a code_tests lesson.
-func runLesson(ctx context.Context, goBin string, l *codeLesson, solved bool) (result, error) {
+// it: the program for a code lesson, the compiled tests for a code_tests lesson. A lesson
+// without a go.mod gets goMod, as the app gives it one.
+func runLesson(ctx context.Context, goBin, goMod string, l *codeLesson, solved bool) (result, error) {
 	var r result
 	dir, err := os.MkdirTemp("", "gosmos-verify-")
 	if err != nil {
@@ -238,11 +333,11 @@ func runLesson(ctx context.Context, goBin string, l *codeLesson, solved bool) (r
 		hasMod = hasMod || f.name == "go.mod"
 	}
 	if !hasMod {
-		if err := os.WriteFile(filepath.Join(src, "go.mod"), []byte("module lesson\n\ngo 1.24\n"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(src, "go.mod"), []byte(goMod), 0o644); err != nil {
 			return r, err
 		}
 	}
-	env := append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOPROXY=off", "GOFLAGS=", "CGO_ENABLED=0")
+	env := goEnv()
 	bin := filepath.Join(dir, "lesson.bin")
 	build := []string{"build", "-o", bin, "."}
 	if l.typ == "type_code_tests" {
@@ -270,6 +365,29 @@ func runLesson(ctx context.Context, goBin string, l *codeLesson, solved bool) (r
 	}
 	r.exit, r.stdout, r.stderr, r.took, r.timedOut = c.exit, c.stdout, c.stderr, c.took, c.timedOut
 	return r, nil
+}
+
+// goEnv is the environment verify builds lessons in: the go command found on PATH, with
+// nothing that would switch toolchains, workspaces or module proxies.
+func goEnv() []string {
+	return append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOPROXY=off", "GOFLAGS=", "CGO_ENABLED=0")
+}
+
+// languageVersion is the Go version the app writes into the go.mod of a lesson folder that has
+// none (Toolchain.languageVersion): the major and minor of what `go env GOVERSION` says, such
+// as 1.27 for go1.27.3, or 1.22 when there is no telling. A lesson verifies with the Go its
+// learners run it with, and may use what that Go has.
+func languageVersion(v string) string {
+	parts := strings.FieldsFunc(strings.ReplaceAll(v, "go", ""), func(r rune) bool { return r == '.' })
+	if len(parts) < 2 {
+		return "1.22"
+	}
+	minor := []rune(parts[1])
+	n := 0
+	for n < len(minor) && unicode.IsNumber(minor[n]) {
+		n++
+	}
+	return parts[0] + "." + string(minor[:n])
 }
 
 type commandResult struct {
@@ -352,6 +470,18 @@ func testsThatCannotFail(files []starterFile) []string {
 		}
 	}
 	return problems
+}
+
+// normalizeOutput is how the app compares a program's output with the expected output when it
+// grades a Submit (GoRunner.normalizeOutput): \r\n counts as \n, spaces and tabs at the end of
+// a line do not count, and neither do newlines at the end. The solution must still print the
+// expected output exactly; the starter must not pass even the app's looser comparison.
+func normalizeOutput(s string) string {
+	lines := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	for i, l := range lines {
+		lines[i] = strings.TrimRight(l, " \t")
+	}
+	return strings.TrimRight(strings.Join(lines, "\n"), "\n")
 }
 
 // buildError returns the first line of go build output that says what is wrong, past the

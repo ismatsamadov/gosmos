@@ -1,9 +1,9 @@
 package authoring
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -18,16 +18,16 @@ var ErrUnsupported = errors.New("packages hold code, code_tests and quiz lessons
 
 // Times are the timestamps a lesson's row carries, in RFC 3339 UTC.
 type Times struct {
-	Created, Modified, Synced string
+	Created, Modified string
 }
 
 // Record returns the rows of the lesson the package makes, with the given uuid, in the given
-// chapter. A code lesson's code_last_mod is its Modified time.
+// chapter.
 func (p Package) Record(uuid, chapterUUID string, t Times) store.Record {
 	l := store.Lesson{
 		UUID: uuid, ChapterUUID: chapterUUID, Position: p.Position, Slug: p.Slug, Title: p.Title,
 		Type: lessonType[p.Type], Required: true, Difficulty: p.Difficulty, Readme: p.Readme,
-		CreatedAt: t.Created, LastMod: t.Modified, SyncedAt: t.Synced,
+		CreatedAt: t.Created, LastMod: t.Modified,
 	}
 	var rows []store.Row
 	add := func(table string, vals ...any) {
@@ -36,22 +36,24 @@ func (p Package) Record(uuid, chapterUUID string, t Times) store.Record {
 	for _, topic := range p.Topics {
 		add("lesson_topic", topic)
 	}
+	for i, hint := range p.Hints {
+		add("lesson_hint", int64(i), hint)
+	}
 	switch p.Type {
 	case "quiz":
 		add("quiz_lesson", "type_choice", int64(0))
 		for qi, q := range p.Questions {
 			add("quiz_question", int64(qi), q.Text)
 			for ai, a := range q.Answers {
-				add("quiz_answer", int64(qi), int64(ai), a.Text, boolInt(a.Right))
+				add("quiz_answer", int64(qi), int64(ai), a.Text, boolInt(a.Right), nullIfEmpty(a.Explanation))
 			}
 		}
 	default:
-		l.CodeLastMod = sql.NullString{String: t.Modified, Valid: true}
 		var expected any
 		if p.Expected != nil {
 			expected = *p.Expected
 		}
-		add("code_lesson", l.Type, "go", expected)
+		add("code_lesson", l.Type, "go", expected, nullIfEmpty(p.SolutionNote))
 		for i, f := range p.Starter {
 			add("starter_file", f.Name, int64(i), f.Content, boolInt(f.Hidden), boolInt(f.ReadOnly))
 		}
@@ -90,14 +92,20 @@ func Load(q store.Querier, uuid string) (Package, error) {
 	}
 	starterAt := map[string]int64{}
 	answers := map[int64][]answerAt{}
+	hints := map[int64]string{}
 	for _, r := range rows {
 		v := r.Vals
 		switch r.Table {
 		case "lesson_topic":
 			p.Topics = append(p.Topics, v[1].(string))
+		case "lesson_hint":
+			hints[v[1].(int64)] = v[2].(string)
 		case "code_lesson":
 			if s, ok := v[3].(string); ok {
 				p.Expected = &s
+			}
+			if s, ok := v[4].(string); ok {
+				p.SolutionNote = s
 			}
 		case "starter_file":
 			name := v[1].(string)
@@ -113,10 +121,14 @@ func Load(q store.Querier, uuid string) (Package, error) {
 			p.Questions[at].Text = v[2].(string)
 		case "quiz_answer":
 			qi := v[1].(int64)
-			answers[qi] = append(answers[qi], answerAt{v[2].(int64), Answer{Text: v[3].(string), Right: v[4].(int64) == 1}})
+			explanation, _ := v[5].(string)
+			answers[qi] = append(answers[qi], answerAt{v[2].(int64), Answer{Text: v[3].(string), Right: v[4].(int64) == 1, Explanation: explanation}})
 		}
 	}
 	slices.Sort(p.Topics)
+	for _, at := range slices.Sorted(maps.Keys(hints)) {
+		p.Hints = append(p.Hints, hints[at])
+	}
 	slices.SortFunc(p.Starter, func(a, b File) int { return int(starterAt[a.Name] - starterAt[b.Name]) })
 	slices.SortFunc(p.Solution, func(a, b File) int { return strings.Compare(a.Name, b.Name) })
 	for qi := range p.Questions {
@@ -137,6 +149,14 @@ func Load(q store.Querier, uuid string) (Package, error) {
 		}
 	}
 	return p, nil
+}
+
+// nullIfEmpty is s, or NULL for an empty string.
+func nullIfEmpty(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func boolInt(b bool) int64 {

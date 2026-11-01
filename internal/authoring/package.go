@@ -28,10 +28,16 @@ const Layout = `A lesson package is a folder:
   README.md            the lesson's front matter, then its readme
   starter/             code lessons: the files the learner starts from
   solution/            code lessons: the solved version of every file the learner edits
+  hints.md             code lessons: 2 or 3 hints, each closer to the answer, none giving it
+  solution_note.md     code lessons: why the solution works, in 1 to 3 sentences
   readonly.txt         code lessons, optional: starter files shown but not editable
   hidden.txt           code lessons, optional: starter files added at build time, never shown
   expected_output.txt  type code only: exactly what the solved program prints
-  quiz.md              type quiz only: the questions and their answers
+  quiz.md              type quiz only: the questions, their answers, and why each answer is
+                       right or wrong
+
+The examples below are indented by two spaces to set them apart. In the files, every line
+starts at the left margin unless the text says otherwise.
 
 README.md starts with this block, every line exactly as shown, in this order:
 
@@ -40,7 +46,7 @@ README.md starts with this block, every line exactly as shown, in this order:
   title: The Launch Checklist
   type: code
   position: 0
-  difficulty: 10
+  difficulty: 3
   topics: printing, variables
   ---
 
@@ -49,7 +55,7 @@ README.md starts with this block, every line exactly as shown, in this order:
   type        code (passes when the program prints expected_output.txt exactly),
               code_tests (passes when go test passes) or quiz
   position    the lesson's place in its chapter, counted from 0; unique in its chapter
-  difficulty  a whole number from 1 up
+  difficulty  a whole number from 1 (easiest) to 10
   topics      comma-separated, one space after each comma, in alphabetical order, no
               repeats; write "topics:" with nothing after it for none
 
@@ -71,22 +77,48 @@ Code lessons (code, code_tests):
     FAIL cannot fail, and library verify refuses it.
   - Every file is UTF-8 text, and none is a symbolic link.
 
+hints.md holds 2 or 3 hints, which the app shows one at a time, in order. Each takes the
+learner a step closer, and none gives the answer away: no solution code. A hint is one
+paragraph: one or more lines of text, which may use inline Markdown (code spans, emphasis,
+links) but no headings, lists, quotes or code blocks, and no pictures. No line starts or ends
+with a space. One blank line comes between hints, and the file ends right after the last
+hint's newline:
+
+  Look at what clock.go defines: the number you need is already there.
+
+  fmt.Printf puts each value you give it where a %d stands, in order.
+
+  Compare your output with the expected one character by character, the newline too.
+
+solution_note.md says why the solution works, in 1 to 3 sentences; the app shows it next to
+the solution. It is one paragraph, written as a hint is, and ends with a newline:
+
+  The constant holds the number, and Printf puts it where the question mark was, followed
+  by the newline the expected output ends with.
+
 Quizzes (quiz.md), every line exactly as shown:
 
   ## Which verb prints a value in Go's default format?
 
   - [ ] %d
+    > %d prints integers only; other values come out as an error marker.
   - [x] %v
+    > %v prints any value in its default format.
   - [ ] %q
+    > %q prints a quoted string, not the default format.
 
   ## Does fmt.Println add a newline?
 
   - [x] Yes
+    > Println always ends what it prints with a newline.
   - [ ] No
+    > That is fmt.Print, which adds nothing.
 
-  A question is one "## " line, then a blank line, then its answers, at least two, one
-  "- [ ] " or "- [x] " line each, exactly one of them [x], with no two alike. One blank
-  line comes between questions, and the file ends right after the last answer's newline.
+  A question is one "## " line, then a blank line, then its answers, at least two. An answer
+  is one "- [ ] " or "- [x] " line, exactly one of them [x] and no two alike, and right
+  after it one line that says why that answer is right or wrong: two spaces, "> ", then the
+  explanation. One blank line comes between questions, and the file ends right after the
+  last explanation's newline.
 
 Nothing else belongs in a package. Files and folders whose names start with a dot are
 ignored.`
@@ -100,9 +132,11 @@ type Package struct {
 	Topics      []string // in alphabetical order
 	Readme      string
 
-	Starter  []File  // code lessons, in name order
-	Solution []File  // code lessons: one per editable starter file, in name order
-	Expected *string // type code: what the solved program prints
+	Starter      []File   // code lessons, in name order
+	Solution     []File   // code lessons: one per editable starter file, in name order
+	Expected     *string  // type code: what the solved program prints
+	Hints        []string // code lessons: 2 or 3, in the order the app shows them
+	SolutionNote string   // code lessons: why the solution works
 
 	Questions []Question // quizzes
 }
@@ -124,9 +158,11 @@ type Question struct {
 	Answers []Answer
 }
 
+// Answer is one answer to a quiz question, with why it is right or wrong.
 type Answer struct {
-	Text  string
-	Right bool
+	Text        string
+	Right       bool
+	Explanation string
 }
 
 var reSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
@@ -160,6 +196,7 @@ func Read(dir string) (Package, error) {
 		allowed["quiz.md"] = false
 	} else {
 		allowed["starter"], allowed["solution"], allowed["readonly.txt"], allowed["hidden.txt"] = true, true, false, false
+		allowed["hints.md"], allowed["solution_note.md"] = false, false
 		if p.Type == "code" {
 			allowed["expected_output.txt"] = false
 		}
@@ -238,8 +275,8 @@ func (p *Package) parseReadme(text string) error {
 	if p.Position, err = strconv.ParseInt(values["position"], 10, 64); err != nil || p.Position < 0 {
 		return fmt.Errorf("position %q is not a whole number from 0 up", values["position"])
 	}
-	if p.Difficulty, err = strconv.ParseInt(values["difficulty"], 10, 64); err != nil || p.Difficulty < 1 {
-		return fmt.Errorf("difficulty %q is not a whole number from 1 up", values["difficulty"])
+	if p.Difficulty, err = strconv.ParseInt(values["difficulty"], 10, 64); err != nil || p.Difficulty < 1 || p.Difficulty > 10 {
+		return fmt.Errorf("difficulty %q is not a whole number from 1 (easiest) to 10", values["difficulty"])
 	}
 	if t := values["topics"]; t != "" {
 		for _, topic := range strings.Split(t, ",") {
@@ -340,10 +377,72 @@ func (p *Package) readCode(dir string, present map[string]bool) error {
 		}
 		p.Expected = &out
 	}
+	hints, err := readText(filepath.Join(dir, "hints.md"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return errors.New("a code lesson's package needs hints.md: 2 or 3 hints")
+	} else if err != nil {
+		return err
+	}
+	if p.Hints, err = paragraphs(hints, "hint"); err != nil {
+		return fmt.Errorf("hints.md: %w", err)
+	}
+	if n := len(p.Hints); n < 2 || n > 3 {
+		return fmt.Errorf("hints.md has %s; a code lesson has 2 or 3", count(n, "hint"))
+	}
+	note, err := readText(filepath.Join(dir, "solution_note.md"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return errors.New("a code lesson's package needs solution_note.md: why the solution works, in 1 to 3 sentences")
+	} else if err != nil {
+		return err
+	}
+	notes, err := paragraphs(note, "note")
+	if err != nil {
+		return fmt.Errorf("solution_note.md: %w", err)
+	}
+	if len(notes) != 1 {
+		return fmt.Errorf("solution_note.md has %s; it is one", count(len(notes), "paragraph"))
+	}
+	p.SolutionNote = notes[0]
 	return nil
 }
 
+// paragraphs reads hints.md or solution_note.md: paragraphs of text with one blank line
+// between them and a newline at the end, each a single Markdown paragraph whose lines have no
+// blanks around them. what names a paragraph in errors.
+func paragraphs(text, what string) ([]string, error) {
+	if strings.TrimSpace(text) == "" {
+		return nil, errors.New("it is empty")
+	}
+	if !strings.HasSuffix(text, "\n") || strings.HasSuffix(text, "\n\n") {
+		return nil, errors.New("it must end with exactly one newline, right after its last line")
+	}
+	var out []string
+	for i, para := range strings.Split(strings.TrimSuffix(text, "\n"), "\n\n") {
+		if strings.HasPrefix(para, "\n") || para == "" {
+			return nil, fmt.Errorf("%s %d starts with a blank line: one blank line comes between them", what, i+1)
+		}
+		for _, line := range strings.Split(para, "\n") {
+			if strings.TrimSpace(line) != line {
+				return nil, fmt.Errorf("%s %d: line %q starts or ends with a space", what, i+1, line)
+			}
+		}
+		if !media.OneParagraph(para) {
+			return nil, fmt.Errorf("%s %d is not one paragraph of text: it may use inline Markdown, but no headings, lists, quotes or code blocks", what, i+1)
+		}
+		out = append(out, para)
+	}
+	return out, nil
+}
+
 func isTest(name string) bool { return strings.HasSuffix(name, "_test.go") }
+
+// count says how many of a thing there are, such as "1 hint" or "4 hints".
+func count(n int, thing string) string {
+	if n == 1 {
+		return "1 " + thing
+	}
+	return fmt.Sprintf("%d %ss", n, thing)
+}
 
 // readTree reads the files under root, by their paths relative to it.
 func readTree(root string) (map[string]string, error) {
@@ -435,9 +534,24 @@ func parseQuiz(text string) ([]Question, error) {
 			}
 			q := &qs[len(qs)-1]
 			q.Answers = append(q.Answers, Answer{Text: strings.TrimSpace(line[6:]), Right: line[3] == 'x'})
+		case strings.HasPrefix(line, "  > "):
+			var q *Question
+			if len(qs) > 0 {
+				q = &qs[len(qs)-1]
+			}
+			if q == nil || len(q.Answers) == 0 {
+				return nil, fmt.Errorf("explanation %q follows no answer", line)
+			}
+			a := &q.Answers[len(q.Answers)-1]
+			if a.Explanation != "" {
+				return nil, fmt.Errorf("answer %q has two explanation lines; it has one", a.Text)
+			}
+			if a.Explanation = strings.TrimSpace(line[4:]); a.Explanation == "" {
+				return nil, fmt.Errorf("answer %q has an empty explanation", a.Text)
+			}
 		case strings.TrimSpace(line) == "":
 		default:
-			return nil, fmt.Errorf(`line %q is neither a "## " question nor a "- [ ] " or "- [x] " answer`, line)
+			return nil, fmt.Errorf(`line %q is neither a "## " question, a "- [ ] " or "- [x] " answer, nor a "  > " explanation`, line)
 		}
 	}
 	if len(qs) == 0 {
@@ -457,6 +571,9 @@ func parseQuiz(text string) ([]Question, error) {
 			}
 			if seen[a.Text] {
 				return nil, fmt.Errorf("question %q has the answer %q twice", q.Text, a.Text)
+			}
+			if a.Explanation == "" {
+				return nil, fmt.Errorf(`answer %q of question %q has no explanation: the line after it says why it is right or wrong, as "  > " and the explanation`, a.Text, q.Text)
 			}
 			seen[a.Text] = true
 			if a.Right {
@@ -486,6 +603,9 @@ func quizText(qs []Question) string {
 				mark = "x"
 			}
 			b.WriteString("- [" + mark + "] " + a.Text + "\n")
+			if a.Explanation != "" {
+				b.WriteString("  > " + a.Explanation + "\n")
+			}
 		}
 	}
 	return b.String()
@@ -493,11 +613,15 @@ func quizText(qs []Question) string {
 
 // checkMedia refuses pictures, videos and widgets in the text the app shows.
 func (p Package) checkMedia() error {
-	texts := map[string]string{"README.md": p.Readme}
+	texts := map[string]string{"README.md": p.Readme, "solution_note.md": p.SolutionNote}
+	for i, h := range p.Hints {
+		texts[fmt.Sprintf("hint %d", i+1)] = h
+	}
 	for i, q := range p.Questions {
 		texts[fmt.Sprintf("question %d", i+1)] = q.Text
 		for j, a := range q.Answers {
 			texts[fmt.Sprintf("question %d, answer %d", i+1, j+1)] = a.Text
+			texts[fmt.Sprintf("question %d, answer %d's explanation", i+1, j+1)] = a.Explanation
 		}
 	}
 	for _, where := range sortedKeys(texts) {
@@ -541,6 +665,12 @@ func (p Package) Write(dir string) error {
 		}
 		if p.Expected != nil {
 			files["expected_output.txt"] = *p.Expected
+		}
+		if len(p.Hints) > 0 {
+			files["hints.md"] = strings.Join(p.Hints, "\n\n") + "\n"
+		}
+		if p.SolutionNote != "" {
+			files["solution_note.md"] = p.SolutionNote + "\n"
 		}
 	}
 	for _, name := range sortedKeys(files) {
