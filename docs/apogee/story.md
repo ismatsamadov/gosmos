@@ -381,7 +381,7 @@ Template:
 - Units in names: `AltKm`, `MaskDeg`, `FreqHz`, `BattV`, `BattMV`, `TempC`, `RateMbps`,
   `MarginDB`. Times are `time.Time` in UTC, durations `time.Duration`.
 - Small functions: a solution's function is rarely longer than 15 lines.
-- Every function in starter code has a one-line doc comment saying what it does.
+- Every function in starter code except `main` has a one-line doc comment saying what it does.
 - Errors: lowercase, no final punctuation, wrapped with `%w` when they carry context.
 - No global variables except constants and the lesson's fixed data.
 - Never print the wall clock, random values or map iteration order.
@@ -421,7 +421,9 @@ Template:
 ### Expected output
 
 - Only stdout is compared, and the program must exit with status 0.
-- The app ignores trailing spaces and final newlines, but write none anyway.
+- `expected_output.txt` is exactly what the solution prints, its final newline included:
+  `library verify` compares it byte for byte. The app, grading a learner, ignores line endings,
+  trailing spaces and final newlines, and verify checks that the starter fails even then.
 - ASCII unless the lesson is about text encoding; at most about 15 lines.
 
 ### What the app does that writers must know
