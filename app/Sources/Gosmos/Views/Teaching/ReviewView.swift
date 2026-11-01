@@ -115,7 +115,7 @@ struct ReviewView: View {
                         Image(systemName: "checkmark.circle").foregroundStyle(.secondary)
                     }
                 } description: {
-                    Text("Nothing due. Come back tomorrow.")
+                    Text("Come back tomorrow.")
                         .foregroundStyle(Theme.secondaryText)
                 }
             } else {
@@ -139,6 +139,8 @@ struct ReviewView: View {
                     .padding(.bottom, 40)
                     .frame(maxWidth: .infinity)
                 }
+                // As the readme: text scrolled under the toolbar stops at a hard edge.
+                .scrollEdgeEffectStyle(.hard, for: .top)
             }
         }
     }

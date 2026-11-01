@@ -105,6 +105,17 @@ public struct DocNames: Sendable {
         return nil
     }
 
+    /// The link for the identifier at a place in a Go file (GoSource.selector), as
+    /// `link(for:imports:)` finds it, except that a lone name standing where Go allows no
+    /// package's name has none even when an import has that name: there the code declared
+    /// something of its own by it, such as a parameter `time` in `len(time)`.
+    public func link(for selector: GoSource.Selector, imports: [GoSource.Import]) -> DocLink? {
+        if selector.parts.count == 1, !selector.canBePackage, imports.contains(where: { localName(of: $0) == selector.parts[0] }) {
+            return nil
+        }
+        return link(for: selector.parts, imports: imports)
+    }
+
     /// The name a file uses for an import: the one it gives, else the package's own; a dot
     /// or blank import gives none.
     func localName(of imported: GoSource.Import) -> String? {

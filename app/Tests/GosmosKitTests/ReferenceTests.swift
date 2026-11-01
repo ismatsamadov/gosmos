@@ -258,6 +258,50 @@ enum ReferenceFixture {
         #expect(GoSource.selector(at: at, in: dotted).flatMap { ReferenceFixture.names.link(for: $0.parts, imports: GoSource.imports(in: dotted)) }
             == .symbol(package: "fmt", name: "Println"))
     }
+
+    /// A package's name stands only before a dot or an import path. Anywhere else the code
+    /// declared something of its own by that name, such as a parameter, and it has no link.
+    @Test func aNameDeclaredInAPackagesSteadIsNotThePackage() {
+        let source = """
+        package main
+
+        import (
+        \t"fmt"
+        \tstr "strings"
+        \t"time"
+        )
+
+        func wait(time ...time.Duration) {
+        \tfor _, d := range time {
+        \t\tfmt.Println(d)
+        \t}
+        \t_ = append(time, time...)
+        }
+
+        func main() {
+        \tvar b str .Builder
+        \twait(time.Second)
+        }
+        """
+        let ns = source as NSString
+        let imports = GoSource.imports(in: source)
+        func link(at needle: String, offset: Int = 0) -> DocLink? {
+            GoSource.selector(at: ns.range(of: needle).location + offset, in: source).flatMap { ReferenceFixture.names.link(for: $0, imports: imports) }
+        }
+        // The parameter, where it is declared and where it is used: a variadic one too.
+        #expect(link(at: "time ...") == nil)
+        #expect(link(at: "time {") == nil)
+        #expect(link(at: "time, time") == nil)
+        #expect(link(at: "time...)") == nil)
+        // The package: before a dot, also past a space or on the dot, and before its import path.
+        #expect(link(at: "time.Duration") == .package("time"))
+        #expect(link(at: "time.Duration", offset: 4) == .package("time"))
+        #expect(link(at: "time.Second") == .package("time"))
+        #expect(link(at: "Second") == .symbol(package: "time", name: "Second"))
+        #expect(link(at: "str .Builder") == .package("strings"))
+        #expect(link(at: "str \"strings\"") == .package("strings"))
+        #expect(link(at: "fmt.Println") == .package("fmt"))
+    }
 }
 
 /// Links in a readme: inline code naming the standard library links to its documentation, and
@@ -328,6 +372,29 @@ enum ReferenceFixture {
         #expect(LinkTarget(destination: "godoc-article:spec#Slice_types") == .doc(.article(slug: "spec", anchor: "Slice_types")))
         #expect(LinkTarget(destination: "https://example.com/lessons/\(lesson)", isLesson: { $0 == lesson }) == .lesson(lesson))
         #expect(LinkTarget(destination: "../\(lesson)", isLesson: { $0 == lesson }) == .lesson(lesson))
+    }
+
+    /// A link to a lesson carries the app's own address, gosmos-lesson:<uuid>, not the web
+    /// address the readme gave: no link the app makes leads to the web, even if something other
+    /// than the app's link handling opened it. The app's address leads back to the lesson.
+    @Test func lessonLinksCarryTheAppsOwnAddress() throws {
+        let lesson: String = Fixtures.codeLesson
+        let isLesson = { (id: String) in id == lesson }
+        let web = try #require(LinkTarget(destination: "https://www.boot.dev/lessons/\(lesson)", isLesson: isLesson))
+        #expect(web.url == "gosmos-lesson:\(lesson)")
+        #expect(LinkTarget(destination: web.url, isLesson: isLesson) == .lesson(lesson))
+        #expect(LinkTarget(destination: try #require(URL(string: web.url)).absoluteString, isLesson: isLesson) == .lesson(lesson))
+        // Only a lesson of the text's library.
+        #expect(LinkTarget(destination: "gosmos-lesson:another", isLesson: isLesson) == nil)
+        // A uuid is any text a library holds, and makes a valid URL that leads back to it.
+        let odd = "a b/c#d?e%"
+        let target = LinkTarget.lesson(odd)
+        let url = try #require(URL(string: target.url))
+        #expect(url.scheme == "gosmos-lesson" && LinkTarget(destination: url.absoluteString, isLesson: { $0 == odd }) == target)
+        // Every link the app writes is its own.
+        let readme = "[Next](https://www.boot.dev/lessons/\(lesson)), [the spec](https://go.dev/ref/spec), [Println](godoc:fmt.Println), [types](godoc-article:spec#Types)"
+        let urls = ReadmeLinkTests.destinations(Readme.parse(readme)).compactMap { LinkTarget(destination: $0, isLesson: isLesson)?.url }
+        #expect(urls == ["gosmos-lesson:\(lesson)", "godoc:fmt.Println", "godoc-article:spec#Types"])
     }
 }
 

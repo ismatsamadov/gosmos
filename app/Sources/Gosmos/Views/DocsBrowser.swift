@@ -30,6 +30,16 @@ struct DocsList: View {
                 if let first = docs.results.first { app.openDocumentation(first.link) }
             }
             .padding(10)
+            // ⌘F searches the documentation: nothing on screen here takes Find.
+            .background {
+                Button("Search Documentation") {
+                    NotificationCenter.default.post(name: DocsSearchField.focusRequest, object: nil)
+                }
+                .keyboardShortcut("f", modifiers: .command)
+                .opacity(0)
+                .focusable(false)
+                .accessibilityHidden(true)
+            }
             Divider()
             if !docs.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                 results
@@ -112,7 +122,9 @@ struct DocsList: View {
     private var results: some View {
         Group {
             if docs.results.isEmpty && !docs.searching {
+                // Filling the column, so the search field above it stays at the top.
                 ContentUnavailableView.search(text: docs.searchText)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: selection(docs.location)) {
                     ForEach(docs.results) { hit in
@@ -141,12 +153,18 @@ struct DocsSearchField: NSViewRepresentable {
     let prompt: String
     let onSubmit: () -> Void
 
+    /// Posted to put the insertion point in the field (⌘F in the browser, Edit › Search).
+    static let focusRequest = Notification.Name("GosmosDocsSearchFocusRequest")
+
     func makeNSView(context: Context) -> NSSearchField {
         let field = NSSearchField()
         field.placeholderString = prompt
         field.delegate = context.coordinator
         field.sendsSearchStringImmediately = true
         field.setAccessibilityLabel(prompt)
+        context.coordinator.field = field
+        NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.focus),
+                                               name: Self.focusRequest, object: nil)
         return field
     }
 
@@ -160,8 +178,15 @@ struct DocsSearchField: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, NSSearchFieldDelegate {
         var parent: DocsSearchField
+        weak var field: NSSearchField?
 
         init(_ parent: DocsSearchField) { self.parent = parent }
+
+        @objc func focus() {
+            guard let field, let window = field.window else { return }
+            window.makeFirstResponder(field)
+            field.currentEditor()?.selectAll(nil)
+        }
 
         func controlTextDidChange(_ notification: Notification) {
             guard let field = notification.object as? NSSearchField else { return }
@@ -254,7 +279,7 @@ struct DocPageView: View {
                     .foregroundStyle(Theme.secondaryText)
             }
         } else {
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -334,10 +359,12 @@ struct DocPageContent: View {
                 }
                 .frame(maxWidth: Theme.readableWidth, alignment: .leading)
                 .padding(.horizontal, 32)
-                .padding(.top, 26)
+                // The space above the page is the header row's own, so a scroll to the top
+                // keeps it.
                 .padding(.bottom, 40)
                 .frame(maxWidth: .infinity)
             }
+            .scrollEdgeEffectStyle(.hard, for: .top)
             .task(id: docs.scrollRequests) {
                 // Rows far down the page are laid out with estimated heights until they come into
                 // view, so the place moves as they take their real ones: the scroll is repeated
@@ -388,6 +415,7 @@ struct DocRowView: View {
                         .foregroundStyle(Theme.secondaryText)
                 }
             }
+            .padding(.top, 26)
             .padding(.bottom, 6)
         case .block(_, let block):
             BlockView(block: block)
@@ -499,7 +527,8 @@ struct DocExampleView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.secondaryText)
                 } else {
-                    CodeBlockView(language: "", code: output)
+                    // Without the newline that ends the output, which would show as an empty line.
+                    CodeBlockView(language: "", code: output.hasSuffix("\n") ? String(output.dropLast()) : output)
                 }
             }
         }

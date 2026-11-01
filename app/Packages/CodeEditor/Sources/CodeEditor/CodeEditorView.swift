@@ -31,8 +31,8 @@ public struct CodeEditorView: NSViewRepresentable {
     ///   - proxy: Edits this editor's code for commands from outside it.
     ///   - onIdle: Called with the code one second after typing stops. A pending call is made
     ///     at once when the text is replaced from outside or the editor goes away.
-    ///   - onOptionClick: Called with the UTF-16 offset clicked with Option held, for Quick
-    ///     Help. Without it, Option-click selects as usual.
+    ///   - onOptionClick: Called with the UTF-16 offset of the word character clicked with
+    ///     Option held, for Quick Help. Without it, or off a word, Option-click selects as usual.
     public init(
         text: Binding<String>,
         highlighter: any SyntaxHighlighting,

@@ -179,6 +179,9 @@ final class AppModel {
     private(set) var docSearchResults: [DocSearchHit] = []
     /// The documentation is the place on screen, or about to be, for the history.
     @ObservationIgnored private var docsActive = false
+    /// The lesson that is the place on screen, or about to be while it loads, for the history;
+    /// nil for the review and a redo.
+    @ObservationIgnored private var lessonTarget: LessonRef?
 
     /// The review is on screen: selected, with no lesson still leaving.
     var showsReview: Bool { selection == .review && lesson == nil }
@@ -227,7 +230,8 @@ final class AppModel {
     private var observeTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var loadTask: Task<Void, Never>?
-    private var toolchainTask: Task<Toolchain, Never>?
+    /// Finds the Go to run code with; only the latest check counts (Settings › Go).
+    private let toolchainWork = LatestWork<Toolchain>()
     private let signposter = OSSignposter(subsystem: Log.subsystem, category: .pointsOfInterest)
     private var launchInterval: OSSignpostIntervalState?
 
@@ -251,12 +255,8 @@ final class AppModel {
         let workspace = workspace
         Task.detached(priority: .background) { workspace.removeStaleRuns() }
         let goOverride = preferences.goPath, goCaches = goCaches
-        toolchainTask = Task.detached(priority: .utility) { await Toolchain.discover(goOverride: goOverride, caches: goCaches) }
-        defer {
-            Task { [weak self] in
-                guard let self, let task = self.toolchainTask else { return }
-                self.toolchain = await task.value
-            }
+        toolchainWork.start(priority: .utility, { await Toolchain.discover(goOverride: goOverride, caches: goCaches) }) { [weak self] in
+            self?.toolchain = $0
         }
 
         let opened = ContinuousClock.now
@@ -461,17 +461,21 @@ final class AppModel {
         guard let learner, let db = library(ref.library)?.database, let catalog = library(ref.library)?.catalog,
               catalog.summary(ref.lesson) != nil else { return }
         review = nil
-        // A lesson still leaving for the documentation is not on screen any more.
-        let current = docsActive ? nil : lesson.map { $0.detail.ref }
+        // The lesson on screen, or the one still loading to take its place; none while the
+        // documentation is the place, even with a lesson still leaving for it.
+        let current = docsActive ? nil : lessonTarget
         if remember && ref != current { history.visit(from: visited) }
         docsActive = false
+        lessonTarget = ref
         if selection != .lesson(ref) { selection = .lesson(ref) }
         if let loc = catalog.location(of: ref.lesson) {
             let course = catalog.courses[loc.course]
             expanded.insert(ref.library + "/" + course.chapters[loc.chapter].id)
             expanded.insert(ref.library + "/" + course.id)
         }
-        guard current != ref || lesson?.isReview == true else { return }
+        // Not again while it is on screen or loading; a load that failed may be tried again.
+        let shown = lesson.map { $0.detail.ref == ref && !$0.isReview } ?? false
+        guard current != ref || !(shown || isLoadingLesson) else { return }
         startLoading(ref, db: db, learner: learner, review: false)
     }
 
@@ -483,14 +487,16 @@ final class AppModel {
         selection = nil
         review = nil
         docsActive = false
+        lessonTarget = nil
         startLoading(ref, db: db, learner: learner, review: true)
     }
 
     /// The place on screen as the back and forward history knows it: the documentation's page,
-    /// or the lesson; a redo is not in it.
+    /// or the lesson, also while it still loads, so Back or Forward meanwhile keeps it; a redo is
+    /// not in it.
     private var visited: Place? {
         if docsActive { return docs?.location.map(Place.doc) }
-        return lesson?.isReview == false ? lesson.map { .lesson($0.detail.ref) } : nil
+        return lessonTarget.map(Place.lesson)
     }
 
     private func startLoading(_ ref: LessonRef, db: AppDatabase, learner: LearnerDatabase, review: Bool) {
@@ -681,6 +687,7 @@ final class AppModel {
         guard let learner else { return }
         if let ref = visited { history.visit(from: ref) }
         docsActive = false
+        lessonTarget = nil
         selection = .review
         isLoadingLesson = false
         loadTask?.cancel()
@@ -739,6 +746,7 @@ final class AppModel {
         let target = link ?? docs.location
         if remember, let place = visited, place != target.map(Place.doc) { history.visit(from: place) }
         docsActive = true
+        lessonTarget = nil
         if selection != item { selection = item }
         if let target { docs.show(target) }
         review = nil
@@ -825,10 +833,10 @@ final class AppModel {
         }
     }
 
+    /// The Go to run code with, waiting for the latest check of it.
     func awaitToolchain() async -> Toolchain? {
         if let toolchain { return toolchain }
-        guard let task = toolchainTask else { return nil }
-        let t = await task.value
+        guard let t = await toolchainWork.value() else { return nil }
         toolchain = t
         return t
     }
@@ -842,10 +850,9 @@ final class AppModel {
         preferences.setGoPath(goPath)
         toolchain = nil
         let override = preferences.goPath, goCaches = goCaches
-        toolchainTask = Task.detached(priority: .userInitiated) { await Toolchain.discover(goOverride: override, caches: goCaches) }
-        Task { [weak self] in
-            guard let self, let task = self.toolchainTask else { return }
-            self.toolchain = await task.value
+        // A check still under way, such as of a Go that hangs, never lands after this one.
+        toolchainWork.start(priority: .userInitiated, { await Toolchain.discover(goOverride: override, caches: goCaches) }) { [weak self] in
+            self?.toolchain = $0
         }
     }
 

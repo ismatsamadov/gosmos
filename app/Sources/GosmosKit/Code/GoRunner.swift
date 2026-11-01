@@ -121,7 +121,11 @@ public struct GoRunner: Sendable {
         } catch {
             return RunResult(status: .error, output: error.localizedDescription)
         }
-        let env = toolchain.goEnvironment(submit: submit)
+        var env = toolchain.goEnvironment(submit: submit)
+        // The go command's work folder, a test's binary included, in the run's own rather than
+        // in TMPDIR: it stays in the app's caches, and goes with the run even when Stop kills
+        // go before it can remove it.
+        env["GOTMPDIR"] = tmp
         if let failure = await addRequirements(go: go, dir: dir, env: env) {
             return RunResult(status: .buildError, output: failure)
         }

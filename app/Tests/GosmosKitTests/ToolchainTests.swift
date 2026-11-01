@@ -51,6 +51,20 @@ import Testing
         #expect(t.name == "Go 1.28.1" && t.languageVersion == "1.28")
     }
 
+    /// A Go built from source says "devel go1.29-abcdef …" for its version: it runs, and new
+    /// lesson folders ask for its language version.
+    @Test func aDevelopmentGoRuns() async throws {
+        let dir = try Fixtures.tempDir("toolchain")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let chosen = try Self.fakeGo(in: dir.appendingPathComponent("goroot"), version: "devel go1.29-6f3f1d8 Tue Oct 28 12:00:00 2026 +0000")
+            .appendingPathComponent("bin/go").path
+        let t = await Toolchain.discover(goOverride: chosen, builtIn: nil, caches: dir.appendingPathComponent("caches"),
+                                         environment: ["PATH": "/usr/bin:/bin", "HOME": dir.path])
+        #expect(t.go == chosen && t.problem == nil, "\(t.problem ?? "")")
+        #expect(t.name == "Go devel go1.29-6f3f1d8" && t.languageVersion == "1.29")
+        #expect(Toolchain.languageVersion("go1.27.3") == "1.27" && Toolchain.languageVersion("go1.28rc1") == "1.28")
+    }
+
     @Test func aBrokenGoSaysWhyAndIsNotReplaced() async throws {
         let dir = try Fixtures.tempDir("toolchain")
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -168,5 +182,33 @@ import Testing
         // Nothing went to HOME (no ~/go, no ~/Library), and telemetry counted nothing.
         #expect(try FileManager.default.contentsOfDirectory(atPath: home.path).isEmpty)
         #expect(!FileManager.default.fileExists(atPath: Fixtures.goCaches.appendingPathComponent("telemetry/local").path))
+    }
+}
+
+/// Settings › Go checks the Go it names each time it changes, and only the latest check counts:
+/// a Go that hangs until its timeout, chosen and then replaced by the built-in one, never comes
+/// back when its check ends at last.
+@Suite @MainActor struct LatestWorkTests {
+    @MainActor final class Results {
+        var applied: [String] = []
+    }
+
+    @Test func anEarlierCheckThatEndsLaterNeverReplacesTheLatest() async throws {
+        let latest = LatestWork<String>()
+        #expect(await latest.value() == nil)
+        let results = Results()
+        let (gate, open) = AsyncStream<Void>.makeStream()
+        latest.start({ for await _ in gate {}; return "hung" }) { results.applied.append($0) }
+        // Something waits for a Go to run code with meanwhile, such as a Run.
+        async let waited = latest.value()
+        try await Task.sleep(for: .milliseconds(50))
+        latest.start({ "built-in" }) { results.applied.append($0) }
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(results.applied == ["built-in"])
+        open.finish()
+        #expect(await waited == "built-in")
+        #expect(await latest.value() == "built-in")
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(results.applied == ["built-in"])
     }
 }

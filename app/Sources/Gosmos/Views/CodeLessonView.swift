@@ -31,6 +31,9 @@ struct CodeLessonView: View {
         }
         .sheet(isPresented: Binding(get: { lesson.showingSolution }, set: { lesson.showingSolution = $0 })) {
             SolutionCompareView(files: solutionFiles, note: session.exercise.solutionNote) { lesson.showingSolution = false }
+                // At the view's ideal size, so the two files sit side by side with room for
+                // their lines, instead of its narrowest.
+                .presentationSizing(.fitted)
         }
     }
 
@@ -71,6 +74,7 @@ struct EditorPane: View {
                             if !session.isLoaded {
                                 ProgressView()
                                     .controlSize(.small)
+                                    .appearsAfterDelay()
                                     .padding(12)
                                     .help("Loading your code")
                                     .accessibilityLabel("Loading your code")
@@ -166,7 +170,7 @@ struct EditorButtons: View {
             }
             button(.toggleComment, "Toggle Comment", help: "Comment or Uncomment Lines (⌘/)") {
                 Text(verbatim: "//")
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
             }
             button(.outdent, "Outdent", help: "Outdent (⌥⌘[)") {
                 Image(systemName: "decrease.indent")
@@ -175,7 +179,8 @@ struct EditorButtons: View {
                 Image(systemName: "increase.indent")
             }
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(EditorBarButtonStyle())
+        .font(.system(size: 14))
         .symbolRenderingMode(.hierarchical)
     }
 
@@ -183,12 +188,37 @@ struct EditorButtons: View {
         let reason = session.whyUnavailable(command)
         return Button { session.perform(command) } label: {
             label()
-                .frame(width: 26, height: 24)
+                .frame(width: 28, height: 24)
                 .contentShape(Rectangle())
         }
         .disabled(reason != nil)
         .help(reason ?? help)
         .accessibilityLabel(title)
+    }
+}
+
+/// The file bar's buttons, as Xcode's editor buttons: a glyph in the label color, a rounded
+/// highlight under the pointer and a deeper one while pressed, dimmed when it can't act.
+private struct EditorBarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        EditorBarButton(configuration: configuration)
+    }
+}
+
+private struct EditorBarButton: View {
+    let configuration: ButtonStyleConfiguration
+    @Environment(\.isEnabled) private var isEnabled
+    @ViewState private var hovering = false
+
+    var body: some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+            .background {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(configuration.isPressed ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.quinary))
+                    .opacity(isEnabled && (hovering || configuration.isPressed) ? 1 : 0)
+            }
+            .onHover { hovering = $0 }
     }
 }
 

@@ -17,8 +17,9 @@ final class CodeTextView: NSTextView {
     /// Called after `apply` changed the text, so highlighting can follow before it is drawn.
     var didApplyEdit: (() -> Void)?
 
-    /// Called with the character index under the pointer when the code is clicked with Option
-    /// held, for Quick Help; the click then leaves the selection as it was.
+    /// Called with the index of the word character under the pointer when the code is clicked
+    /// with Option held, for Quick Help; the click then leaves the selection as it was. Off a
+    /// word (wordIndex), Option-click is an ordinary click.
     var onOptionClick: ((Int) -> Void)?
 
     private var highlightedLineRect = NSRect.zero
@@ -140,14 +141,31 @@ final class CodeTextView: NSTextView {
     // selects a rectangle.
     override func mouseDown(with event: NSEvent) {
         if let onOptionClick, event.clickCount == 1,
-           event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .option {
-            let index = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
-            if index != NSNotFound {
-                onOptionClick(index)
-                return
-            }
+           event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .option,
+           let index = wordIndex(at: convert(event.locationInWindow, from: nil)) {
+            onOptionClick(index)
+            return
         }
         super.mouseDown(with: event)
+    }
+
+    /// The index of the word character drawn under `point`, in the view's coordinates: a letter,
+    /// a digit, an underscore, or anything beyond ASCII. Nil anywhere else, such as on
+    /// punctuation or in the blank space past the end of a line, where Option-click is an
+    /// ordinary click.
+    func wordIndex(at point: NSPoint) -> Int? {
+        let insertion = characterIndexForInsertion(at: point)
+        guard insertion != NSNotFound else { return nil }
+        let text = string as NSString
+        // The insertion point nearest the pointer is on one side or the other of the character
+        // under it.
+        for index in [insertion, insertion - 1] where index >= 0 && index < text.length {
+            guard let rect = rect(for: NSRange(location: index, length: 1)), rect.contains(point) else { continue }
+            let c = text.character(at: index)
+            let word = (c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || c == 0x5F || c >= 0x80
+            return word ? index : nil
+        }
+        return nil
     }
 
     /// Where `range` is drawn, in the view's coordinates: its first line, for a range that wraps.

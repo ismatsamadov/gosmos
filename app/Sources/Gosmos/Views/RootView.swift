@@ -92,6 +92,7 @@ struct MainView: View {
     @ViewState private var columns: NavigationSplitViewVisibility = .all
     @ViewState private var windowWidth: CGFloat = 0
     @ViewState private var sidebarWidth: CGFloat = 0
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         @Bindable var app = app
@@ -100,12 +101,23 @@ struct MainView: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { sidebarWidth = $0 }
                 // On the column's outermost view, where the split view reads it. The split view
                 // keeps the sidebar and the inspector at their ideal widths, so those ideals plus
-                // the lesson's 600 fit the 1100 pt minimum window: 240 + 600 + 240.
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 400)
+                // the lesson's 600 fit the 1100 pt minimum window: 260 + 600 + 240. 260 leaves a
+                // lesson title about 20 characters a line; longer ones take a second line.
+                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 400)
         } detail: {
             DetailView(minWidth: lessonMinimum)
         }
         .searchable(text: $app.searchText, placement: .toolbar, prompt: "Search")
+        .searchFocused($searchFocused)
+        // Edit › Search (⇧⌘F): the documentation's own field while it is on screen, else the
+        // toolbar's.
+        .focusedSceneValue(\.searchFocus, SearchFocusAction { [app] in
+            if app.showsDocumentation {
+                NotificationCenter.default.post(name: DocsSearchField.focusRequest, object: nil)
+            } else {
+                searchFocused = true
+            }
+        })
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
     }
 
@@ -117,6 +129,22 @@ struct MainView: View {
         let sidebar = columns == .detailOnly ? 0 : sidebarWidth
         let room = windowWidth - sidebar - (app.showInspector ? 240 : 0) - 2
         return min(600, max(440, room.rounded(.down)))
+    }
+}
+
+/// What Edit › Search does in the focused window: puts the insertion point in its search field.
+struct SearchFocusAction {
+    let focus: @MainActor () -> Void
+}
+
+private struct SearchFocusKey: FocusedValueKey {
+    typealias Value = SearchFocusAction
+}
+
+extension FocusedValues {
+    var searchFocus: SearchFocusAction? {
+        get { self[SearchFocusKey.self] }
+        set { self[SearchFocusKey.self] = newValue }
     }
 }
 
@@ -133,24 +161,25 @@ struct DetailView: View {
                 if let review = app.review {
                     ReviewScreen(session: review)
                 } else {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else if let lesson = app.lesson {
                 LessonView(lesson: lesson)
                     .id(lesson.detail.ref)
             } else if app.isLoadingLesson {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ContentUnavailableView("No Lesson Selected", systemImage: "book.closed",
                                        description: Text(app.shelf.isEmpty ? "Add a library with File › Open Library… to start."
                                                                            : "Choose a lesson in the sidebar, or search for one.").foregroundStyle(Theme.secondaryText))
             }
         }
-        // Sidebar 240 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
+        // Sidebar 260 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
         .frame(minWidth: minWidth)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
         .navigationTitle(app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
-        .navigationSubtitle(app.showsDocumentation ? "Go Documentation" : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
+        .navigationSubtitle(app.showsDocumentation ? (app.docs?.page == nil ? "" : "Go Documentation") : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)
@@ -284,7 +313,7 @@ struct ReviewScreen: View {
                 // A new session (Review chosen again) starts the view over.
                 .id(ObjectIdentifier(session))
         } else {
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

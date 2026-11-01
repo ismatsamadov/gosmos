@@ -46,16 +46,18 @@ public struct Toolchain: Sendable {
     /// The go.mod language version for new lesson folders, like "1.27".
     public var languageVersion: String { Toolchain.languageVersion(goVersion ?? "") }
 
+    /// The language version of a GOVERSION: "1.27" for go1.27.3 or go1.27rc1, and for a Go
+    /// built from source, "devel go1.29-6f3f1d8 …", the one it is developing.
     public static func languageVersion(_ v: String) -> String {
-        let parts = v.replacingOccurrences(of: "go", with: "").split(separator: ".")
-        guard parts.count >= 2 else { return "1.22" }
-        return "\(parts[0]).\(parts[1].prefix(while: \.isNumber))"
+        guard let m = v.firstMatch(of: /go(\d+)\.(\d+)/) else { return "1.22" }
+        return "\(m.1).\(m.2)"
     }
 
-    /// The Go as Settings names it: "Built-in Go 1.27.3", or "Go 1.28.1" for a chosen one; nil
-    /// without a Go to run.
+    /// The Go as Settings names it: "Built-in Go 1.27.3", "Go 1.28.1" for a chosen one, or "Go
+    /// devel go1.29-6f3f1d8" for one built from source; nil without a Go to run.
     public var name: String? {
-        guard go != nil, let version = goVersion?.split(separator: " ").first else { return nil }
+        guard go != nil, let words = goVersion?.split(separator: " "), let version = words.first else { return nil }
+        if version == "devel", words.count > 1 { return (isBuiltIn ? "Built-in Go devel " : "Go devel ") + words[1] }
         return (isBuiltIn ? "Built-in Go " : "Go ") + version.dropFirst(version.hasPrefix("go") ? 2 : 0)
     }
 
@@ -108,11 +110,12 @@ public struct Toolchain: Sendable {
         // From the root folder, where no go.mod can ask for another version.
         let out = await ProcessRunner.run(ProcessRequest(executable: go, arguments: ["env", "GOVERSION", "GOROOT", "GOTOOLDIR"], directory: "/",
                                                          environment: probing.goEnvironment(submit: false), timeout: .seconds(20)))
-        // One line each: the version, the folder Go is installed in, the folder of its tools.
+        // One line each: the version, the folder Go is installed in, the folder of its tools. A
+        // release says go1.27.3; a Go built from source, devel go1.29-6f3f1d8 and a date.
         let lines = out.stdout.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
         if let launch = out.launchError { return .failed(launch) }
         if out.timedOut { return .failed("it did not answer within 20 seconds") }
-        guard out.succeeded, lines.count >= 3, lines[0].hasPrefix("go") else {
+        guard out.succeeded, lines.count >= 3, lines[0].hasPrefix("go") || lines[0].hasPrefix("devel") else {
             let said = out.combined.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\n").first ?? ""
             return .failed(said.isEmpty ? "go env failed with exit status \(out.exitCode)" : said)
         }

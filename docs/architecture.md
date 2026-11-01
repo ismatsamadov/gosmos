@@ -33,7 +33,11 @@ the files themselves. Everything lives in this one repository.
   `~/Library/Application Support/Gosmos/learner.sqlite`, made from `db/learner.sql` (which
   the app carries) on first launch. It lists the libraries in use (the built-in ones and
   each opened file) and keys everything else by `(library_uuid, lesson_uuid)`, so a library
-  can be replaced by a newer version without touching anyone's progress.
+  can be replaced by a newer version without touching anyone's progress. One copy of the app
+  uses it at a time: a launch while an earlier copy with the same bundle id runs, such as
+  `~/Applications/Gosmos.app` while `build/Gosmos.app` opens, brings that one forward and
+  quits before it opens anything (`SingleInstance`). A QA copy under another bundle id runs
+  beside it.
 - **The Go reference**, `reference/go.sqlite` (`docs/reference-format.md`), is the Go
   documentation built into the app. The app opens it read-only and immutable from
   `Contents/Resources/Reference`, after checking its `application_id` and `user_version`.
@@ -92,7 +96,9 @@ covered by Swift Testing tests.
     (`GoSource` reads the imports, renamed and dot ones too, and the identifier at a place,
     never in a comment or a string).
   - `LinkTarget` is the one rule for links: into the documentation, or to a lesson of the
-    readme's library. Anything else is no link at all.
+    readme's library. Anything else is no link at all. A link carries the app's own address
+    (`LinkTarget.url`): `godoc:`, `godoc-article:`, or `gosmos-lesson:<uuid>` for a lesson,
+    never the web address a readme gave for one.
 - **Process running**:
   - Programs start from a resolved path with an argument array, never a shell string.
   - Each run gets an explicit environment and working folder.
@@ -228,6 +234,7 @@ internet. macOS 27 runs only on Apple silicon, so one darwin/arm64 toolchain is 
   | `GOENV` | `off` | The settings `go env -w` keeps for your own Go don't apply |
   | `CGO_ENABLED` | `0` | Lessons are pure Go, and a Mac without the Command Line Tools has no C compiler |
   | `GOWORK`, `GO111MODULE` | `off`, `on` | A lesson folder is one module |
+  | `GOTMPDIR` | the run's folder in `work/.runs` (`GoRunner`) | The go command's work folder, a test's binary included, not in `$TMPDIR`: it goes with the run, even when Stop kills go before it cleans up |
   | Any other `GO…` or `CGO_…` | removed | GOROOT, GOFLAGS, GOOS and the rest would change what is built |
 
   `GOFLAGS=-mod=mod` isn't set: lessons need no module beyond the standard library, so go.mod

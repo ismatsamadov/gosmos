@@ -130,7 +130,7 @@ extension AppModel {
     func showQuickHelp(_ session: CodeSession, at offset: Int? = nil) {
         guard let docs, let text = session.editor.text, let at = offset ?? session.editor.selectedRange?.location,
               let selector = GoSource.selector(at: at, in: text),
-              let link = docNames.link(for: selector.parts, imports: GoSource.imports(in: text)) else {
+              let link = docNames.link(for: selector, imports: GoSource.imports(in: text)) else {
             NSSound.beep()
             return
         }

@@ -20,10 +20,16 @@ public enum GoSource {
     public struct Selector: Hashable, Sendable {
         public let parts: [String]
         public let range: NSRange
+        /// Whether the identifier stands where Go allows a package's name: before a dot
+        /// (`strings` in `strings.Builder`) or before an import path (`str` in `str "strings"`).
+        /// Anywhere else, as `strings` in `len(strings)`, the name is something the code
+        /// declared in the package's stead, such as a variable.
+        public let canBePackage: Bool
 
-        public init(parts: [String], range: NSRange) {
+        public init(parts: [String], range: NSRange, canBePackage: Bool = true) {
             self.parts = parts
             self.range = range
+            self.canBePackage = canBePackage
         }
     }
 
@@ -104,7 +110,12 @@ public enum GoSource {
             parts.insert(word(first, from - 1), at: 0)
             from = first
         }
-        return Selector(parts: parts, range: NSRange(location: from, length: end - from))
+        // After spaces or tabs: a dot, but not the ... of a variadic argument, or an import path.
+        var next = end
+        while next < s.count, s[next] == 0x20 || s[next] == 0x09 { next += 1 }
+        let dot = next < s.count && s[next] == 0x2E && !(next + 1 < s.count && s[next + 1] == 0x2E)
+        let path = next < s.count && (s[next] == 0x22 || s[next] == 0x60) // " or `
+        return Selector(parts: parts, range: NSRange(location: from, length: end - from), canBePackage: dot || path)
     }
 
     static func isDigit(_ c: UInt16) -> Bool { c >= 0x30 && c <= 0x39 }

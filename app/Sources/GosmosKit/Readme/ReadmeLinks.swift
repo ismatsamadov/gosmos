@@ -8,18 +8,39 @@ public enum LinkTarget: Hashable, Sendable {
     /// A lesson of the library the text belongs to, by uuid.
     case lesson(String)
 
-    /// The target of a link's destination, as the Markdown gives it; nil for one that does
-    /// nothing. `isLesson` tells whether a uuid names a lesson of the text's library.
+    /// The scheme of the app's own links to lessons: `gosmos-lesson:<uuid>`.
+    public static let lessonScheme = "gosmos-lesson"
+
+    /// The target of a link's destination, as the Markdown gives it, or as `url` writes it;
+    /// nil for one that does nothing. `isLesson` tells whether a uuid names a lesson of the
+    /// text's library.
     public init?(destination: String, isLesson: (String) -> Bool = { _ in false }) {
         let destination = destination.trimmingCharacters(in: .whitespaces)
         if let doc = DocLink(string: destination) {
             self = .doc(doc)
+        } else if let id = destination.prefixed(by: LinkTarget.lessonScheme + ":") {
+            guard let lesson = id.removingPercentEncoding, isLesson(lesson) else { return nil }
+            self = .lesson(lesson)
         } else if let url = URL(string: destination), let lesson = url.pathComponents.last(where: isLesson) {
             self = .lesson(lesson)
         } else {
             return nil
         }
     }
+
+    /// The link as the app writes it into text: the documentation's own (`godoc:`,
+    /// `godoc-article:`), or `gosmos-lesson:<uuid>` for a lesson, whatever web address the
+    /// text gave for it. So no link the app makes leads to the web, even one that something
+    /// other than the app's link handling opened.
+    public var url: String {
+        switch self {
+        case .doc(let link): link.url
+        case .lesson(let id): LinkTarget.lessonScheme + ":" + (id.addingPercentEncoding(withAllowedCharacters: LinkTarget.idCharacters) ?? id)
+        }
+    }
+
+    /// What a lesson's uuid keeps unescaped in its link: a uuid is any text a library holds.
+    private static let idCharacters = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
 }
 
 /// Inline code in a lesson's readme that names a standard library package, or a name in one,
