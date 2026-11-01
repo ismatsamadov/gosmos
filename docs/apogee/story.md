@@ -45,7 +45,8 @@ Latitude is positive north, longitude positive east.
 
 - **Ystmark.** Polar night from November to February; radome heaters; arctic foxes chew
   cables, so the conduits are fox-proof. The fiber to the mainland fails in storms, and the
-  station falls back to a slow satellite backhaul. Storms stow the dishes.
+  station falls back to a slow satellite backhaul. Storms stow the dishes: like Cape Wren's,
+  they stow when the wind passes 72 km/h.
 - **Port Ellery.** Sea fog, gulls on the yagis, and the only station you can walk to. Every
   new piece of software runs here first, against a Pipit.
 - **Salar Quieto.** At 3,840 m, people walk slowly and dust gets everywhere. Its 3° mask is
