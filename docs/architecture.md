@@ -1,38 +1,42 @@
 # Architecture
 
-Gosmos is a native macOS app (SwiftUI, with AppKit where SwiftUI falls short) that opens
-any **library**: one SQLite file in the format of `docs/library-format.md`, holding a
-syllabus and the learner's data. Nothing in the app depends on a particular library. Go tools
-create, check and fill libraries. This repository's library, `data/apogee.sqlite`, is
-committed as the file itself. Everything lives in this one repository.
+Gosmos is a native macOS app (SwiftUI, with AppKit where SwiftUI falls short) for learning
+Go by doing. It reads course **libraries**, SQLite files in the format of
+`docs/library-format.md`, and keeps everything the learner does in its own **learner
+database**. Nothing in the app depends on a particular library. Go tools create, check and
+fill libraries; the courses built into the app are the libraries in `courses/`, committed as
+the files themselves. Everything lives in this one repository.
 
 ## Repository
 
 | Path | What it is |
 |---|---|
-| `data/apogee.sqlite` | This repository's library, made for the Apogee courses planned in `docs/apogee/` |
-| `db/schema.sql` | The schema (version in `user_version`); `db/` also holds the Go package that creates, opens and checks the database, with the schema embedded |
-| `cmd/library/` | The library tool, for any library: `create`, `check`, `migrate` |
+| `courses/` | The course libraries built into the app: `apogee.sqlite`, the Apogee courses planned in `docs/apogee/` |
+| `db/schema.sql` | A library's schema (format in `user_version`); `db/` also holds the Go package that creates, opens, checks and migrates libraries, with the schema embedded, and `db/history/` the schema of every older format |
+| `db/learner.sql` | The learner database's schema |
+| `cmd/library/` | The library tool, for any library: `create`, `check`, `migrate`, `verify` |
 | `cmd/author/`, `internal/` | The authoring tool: writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` refuses pictures, videos and embeds |
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own packages: `JQ` (jq compiled in), `LessonHTTP` (the HTTP client for lesson checks) and `CodeEditor` (the editor, plus `SyntaxCore`) |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |
 | `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify` |
 
-## The database
+## The databases
 
-- The `db` package owns the format: the schema, the checks and the migrations, used by
-  `cmd/library` and `cmd/author`. A content producer (here `cmd/author`) is the only writer of
-  lesson tables.
-- The app opens any library that passes the checks in `docs/library-format.md`: File ›
-  Open Library…, recent libraries, and the current one remembered. It reads the lesson
-  tables and writes only the learner's tables: progress, attempt, note, code_file, project,
-  server_address and setting. It never creates or migrates a library; `cmd/library migrate`
-  does, with the migrations in `db/migrate.go`.
-- Every connection turns on foreign keys and keeps the rollback journal (no WAL), so the
-  committed file is always whole. Timestamps are ISO 8601 in UTC with a trailing Z.
-- Settings that belong to one Mac, like which library is open and window frames, live in
-  UserDefaults. Everything that should follow you to another Mac lives in the library.
+- **Libraries** are content. The `db` package owns their format: the schema, the checks and
+  the migrations, used by `cmd/library` and `cmd/author`. A content producer (here
+  `cmd/author`) is the only writer. The app opens any library that passes the checks in
+  `docs/library-format.md`, read-only; one built into the app is opened immutable, so SQLite
+  does not even lock it. The app never creates, changes or migrates a library;
+  `cmd/library migrate` does, with the migrations in `db/migrate.go`.
+- **The learner database** is the learner's: one file per Mac,
+  `~/Library/Application Support/Gosmos/learner.sqlite`, made from `db/learner.sql` (which
+  the app carries) on first launch. It lists the libraries in use (the built-in ones and
+  each opened file) and keys everything else by `(library_uuid, lesson_uuid)`, so a library
+  can be replaced by a newer version without touching anyone's progress.
+- Every connection turns on foreign keys and keeps the rollback journal (no WAL), so each
+  file is always whole. Timestamps are RFC 3339 in UTC with a trailing Z.
+- Settings that belong to one Mac, like window frames, live in UserDefaults.
 
 ## The app
 
@@ -46,10 +50,21 @@ as is.
 **GosmosKit** imports neither SwiftUI nor AppKit. It holds the models and services and is
 covered by Swift Testing tests.
 
-- **AppDatabase**: one GRDB `DatabaseQueue` (a `DatabasePool` would need WAL). It validates
-  the file on open and serves typed reads, such as the catalog with your progress, full-text
-  search, and a lesson's content as one enum case per lesson type built from its tables.
-  It also does the writes to your tables. The UI follows changes through `ValueObservation`.
+- **AppDatabase**: a library, through one read-only GRDB `DatabaseQueue` (a
+  `DatabasePool` would need WAL). It validates the file on open and serves typed reads: the
+  catalog, full-text search, and a lesson's content as one enum case per lesson type built
+  from its tables.
+- **LearnerDatabase**: the learner database, through one GRDB `DatabaseQueue`. It does every
+  write: progress, attempts, notes, code, hints and solutions looked at, review. The UI
+  follows your progress through `ValueObservation`.
+- **Teaching**: the rules, as pure values and functions.
+  - Hints show one at a time and stay shown; the last waits for a failed Submit.
+  - The reference solution is there whenever you want it. Looking before you pass is
+    recorded, and the lesson then comes back for review, as it does after a pass that took
+    three failed Submits or more.
+  - Spaced review brings a lesson or a quiz question back a day after it is learned, then
+    3, 7, 21 and 60 days after each review it passes; a failed review starts it over at a
+    day. Due quiz questions are interleaved across lessons.
 - **Readme**: Apple's swift-markdown parses the Markdown. A visitor turns the tree into the
   render model, including `[!NOTE]`-style callouts and OS-tagged headings. Images and
   videos are never rendered.
@@ -77,14 +92,6 @@ covered by Swift Testing tests.
   - jq programs, both tests and JSON-path captures, run in process on jq 1.8.2. It is
     compiled into the app from its C sources, with Oniguruma for regular expressions,
     because the lessons use the real language (`scan`, `any`, `all`, slices).
-- **GitSync**: an actor that runs `/usr/bin/git -C <work tree>`, used only when the open
-  library sits inside a git work tree (`rev-parse --show-toplevel`). Elsewhere sync is off
-  and changes stay on the Mac.
-  - It runs only when you ask: Commit and Push Now, or Pull. The app never pulls, commits
-    or pushes on its own.
-  - A pull is `pull --ff-only`, and closes the database first.
-  - `commit --only <the library's path>` and `push` run while no write is in progress.
-  - A conflict is reported, never merged.
 
 **Gosmos** is the SwiftUI app.
 
@@ -95,8 +102,8 @@ covered by Swift Testing tests.
 - State lives in `@Observable @MainActor` models that get their services through the
   environment. Views stay thin, and there are no singletons.
 - The code editor is an `NSTextView` (TextKit 2) behind `NSViewRepresentable`. It is
-  monospaced, keeps tabs, and has line numbers, undo, find and highlighting. It saves to
-  code_file after a second of idle typing.
+  monospaced, keeps tabs, and has line numbers, undo, find and highlighting. It saves your
+  code to the learner database after a second of idle typing.
 - Errors are typed and shown to you, never swallowed. Logging uses `os.Logger`.
 
 ## Self-contained, fast, reliable
@@ -105,8 +112,10 @@ covered by Swift Testing tests.
   database layer, Markdown, highlighting, jq and the HTTP client. Outside it, the app uses
   only what a Mac for learning Go has anyway:
   - the Go toolchain, to run your code (the app finds it, or tells you how to install it);
-  - `/bin/zsh`, for a lesson's own command lines;
-  - `/usr/bin/git`, to sync the database.
+  - `/bin/zsh`, for a lesson's own command lines.
+
+  It has no account, sends nothing anywhere and syncs nothing; the network is used only by
+  a lesson that sends requests to your own server.
 - **Fast**: these budgets are measured with `os_signpost` intervals and tested where they
   can be.
   - The window is usable less than a second after launch.
@@ -137,6 +146,5 @@ A new dependency needs a reason written here.
 ## Tests
 
 `make test` runs `go vet ./...`, `go test ./...` and `swift test`. Tests build their own
-database from `db/schema.sql` with fixture lessons of every type. No test touches
-`data/apogee.sqlite` or this repository's git; git tests use a throwaway repository and bare
-remote in `$TMPDIR`.
+databases in `$TMPDIR`, from `db/schema.sql` with fixture lessons of every type and from
+`db/learner.sql`. No test touches `courses/` or a real learner database.

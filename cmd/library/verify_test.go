@@ -13,8 +13,9 @@ import (
 
 func q(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
 
-// codeLesson returns the statements that add a code lesson in chapter ch-verify: its starter
-// files (name -> content; names ending in _test.go are read-only) and its solutions.
+// codeLessonSQL returns the statements that add a code lesson in chapter ch-verify: its starter
+// files (name -> content; names ending in _test.go are read-only) and its solutions, with two
+// hints and a solution note.
 func codeLessonSQL(slug, typ string, position int, expected *string, starter, solution map[string]string) []string {
 	uuid := "l-" + slug
 	exp := "NULL"
@@ -25,7 +26,8 @@ func codeLessonSQL(slug, typ string, position int, expected *string, starter, so
 		`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
 			VALUES ('` + uuid + `', 'ch-verify', ` + fmt.Sprint(position) + `, '` + slug + `', 'Lesson ` + slug + `', '` + typ + `', 1, 10, 'Read me.',
 			'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', '2026-01-02T00:00:00Z', '2026-01-03T00:00:00Z')`,
-		`INSERT INTO code_lesson VALUES ('` + uuid + `', '` + typ + `', 'go', ` + exp + `)`,
+		`INSERT INTO code_lesson VALUES ('` + uuid + `', '` + typ + `', 'go', ` + exp + `, 'It does what the lesson asks.')`,
+		`INSERT INTO lesson_hint VALUES ('` + uuid + `', 0, 'Read the assignment again.'), ('` + uuid + `', 1, 'Look at what the starter does now.')`,
 	}
 	i := 0
 	for _, name := range sortedNames(starter) {
@@ -99,6 +101,56 @@ func TestVerifyGoodLessons(t *testing.T) {
 	if code != 0 || len(byLesson) != 0 || !strings.HasPrefix(out, "ok: 2 code lessons of ") {
 		t.Errorf("verify of good lessons: exit %d\n%s", code, out)
 	}
+	code, byLesson, out = problems(t, "--teaching", path)
+	if code != 0 || len(byLesson) != 0 || !strings.Contains(out, "pass with their solutions and fail with their starters, each with 2 or 3 hints and a solution note, and all 0 quiz answers have explanations") {
+		t.Errorf("verify --teaching of good lessons: exit %d\n%s", code, out)
+	}
+}
+
+// With --teaching, verify also wants 2 or 3 hints and a solution note for every code lesson,
+// and an explanation for every quiz answer.
+func TestVerifyTeaching(t *testing.T) {
+	var stmts []string
+	lesson := func(slug string, position int, extra ...string) {
+		stmts = append(stmts, codeLessonSQL(slug, "type_code", position, expect(greeting), map[string]string{"main.go": todo}, map[string]string{"main.go": hello})...)
+		stmts = append(stmts, extra...)
+	}
+	lesson("taught", 0, `INSERT INTO lesson_hint VALUES ('l-taught', 2, 'Print the greeting.')`)
+	lesson("bare", 1, `DELETE FROM lesson_hint WHERE lesson_uuid = 'l-bare'`, `UPDATE code_lesson SET solution_note = NULL WHERE lesson_uuid = 'l-bare'`)
+	lesson("one-hint", 2, `DELETE FROM lesson_hint WHERE lesson_uuid = 'l-one-hint' AND position = 1`)
+	lesson("four-hints", 3, `INSERT INTO lesson_hint VALUES ('l-four-hints', 2, 'Three.'), ('l-four-hints', 3, 'Four.')`)
+	stmts = append(stmts,
+		`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
+			VALUES ('l-quiz', 'ch-verify', 4, 'quiz', 'Quiz', 'type_choice', 1, 5, 'Answer it.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`,
+		`INSERT INTO quiz_lesson VALUES ('l-quiz', 'type_choice', 0)`,
+		`INSERT INTO quiz_question VALUES ('l-quiz', 0, 'When does the window open?'), ('l-quiz', 1, 'Who counts down?')`,
+		`INSERT INTO quiz_answer VALUES ('l-quiz', 0, 0, 'At T-minus 90 seconds', 1, 'The constant says so.'), ('l-quiz', 0, 1, 'At liftoff', 0, NULL)`,
+		`INSERT INTO quiz_answer VALUES ('l-quiz', 1, 0, 'The flight director', 1, NULL), ('l-quiz', 1, 1, 'Nobody', 0, 'Someone always does.')`,
+	)
+	path := verifyLibrary(t, stmts...)
+
+	// Without --teaching, only the code is checked.
+	if code, byLesson, out := problems(t, path); code != 0 || len(byLesson) != 0 {
+		t.Errorf("verify without --teaching: exit %d\n%s", code, out)
+	}
+	code, byLesson, out := problems(t, path, "--teaching")
+	if code != 1 {
+		t.Errorf("verify --teaching: exit %d, want 1", code)
+	}
+	for slug, want := range map[string][]string{
+		"taught":     nil,
+		"bare":       {"has 0 hints, not 2 or 3", "has no solution note"},
+		"one-hint":   {"has 1 hint, not 2 or 3"},
+		"four-hints": {"has 4 hints, not 2 or 3"},
+		"quiz":       {`answer 2 of question 1 ("At liftoff") has no explanation`, `answer 1 of question 2 ("The flight director") has no explanation`},
+	} {
+		if got := byLesson[slug]; strings.Join(got, "\n") != strings.Join(want, "\n") {
+			t.Errorf("%s: problems %q, want %q", slug, got, want)
+		}
+	}
+	if t.Failed() {
+		t.Log(out)
+	}
 }
 
 func TestVerifyFindsEachProblem(t *testing.T) {
@@ -168,7 +220,7 @@ func TestVerifyOneCourse(t *testing.T) {
 		`INSERT INTO chapter VALUES ('ch-other', 'c-other', 0, '1-descent', 'Descent', '')`,
 		`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
 			VALUES ('l-unsolved', 'ch-other', 0, 'unsolved', 'Unsolved', 'type_code', 1, 10, 'Read me.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`,
-		`INSERT INTO code_lesson VALUES ('l-unsolved', 'type_code', 'go', 'x')`,
+		`INSERT INTO code_lesson VALUES ('l-unsolved', 'type_code', 'go', 'x', NULL)`,
 		`INSERT INTO starter_file VALUES ('l-unsolved', 'main.go', 0, 'package main', 0, 0)`,
 	)
 	path := verifyLibrary(t, stmts...)

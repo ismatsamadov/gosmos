@@ -1,25 +1,26 @@
 # Library format
 
-Gosmos is not tied to any particular course. It opens a **library**: one SQLite file
-that holds a syllabus (courses, chapters, lessons) and the learner's own data for it. Any
-file in this format plugs in, and the app behaves the same with it. `data/apogee.sqlite`
-in this repository is one library among many.
+Gosmos is not tied to any particular course. It opens **libraries**: SQLite files that each
+hold a syllabus (courses, chapters, lessons). Any file in this format plugs in, and the app
+behaves the same with it. The courses built into the app are libraries in `courses/`; File ›
+Open Library… opens any other. A library is content only: what the learner does lives in
+Gosmos's learner database, apart from every library (see the end of this page).
 
 ## The file
 
-- SQLite 3, rollback journal (`journal_mode` DELETE, never WAL).
-- `PRAGMA application_id = 1196447556` ('GPWD'). The app refuses any other file.
-- `PRAGMA user_version` is the format version, now 6. The app opens only the version it was
+- SQLite 3, rollback journal (`journal_mode` DELETE).
+- `PRAGMA application_id = 1196641619` ('GSMS'). The app refuses any other file.
+- `PRAGMA user_version` is the format version, now 7. The app opens only the version it was
   built for; `go run ./cmd/library migrate <file>` brings an older file up to date.
+- `library_info` holds the library's one row: a uuid that never changes (the learner's data
+  is filed under it), a title and a version.
 - The tables are exactly those in `db/schema.sql`, which documents every column. Make new
-  files with `go run ./cmd/library create <file>`, not by hand.
-- Any file name and folder work. When the file sits inside a git work tree and git tracks
-  it, the app commits and pushes only that file, and pulls, when you ask. Elsewhere, changes
-  stay on the Mac.
+  files with `go run ./cmd/library create <file> --title T [--version V]`, not by hand.
+- Any file name and folder work. The app opens a library read-only and never writes to it.
 
 ## Content
 
-A producer fills the lesson tables and leaves the learner's tables empty.
+A producer fills the tables; nothing in a library belongs to a learner.
 
 - **Syllabus**:
   - `course` (kind 'Course' or 'Guided Project'), then `chapter`, then `lesson`.
@@ -40,14 +41,24 @@ A producer fills the lesson tables and leaves the learner's tables empty.
   lesson in another language still opens, and the app says it can't run it.
   Starter files with `is_hidden` are added at build time and never shown; `is_readonly`
   files are shown but can't be edited. `solution_file` holds the reference solution of each
-  file the learner edits (neither hidden nor read-only); the app never shows or runs it.
+  file the learner edits (neither hidden nor read-only).
+- **Teaching**, so a learner who is stuck can move on:
+  - `lesson_hint`: 2 or 3 hints per code lesson, each closer to the answer and none giving
+    it; the app shows them one at a time.
+  - `code_lesson.solution_note`: why the solution works, in 1 to 3 sentences, shown next to
+    the solution when the learner asks for it.
+  - `quiz_answer.explanation`: why each answer is right or wrong, shown after the learner
+    answers.
+
   `go run ./cmd/library verify <file>` runs every code lesson with the Go toolchain: it must
-  pass with its solution and fail with its starter, every run within 10 s.
+  pass with its solution and fail with its starter, every run within 10 s. With `--teaching`
+  it also requires the hints, solution notes and explanations above, as the built-in
+  courses do.
 - **Command-line steps**:
   - `${name}` in commands, URLs, headers and bodies is replaced with values captured by
-    earlier steps. `${baseURL}` is the learner's server, resolved as described in
-    `db/schema.sql` (`base_url_default`, `asks_for_base_url`, `server_address`,
-    `project`).
+    earlier steps. `${baseURL}` is the learner's server: the address the lesson suggests
+    (`base_url_default`), the learner's own address for it, or, for a lesson that
+    `asks_for_base_url`, the learner's server for the course.
   - jq programs follow jq 1.8.
   - HTTP behaves like Go's `net/http` client.
 - **Readmes** are Markdown (CommonMark with GitHub tables, task lists and strikethrough),
@@ -72,15 +83,26 @@ A file that fails any of these is refused with a message that names the problem:
 5. Every `cli_step` has its command or request row, matching its kind.
 6. Every `solution_file` solves an editable starter file of its lesson: one neither hidden
    nor read-only.
+7. `library_info` holds exactly one row.
 
 `go run ./cmd/library check <file>` (or `make check` for this repository's library) runs the
 same checks, written once in the `db` package, and prints the same messages the app shows.
-`create` makes a new empty library and `migrate` brings an older one up to date.
 
 ## Authoring
 
 `go run ./cmd/author` writes original content into any library: `course` and `chapter` add
 or update one by slug, `lesson` imports a lesson package (a folder with the lesson's readme,
-starter and solution files, or its quiz), and `export` writes lessons back out as packages,
-byte for byte, to edit and import again. `go run ./cmd/author help` describes the package
-layout.
+starter and solution files, hints and solution note, or its quiz with explanations), and
+`export` writes lessons back out as packages, byte for byte, to edit and import again.
+`go run ./cmd/author help` describes the package layout exactly.
+
+## The learner database
+
+Everything a learner does is in one SQLite file on their Mac,
+`~/Library/Application Support/Gosmos/learner.sqlite`, with the schema in
+`db/learner.sql` (`application_id` 'GSML'): the libraries they use, progress, attempts,
+notes, their code, the hints and solutions they looked at, and their review schedule. Each
+row names its library by `library_info.uuid` and its lesson by uuid, so updating a library
+never touches the learner's data. Libraries of format 6 and older kept the learner's data
+inside the library; `go run ./cmd/library migrate <file> --learner <learner.sqlite>` moves it
+into the learner database and leaves the library content only.

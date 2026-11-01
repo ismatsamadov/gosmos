@@ -3,7 +3,7 @@ build/
 .build/
 .swiftpm/
 
-# data/apogee.sqlite is committed; only its transient journal files are not
+# Course libraries in courses/ are committed; only SQLite's transient journal files are not
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm

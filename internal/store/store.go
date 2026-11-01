@@ -2,8 +2,8 @@
 // rows in the tables that hold its parts (db/schema.sql), in the caller's transaction.
 //
 //   - Put never deletes a lesson row. It writes the row with INSERT ... ON CONFLICT(uuid) DO
-//     UPDATE, which keeps the row's id, the key of the search index, and keeps valid the
-//     progress, attempts, notes and code that point at the lesson.
+//     UPDATE, which keeps the row's id, the key of the search index; the lesson's uuid, which
+//     the learner database refers to the lesson by, never changes.
 //   - A lesson whose parts changed has its part rows deleted (deleting its rows in the root
 //     tables cascades to the rest), its row updated, and the new part rows inserted.
 //   - Nothing that is the same is written again, so a library's file changes only when its
@@ -56,12 +56,13 @@ type Querier interface {
 // values come in.
 var tableCols = map[string][]string{
 	"lesson_topic":               {"lesson_uuid", "topic"},
-	"code_lesson":                {"lesson_uuid", "lesson_type", "prog_lang", "expected_output"},
+	"lesson_hint":                {"lesson_uuid", "position", "text"},
+	"code_lesson":                {"lesson_uuid", "lesson_type", "prog_lang", "expected_output", "solution_note"},
 	"starter_file":               {"lesson_uuid", "name", "position", "content", "is_hidden", "is_readonly"},
 	"solution_file":              {"lesson_uuid", "name", "content"},
 	"quiz_lesson":                {"lesson_uuid", "lesson_type", "contains_complete_dir"},
 	"quiz_question":              {"lesson_uuid", "position", "question"},
-	"quiz_answer":                {"lesson_uuid", "question_position", "position", "answer", "is_correct"},
+	"quiz_answer":                {"lesson_uuid", "question_position", "position", "answer", "is_correct", "explanation"},
 	"cli_lesson":                 {"lesson_uuid", "lesson_type", "base_url_default", "asks_for_base_url", "use_agent_prompt", "contains_complete_dir"},
 	"cli_lesson_os":              {"lesson_uuid", "os"},
 	"cli_step":                   {"lesson_uuid", "position", "kind", "description", "no_penalty_on_fail", "sleep_after_ms"},
@@ -85,7 +86,7 @@ var tableCols = map[string][]string{
 
 // partTables are the tables of tableCols, parents before children.
 var partTables = []string{
-	"lesson_topic",
+	"lesson_topic", "lesson_hint",
 	"code_lesson", "starter_file", "solution_file",
 	"quiz_lesson", "quiz_question", "quiz_answer",
 	"cli_lesson", "cli_lesson_os", "cli_step", "cli_command", "cli_command_variable", "cli_command_test",
@@ -97,7 +98,7 @@ var partTables = []string{
 
 // rootTables are the tables a lesson's parts hang from: deleting a lesson's rows in them
 // removes all its parts.
-var rootTables = []string{"lesson_topic", "code_lesson", "quiz_lesson", "cli_lesson", "github_lesson", "interview_lesson"}
+var rootTables = []string{"lesson_topic", "lesson_hint", "code_lesson", "quiz_lesson", "cli_lesson", "github_lesson", "interview_lesson"}
 
 // Put writes one lesson into its chapter: a new lesson is inserted; one whose row or parts
 // differ is rewritten in place, keeping its id; one that is the same is left alone. Another

@@ -1,8 +1,11 @@
--- A Gosmos library: one SQLite file, such as data/apogee.sqlite in this repository,
--- committed to git as it is. It holds the lessons, your progress, every attempt, notes and your
--- code. No JSON or other data files. A content producer, such as cmd/author, fills the lesson
--- tables and the app the rest; the app commits only this file. It uses the rollback journal
--- (journal_mode DELETE, never WAL), so the file is whole whenever no write is under way.
+-- A Gosmos course library: one SQLite file of read-only content, such as courses/apogee.sqlite
+-- in this repository. It holds the catalog (courses, chapters, lessons) and everything a lesson
+-- teaches with: its readme, hints, code, quizzes, command-line steps and reference solutions. No
+-- JSON or other data files. A content producer, such as cmd/author, writes it; the app only
+-- reads it. Everything that is yours (progress, attempts, notes, your code, settings) lives in
+-- the learner database instead (learner.sql), which refers to a lesson by the library's uuid
+-- (library_info.uuid) and the lesson's (lesson.uuid). The file uses the rollback journal
+-- (journal_mode DELETE, never WAL), so it is whole whenever no write is under way.
 --
 -- Conventions:
 --   * Every table is STRICT, so a column only ever holds its declared type.
@@ -13,18 +16,27 @@
 --     and references the parent's (key, kind), so a cli_lesson row can only belong to a type_cli
 --     lesson, an HTTP request only to an HTTP step, and so on.
 --   * Every connection sets PRAGMA foreign_keys = ON; SQLite does not remember it.
---   * The lesson tables are content: a producer rewrites a lesson in place and never deletes
---     one, so your data keeps pointing at it. Your tables reference lessons without ON DELETE,
---     so a lesson that holds your progress, attempts, notes or code cannot be deleted by
---     accident.
---   * This file makes a new, empty database; it is never run against an existing one. A change
+--   * The uuids of the library, its courses and its lessons never change: the learner database
+--     refers to them. A producer rewrites a lesson in place and never deletes one.
+--   * This file makes a new, empty library; it is never run against an existing one. A change
 --     raises user_version and comes with a migration in the db package (db/migrate.go), which
---     runs when a tool of this repository opens an older file (library migrate). The app opens
---     only the version it was built for.
+--     `library migrate` runs. The app opens only the version it was built for.
 --   * No pictures, videos or interactive widgets: producers leave them out (cmd/author refuses
 --     them), so none lands here.
 
 PRAGMA foreign_keys = ON;
+
+------------------------------------------------------------------------------------------------
+-- The library
+------------------------------------------------------------------------------------------------
+
+-- What this file is: exactly one row (the library's checks see to it).
+CREATE TABLE library_info (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  uuid      TEXT NOT NULL UNIQUE CHECK (uuid <> ''),   -- the learner database's library.uuid
+  title     TEXT NOT NULL CHECK (title <> ''),         -- such as Apogee
+  version   TEXT NOT NULL CHECK (version <> '')        -- the content's version, such as 1
+) STRICT;
 
 ------------------------------------------------------------------------------------------------
 -- The catalog
@@ -81,6 +93,15 @@ CREATE TABLE lesson_topic (
 ) STRICT;
 CREATE INDEX lesson_topic_topic ON lesson_topic(topic);
 
+-- Graduated hints, shown one at a time in order: each a short paragraph (inline Markdown) that
+-- moves the learner closer without ever giving the answer away.
+CREATE TABLE lesson_hint (
+  lesson_uuid TEXT NOT NULL REFERENCES lesson(uuid) ON DELETE CASCADE,
+  position    INTEGER NOT NULL CHECK (position >= 0),
+  text        TEXT NOT NULL CHECK (text <> ''),
+  PRIMARY KEY (lesson_uuid, position)
+) STRICT;
+
 -- Full-text search over lesson titles and readmes, kept in step by the triggers below.
 CREATE VIRTUAL TABLE lesson_search USING fts5(
   title, readme, content = 'lesson', content_rowid = 'id', tokenize = 'unicode61 remove_diacritics 2'
@@ -106,6 +127,7 @@ CREATE TABLE code_lesson (
   lesson_type     TEXT NOT NULL CHECK (lesson_type IN ('type_code', 'type_code_tests')),
   prog_lang       TEXT NOT NULL CHECK (prog_lang <> ''),
   expected_output TEXT,                        -- type_code: what the program must print
+  solution_note   TEXT CHECK (solution_note <> ''),  -- 1-3 sentences on why the solution works
   CHECK ((lesson_type = 'type_code') = (expected_output IS NOT NULL)),
   FOREIGN KEY (lesson_uuid, lesson_type) REFERENCES lesson(uuid, type) ON DELETE CASCADE
 ) STRICT;
@@ -122,8 +144,9 @@ CREATE TABLE starter_file (
 ) STRICT;
 
 -- The reference solution's version of each file the learner edits (a starter file that is
--- neither hidden nor read-only). The app never shows or runs it; producers check their lessons
--- with it (library verify): the solution must pass and the starter must not.
+-- neither hidden nor read-only). The app shows it, with code_lesson.solution_note, when the
+-- learner asks to see the solution. Producers check their lessons with it (library verify):
+-- the solution must pass and the starter must not.
 CREATE TABLE solution_file (
   lesson_uuid TEXT NOT NULL REFERENCES code_lesson(lesson_uuid) ON DELETE CASCADE,
   name        TEXT NOT NULL CHECK (name <> ''),  -- the starter file it solves, e.g. main.go
@@ -155,6 +178,7 @@ CREATE TABLE quiz_answer (
   position          INTEGER NOT NULL CHECK (position >= 0),
   answer            TEXT NOT NULL,
   is_correct        INTEGER NOT NULL CHECK (is_correct IN (0, 1)),
+  explanation       TEXT CHECK (explanation <> ''),  -- why this answer is right or wrong
   PRIMARY KEY (lesson_uuid, question_position, position),
   UNIQUE (lesson_uuid, question_position, answer),
   FOREIGN KEY (lesson_uuid, question_position)
@@ -175,10 +199,12 @@ CREATE TABLE cli_lesson (
   lesson_uuid           TEXT PRIMARY KEY,
   lesson_type           TEXT NOT NULL DEFAULT 'type_cli' CHECK (lesson_type = 'type_cli'),
   -- The address of your server the lesson suggests, such as http://localhost:8080; always a
-  -- real address. Where you run that server elsewhere, server_address says where.
+  -- real address. Where you run that server elsewhere, the learner database's server_address
+  -- says where.
   base_url_default      TEXT CHECK (base_url_default <> '' AND base_url_default <> 'override'),
   -- 1: the lesson needs the address of your own server, such as an app you deployed, and
-  -- suggests none (the source marks these 'override'). project.base_url holds it.
+  -- suggests none (the source marks these 'override'). The learner database's
+  -- project.base_url holds it.
   asks_for_base_url     INTEGER NOT NULL DEFAULT 0 CHECK (asks_for_base_url IN (0, 1)),
   use_agent_prompt      INTEGER NOT NULL CHECK (use_agent_prompt IN (0, 1)),
   contains_complete_dir INTEGER NOT NULL CHECK (contains_complete_dir IN (0, 1)),
@@ -472,70 +498,6 @@ CREATE TABLE interview_lesson (
   FOREIGN KEY (lesson_uuid, lesson_type) REFERENCES lesson(uuid, type) ON DELETE CASCADE
 ) STRICT;
 
-------------------------------------------------------------------------------------------------
--- Your data
-------------------------------------------------------------------------------------------------
-
-CREATE TABLE progress (
-  lesson_uuid    TEXT PRIMARY KEY REFERENCES lesson(uuid),
-  done_at        TEXT CHECK (done_at IS NULL OR (done_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(done_at) IS NOT NULL)),  -- NULL until done
-  last_opened_at TEXT CHECK (last_opened_at IS NULL OR (last_opened_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(last_opened_at) IS NOT NULL)),
-  CHECK (done_at IS NOT NULL OR last_opened_at IS NOT NULL)
-) STRICT;
-CREATE INDEX progress_last_opened ON progress(last_opened_at);
-
--- Every Run, Submit, quiz answer and command-line check, passed or not.
-CREATE TABLE attempt (
-  id          INTEGER PRIMARY KEY,
-  lesson_uuid TEXT NOT NULL REFERENCES lesson(uuid),
-  kind        TEXT NOT NULL CHECK (kind IN ('run', 'submit', 'answer', 'check')),
-  passed      INTEGER NOT NULL CHECK (passed IN (0, 1)),
-  output      TEXT NOT NULL,                   -- what the run printed, or the answer you picked
-  duration_ms INTEGER CHECK (duration_ms >= 0),
-  at          TEXT NOT NULL CHECK (at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(at) IS NOT NULL)
-) STRICT;
-CREATE INDEX attempt_lesson ON attempt(lesson_uuid, at);
-
-CREATE TABLE note (
-  lesson_uuid TEXT PRIMARY KEY REFERENCES lesson(uuid),
-  body        TEXT NOT NULL,
-  updated_at  TEXT NOT NULL CHECK (updated_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(updated_at) IS NOT NULL)
-) STRICT;
-
--- Your code, one row per file. The app writes a lesson's files to a scratch folder only to
--- build, run and test them (and to open them in an editor), and reads them back from there.
-CREATE TABLE code_file (
-  lesson_uuid TEXT NOT NULL REFERENCES lesson(uuid),
-  name        TEXT NOT NULL CHECK (name <> ''),  -- path inside the lesson, e.g. main.go
-  content     TEXT NOT NULL,
-  updated_at  TEXT NOT NULL CHECK (updated_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(updated_at) IS NOT NULL),
-  PRIMARY KEY (lesson_uuid, name)
-) STRICT;
-
--- The folder a course's command-line lessons run in, and the address of your own server for
--- the lessons that ask for one (cli_lesson.asks_for_base_url). Either may be missing, not both.
-CREATE TABLE project (
-  course_uuid TEXT PRIMARY KEY REFERENCES course(uuid),
-  dir         TEXT CHECK (dir <> ''),
-  base_url    TEXT CHECK (base_url <> ''),
-  CHECK (dir IS NOT NULL OR base_url IS NOT NULL)
-) STRICT;
-
--- The address you run a lesson's server at when it is not the one the lesson suggests
--- (cli_lesson.base_url_default). Lessons that suggest the same address share it: a course's
--- lessons often use several servers, such as an app on :8080 and Grafana on :3000.
-CREATE TABLE server_address (
-  default_url TEXT PRIMARY KEY CHECK (default_url <> ''),  -- the address the lessons suggest
-  url         TEXT NOT NULL CHECK (url <> '')              -- where your server answers instead
-) STRICT;
-
--- App preferences that follow you between laptops, such as the editor font size. The last
--- lesson you opened is the newest progress.last_opened_at, not a setting.
-CREATE TABLE setting (
-  key   TEXT PRIMARY KEY CHECK (key <> ''),
-  value TEXT NOT NULL
-) STRICT;
-
--- 'GPWD' marks the file as a Gosmos database; user_version is the schema version.
-PRAGMA application_id = 1196447556;
-PRAGMA user_version = 6;
+-- 'GSMS' marks the file as a Gosmos course library; user_version is the format's version.
+PRAGMA application_id = 1196641619;
+PRAGMA user_version = 7;

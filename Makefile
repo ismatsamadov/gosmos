@@ -2,7 +2,7 @@
 .PHONY: app install test check verify
 
 APP := build/Gosmos.app
-LIBRARY := data/apogee.sqlite
+LIBRARY := courses/apogee.sqlite
 PACKAGES := CodeEditor JQ LessonHTTP
 
 app:
@@ -26,5 +26,7 @@ check:
 	go run ./cmd/library check $(LIBRARY)
 
 # Runs every code lesson of the library: each reference solution passes, each starter fails.
+# Also wants 2 or 3 hints and a solution note for every code lesson, and an explanation for
+# every quiz answer.
 verify:
-	go run ./cmd/library verify $(LIBRARY)
+	go run ./cmd/library verify --teaching $(LIBRARY)

@@ -1,7 +1,9 @@
 package main
 
 // verify runs every code lesson of a library with the Go toolchain, in a temporary folder:
-// with its solution the lesson must pass, and with its starter it must not.
+// with its solution the lesson must pass, and with its starter it must not. With --teaching it
+// also wants what the app teaches with: 2 or 3 hints and a solution note for every code lesson,
+// and an explanation for every quiz answer.
 
 import (
 	"bytes"
@@ -43,9 +45,10 @@ type starterFile struct {
 
 func (f starterFile) editable() bool { return !f.hidden && !f.readonly }
 
-// verify checks the code lessons of the library at path, of one course if course is set,
-// printing one line per problem. It reports whether there were none.
-func verify(ctx context.Context, path, course string, out io.Writer) (bool, error) {
+// verify checks the code lessons of the library at path, of one course if course is set, and
+// with teaching the hints, solution notes and quiz explanations too, printing one line per
+// problem. It reports whether there were none.
+func verify(ctx context.Context, path, course string, teaching bool, out io.Writer) (bool, error) {
 	goBin, err := osexec.LookPath("go")
 	if err != nil {
 		return false, errors.New("verify runs lessons with the go command, which is not on PATH")
@@ -79,10 +82,94 @@ func verify(ctx context.Context, path, course string, out io.Writer) (bool, erro
 			return false, ctx.Err()
 		}
 	}
-	if problems == 0 {
+	answers := 0
+	if teaching {
+		lines, n, err := teachingProblems(ctx, d, course)
+		if err != nil {
+			return false, err
+		}
+		for _, line := range lines {
+			fmt.Fprintln(out, line)
+		}
+		problems += len(lines)
+		answers = n
+	}
+	switch {
+	case problems > 0:
+	case teaching:
+		fmt.Fprintf(out, "ok: %d code lessons of %s pass with their solutions and fail with their starters, each with 2 or 3 hints and a solution note, and all %d quiz answers have explanations\n", len(ls), path, answers)
+	default:
 		fmt.Fprintf(out, "ok: %d code lessons of %s pass with their solutions and fail with their starters\n", len(ls), path)
 	}
 	return problems == 0, nil
+}
+
+// teachingProblems finds the code lessons without 2 or 3 hints or without a solution note, and
+// the quiz answers without an explanation, of one course if course is set. It returns a line
+// for each, in the lessons' order, and how many quiz answers it looked at.
+func teachingProblems(ctx context.Context, d *sql.DB, course string) ([]string, int, error) {
+	from := `FROM lesson l JOIN chapter ch ON ch.uuid = l.chapter_uuid JOIN course co ON co.uuid = ch.course_uuid`
+	where := ``
+	var args []any
+	if course != "" {
+		where = ` AND co.slug = ?`
+		args = append(args, course)
+	}
+	name := `co.slug || '/' || ch.slug || '/' || l.slug`
+	order := ` ORDER BY co.position, ch.position, l.position`
+	var lines []string
+	rows, err := d.QueryContext(ctx, `SELECT `+name+`, (SELECT count(*) FROM lesson_hint h WHERE h.lesson_uuid = l.uuid), c.solution_note IS NULL
+		`+from+` JOIN code_lesson c ON c.lesson_uuid = l.uuid WHERE 1`+where+order, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	for rows.Next() {
+		var lesson string
+		var hints int
+		var noNote bool
+		if err := rows.Scan(&lesson, &hints, &noNote); err != nil {
+			rows.Close()
+			return nil, 0, err
+		}
+		if hints < 2 || hints > 3 {
+			lines = append(lines, fmt.Sprintf("%s: has %s, not 2 or 3", lesson, plural(hints, "hint")))
+		}
+		if noNote {
+			lines = append(lines, fmt.Sprintf("%s: has no solution note", lesson))
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	var answers int
+	if err := d.QueryRowContext(ctx, `SELECT count(*) `+from+` JOIN quiz_answer a ON a.lesson_uuid = l.uuid WHERE 1`+where, args...).Scan(&answers); err != nil {
+		return nil, 0, err
+	}
+	rows, err = d.QueryContext(ctx, `SELECT `+name+`, a.question_position, a.position, a.answer
+		`+from+` JOIN quiz_answer a ON a.lesson_uuid = l.uuid WHERE a.explanation IS NULL`+where+order+`, a.question_position, a.position`, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var lesson, answer string
+		var question, position int
+		if err := rows.Scan(&lesson, &question, &position, &answer); err != nil {
+			return nil, 0, err
+		}
+		lines = append(lines, fmt.Sprintf("%s: answer %d of question %d (%s) has no explanation", lesson, position+1, question+1, clip(answer)))
+	}
+	return lines, answers, rows.Err()
+}
+
+// plural says how many of a thing there are, such as "1 hint" or "0 hints".
+func plural(n int, thing string) string {
+	if n == 1 {
+		return "1 " + thing
+	}
+	return fmt.Sprintf("%d %ss", n, thing)
 }
 
 func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLesson, error) {

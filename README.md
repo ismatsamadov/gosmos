@@ -1,45 +1,45 @@
 # Gosmos
 
-A quiet, native macOS app for learning Go offline: courses on the left, the lesson in the
-middle, your own Go toolchain checking your code. No browser, no local web server, no
-pictures or videos. (Formerly Gopherwood.)
+A quiet, native macOS app for learning Go by doing: courses on the left, the lesson in the
+middle, your own Go toolchain checking your code. Short lessons, hints when you are stuck,
+and spaced review. No browser, no local web server, no account, no pictures or videos.
 
-The app is not tied to any course. It opens a **library**: one SQLite file holding a
-syllabus and your study data, in the format described in `docs/library-format.md`. Any file
-in that format plugs in and works the same way.
+The app is not tied to any course. It reads **libraries**: SQLite files holding a syllabus,
+in the format described in `docs/library-format.md`. Any file in that format plugs in and
+works the same way. The courses that ship with the app are the libraries in `courses/`;
+File › Open Library… opens any other.
 
-This repository's library, `data/apogee.sqlite`, is made for the Apogee courses: original
-lessons set at an invented ground-station company, planned in `docs/apogee/`. Everything in
-them is written for Gosmos.
+`courses/apogee.sqlite` holds the Apogee courses: original lessons set at an invented
+ground-station startup, planned in `docs/apogee/`. Everything in them is written for Gosmos.
 
-## A library is one SQLite database
+## Two databases
 
-Lessons, your progress, every Run and Submit, notes and your code live in one database file.
-Nothing is kept as JSON or loose files. When the library sits in a git repository, the app
-commits and pushes only that file, and pulls, when you ask it to.
+- A **library** is content only: courses, chapters and lessons, starter and solution files,
+  hints, quizzes with explanations. The app opens it read-only and never writes to it. Every
+  part of a lesson has its own table, and keys, foreign keys and checks keep bad data out: a
+  quiz question has one right answer, a test sets only its own kind's fields. The one piece
+  of JSON is the body of an HTTP request a lesson sends to your server, kept whole like a
+  code file. `db/schema.sql` explains each table.
+- The **learner database**, `~/Library/Application Support/Gosmos/learner.sqlite`, holds
+  everything that is yours: progress, every Run and Submit, notes, your code, the hints and
+  solutions you looked at, and your review schedule. `db/learner.sql` explains each table.
 
-To build and run your code the app writes a lesson's files to a scratch folder and reads them
-back; the database is where they live.
-
-Every part of a lesson has its own table: quiz questions and their answers, starter files and
-reference solutions, each command-line step with its command or HTTP request, headers, form
-fields, captured values and tests, and each GitHub check. Keys, foreign keys and checks keep
-bad data out: a quiz question has one right answer, a test sets only its own kind's fields, a
-timestamp is UTC. The one piece of JSON left is the body of an HTTP request a lesson sends to
-your server, kept whole like a code file. `db/schema.sql` explains each table.
+Nothing is kept as JSON or loose files. To build and run your code the app writes a lesson's
+files to a scratch folder and reads them back; the database is where they live. The app
+never runs git and syncs nothing.
 
 ## A new laptop
 
-`gh repo clone jobloom/gosmos`, then `make install` in it, and open Gosmos. File › Open
-Library… opens a library.
+`gh repo clone jobloom/gosmos`, then `make install` in it, and open Gosmos.
 
 ## Parts
 
 | Path | What it is |
 |---|---|
-| `data/apogee.sqlite` | This repository's library |
-| `db/schema.sql` | Its tables, constraints and conventions (schema version 6) |
-| `db/` | The Go package that creates, opens, checks and migrates libraries |
+| `courses/` | The course libraries built into the app |
+| `db/schema.sql` | A library's tables, constraints and conventions (format 7) |
+| `db/learner.sql` | The learner database's tables |
+| `db/` | The Go package that creates, opens, checks and migrates libraries; `db/history/` keeps the schema of every older format |
 | `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify` |
 | `cmd/author/`, `internal/` | Go tool: writes lessons into a library from lesson packages, and exports them back |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |

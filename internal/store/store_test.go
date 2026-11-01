@@ -26,7 +26,7 @@ const (
 func newLibrary(t *testing.T) (*sql.DB, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "apogee.sqlite")
-	d, err := db.Create(path)
+	d, err := db.Create(path, db.Info{Title: "Learn Launches", Version: "1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,9 @@ func codeLesson() Record {
 	return record(lesson("l-window", "launch-window", "type_code", 0, "# Launch Window\n\nPrint when the launch window opens.\n"),
 		row("lesson_topic", "constants"),
 		row("lesson_topic", "printing"),
-		row("code_lesson", "type_code", "go", "Window opens at T-minus 90 seconds\n"),
+		row("lesson_hint", int64(0), "Look at what `clock.go` defines: the number is already there."),
+		row("lesson_hint", int64(1), "`fmt.Printf` fills each `%d` with the next number you give it."),
+		row("code_lesson", "type_code", "go", "Window opens at T-minus 90 seconds\n", "The constant holds the number, and Printf puts it where the question mark was."),
 		row("starter_file", "clock.go", int64(0), clock, int64(1), int64(0)),
 		row("starter_file", "main.go", int64(1), starterMain, int64(0), int64(0)),
 		row("solution_file", "main.go", solvedMain),
@@ -86,7 +88,10 @@ func codeLesson() Record {
 func testsLesson() Record {
 	return record(lesson("l-fuel", "fuel-budget", "type_code_tests", 1, "# Fuel Budget\n\nReturn the fuel left after a burn.\n"),
 		row("lesson_topic", "functions"),
-		row("code_lesson", "type_code_tests", "go", nil),
+		row("lesson_hint", int64(0), "The fuel left is the tank minus the burn."),
+		row("lesson_hint", int64(1), "A tank never holds less than nothing."),
+		row("lesson_hint", int64(2), "`max` picks the larger of two numbers."),
+		row("code_lesson", "type_code_tests", "go", nil, "max keeps the result at zero when the burn is larger than the tank."),
 		row("starter_file", "fuel.go", int64(0), "package main\n\nfunc Remaining(tank, burn int) int {\n\treturn 0\n}\n", int64(0), int64(0)),
 		row("starter_file", "fuel_test.go", int64(1), "package main\n\nimport \"testing\"\n\nfunc TestRemaining(t *testing.T) {\n\tif got := Remaining(100, 30); got != 70 {\n\t\tt.Errorf(\"Remaining(100, 30) = %d, want 70\", got)\n\t}\n}\n", int64(0), int64(1)),
 		row("solution_file", "fuel.go", "package main\n\nfunc Remaining(tank, burn int) int {\n\treturn max(tank-burn, 0)\n}\n"),
@@ -97,11 +102,11 @@ func quizLesson() Record {
 	return record(lesson("l-quiz", "mission-quiz", "type_choice", 2, "# Mission Quiz\n\nCheck what you know about the countdown.\n"),
 		row("quiz_lesson", "type_choice", int64(0)),
 		row("quiz_question", int64(0), "Which constant holds the launch window?"),
-		row("quiz_answer", int64(0), int64(0), "launchAt", int64(0)),
-		row("quiz_answer", int64(0), int64(1), "windowOpens", int64(1)),
+		row("quiz_answer", int64(0), int64(0), "launchAt", int64(0), "No constant of that name exists in the lesson."),
+		row("quiz_answer", int64(0), int64(1), "windowOpens", int64(1), "clock.go defines it as 90."),
 		row("quiz_question", int64(1), "Does a scrub reset the countdown?"),
-		row("quiz_answer", int64(1), int64(0), "Yes", int64(1)),
-		row("quiz_answer", int64(1), int64(1), "No", int64(0)),
+		row("quiz_answer", int64(1), int64(0), "Yes", int64(1), "A scrub stops the clock and starts it again from the top."),
+		row("quiz_answer", int64(1), int64(1), "No", int64(0), nil),
 	)
 }
 
@@ -228,8 +233,8 @@ func TestTableColumnsMatchTheSchema(t *testing.T) {
 			t.Errorf("%s: the schema has %v, tableCols %v", table, cols, tableCols[table])
 		}
 	}
-	// Every table with a lesson_uuid column holds a lesson's parts, except the learner's own.
-	n := count(t, d, `SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND sql LIKE '%lesson_uuid%' AND name NOT IN ('progress', 'attempt', 'note', 'code_file')`)
+	// Every table with a lesson_uuid column holds a lesson's parts.
+	n := count(t, d, `SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND sql LIKE '%lesson_uuid%'`)
 	if n != len(partTables) {
 		t.Errorf("the schema has %d tables of a lesson's parts, partTables %d", n, len(partTables))
 	}
@@ -277,9 +282,6 @@ func TestPutRewritesInPlace(t *testing.T) {
 	d, _ := newLibrary(t)
 	put(t, d, quizLesson())
 	id := count(t, d, `SELECT id FROM lesson WHERE uuid = 'l-quiz'`)
-	if _, err := d.Exec(`INSERT INTO progress VALUES ('l-quiz', '2026-11-01T11:00:00Z', NULL)`); err != nil {
-		t.Fatal(err)
-	}
 
 	old := quizLesson()
 	changed := quizLesson()
@@ -304,9 +306,6 @@ func TestPutRewritesInPlace(t *testing.T) {
 	if count(t, d, `SELECT count(*) FROM quiz_question WHERE question = 'Which constant says when the window opens?'`) != 1 ||
 		count(t, d, `SELECT count(*) FROM quiz_answer WHERE lesson_uuid = 'l-quiz'`) != 4 {
 		t.Error("the quiz's rows were not rewritten")
-	}
-	if count(t, d, `SELECT count(*) FROM progress WHERE lesson_uuid = 'l-quiz'`) != 1 {
-		t.Error("the learner's progress on the lesson is gone")
 	}
 	got, _, _ := Get(d, "l-quiz")
 	if got != changed.Lesson {
@@ -338,7 +337,7 @@ func TestPutChangesType(t *testing.T) {
 		quiz.Rows[i].Vals[0] = "l-window"
 	}
 	put(t, d, quiz)
-	for table, want := range map[string]int{"code_lesson": 0, "starter_file": 0, "solution_file": 0, "lesson_topic": 0, "quiz_lesson": 1, "quiz_question": 2, "quiz_answer": 4} {
+	for table, want := range map[string]int{"code_lesson": 0, "starter_file": 0, "solution_file": 0, "lesson_topic": 0, "lesson_hint": 0, "quiz_lesson": 1, "quiz_question": 2, "quiz_answer": 4} {
 		if got := count(t, d, `SELECT count(*) FROM `+table+` WHERE lesson_uuid = 'l-window'`); got != want {
 			t.Errorf("%s: %d rows, want %d", table, got, want)
 		}
