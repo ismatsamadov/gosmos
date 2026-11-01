@@ -125,7 +125,7 @@ func TestCheckSmallLibrary(t *testing.T) {
 	path := newLibrary(t, smallLibrary...)
 	before, _ := os.ReadFile(path)
 	code, out, errOut := runCmd(t, "check", path)
-	if code != 0 || !strings.Contains(out, "with 1 courses, 2 chapters and 6 lessons") {
+	if code != 0 || !strings.Contains(out, "with 1 course, 2 chapters and 6 lessons") {
 		t.Errorf("check: %d %q %q", code, out, errOut)
 	}
 	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {

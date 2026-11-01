@@ -98,11 +98,11 @@ func TestVerifyGoodLessons(t *testing.T) {
 	stmts = append(stmts, codeLessonSQL("add", "type_code_tests", 1, nil, map[string]string{"sum.go": sumStub, "sum_test.go": sumTest}, map[string]string{"sum.go": sumSolved})...)
 	path := verifyLibrary(t, stmts...)
 	code, byLesson, out := problems(t, path)
-	if code != 0 || len(byLesson) != 0 || !strings.HasPrefix(out, "ok: 2 code lessons of ") {
+	if code != 0 || len(byLesson) != 0 || !strings.HasSuffix(out, ": every code lesson passes with its solution and fails with its starter (2 code lessons)\n") {
 		t.Errorf("verify of good lessons: exit %d\n%s", code, out)
 	}
 	code, byLesson, out = problems(t, "--teaching", path)
-	if code != 0 || len(byLesson) != 0 || !strings.Contains(out, "pass with their solutions and fail with their starters, each with 2 or 3 hints and a solution note, and all 0 quiz answers have explanations") {
+	if code != 0 || len(byLesson) != 0 || !strings.HasSuffix(out, ": every code lesson passes with its solution and fails with its starter, and has 2 or 3 hints and a solution note; every quiz answer has an explanation (2 code lessons, 0 quiz answers)\n") {
 		t.Errorf("verify --teaching of good lessons: exit %d\n%s", code, out)
 	}
 }
@@ -224,7 +224,7 @@ func TestVerifyOneCourse(t *testing.T) {
 		`INSERT INTO starter_file VALUES ('l-unsolved', 'main.go', 0, 'package main', 0, 0)`,
 	)
 	path := verifyLibrary(t, stmts...)
-	if code, _, out := problems(t, path, "--course", "learn-launches"); code != 0 || !strings.HasPrefix(out, "ok: 1 code lessons") {
+	if code, _, out := problems(t, path, "--course", "learn-launches"); code != 0 || !strings.HasSuffix(out, "(1 code lesson)\n") {
 		t.Errorf("verify --course learn-launches: %d %q", code, out)
 	}
 	if code, _, out := problems(t, "--course", "learn-landings", path); code != 1 || !strings.Contains(out, "learn-landings/1-descent/unsolved: has no solution files") {

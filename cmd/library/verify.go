@@ -97,9 +97,9 @@ func verify(ctx context.Context, path, course string, teaching bool, out io.Writ
 	switch {
 	case problems > 0:
 	case teaching:
-		fmt.Fprintf(out, "ok: %d code lessons of %s pass with their solutions and fail with their starters, each with 2 or 3 hints and a solution note, and all %d quiz answers have explanations\n", len(ls), path, answers)
+		fmt.Fprintf(out, "ok: %s: every code lesson passes with its solution and fails with its starter, and has 2 or 3 hints and a solution note; every quiz answer has an explanation (%s, %s)\n", path, plural(len(ls), "code lesson"), plural(answers, "quiz answer"))
 	default:
-		fmt.Fprintf(out, "ok: %d code lessons of %s pass with their solutions and fail with their starters\n", len(ls), path)
+		fmt.Fprintf(out, "ok: %s: every code lesson passes with its solution and fails with its starter (%s)\n", path, plural(len(ls), "code lesson"))
 	}
 	return problems == 0, nil
 }

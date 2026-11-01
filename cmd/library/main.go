@@ -186,8 +186,8 @@ func check(ctx context.Context, path string, out io.Writer) (bool, error) {
 		Scan(&courses, &chapters, &lessons); err != nil {
 		return false, err
 	}
-	fmt.Fprintf(out, "ok: %s is %s, a library of format %d with %d courses, %d chapters and %d lessons\n",
-		path, describeInfo(info), db.Version, courses, chapters, lessons)
+	fmt.Fprintf(out, "ok: %s is %s, a library of format %d with %s, %s and %s\n",
+		path, describeInfo(info), db.Version, plural(courses, "course"), plural(chapters, "chapter"), plural(lessons, "lesson"))
 	return true, nil
 }
 
