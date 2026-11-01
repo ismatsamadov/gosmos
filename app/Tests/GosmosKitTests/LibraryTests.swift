@@ -1,14 +1,13 @@
 import Foundation
 import GRDB
-import Network
 import Testing
 @testable import GosmosKit
 
 /// A library unlike the test fixture, built here from db/schema.sql with made-up lessons: two
-/// courses (one a guided project), three chapters, one lesson of every type.
+/// courses (one a guided project), three chapters, lessons of every type.
 enum KitchenLibrary {
     static let boil = "kitchen-boil-water", salt = "kitchen-measure-salt", acid = "kitchen-which-acid"
-    static let oven = "kitchen-check-oven", publish = "garden-publish-plan", explain = "garden-explain-soil"
+    static let timer = "kitchen-set-timer", plan = "garden-plan-beds", rows = "garden-count-rows"
     static let kitchen = "course-kitchen", garden = "course-garden"
     static let library = "library-kitchen"
 
@@ -74,112 +73,31 @@ enum KitchenLibrary {
                 }
             }
 
-            // Command, then two requests: the command's capture fills the first request's URL.
-            try lesson(oven, "kitchen-practice", 0, "Check the Oven", "type_cli", "# Check the Oven")
-            try db.execute(sql: "INSERT INTO cli_lesson(lesson_uuid, base_url_default, use_agent_prompt, contains_complete_dir) VALUES (?,?,0,0)",
-                           arguments: [oven, "http://localhost:8080"])
-            try db.execute(sql: "INSERT INTO cli_step(lesson_uuid, position, kind, description, no_penalty_on_fail) VALUES (?,0,'command','Read the dial',0)", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_command(lesson_uuid, step_position, command) VALUES (?,0,'echo oven at 180')", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_command_variable(lesson_uuid, step_position, position, name, regex) VALUES (?,0,0,'degrees','at (\\d+)')", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_command_test(lesson_uuid, step_position, position, kind, exit_code) VALUES (?,0,0,'exit_code',0)", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_step(lesson_uuid, position, kind, description, no_penalty_on_fail) VALUES (?,1,'http','The oven agrees',0)", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_http_request(lesson_uuid, step_position, method, full_url, follow_redirects) VALUES (?,1,'GET','${baseURL}/oven/${degrees}',1)",
-                           arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, status_code) VALUES (?,1,0,'status_code',200)", arguments: [oven])
-            try db.execute(sql: """
-                INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, json_path, json_operator, value_type, int_value)
-                VALUES (?,1,1,'json_value','.celsius','eq','int',180)
-                """, arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_step(lesson_uuid, position, kind, description, no_penalty_on_fail) VALUES (?,2,'http','Set a timer',0)", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_http_request(lesson_uuid, step_position, method, full_url, follow_redirects, body_kind, body_json) VALUES (?,2,'POST','${baseURL}/timer',1,'json',?)",
-                           arguments: [oven, #"{"minutes": 12, "for": "${degrees}"}"#])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, status_code) VALUES (?,2,0,'status_code',201)", arguments: [oven])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, text) VALUES (?,2,1,'body_contains','12 minutes at 180')", arguments: [oven])
+            try lesson(timer, "kitchen-practice", 0, "Set a Timer", "type_code", "# Set a Timer\n\nPrint `ding` when the time is up.")
+            try db.execute(sql: "INSERT INTO code_lesson(lesson_uuid, lesson_type, prog_lang, expected_output) VALUES (?,?,?,?)",
+                           arguments: [timer, "type_code", "go", "ding\n"])
+            try db.execute(sql: "INSERT INTO starter_file(lesson_uuid, name, position, content, is_hidden, is_readonly) VALUES (?,?,?,?,0,0)",
+                           arguments: [timer, "main.go", 0, "package main\n\nfunc main() {\n}\n"])
 
-            try lesson(publish, "garden-start", 0, "Publish the Plan", "type_github_checks", "# Publish the Plan")
-            try db.execute(sql: "INSERT INTO github_lesson(lesson_uuid, showcase_repo, contains_complete_dir) VALUES (?,0,0)", arguments: [publish])
-            try db.execute(sql: "INSERT INTO github_step(lesson_uuid, position, kind, branch_name) VALUES (?,0,'branch_exists','seedlings')", arguments: [publish])
+            try lesson(plan, "garden-start", 0, "Plan the Beds", "type_choice", "# Plan the Beds")
+            try db.execute(sql: "INSERT INTO quiz_lesson(lesson_uuid, contains_complete_dir) VALUES (?, 0)", arguments: [plan])
+            try db.execute(sql: "INSERT INTO quiz_question(lesson_uuid, position, question) VALUES (?,0,?)", arguments: [plan, "Where do tomatoes go?"])
+            for (a, (answer, right)) in [("In the sun", 1), ("In the shade", 0)].enumerated() {
+                try db.execute(sql: "INSERT INTO quiz_answer(lesson_uuid, question_position, position, answer, is_correct) VALUES (?,0,?,?,?)",
+                               arguments: [plan, a, answer, right])
+            }
 
-            try lesson(explain, "garden-start", 1, "Explain the Soil", "type_interview_chat", "# Explain the Soil")
-            try db.execute(sql: "INSERT INTO interview_lesson(lesson_uuid, student_prompt, acceptance_criteria) VALUES (?,?,?)",
-                           arguments: [explain, "Why does clay hold water?", "Mentions particle size."])
+            try lesson(rows, "garden-start", 1, "Count the Rows", "type_code_tests", "# Count the Rows")
+            try db.execute(sql: "INSERT INTO code_lesson(lesson_uuid, lesson_type, prog_lang) VALUES (?,?,?)", arguments: [rows, "type_code_tests", "go"])
+            try db.execute(sql: "INSERT INTO starter_file(lesson_uuid, name, position, content, is_hidden, is_readonly) VALUES (?,?,?,?,0,0)",
+                           arguments: [rows, "rows.go", 0, "package main\n\nfunc rows(beds int) int {\n\treturn 0\n}\n"])
         }
         try queue.close()
     }
 }
 
-/// A tiny HTTP/1.1 server on 127.0.0.1 for command-line checks, on Network.framework.
-final class LocalServer: @unchecked Sendable {
-    typealias Handler = @Sendable (_ method: String, _ path: String, _ body: Data) -> (status: Int, body: String)
-    private let listener: NWListener
-    let port: UInt16
-
-    init(_ handler: @escaping Handler) async throws {
-        let parameters = NWParameters.tcp
-        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
-        let listener = try NWListener(using: parameters)
-        listener.newConnectionHandler = { connection in
-            connection.start(queue: .global())
-            LocalServer.read(connection, Data(), handler)
-        }
-        let started = ResumeOnce()
-        port = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<UInt16, any Error>) in
-            listener.stateUpdateHandler = { state in
-                switch state {
-                case .ready: if started.claim() { continuation.resume(returning: listener.port?.rawValue ?? 0) }
-                case .failed(let error): if started.claim() { continuation.resume(throwing: error) }
-                default: break
-                }
-            }
-            listener.start(queue: .global())
-        }
-        self.listener = listener
-    }
-
-    func stop() { listener.cancel() }
-
-    private static func read(_ connection: NWConnection, _ buffer: Data, _ handler: @escaping Handler) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 1 << 16) { data, _, done, error in
-            var buffer = buffer
-            if let data { buffer.append(data) }
-            if let end = buffer.range(of: Data("\r\n\r\n".utf8)) {
-                let head = String(decoding: buffer[..<end.lowerBound], as: UTF8.self)
-                let lines = head.components(separatedBy: "\r\n")
-                let parts = lines.first?.split(separator: " ").map(String.init) ?? []
-                let length = lines.compactMap { line -> Int? in
-                    let pair = line.split(separator: ":", maxSplits: 1)
-                    return pair.count == 2 && pair[0].lowercased() == "content-length" ? Int(pair[1].trimmingCharacters(in: .whitespaces)) : nil
-                }.first ?? 0
-                let body = buffer[end.upperBound...]
-                if body.count >= length, parts.count >= 2 {
-                    let (status, text) = handler(parts[0], parts[1], Data(body.prefix(length)))
-                    let payload = Data(text.utf8)
-                    let response = "HTTP/1.1 \(status) \(status < 300 ? "OK" : "Not Found")\r\nContent-Type: application/json\r\nContent-Length: \(payload.count)\r\nConnection: close\r\n\r\n"
-                    connection.send(content: Data(response.utf8) + payload, completion: .contentProcessed { _ in connection.cancel() })
-                    return
-                }
-            }
-            if done || error != nil { connection.cancel() } else { read(connection, buffer, handler) }
-        }
-    }
-}
-
-/// Resumes a continuation once, whatever the listener reports after.
-final class ResumeOnce: @unchecked Sendable {
-    private let lock = NSLock()
-    private var claimed = false
-    func claim() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        if claimed { return false }
-        claimed = true
-        return true
-    }
-}
-
 /// The whole path with a library the app has never seen: open and check it, read every lesson
-/// type, grade the quiz, run the command-line checks against a local server, and run the code
-/// lessons when Go is here.
+/// type, grade the quiz, and run the code lessons when Go is here.
 @Suite(.serialized) struct LibraryTests {
     @Test func anyLibraryInTheFormatWorks() async throws {
         let dir = try Fixtures.tempDir("kitchen")
@@ -198,7 +116,7 @@ final class ResumeOnce: @unchecked Sendable {
         #expect(catalog.courses.map(\.isGuidedProject) == [false, true])
         #expect(catalog.courses.flatMap(\.chapters).map(\.title) == ["Basics", "Practice", "Start"])
         #expect(catalog.lessonCount == 6 && catalog.firstLesson?.id == KitchenLibrary.boil)
-        #expect(catalog.next(after: KitchenLibrary.acid)?.id == KitchenLibrary.oven)
+        #expect(catalog.next(after: KitchenLibrary.acid)?.id == KitchenLibrary.timer)
 
         // Every type reads back as itself.
         var types: [LessonType] = []
@@ -206,11 +124,10 @@ final class ResumeOnce: @unchecked Sendable {
             let lesson = try #require(try await db.lesson(summary.id))
             types.append(lesson.type)
         }
-        #expect(types == [.code, .codeTests, .choice, .cli, .githubChecks, .interview])
-        guard case .githubChecks(let checks)? = try await db.lesson(KitchenLibrary.publish)?.content,
-              case .interviewChat(let interview)? = try await db.lesson(KitchenLibrary.explain)?.content else { Issue.record("manual lessons"); return }
-        #expect(checks.steps.count == 1 && checks.steps[0].summary.contains("seedlings"))
-        #expect(interview.studentPrompt == "Why does clay hold water?")
+        #expect(types == [.code, .codeTests, .choice, .code, .choice, .codeTests])
+        guard case .choice(let beds)? = try await db.lesson(KitchenLibrary.plan)?.content,
+              case .codeTests(let count)? = try await db.lesson(KitchenLibrary.rows)?.content else { Issue.record("garden lessons"); return }
+        #expect(beds.questions.map(\.answer) == ["In the sun"] && count.visibleFiles.map(\.name) == ["rows.go"])
 
         // The quiz: one wrong, then right; done.
         guard case .choice(let quiz)? = try await db.lesson(KitchenLibrary.acid)?.content else { Issue.record("quiz"); return }
@@ -226,25 +143,6 @@ final class ResumeOnce: @unchecked Sendable {
         try await learner.recordAnswers(acid, first + second)
         try await learner.setDone(acid, true)
         #expect(try await learner.done() == [KitchenLibrary.library: [KitchenLibrary.acid]])
-
-        // The command-line lesson, against a local server standing in for yours.
-        guard case .cli(let cli)? = try await db.lesson(KitchenLibrary.oven)?.content else { Issue.record("cli"); return }
-        let server = try await LocalServer { method, path, body in
-            switch (method, path) {
-            case ("GET", "/oven/180"): return (200, #"{"celsius": 180}"#)
-            case ("POST", "/timer"):
-                let sent = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
-                return (201, "\"\(sent?["minutes"] as? Int ?? 0) minutes at \(sent?["for"] as? String ?? "?")\"")
-            default: return (404, "{}")
-            }
-        }
-        defer { server.stop() }
-        try await learner.setServerAddress("http://127.0.0.1:\(server.port)", for: "http://localhost:8080")
-        let base = try await learner.baseURL(for: cli, library: KitchenLibrary.library, course: KitchenLibrary.kitchen)
-        #expect(base == .suggested("http://localhost:8080", yours: "http://127.0.0.1:\(server.port)"))
-        let run = await CLIChecker(environment: ["PATH": "/usr/bin:/bin"]).run(cli, directory: dir.path, baseURL: base.url)
-        #expect(run.status == .passed, "\(run.report)")
-        #expect(run.steps.map(\.action) == ["echo oven at 180", "GET http://127.0.0.1:\(server.port)/oven/180", "POST http://127.0.0.1:\(server.port)/timer"])
 
         // The code lessons, with Go when it is here.
         guard let toolchain = await Fixtures.toolchain() else { return }

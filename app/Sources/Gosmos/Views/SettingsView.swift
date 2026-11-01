@@ -20,9 +20,19 @@ struct SettingsView: View {
 
 struct GeneralSettings: View {
     @Environment(AppModel.self) private var app
+    @ViewState private var showsAcknowledgements = false
 
     var body: some View {
         Form {
+            Section {
+                LabeledContent("The language and the standard library") {
+                    Button("Acknowledgements…") { showsAcknowledgements = true }
+                }
+            } header: {
+                Text("Go Documentation")
+            } footer: {
+                Text("The specification, the guides and the standard library's documentation are built into Gosmos. The acknowledgements credit their authors and give their licenses.")
+            }
             Section {
                 ForEach(app.shelf) { library in
                     LabeledContent {
@@ -50,6 +60,7 @@ struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showsAcknowledgements) { AcknowledgementsSheet(reference: app.docs?.reference) }
     }
 }
 
@@ -84,66 +95,51 @@ struct EditorSettings: View {
 
 struct GoSettings: View {
     @Environment(AppModel.self) private var app
-    @ViewState private var path = ""
 
     var body: some View {
         Form {
             Section {
-                TextField("Go command", text: $path, prompt: Text("Found automatically"))
-                    .font(.system(.body, design: .monospaced))
-                    .onSubmit { app.rediscoverToolchain(goPath: path) }
+                if let t = app.toolchain {
+                    if let name = t.name {
+                        LabeledContent("Runs your code", value: name)
+                        if !t.isBuiltIn, let go = t.go {
+                            LabeledContent("Path") { Text(go).font(.system(.body, design: .monospaced)).textSelection(.enabled) }
+                        }
+                    } else {
+                        Label {
+                            Text(t.problem ?? "There is no Go to run your code with.")
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.multicolor)
+                        }
+                    }
+                } else {
+                    HStack { ProgressView().controlSize(.small); Text("Checking Go…") }
+                }
+            } header: {
+                Text("Go")
+            } footer: {
+                Text("Gosmos builds, runs, tests and formats your code with the Go built into it, offline. Nothing needs installing, and nothing is downloaded.")
+            }
+            Section {
                 HStack {
                     Button("Choose…") {
                         let panel = NSOpenPanel()
                         panel.canChooseFiles = true
                         panel.canChooseDirectories = false
-                        panel.message = "Choose the go command, for example /usr/local/go/bin/go"
+                        panel.message = "Choose the go command of another Go, for example /usr/local/go/bin/go"
                         if panel.runModal() == .OK, let url = panel.url {
-                            path = url.path
-                            app.rediscoverToolchain(goPath: path)
+                            app.rediscoverToolchain(goPath: url.path)
                         }
                     }
-                    Button("Find Automatically") {
-                        path = ""
-                        app.rediscoverToolchain(goPath: nil)
-                    }
+                    Button("Use Built-in Go") { app.rediscoverToolchain(goPath: nil) }
+                        .disabled(app.toolchain?.isBuiltIn != false)
                 }
             } header: {
-                Text("Toolchain")
+                Text("Another Go")
             } footer: {
-                Text("Gosmos runs your code with this Go. Left empty, it uses the go your login shell finds.")
-            }
-            Section("Detected") {
-                if let t = app.toolchain {
-                    if let go = t.go {
-                        LabeledContent("Version", value: t.goVersion ?? "unknown")
-                        LabeledContent("Path") { Text(go).font(.system(.body, design: .monospaced)).textSelection(.enabled) }
-                    } else {
-                        GoMissingView()
-                    }
-                } else {
-                    HStack { ProgressView().controlSize(.small); Text("Looking for Go…") }
-                }
+                Text("For advanced use: run your code with another Go on this Mac, such as a newer release. It runs offline too.")
             }
         }
         .formStyle(.grouped)
-        .onAppear { path = app.preferences.goPath ?? "" }
     }
 }
-
-/// How to install Go when it is missing.
-struct GoMissingView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label("Go is not installed", systemImage: "exclamationmark.triangle.fill")
-                .symbolRenderingMode(.multicolor)
-                .fontWeight(.medium)
-            Text("Install it from go.dev/dl, or with Homebrew: brew install go. Then choose Find Automatically.")
-                .foregroundStyle(.secondary)
-            if let download = URL(string: "https://go.dev/dl/") {
-                Link("Download Go", destination: download)
-            }
-        }
-    }
-}
-

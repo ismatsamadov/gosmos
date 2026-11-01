@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -15,9 +16,6 @@ var typeTables = []struct {
 }{
 	{"code_lesson", []string{"type_code", "type_code_tests"}},
 	{"quiz_lesson", []string{"type_choice"}},
-	{"cli_lesson", []string{"type_cli"}},
-	{"github_lesson", []string{"type_github_checks"}},
-	{"interview_lesson", []string{"type_interview_chat"}},
 }
 
 // Problems are what Validate found wrong, one line each.
@@ -43,12 +41,12 @@ type Querier interface {
 //
 //  1. application_id is 1196641619 ('GSMS') and user_version is this format's version;
 //  2. quick_check is ok and foreign_key_check finds nothing;
-//  3. every lesson has exactly one row in the table for its type, of the matching type;
+//  3. every lesson is of a type the format has, and has exactly one row in the table for its
+//     type, of the matching type;
 //  4. every quiz question has exactly one right answer;
-//  5. every cli_step has its command or request row, matching its kind;
-//  6. every solution_file solves an editable starter file of its lesson: one neither hidden
+//  5. every solution_file solves an editable starter file of its lesson: one neither hidden
 //     nor read-only;
-//  7. library_info holds exactly one row.
+//  6. library_info holds exactly one row.
 //
 // The other checks run only once the first passes, since a file of another format may not have
 // the tables they read, and only on a file quick_check finds whole. Validate writes nothing. An
@@ -129,16 +127,18 @@ func Validate(ctx context.Context, d Querier) (Problems, error) {
 		if err := r.Scan(dest...); err != nil {
 			return err
 		}
+		known := false
 		for i, t := range typeTables {
 			want := 0
-			for _, x := range t.types {
-				if x == typ {
-					want = 1
-				}
+			if slices.Contains(t.types, typ) {
+				want, known = 1, true
 			}
 			if n[i] != want {
 				add("lesson %s (%s) has %d %s rows, want %d", uuid, typ, n[i], t.table, want)
 			}
+		}
+		if !known {
+			add("lesson %s (%s) is of a type format %d does not have", uuid, typ, Version)
 		}
 		return nil
 	}); err != nil {
@@ -159,22 +159,6 @@ func Validate(ctx context.Context, d Querier) (Problems, error) {
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("quiz answers: %w", err)
-	}
-
-	if err := eachRow(ctx, d, `SELECT s.lesson_uuid, s.position, s.kind FROM cli_step s
-		WHERE (s.kind = 'command' AND NOT EXISTS (SELECT 1 FROM cli_command c WHERE c.lesson_uuid = s.lesson_uuid AND c.step_position = s.position AND c.step_kind = s.kind))
-		   OR (s.kind = 'http' AND NOT EXISTS (SELECT 1 FROM cli_http_request h WHERE h.lesson_uuid = s.lesson_uuid AND h.step_position = s.position AND h.step_kind = s.kind))
-		ORDER BY 1, 2`, func(r *sql.Rows) error {
-		var uuid, kind string
-		var position int
-		if err := r.Scan(&uuid, &position, &kind); err != nil {
-			return err
-		}
-		detail := map[string]string{"command": "cli_command", "http": "cli_http_request"}[kind]
-		add("cli_step %d of lesson %s (%s) has no %s row", position, uuid, kind, detail)
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("command-line steps: %w", err)
 	}
 
 	if err := eachRow(ctx, d, `SELECT s.lesson_uuid, s.name FROM solution_file s

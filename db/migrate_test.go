@@ -27,104 +27,62 @@ func schemaOfFormat(t *testing.T, v int) string {
 	return s
 }
 
-// interviews are three interview lessons in chapter ch1, from position 4 on, whose acceptance
-// criteria are empty, blank and real; a real value is kept exactly, blanks around it included.
-var interviews = []string{
-	oldLesson("talk-empty", "type_interview_chat", 4), oldLesson("talk-blank", "type_interview_chat", 5), oldLesson("talk-real", "type_interview_chat", 6),
-	`INSERT INTO interview_lesson VALUES ('talk-empty', 'type_interview_chat', 'Explain table tests.', '')`,
-	`INSERT INTO interview_lesson VALUES ('talk-blank', 'type_interview_chat', 'Explain subtests.', ' ' || char(9, 10) || ' ')`,
-	`INSERT INTO interview_lesson VALUES ('talk-real', 'type_interview_chat', 'Explain fuzzing.', '  Mentions go test -fuzz.' || char(10))`,
-}
-
-const realCriteria = "  Mentions go test -fuzz.\n"
-
 func oldLesson(uuid, typ string, position int) string {
 	return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
 		VALUES ('` + uuid + `', 'ch1', ` + fmt.Sprint(position) + `, '` + uuid + `', 'Lesson ` + uuid + `', '` + typ + `', 1, 10, 'Read me.',
 		'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`
 }
 
-func checkCriteria(t *testing.T, d *sql.DB) {
-	t.Helper()
-	rows, err := d.Query(`SELECT lesson_uuid, coalesce(acceptance_criteria, 'NULL') FROM interview_lesson`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rows.Close()
-	got := map[string]string{}
-	for rows.Next() {
-		var u, c string
-		rows.Scan(&u, &c)
-		got[u] = c
-	}
-	for u, want := range map[string]string{"talk-empty": "NULL", "talk-blank": "NULL", "talk-real": realCriteria} {
-		if got[u] != want {
-			t.Errorf("%s: acceptance_criteria %q, want %q", u, got[u], want)
-		}
-	}
-}
-
-// v3File makes a library of format 3 with rows in every table the migration to format 4
-// changes, in the tables that hang from them, and the learner's data.
+// v3File makes a library of format 3, of the lesson types format 8 keeps, with the learner's
+// data: rows Migrate moves, and project folders, which only command-line lessons used and it
+// drops.
 func v3File(t *testing.T, extra ...string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "v3.sqlite")
-	raw(t, path, append(append([]string{
+	raw(t, path, append([]string{
 		schemaOfFormat(t, 3),
 		`INSERT INTO course VALUES ('c1', 'learn-uplinks', 'Learn Uplinks', 'Course', 'Short.', 'Long.', 0)`,
 		`INSERT INTO course VALUES ('c2', 'learn-downlinks', 'Learn Downlinks', 'Course', 'Short.', 'Long.', 1)`,
-		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-deploy', 'Deploy', 'Ship it.')`,
-		oldLesson("deploy", "type_cli", 0), oldLesson("local", "type_cli", 1), oldLesson("none", "type_cli", 2), oldLesson("quiz", "type_choice", 3),
-		`INSERT INTO cli_lesson VALUES ('deploy', 'type_cli', 'override', 0, 1)`,
-		`INSERT INTO cli_lesson VALUES ('local', 'type_cli', 'http://localhost:8080', 1, 0)`,
-		`INSERT INTO cli_lesson VALUES ('none', 'type_cli', NULL, 0, 0)`,
-		`INSERT INTO cli_lesson_os VALUES ('deploy', 'linux'), ('deploy', 'darwin'), ('local', 'darwin')`,
-		`INSERT INTO cli_step VALUES ('deploy', 0, 'http', 'Check the app.', 0, NULL), ('local', 0, 'command', 'Run it.', 1, 1000), ('none', 0, 'command', 'List.', 0, NULL)`,
-		`INSERT INTO cli_http_request VALUES ('deploy', 0, 'http', 'GET', '${baseURL}/healthz', 1, NULL, NULL, NULL, NULL)`,
-		`INSERT INTO cli_http_test (lesson_uuid, step_position, position, kind, status_code) VALUES ('deploy', 0, 0, 'status_code', 200)`,
-		`INSERT INTO cli_command VALUES ('local', 0, 'command', 'go run .', NULL), ('none', 0, 'command', 'ls', NULL)`,
+		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-link', 'Link', 'Hear the craft.')`,
+		oldLesson("ping", "type_code", 0), oldLesson("quiz", "type_choice", 1),
+		`INSERT INTO code_lesson VALUES ('ping', 'type_code', 'go', 'pong' || char(10))`,
+		`INSERT INTO starter_file VALUES ('ping', 'main.go', 0, 'package main', 0, 0)`,
 		`INSERT INTO quiz_lesson VALUES ('quiz', 'type_choice', 0)`,
 		`INSERT INTO quiz_question VALUES ('quiz', 0, 'Why?')`,
 		`INSERT INTO quiz_answer VALUES ('quiz', 0, 0, 'Because.', 1), ('quiz', 0, 1, 'No.', 0)`,
-		`INSERT INTO progress VALUES ('deploy', '2026-10-31T12:00:00Z', '2026-10-31T12:30:00Z')`,
-		`INSERT INTO code_file VALUES ('local', 'main.go', 'package main', '2026-10-31T12:00:00Z')`,
+		`INSERT INTO progress VALUES ('ping', '2026-10-31T12:00:00Z', '2026-10-31T12:30:00Z')`,
+		`INSERT INTO code_file VALUES ('ping', 'main.go', 'package main', '2026-10-31T12:00:00Z')`,
 		`INSERT INTO project VALUES ('c1', '/Users/me/uplinks', 'https://my-app.example.com')`,
 		`INSERT INTO project VALUES ('c2', '/Users/me/downlinks', NULL)`,
 		`INSERT INTO setting VALUES ('editor.font_size', '14')`,
-	}, interviews...), extra...)...)
+	}, extra...)...)
 	return path
 }
 
-// v4File makes a library of format 4 with rows in the table the migration to format 5 changes,
-// in the tables format 4 brought, and the learner's data.
+// v4File makes a library of format 4 with the learner's data, a server address among it.
 func v4File(t *testing.T, extra ...string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "v4.sqlite")
-	stmts := []string{
+	raw(t, path, append([]string{
 		schemaOfFormat(t, 4),
 		`INSERT INTO course VALUES ('c1', 'learn-uplinks', 'Learn Uplinks', 'Course', 'Short.', 'Long.', 0)`,
-		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-deploy', 'Deploy', 'Ship it.')`,
-		oldLesson("deploy", "type_cli", 0), oldLesson("quiz", "type_choice", 1),
-		`INSERT INTO cli_lesson VALUES ('deploy', 'type_cli', NULL, 1, 0, 1)`,
-		`INSERT INTO cli_step VALUES ('deploy', 0, 'http', 'Check the app.', 0, NULL)`,
-		`INSERT INTO cli_http_request VALUES ('deploy', 0, 'http', 'GET', '${baseURL}/healthz', 1, NULL, NULL, NULL, NULL)`,
+		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-link', 'Link', 'Hear the craft.')`,
+		oldLesson("ping", "type_code", 0), oldLesson("quiz", "type_choice", 1),
+		`INSERT INTO code_lesson VALUES ('ping', 'type_code', 'go', 'pong' || char(10))`,
+		`INSERT INTO starter_file VALUES ('ping', 'main.go', 0, 'package main', 0, 0)`,
 		`INSERT INTO quiz_lesson VALUES ('quiz', 'type_choice', 0)`,
 		`INSERT INTO quiz_question VALUES ('quiz', 0, 'Why?')`,
 		`INSERT INTO quiz_answer VALUES ('quiz', 0, 0, 'Because.', 1), ('quiz', 0, 1, 'No.', 0)`,
-	}
-	stmts = append(stmts, interviews...)
-	stmts = append(stmts,
-		`INSERT INTO progress VALUES ('talk-real', NULL, '2026-10-31T12:30:00Z')`,
-		`INSERT INTO note VALUES ('talk-empty', 'Practice this one.', '2026-10-31T12:00:00Z')`,
+		`INSERT INTO progress VALUES ('quiz', NULL, '2026-10-31T12:30:00Z')`,
+		`INSERT INTO note VALUES ('ping', 'Practice this one.', '2026-10-31T12:00:00Z')`,
 		`INSERT INTO project VALUES ('c1', NULL, 'https://my-app.example.com')`,
 		`INSERT INTO server_address VALUES ('http://localhost:3000', 'http://localhost:3300')`,
-	)
-	raw(t, path, append(stmts, extra...)...)
+	}, extra...)...)
 	return path
 }
 
-// v5File makes a library of format 5: a code lesson with its starter files, an interview
-// lesson without criteria, and the learner's data.
+// v5File makes a library of format 5: a code lesson with its starter files, a quiz, and the
+// learner's data.
 func v5File(t *testing.T, extra ...string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "v5.sqlite")
@@ -132,10 +90,10 @@ func v5File(t *testing.T, extra ...string) string {
 		schemaOfFormat(t, 5),
 		`INSERT INTO course VALUES ('c1', 'learn-orbits', 'Learn Orbits', 'Course', 'Short.', 'Long.', 0)`,
 		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-launch', 'Launch', 'Lift off.')`,
-		oldLesson("burn", "type_code_tests", 0), oldLesson("debrief", "type_interview_chat", 1),
+		oldLesson("burn", "type_code_tests", 0), oldLesson("debrief", "type_choice", 1),
 		`INSERT INTO code_lesson VALUES ('burn', 'type_code_tests', 'go', NULL)`,
 		`INSERT INTO starter_file VALUES ('burn', 'burn.go', 0, 'package main', 0, 0), ('burn', 'burn_test.go', 1, 'package main', 0, 1)`,
-		`INSERT INTO interview_lesson VALUES ('debrief', 'type_interview_chat', 'Walk me through the burn.', NULL)`,
+		`INSERT INTO quiz_lesson VALUES ('debrief', 'type_choice', 0)`,
 		`INSERT INTO progress VALUES ('burn', '2026-10-31T12:00:00Z', '2026-10-31T12:30:00Z')`,
 		`INSERT INTO code_file VALUES ('burn', 'burn.go', 'package main // mine', '2026-10-31T12:10:00Z')`,
 		`INSERT INTO server_address VALUES ('http://localhost:8080', 'http://localhost:8181')`,
@@ -167,11 +125,13 @@ const noteBody = "Remember the reserve: the burn never takes the tank below ten 
 
 // v6Learner is the learner's data in a format 6 library of v6Content. The attempts' ids have
 // gaps and are not in the order of their times, so a copy that renumbers them must keep their
-// order by id.
+// order by id. The attempt of a command-line check (10), the project folder and the server
+// addresses only served command-line lessons: Migrate drops them.
 var v6Learner = []string{
 	`INSERT INTO progress VALUES ('window', '2026-10-30T09:00:00Z', '2026-10-30T09:05:00Z'), ('burn', NULL, '2026-10-31T08:00:00Z'), ('checklist', '2026-10-31T08:30:00Z', '2026-10-31T08:30:00Z')`,
 	`INSERT INTO attempt VALUES (5, 'window', 'run', 0, 'Window opens at T-minus ? seconds' || char(10), 312, '2026-10-30T09:01:00Z')`,
 	`INSERT INTO attempt VALUES (9, 'window', 'submit', 1, 'Window opens at T-minus 90 seconds' || char(10), 290, '2026-10-30T09:04:00Z')`,
+	`INSERT INTO attempt VALUES (10, 'window', 'check', 1, 'every step passed', 80, '2026-10-30T09:06:00Z')`,
 	`INSERT INTO attempt VALUES (12, 'checklist', 'answer', 1, 'The fuel check.', NULL, '2026-10-31T08:29:00Z')`,
 	`INSERT INTO attempt VALUES (14, 'burn', 'run', 0, '--- FAIL: TestBurn', 1204, '2026-10-31T07:59:00Z')`,
 	`INSERT INTO note VALUES ('burn', '` + noteBody + `', '2026-10-31T08:01:00Z')`,
@@ -189,18 +149,50 @@ func v6File(t *testing.T, name string, stmts ...string) string {
 	return path
 }
 
+// v7Info is the library_info row of v7Content, which format 8 keeps.
+var v7Info = Info{UUID: "3c9e7a41-5b2d-4f60-8e1a-7d4b2c6f0a95", Title: "Orbit School", Version: "3"}
+
+// v7Content is a library of format 7 with every kind of row the format 8 keeps: a code lesson
+// with hints, a solution and its note, a tests lesson, and a quiz with explanations.
+var v7Content = []string{
+	`INSERT INTO library_info VALUES (1, '` + v7Info.UUID + `', '` + v7Info.Title + `', '` + v7Info.Version + `')`,
+	`INSERT INTO course VALUES ('c1', 'learn-orbits', 'Learn Orbits', 'Course', 'Short.', 'Long.', 0)`,
+	`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-launch', 'Launch', 'Lift off.')`,
+	lesson("window", "type_code", 0), lesson("checklist", "type_choice", 2),
+	`INSERT INTO lesson (id, uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		VALUES (23, 'burn', 'ch1', 1, 'burn', 'Burn', 'type_code_tests', 1, 9, 'Burn the engine for six seconds.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')`,
+	`INSERT INTO lesson_topic VALUES ('window', 'printing'), ('burn', 'functions')`,
+	`INSERT INTO lesson_hint VALUES ('window', 0, 'Print the seconds.'), ('window', 1, 'Println adds the newline.')`,
+	`INSERT INTO code_lesson VALUES ('window', 'type_code', 'go', 'Window opens at T-minus 90 seconds' || char(10), 'Println prints the line whole.')`,
+	`INSERT INTO code_lesson VALUES ('burn', 'type_code_tests', 'go', NULL, NULL)`,
+	`INSERT INTO starter_file VALUES ('window', 'main.go', 0, 'package main', 0, 0)`,
+	`INSERT INTO starter_file VALUES ('burn', 'burn.go', 0, 'package main', 0, 0), ('burn', 'burn_test.go', 1, 'package main', 0, 1)`,
+	`INSERT INTO solution_file VALUES ('window', 'main.go', 'package main // solved'), ('burn', 'burn.go', 'package main // solved')`,
+	`INSERT INTO quiz_lesson VALUES ('checklist', 'type_choice', 0)`,
+	`INSERT INTO quiz_question VALUES ('checklist', 0, 'What comes before ignition?')`,
+	`INSERT INTO quiz_answer VALUES ('checklist', 0, 0, 'The fuel check.', 1, 'Nothing burns before the tanks are checked.'), ('checklist', 0, 1, 'The landing.', 0, NULL)`,
+}
+
+// v7File makes a library of format 7 from the statements given.
+func v7File(t *testing.T, name string, stmts ...string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	raw(t, path, append([]string{schemaOfFormat(t, 7)}, stmts...)...)
+	return path
+}
+
 // dump renders every row of every table but the ones named, to see they did not change. A
 // table's columns are those cols names for it, or else all of them.
-func dump(t *testing.T, d *sql.DB, skip ...string) string {
+func dump(t *testing.T, d *sql.DB, cols map[string]string, skip ...string) string {
 	t.Helper()
 	var b strings.Builder
 	for _, table := range tableNames(t, d) {
 		if strings.HasPrefix(table, "lesson_search") || slices.Contains(skip, table) {
 			continue
 		}
-		cols := "*"
-		if c, ok := oldColumns[table]; ok {
-			cols = c
+		cols, ok := cols[table]
+		if !ok {
+			cols = "*"
 		}
 		rows, err := d.Query(`SELECT ` + cols + ` FROM ` + table + ` ORDER BY 1, 2`)
 		if err != nil {
@@ -226,9 +218,9 @@ func dump(t *testing.T, d *sql.DB, skip ...string) string {
 	return b.String()
 }
 
-// oldColumns are the columns format 7 kept as they were, of the tables it changed: lesson lost
-// two columns and has its difficulty on a new scale (TestMigrateRescalesDifficulty), and
-// code_lesson and quiz_answer gained one each.
+// oldColumns are the columns format 7 kept as they were, of the tables it changed from format 6:
+// lesson lost two columns and has its difficulty on a new scale (TestMigrateRescalesDifficulty),
+// and code_lesson and quiz_answer gained one each.
 var oldColumns = map[string]string{
 	"lesson":      "id, uuid, chapter_uuid, position, slug, title, type, required, readme, created_at, last_mod",
 	"code_lesson": "lesson_uuid, lesson_type, prog_lang, expected_output",
@@ -308,17 +300,26 @@ func sameSchema(t *testing.T, d *sql.DB) {
 	}
 }
 
-// migrated migrates the library at path and checks what every migration to format 7 must
-// leave: format 7's marks, the rows of every content table it does not change (changed names
+// migrated migrates the library at path and checks what every migration to format 8 must
+// leave: format 8's marks, the rows of every content table it does not change (changed names
 // those an older step changes), the library checks passed, the schema of a new library, and
-// no learner tables. It returns what Migrate did and the library, open.
+// neither learner tables nor those of the lesson types format 8 removed. From format 6 or
+// older, the library gets a new uuid and no teaching content yet. It returns what Migrate did
+// and the library, open.
 func migrated(t *testing.T, path string, opt MigrateOptions, changed ...string) (Migration, *sql.DB) {
 	t.Helper()
 	before, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kept := dump(t, before, slices.Concat(changed, learnerTables)...)
+	var from int
+	before.QueryRow(`SELECT user_version FROM pragma_user_version`).Scan(&from)
+	cols := map[string]string{}
+	if from <= 6 {
+		cols = oldColumns
+	}
+	had := tableNames(t, before)
+	kept := dump(t, before, cols, slices.Concat(changed, learnerTableNames(), removedTables)...)
 	before.Close()
 	m, err := Migrate(context.Background(), path, opt)
 	if err != nil {
@@ -329,27 +330,38 @@ func migrated(t *testing.T, path string, opt MigrateOptions, changed ...string) 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { d.Close() })
-	if m.To != 7 || !reUUID.MatchString(m.Info.UUID) || m.Info.Version != "1" {
+	if m.From != from || m.To != 8 || !reUUID.MatchString(m.Info.UUID) {
 		t.Errorf("Migrate = %+v", m)
 	}
 	var app, version int
 	d.QueryRow(`SELECT (SELECT application_id FROM pragma_application_id), (SELECT user_version FROM pragma_user_version)`).Scan(&app, &version)
-	if app != 1196641619 || version != 7 {
-		t.Fatalf("application_id %d, user_version %d after migrating; want 1196641619 ('GSMS'), 7", app, version)
+	if app != 1196641619 || version != 8 {
+		t.Fatalf("application_id %d, user_version %d after migrating; want 1196641619 ('GSMS'), 8", app, version)
 	}
-	if got := dump(t, d, slices.Concat(changed, []string{"library_info", "lesson_hint"})...); got != kept {
+	var added []string // tables the library did not have before
+	for _, table := range tableNames(t, d) {
+		if !slices.Contains(had, table) {
+			added = append(added, table)
+		}
+	}
+	if got := dump(t, d, cols, slices.Concat(changed, added)...); got != kept {
 		t.Errorf("rows changed:\nbefore\n%s\nafter\n%s", kept, got)
 	}
 	if info, err := ReadInfo(context.Background(), d); err != nil || info != m.Info {
 		t.Errorf("library_info = %+v, %v; want %+v", info, err, m.Info)
 	}
-	for _, q := range []string{
-		`SELECT count(*) FROM code_lesson WHERE solution_note IS NOT NULL`,
-		`SELECT count(*) FROM quiz_answer WHERE explanation IS NOT NULL`,
-		`SELECT count(*) FROM lesson_hint`,
-	} {
-		if n := count(t, d, q); n != 0 {
-			t.Errorf("%s = %d, want 0", q, n)
+	if from <= 6 {
+		if m.Info.Version != "1" {
+			t.Errorf("library_info.version %q, want 1", m.Info.Version)
+		}
+		for _, q := range []string{
+			`SELECT count(*) FROM code_lesson WHERE solution_note IS NOT NULL`,
+			`SELECT count(*) FROM quiz_answer WHERE explanation IS NOT NULL`,
+			`SELECT count(*) FROM lesson_hint`,
+		} {
+			if n := count(t, d, q); n != 0 {
+				t.Errorf("%s = %d, want 0", q, n)
+			}
 		}
 	}
 	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
@@ -357,6 +369,14 @@ func migrated(t *testing.T, path string, opt MigrateOptions, changed ...string) 
 	}
 	sameSchema(t, d)
 	return m, d
+}
+
+func learnerTableNames() []string {
+	var names []string
+	for _, t := range learnerTables {
+		names = append(names, t.name)
+	}
+	return names
 }
 
 func count(t *testing.T, d *sql.DB, query string, args ...any) int {
@@ -368,8 +388,8 @@ func count(t *testing.T, d *sql.DB, query string, args ...any) int {
 	return n
 }
 
-// learnerRowsOf renders a learner database's rows of a library: each table's, but for
-// server_address and setting, which belong to no library, all of them.
+// learnerRowsOf renders a learner database's rows of a library: each table's, but for setting,
+// which belongs to no library, all of it.
 func learnerRowsOf(t *testing.T, path, library string) map[string][]string {
 	t.Helper()
 	l, err := OpenLearner(path)
@@ -379,13 +399,11 @@ func learnerRowsOf(t *testing.T, path, library string) map[string][]string {
 	defer l.Close()
 	out := map[string][]string{}
 	for table, q := range map[string]string{
-		"progress":       `SELECT lesson_uuid, coalesce(done_at, 'NULL'), coalesce(last_opened_at, 'NULL') FROM progress WHERE library_uuid = ?1 ORDER BY 1`,
-		"attempt":        `SELECT id, lesson_uuid, kind, passed, output, coalesce(duration_ms, -1), at FROM attempt WHERE library_uuid = ?1 ORDER BY id`,
-		"note":           `SELECT lesson_uuid, body, updated_at FROM note WHERE library_uuid = ?1 ORDER BY 1`,
-		"code_file":      `SELECT lesson_uuid, name, content, updated_at FROM code_file WHERE library_uuid = ?1 ORDER BY 1, 2`,
-		"project":        `SELECT course_uuid, coalesce(dir, 'NULL'), coalesce(base_url, 'NULL') FROM project WHERE library_uuid = ?1 ORDER BY 1`,
-		"server_address": `SELECT default_url, url FROM server_address WHERE ?1 IS NOT NULL ORDER BY 1`,
-		"setting":        `SELECT key, value FROM setting WHERE ?1 IS NOT NULL ORDER BY 1`,
+		"progress":  `SELECT lesson_uuid, coalesce(done_at, 'NULL'), coalesce(last_opened_at, 'NULL') FROM progress WHERE library_uuid = ?1 ORDER BY 1`,
+		"attempt":   `SELECT id, lesson_uuid, kind, passed, output, coalesce(duration_ms, -1), at FROM attempt WHERE library_uuid = ?1 ORDER BY id`,
+		"note":      `SELECT lesson_uuid, body, updated_at FROM note WHERE library_uuid = ?1 ORDER BY 1`,
+		"code_file": `SELECT lesson_uuid, name, content, updated_at FROM code_file WHERE library_uuid = ?1 ORDER BY 1, 2`,
+		"setting":   `SELECT key, value FROM setting WHERE ?1 IS NOT NULL ORDER BY 1`,
 	} {
 		rows, err := l.Query(q, library)
 		if err != nil {
@@ -419,9 +437,14 @@ func TestMigrateFrom6MovesTheLearnersData(t *testing.T) {
 	if m.From != 6 || !m.Created || m.Already || m.Learner != learner || m.Info.Title != "Learn Orbits" {
 		t.Errorf("Migrate = %+v", m)
 	}
-	wantMoved := []TableRows{{"progress", 3}, {"attempt", 4}, {"note", 1}, {"code_file", 2}, {"project", 1}, {"server_address", 2}, {"setting", 2}}
+	wantMoved := []TableRows{{"progress", 3}, {"attempt", 4}, {"note", 1}, {"code_file", 2}, {"setting", 2}}
 	if !slices.Equal(m.Moved, wantMoved) {
 		t.Errorf("moved %v, want %v", m.Moved, wantMoved)
+	}
+	// What only command-line lessons used goes with the library's learner tables.
+	wantDropped := []TableRows{{"attempt", 1}, {"project", 1}, {"server_address", 2}}
+	if !slices.Equal(m.Dropped, wantDropped) {
+		t.Errorf("dropped %v, want %v", m.Dropped, wantDropped)
 	}
 
 	// The learner database was made from learner.sql and holds the library and its rows.
@@ -447,11 +470,9 @@ func TestMigrateFrom6MovesTheLearnersData(t *testing.T) {
 			`3|checklist|answer|1|The fuel check.|-1|2026-10-31T08:29:00Z`,
 			`4|burn|run|0|--- FAIL: TestBurn|1204|2026-10-31T07:59:00Z`,
 		},
-		"note":           {"burn|" + noteBody + "|2026-10-31T08:01:00Z"},
-		"code_file":      {"burn|burn.go|package main // half done|2026-10-31T08:00:00Z", "window|main.go|package main // mine|2026-10-30T09:04:00Z"},
-		"project":        {"c2|/Users/me/landings|NULL"},
-		"server_address": {"http://localhost:3000|http://localhost:3300", "http://localhost:8080|http://localhost:8181"},
-		"setting":        {"editor.font_size|14", "editor.theme|night"},
+		"note":      {"burn|" + noteBody + "|2026-10-31T08:01:00Z"},
+		"code_file": {"burn|burn.go|package main // half done|2026-10-31T08:00:00Z", "window|main.go|package main // mine|2026-10-30T09:04:00Z"},
+		"setting":   {"editor.font_size|14", "editor.theme|night"},
 	}
 	for table, w := range want {
 		if !slices.Equal(got[table], w) {
@@ -478,9 +499,9 @@ func TestMigrateRescalesDifficulty(t *testing.T) {
 	position := 0
 	for _, slug := range slices.Sorted(maps.Keys(scores)) {
 		stmts = append(stmts, fmt.Sprintf(`INSERT INTO lesson (id, uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-			VALUES (%d, 'l-%s', 'ch1', %d, '%s', 'Lesson %s', 'type_interview_chat', 1, %d, 'The %s lesson talks about orbit%s.',
+			VALUES (%d, 'l-%s', 'ch1', %d, '%s', 'Lesson %s', 'type_choice', 1, %d, 'The %s lesson asks about orbit%s.',
 			'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`, 100+position*7, slug, position, slug, slug, scores[slug], slug, slug),
-			`INSERT INTO interview_lesson VALUES ('l-`+slug+`', 'type_interview_chat', 'Talk about it.', NULL)`)
+			`INSERT INTO quiz_lesson VALUES ('l-`+slug+`', 'type_choice', 0)`)
 		position++
 	}
 	path := v6File(t, "orbits.sqlite", stmts...)
@@ -514,8 +535,8 @@ func TestMigrateRescalesDifficulty(t *testing.T) {
 	}
 }
 
-// A learner database that already has server addresses, settings and attempts keeps its own
-// values where the library's clash, and the library's attempts follow its own.
+// A learner database that already has settings and attempts keeps its own values where the
+// library's clash, and the library's attempts follow its own.
 func TestMigrateKeepsTheLearnersValues(t *testing.T) {
 	learner := filepath.Join(t.TempDir(), "learner.sqlite")
 	l, err := CreateLearner(learner)
@@ -525,7 +546,6 @@ func TestMigrateKeepsTheLearnersValues(t *testing.T) {
 	for _, s := range []string{
 		`INSERT INTO library VALUES ('apogee-uuid', 'Apogee', 'builtin:apogee.sqlite', '2026-10-31T10:00:00Z')`,
 		`INSERT INTO attempt (library_uuid, lesson_uuid, kind, passed, output, duration_ms, at) VALUES ('apogee-uuid', 'l1', 'run', 1, 'ok', 10, '2026-10-31T10:05:00Z')`,
-		`INSERT INTO server_address VALUES ('http://localhost:8080', 'http://localhost:9999')`,
 		`INSERT INTO setting VALUES ('editor.font_size', '16')`,
 	} {
 		if _, err := l.Exec(s); err != nil {
@@ -539,13 +559,8 @@ func TestMigrateKeepsTheLearnersValues(t *testing.T) {
 		t.Errorf("Migrate = %+v", m)
 	}
 	got := learnerRowsOf(t, learner, m.Info.UUID)
-	for table, want := range map[string][]string{
-		"server_address": {"http://localhost:3000|http://localhost:3300", "http://localhost:8080|http://localhost:9999"},
-		"setting":        {"editor.font_size|16", "editor.theme|night"},
-	} {
-		if !slices.Equal(got[table], want) {
-			t.Errorf("%s: %q, want %q", table, got[table], want)
-		}
+	if want := []string{"editor.font_size|16", "editor.theme|night"}; !slices.Equal(got["setting"], want) {
+		t.Errorf("setting: %q, want %q", got["setting"], want)
 	}
 	if len(got["attempt"]) != 4 || !strings.HasPrefix(got["attempt"][0], "2|window|run|") || !strings.HasPrefix(got["attempt"][3], "5|burn|run|") {
 		t.Errorf("attempts %q, want ids 2 to 5 in the old order", got["attempt"])
@@ -576,9 +591,9 @@ func TestMigrateWithoutLearnerData(t *testing.T) {
 func TestMigrateRefuses(t *testing.T) {
 	text := filepath.Join(t.TempDir(), "notes.sqlite")
 	os.WriteFile(text, []byte("these are notes, not a database\n"), 0o644)
-	newer := v6File(t, "newer.sqlite", `PRAGMA application_id = 1196641619`, `PRAGMA user_version = 8`)
-	library7 := filepath.Join(t.TempDir(), "other.sqlite")
-	if d, err := Create(library7, testInfo); err != nil {
+	newer := v6File(t, "newer.sqlite", `PRAGMA application_id = 1196641619`, `PRAGMA user_version = 9`)
+	library8 := filepath.Join(t.TempDir(), "other.sqlite")
+	if d, err := Create(library8, testInfo); err != nil {
 		t.Fatal(err)
 	} else {
 		d.Close()
@@ -590,11 +605,12 @@ func TestMigrateRefuses(t *testing.T) {
 		want    string
 	}{
 		{"learner data without a learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), "",
-			"holds the learner's data (3 progress, 4 attempt, 1 note, 2 code_file, 1 project, 2 server_address and 2 setting rows); give a learner database to move it into (--learner <file>): nothing changed"},
-		{"a library as the learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), library7,
+			"holds the learner's data (3 progress, 4 attempt, 1 note, 2 code_file and 2 setting rows); give a learner database to move it into (--learner <file>): nothing changed"},
+		{"a library as the learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), library8,
 			"is not a Gosmos learner database (application_id 1196641619, not 1196641612): nothing changed"},
 		{"a text file as the learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), text, "nothing changed"},
-		{"a newer format", newer, "", "the library is of format 8, newer than this program's 7"},
+		{"a newer format", newer, "", "the library is of format 9, newer than this program's 8"},
+		{"a format 7 library without its library_info row", v7File(t, "nameless.sqlite", v7Content[1:]...), "", "the library has no library_info row; nothing changed"},
 		{"an older format than any migration takes", v6File(t, "v2.sqlite", `PRAGMA user_version = 2`), "", "is of format 2; library migrate takes format 3 and later only"},
 		{"not a library", v6File(t, "other.sqlite", `PRAGMA application_id = 42`), "", "not a Gosmos library (application_id 42)"},
 	} {
@@ -622,7 +638,7 @@ func TestMigrateRefuses(t *testing.T) {
 
 // An interrupted migration runs again safely: the learner database committed first keeps the
 // library row and its rows, the rerun finds them by the file's location and copies nothing
-// twice, and once the library is of format 7 a rerun does nothing at all.
+// twice, and once the library is of format 8 a rerun does nothing at all.
 func TestMigrateRunsAgain(t *testing.T) {
 	// A row whose foreign key points nowhere makes the library's step fail after the learner
 	// database has committed, as a crash between the two would leave things.
@@ -664,63 +680,51 @@ func TestMigrateRunsAgain(t *testing.T) {
 		t.Errorf("the rerun changed the learner's rows:\n%v\nwant\n%v", again, copied)
 	}
 
-	// Once the library is of format 7, migrating it again changes nothing.
+	// Once the library is of format 8, migrating it again changes nothing.
 	lib, _ := os.ReadFile(path)
 	learned, _ := os.ReadFile(learner)
 	m, err = Migrate(context.Background(), path, MigrateOptions{Learner: learner})
-	if err != nil || m.From != 7 || m.Info.UUID != first {
-		t.Errorf("migrating a library of format 7: %+v, %v", m, err)
+	if err != nil || m.From != 8 || m.Info.UUID != first {
+		t.Errorf("migrating a library of format 8: %+v, %v", m, err)
 	}
 	if a, _ := os.ReadFile(path); !bytes.Equal(a, lib) {
-		t.Error("migrating a library of format 7 changed it")
+		t.Error("migrating a library of format 8 changed it")
 	}
 	if a, _ := os.ReadFile(learner); !bytes.Equal(a, learned) {
-		t.Error("migrating a library of format 7 changed the learner database")
+		t.Error("migrating a library of format 8 changed the learner database")
 	}
 }
 
-// Formats 3, 4 and 5 go to 7 one step at a time, each in its own transaction.
+// Formats 3, 4 and 5 go to 8 one step at a time, each in its own transaction. The learner's rows
+// move into the learner database, but for the project folders and server addresses, which only
+// command-line lessons used.
 func TestMigrateFrom3(t *testing.T) {
 	learner := filepath.Join(t.TempDir(), "learner.sqlite")
-	m, d := migrated(t, v3File(t), MigrateOptions{Learner: learner}, "cli_lesson", "interview_lesson")
-	for _, tc := range []struct {
-		uuid, base string
-		asks       int
-	}{
-		{"deploy", "NULL", 1},
-		{"local", "http://localhost:8080", 0},
-		{"none", "NULL", 0},
-	} {
-		var base string
-		var asks int
-		if err := d.QueryRow(`SELECT coalesce(base_url_default, 'NULL'), asks_for_base_url FROM cli_lesson WHERE lesson_uuid = ?`, tc.uuid).Scan(&base, &asks); err != nil {
-			t.Fatal(err)
-		}
-		if base != tc.base || asks != tc.asks {
-			t.Errorf("%s: base_url_default %s, asks_for_base_url %d; want %s, %d", tc.uuid, base, asks, tc.base, tc.asks)
-		}
-	}
-	checkCriteria(t, d)
+	m, _ := migrated(t, v3File(t), MigrateOptions{Learner: learner})
 	got := learnerRowsOf(t, learner, m.Info.UUID)
 	for table, want := range map[string][]string{
-		"progress":  {"deploy|2026-10-31T12:00:00Z|2026-10-31T12:30:00Z"},
-		"code_file": {"local|main.go|package main|2026-10-31T12:00:00Z"},
-		"project":   {"c1|/Users/me/uplinks|https://my-app.example.com", "c2|/Users/me/downlinks|NULL"},
+		"progress":  {"ping|2026-10-31T12:00:00Z|2026-10-31T12:30:00Z"},
+		"code_file": {"ping|main.go|package main|2026-10-31T12:00:00Z"},
 		"setting":   {"editor.font_size|14"},
 	} {
 		if !slices.Equal(got[table], want) {
 			t.Errorf("%s: %q, want %q", table, got[table], want)
 		}
 	}
+	if want := []TableRows{{"attempt", 0}, {"project", 2}, {"server_address", 0}}; !slices.Equal(m.Dropped, want) {
+		t.Errorf("dropped %v, want %v", m.Dropped, want)
+	}
 }
 
 func TestMigrateFrom4(t *testing.T) {
 	learner := filepath.Join(t.TempDir(), "learner.sqlite")
-	m, d := migrated(t, v4File(t), MigrateOptions{Learner: learner}, "interview_lesson")
-	checkCriteria(t, d)
+	m, _ := migrated(t, v4File(t), MigrateOptions{Learner: learner})
 	got := learnerRowsOf(t, learner, m.Info.UUID)
-	if !slices.Equal(got["project"], []string{"c1|NULL|https://my-app.example.com"}) || !slices.Equal(got["note"], []string{"talk-empty|Practice this one.|2026-10-31T12:00:00Z"}) {
+	if !slices.Equal(got["progress"], []string{"quiz|NULL|2026-10-31T12:30:00Z"}) || !slices.Equal(got["note"], []string{"ping|Practice this one.|2026-10-31T12:00:00Z"}) {
 		t.Errorf("learner rows %v", got)
+	}
+	if want := []TableRows{{"attempt", 0}, {"project", 1}, {"server_address", 1}}; !slices.Equal(m.Dropped, want) {
+		t.Errorf("dropped %v, want %v", m.Dropped, want)
 	}
 }
 
@@ -747,8 +751,91 @@ func TestMigrateFrom5(t *testing.T) {
 	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
 		t.Errorf("format 7's new rows: %v %v", p, err)
 	}
-	if got := learnerRowsOf(t, learner, m.Info.UUID); !slices.Equal(got["server_address"], []string{"http://localhost:8080|http://localhost:8181"}) {
-		t.Errorf("server addresses %q", got["server_address"])
+	if got := learnerRowsOf(t, learner, m.Info.UUID); !slices.Equal(got["code_file"], []string{"burn|burn.go|package main // mine|2026-10-31T12:10:00Z"}) {
+		t.Errorf("code files %q", got["code_file"])
+	}
+	if want := []TableRows{{"attempt", 0}, {"project", 0}, {"server_address", 1}}; !slices.Equal(m.Dropped, want) {
+		t.Errorf("dropped %v, want %v", m.Dropped, want)
+	}
+}
+
+// Format 7 goes to 8 keeping every row of the lesson types format 8 keeps, its teaching content
+// and its library_info row, so the learner's progress, filed under its uuid, stays its own. The
+// tables of the removed types go, and lesson.type takes no other type again.
+func TestMigrateFrom7(t *testing.T) {
+	path := v7File(t, "orbits.sqlite", v7Content...)
+	before := filepath.Join(t.TempDir(), "before.sqlite")
+	b, _ := os.ReadFile(path)
+	os.WriteFile(before, b, 0o644)
+	m, d := migrated(t, path, MigrateOptions{Learner: filepath.Join(t.TempDir(), "unused.sqlite"), Title: "Ignored"})
+	if m.Info != v7Info || m.Learner != "" || m.Created || len(m.Moved) != 0 || len(m.Dropped) != 0 {
+		t.Errorf("Migrate = %+v, want the library's own library_info and no learner data", m)
+	}
+	old, err := sql.Open("sqlite", before)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer old.Close()
+	if got, want := dump(t, d, nil), dump(t, old, nil, removedTables...); got != want {
+		t.Errorf("rows changed:\nbefore\n%s\nafter\n%s", want, got)
+	}
+	var id, found int
+	d.QueryRow(`SELECT id FROM lesson WHERE uuid = 'burn'`).Scan(&id)
+	if err := d.QueryRow(`SELECT rowid FROM lesson_search WHERE lesson_search MATCH 'burn'`).Scan(&found); err != nil || found != id || id != 23 {
+		t.Errorf("the search index finds row %d (%v) for the lesson with id %d, want 23", found, err, id)
+	}
+	for _, typ := range removedTypes {
+		if _, err := d.Exec(`UPDATE lesson SET type = ? WHERE uuid = 'window'`, typ); err == nil {
+			t.Errorf("lesson.type took %s", typ)
+		}
+	}
+	for _, table := range removedTables {
+		if n := count(t, d, `SELECT count(*) FROM sqlite_schema WHERE name = ?`, table); n != 0 {
+			t.Errorf("%s is still there", table)
+		}
+	}
+	if n := count(t, d, `SELECT freelist_count FROM pragma_freelist_count`); n != 0 {
+		t.Errorf("%d free pages after migrating: the file was not vacuumed", n)
+	}
+}
+
+// A library that holds a lesson of a type format 8 removed is refused, from every format
+// Migrate takes, before anything changes: no step runs and no learner database is made.
+func TestMigrateRefusesRemovedTypes(t *testing.T) {
+	course := []string{
+		`INSERT INTO course VALUES ('c1', 'learn-uplinks', 'Learn Uplinks', 'Course', 'Short.', 'Long.', 0)`,
+		`INSERT INTO chapter VALUES ('ch1', 'c1', 0, '1-link', 'Link', 'Hear the craft.')`,
+		`PRAGMA foreign_keys = OFF`,
+	}
+	for v := 3; v <= 7; v++ {
+		t.Run(fmt.Sprintf("format %d", v), func(t *testing.T) {
+			stmts := append([]string{schemaOfFormat(t, v)}, course...)
+			for i, typ := range []string{"type_cli", "type_cli", "type_github_checks", "type_interview_chat", "type_code"} {
+				if v == 7 {
+					stmts = append(stmts, lesson(fmt.Sprintf("l%d", i), typ, i))
+				} else {
+					stmts = append(stmts, oldLesson(fmt.Sprintf("l%d", i), typ, i))
+				}
+			}
+			if v <= 6 {
+				stmts = append(stmts, `INSERT INTO progress VALUES ('l0', '2026-10-31T12:00:00Z', NULL)`)
+			}
+			path := filepath.Join(t.TempDir(), "uplinks.sqlite")
+			raw(t, path, stmts...)
+			learner := filepath.Join(t.TempDir(), "learner.sqlite")
+			before, _ := os.ReadFile(path)
+			_, err := Migrate(context.Background(), path, MigrateOptions{Learner: learner})
+			want := "holds lessons of types format 8 removed (type_cli 2, type_github_checks 1, type_interview_chat 1): Gosmos is self-contained, with code, tests and quiz lessons only, which it checks on the Mac alone; nothing changed"
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("Migrate: %v, want %q", err, want)
+			}
+			if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
+				t.Error("the refused migration changed the library")
+			}
+			if _, err := os.Stat(learner); err == nil {
+				t.Error("the refused migration made a learner database")
+			}
+		})
 	}
 }
 
@@ -784,8 +871,8 @@ func TestCreateLearner(t *testing.T) {
 	l.QueryRow(`SELECT (SELECT application_id FROM pragma_application_id), (SELECT user_version FROM pragma_user_version),
 		(SELECT count(*) FROM sqlite_schema WHERE type = 'table')`).Scan(&app, &version, &tables)
 	l.Close()
-	if app != 1196641612 || version != 1 || tables != 12 {
-		t.Errorf("application_id %d, user_version %d, %d tables; want 1196641612 ('GSML'), 1, 12", app, version, tables)
+	if app != 1196641612 || version != 2 || tables != 10 {
+		t.Errorf("application_id %d, user_version %d, %d tables; want 1196641612 ('GSML'), 2, 10", app, version, tables)
 	}
 	if l, err := CreateLearner(path); err == nil {
 		l.Close()
@@ -796,9 +883,16 @@ func TestCreateLearner(t *testing.T) {
 	} else {
 		l.Close()
 	}
-	raw(t, path, `PRAGMA user_version = 2`)
-	if l, err := OpenLearner(path); err == nil || !strings.Contains(err.Error(), "a learner database of version 2; this program writes version 1 only") {
+	raw(t, path, `PRAGMA user_version = 3`)
+	if l, err := OpenLearner(path); err == nil || !strings.Contains(err.Error(), "a learner database of version 3; this program writes version 2 only") {
 		t.Errorf("OpenLearner of a newer learner database: %v", err)
+		if l != nil {
+			l.Close()
+		}
+	}
+	raw(t, path, `PRAGMA user_version = 1`)
+	if l, err := OpenLearner(path); err == nil || !strings.Contains(err.Error(), "a learner database of version 1, older than 2: Gosmos brings it up to date when it opens it") {
+		t.Errorf("OpenLearner of an older learner database: %v", err)
 		if l != nil {
 			l.Close()
 		}
@@ -806,7 +900,7 @@ func TestCreateLearner(t *testing.T) {
 }
 
 func TestFormatSchemas(t *testing.T) {
-	for v := 3; v <= 7; v++ {
+	for v := 3; v <= 8; v++ {
 		s, err := formatSchema(v)
 		if err != nil || !regexp.MustCompile(fmt.Sprintf(`(?m)^PRAGMA user_version = %d;`, v)).MatchString(s) {
 			t.Errorf("formatSchema(%d) does not set user_version %d: %v", v, v, err)
@@ -821,7 +915,7 @@ func TestTableDefinition(t *testing.T) {
 	for _, tc := range []struct {
 		format int
 		table  string
-	}{{4, "cli_lesson"}, {4, "project"}, {4, "server_address"}, {5, "interview_lesson"}, {6, "solution_file"}, {7, "library_info"}, {7, "lesson_hint"}, {7, "code_lesson"}} {
+	}{{4, "cli_lesson"}, {4, "project"}, {4, "server_address"}, {5, "interview_lesson"}, {6, "solution_file"}, {7, "library_info"}, {7, "lesson_hint"}, {7, "code_lesson"}, {8, "lesson"}} {
 		def, err := tableDefinition(tc.format, tc.table)
 		if err != nil || !strings.HasPrefix(def, "CREATE TABLE "+tc.table+" (") || !strings.HasSuffix(strings.TrimSpace(def), "STRICT") {
 			t.Errorf("tableDefinition(%d, %s) = %q, %v", tc.format, tc.table, def, err)
@@ -829,5 +923,8 @@ func TestTableDefinition(t *testing.T) {
 	}
 	if _, err := tableDefinition(7, "progress"); err == nil {
 		t.Error("format 7 has no progress table")
+	}
+	if _, err := tableDefinition(8, "cli_lesson"); err == nil {
+		t.Error("format 8 has no cli_lesson table")
 	}
 }

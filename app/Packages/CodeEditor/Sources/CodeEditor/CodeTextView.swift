@@ -17,6 +17,10 @@ final class CodeTextView: NSTextView {
     /// Called after `apply` changed the text, so highlighting can follow before it is drawn.
     var didApplyEdit: (() -> Void)?
 
+    /// Called with the character index under the pointer when the code is clicked with Option
+    /// held, for Quick Help; the click then leaves the selection as it was.
+    var onOptionClick: ((Int) -> Void)?
+
     private var highlightedLineRect = NSRect.zero
     private var lineHighlightUpdatePending = false
 
@@ -129,6 +133,38 @@ final class CodeTextView: NSTextView {
 
     // Escape would offer dictionary words, which mean nothing in code.
     override func complete(_ sender: Any?) {}
+
+    // MARK: Quick Help
+
+    // Option-click asks about the code under the pointer, as in Xcode; Option-drag still
+    // selects a rectangle.
+    override func mouseDown(with event: NSEvent) {
+        if let onOptionClick, event.clickCount == 1,
+           event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .option {
+            let index = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
+            if index != NSNotFound {
+                onOptionClick(index)
+                return
+            }
+        }
+        super.mouseDown(with: event)
+    }
+
+    /// Where `range` is drawn, in the view's coordinates: its first line, for a range that wraps.
+    func rect(for range: NSRange) -> NSRect? {
+        guard let layoutManager = textLayoutManager, let content = layoutManager.textContentManager,
+              let start = content.location(content.documentRange.location, offsetBy: range.location),
+              let end = content.location(start, offsetBy: range.length),
+              let textRange = NSTextRange(location: start, end: end) else { return nil }
+        layoutManager.ensureLayout(for: textRange)
+        var frame: CGRect?
+        layoutManager.enumerateTextSegments(in: textRange, type: .standard, options: []) { _, segmentFrame, _, _ in
+            frame = segmentFrame
+            return false
+        }
+        guard let frame else { return nil }
+        return frame.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+    }
 
     // MARK: Line commands
 

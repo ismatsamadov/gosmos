@@ -25,8 +25,8 @@ import Testing
         try learner.close()
         let made = try header(url)
         #expect(made.id == LearnerDatabase.applicationID && made.id == 1_196_641_612 && made.version == LearnerDatabase.schemaVersion)
-        #expect(made.tables == ["attempt", "code_file", "hint_view", "library", "note", "progress", "project", "review_lesson",
-                                "review_question", "server_address", "setting", "solution_view"])
+        #expect(made.tables == ["attempt", "code_file", "hint_view", "library", "note", "progress", "review_lesson",
+                                "review_question", "setting", "solution_view"])
         // Nothing but the database is left in the folder: it was made aside and moved in whole.
         #expect(try FileManager.default.contentsOfDirectory(atPath: url.deletingLastPathComponent().path) == ["learner.sqlite"])
 
@@ -119,11 +119,11 @@ import Testing
         // One of a newer format.
         let newer = dir.appendingPathComponent("newer.sqlite")
         try LearnerDatabase(url: newer, schema: Fixtures.learnerSchemaURL).close()
-        try await DatabaseQueue(path: newer.path).writeWithoutTransaction { try $0.execute(sql: "PRAGMA user_version = 2") }
+        try await DatabaseQueue(path: newer.path).writeWithoutTransaction { try $0.execute(sql: "PRAGMA user_version = 3") }
         let newerBytes = try Data(contentsOf: newer)
-        #expect(throws: LearnerDatabaseError.newerFormat(path: newer.path, version: 2)) { try LearnerDatabase(url: newer, schema: Fixtures.learnerSchemaURL) }
+        #expect(throws: LearnerDatabaseError.newerFormat(path: newer.path, version: 3)) { try LearnerDatabase(url: newer, schema: Fixtures.learnerSchemaURL) }
         #expect(try Data(contentsOf: newer) == newerBytes)
-        #expect(LearnerDatabaseError.newerFormat(path: newer.path, version: 2).recoverySuggestion == "Update Gosmos to use it.")
+        #expect(LearnerDatabaseError.newerFormat(path: newer.path, version: 3).recoverySuggestion == "Update Gosmos to use it.")
 
         // Not SQLite at all.
         let text = dir.appendingPathComponent("notes.sqlite")
@@ -145,10 +145,70 @@ import Testing
         }
         let migrated = try LearnerDatabase(url: older, schema: Fixtures.learnerSchemaURL, migrations: [
             0: { db in try db.execute(sql: "CREATE TABLE migrated (x INTEGER) STRICT") },
+            1: { db in try db.execute(sql: "INSERT INTO migrated VALUES (1)") },
         ])
         try migrated.close()
         let after = try header(older)
         #expect(after.version == LearnerDatabase.schemaVersion && after.tables.contains("migrated"))
+    }
+
+    /// Version 1 to 2: what only the lesson types library format 8 removed used goes (project
+    /// folders, server addresses, the attempts of command-line checks); every other row stays,
+    /// each attempt with its id, and the file has a new database's schema.
+    @Test func version1LosesWhatOnlyCommandLineLessonsUsed() async throws {
+        let dir = try Fixtures.tempDir("learner")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let v1 = dir.appendingPathComponent("v1.sqlite")
+        let queue = try DatabaseQueue(path: v1.path)
+        try await queue.writeWithoutTransaction { db in
+            try db.execute(sql: String(contentsOf: Fixtures.repository.appendingPathComponent("db/history/learner_v1.sql"), encoding: .utf8))
+            try db.execute(sql: """
+                INSERT INTO library VALUES ('lib', 'Apogee', 'builtin:apogee.sqlite', '2026-10-31T10:00:00Z');
+                INSERT INTO progress VALUES ('lib', 'l1', '2026-10-31T10:05:00Z', NULL);
+                INSERT INTO attempt VALUES (3, 'lib', 'l1', 'run', 0, 'boom', 120, '2026-10-31T10:01:00Z');
+                INSERT INTO attempt VALUES (7, 'lib', 'l2', 'check', 1, 'every step passed', 80, '2026-10-31T10:02:00Z');
+                INSERT INTO attempt VALUES (9, 'lib', 'l1', 'submit', 1, 'ok', 90, '2026-10-31T10:03:00Z');
+                INSERT INTO project VALUES ('lib', 'c1', '/Users/me/shipping', 'https://my-app.example.com');
+                INSERT INTO server_address VALUES ('http://localhost:8080', 'http://localhost:8181');
+                INSERT INTO setting VALUES ('editor_font_size', '15');
+                """)
+        }
+        try queue.close()
+
+        let learner = try LearnerDatabase(url: v1, schema: Fixtures.learnerSchemaURL)
+        #expect(try await learner.setting("editor_font_size") == "15")
+        #expect(try await learner.done() == ["lib": ["l1"]])
+        #expect(try await learner.failedAttempts(LessonRef(library: "lib", lesson: "l1"), kind: .run) == 1)
+        await #expect(throws: DatabaseError.self) { // a check is no kind of attempt now
+            try await learner.dbQueue.write { try $0.execute(sql: "INSERT INTO attempt(library_uuid, lesson_uuid, kind, passed, output, at) VALUES ('lib', 'l2', 'check', 1, '', '2026-11-01T10:00:00Z')") }
+        }
+        try learner.close()
+        #expect(try header(v1).version == 2)
+        let attempts = try await DatabaseQueue(path: v1.path).read { db in
+            try Row.fetchAll(db, sql: "SELECT id, kind FROM attempt ORDER BY id").map { "\($0["id"] as Int) \($0["kind"] as String)" }
+        }
+        #expect(attempts == ["3 run", "9 submit"])
+
+        let fresh = dir.appendingPathComponent("fresh.sqlite")
+        try LearnerDatabase(url: fresh, schema: Fixtures.learnerSchemaURL).close()
+        #expect(try schema(of: v1) == schema(of: fresh))
+    }
+
+    /// Every object of a database's schema with its SQL, comments left out and spaces collapsed;
+    /// a table renamed into place has its name quoted, which counts for nothing.
+    func schema(of url: URL) throws -> [String: String] {
+        let queue = try DatabaseQueue(path: url.path, configuration: { var c = Configuration(); c.readonly = true; return c }())
+        defer { try? queue.close() }
+        return try queue.read { db in
+            var out: [String: String] = [:]
+            for row in try Row.fetchAll(db, sql: "SELECT type || ' ' || name AS object, coalesce(sql, '') AS text FROM sqlite_schema") {
+                let text: String = row["text"]
+                let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map { $0.split(separator: "--", maxSplits: 1, omittingEmptySubsequences: false).first ?? "" }
+                out[row["object"]] = lines.joined(separator: " ").split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                    .replacing(/^CREATE TABLE "(\w+)"/) { "CREATE TABLE \($0.1)" }
+            }
+            return out
+        }
     }
 
     @Test func librariesAreRecordedOnceAndKeptUpToDate() async throws {
@@ -194,8 +254,8 @@ import Testing
         try await learner.setDone(otherCode, true)
         #expect(try await learner.done() == [Fixtures.libraryID: [Fixtures.quizLesson], other.uuid: [Fixtures.codeLesson]])
         try await learner.setDone(otherCode, false) // keeps the row: it was opened
-        try await learner.setDone(Fixtures.ref(Fixtures.githubLesson), true)
-        try await learner.setDone(Fixtures.ref(Fixtures.githubLesson), false) // a row with neither time goes
+        try await learner.setDone(Fixtures.ref(Fixtures.loopsLesson), true)
+        try await learner.setDone(Fixtures.ref(Fixtures.loopsLesson), false) // a row with neither time goes
         #expect(try await learner.done() == [Fixtures.libraryID: [Fixtures.quizLesson]])
         // The last lesson you opened, across libraries.
         #expect(try await learner.lastOpened() == otherCode)
@@ -218,12 +278,6 @@ import Testing
         #expect(try await learner.note(for: otherCode) == nil)
         try await learner.saveNote(code, body: "  \n")
         #expect(try await learner.note(for: code) == nil)
-
-        try await learner.saveProject(library: Fixtures.libraryID, course: Fixtures.courseID, Project(dir: "/tmp/lantern", baseURL: nil))
-        #expect(try await learner.project(library: Fixtures.libraryID, course: Fixtures.courseID) == Project(dir: "/tmp/lantern", baseURL: nil))
-        #expect(try await learner.project(library: other.uuid, course: Fixtures.courseID) == nil)
-        try await learner.saveProject(library: Fixtures.libraryID, course: Fixtures.courseID, Project(dir: " ", baseURL: nil))
-        #expect(try await learner.project(library: Fixtures.libraryID, course: Fixtures.courseID) == nil)
 
         try await learner.setSetting("editor_font_size", "15")
         #expect(try await learner.setting("editor_font_size") == "15")

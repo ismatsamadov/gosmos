@@ -5,7 +5,7 @@ import SwiftUI
 
 /// A lesson's readme as native text, in a readable column centered in its pane, then the
 /// lesson's help (hints and its reference solution), then anything the lesson type adds
-/// (quiz, checks, done button).
+/// (the quiz).
 struct ReadmeColumn<Footer: View>: View {
     let lesson: LessonModel
     @ViewBuilder var footer: Footer
@@ -18,9 +18,10 @@ struct ReadmeColumn<Footer: View>: View {
                 VStack(alignment: .leading, spacing: 0) {
                     LessonHeader(lesson: lesson)
                         .padding(.bottom, 18)
-                    // A readme that is only its title shows no reading block.
+                    // A readme that is only its title shows no reading block. Its inline code that
+                    // names the standard library links to the documentation.
                     if !lesson.parsed.readme.isEmpty {
-                        MarkdownBlocks(blocks: lesson.parsed.readme)
+                        MarkdownBlocks(blocks: DocLinker.link(lesson.parsed.readme, names: app.docNames))
                     }
                     if !lesson.hints.hints.isEmpty {
                         HintsPanel(state: lesson.hints, lockedReason: lockedReason) { lesson.revealHint() }
@@ -45,22 +46,12 @@ struct ReadmeColumn<Footer: View>: View {
             }
         }
         .textSelection(.enabled)
-        .environment(\.openURL, OpenURLAction { url in
-            // A link whose path names a lesson of this library opens it here; the rest open
-            // in the browser.
-            let library = lesson.detail.library
-            if let id = url.pathComponents.last(where: { app.summary(LessonRef(library: library, lesson: $0)) != nil }) {
-                app.open(LessonRef(library: library, lesson: id))
-                return .handled
-            }
-            return .systemAction
-        })
+        // Links to lessons of this library act here too; the window follows them (AppModel.follow).
+        .environment(\.linkPolicy, LinkPolicy(catalog: app.library(lesson.detail.library)?.catalog ?? .empty))
     }
 
-    /// Why the last hint waits: for a failed Submit, or a failed run of the checks.
-    private var lockedReason: String {
-        lesson.checks != nil ? "The last hint opens after the checks fail once." : "The last hint opens after a Submit that fails."
-    }
+    /// Why the last hint waits: for a failed Submit.
+    private var lockedReason: String { "The last hint opens after a Submit that fails." }
 }
 
 enum ReadmeColumnAnchor: Hashable { case footer }
@@ -158,6 +149,7 @@ struct MarkdownBlocks: View {
 
 struct BlockView: View {
     let block: MDBlock
+    @Environment(\.linkPolicy) private var links
 
     var body: some View {
         switch block {
@@ -171,13 +163,13 @@ struct BlockView: View {
                         .background(.quaternary, in: Capsule())
                         .foregroundStyle(Theme.secondaryText)
                 }
-                Text(Inline.attributed(inlines, size: Theme.headingSize(level), weight: .semibold))
+                Text(Inline.attributed(inlines, size: Theme.headingSize(level), weight: .semibold, links: links))
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
             }
             .padding(.top, level <= 2 ? 14 : 6)
         case .paragraph(let inlines):
-            Text(Inline.attributed(inlines, size: Theme.bodySize))
+            Text(Inline.attributed(inlines, size: Theme.bodySize, links: links))
                 .lineSpacing(Theme.bodySize * 0.45)
                 .fixedSize(horizontal: false, vertical: true)
         case .code(let language, let text):
@@ -204,9 +196,34 @@ struct BlockView: View {
     }
 }
 
+/// Which links in Markdown act, from the environment: links into the Go documentation, and in
+/// a lesson's text links to the lessons of its library (LinkTarget). Any other address is plain
+/// text, neither colored nor clickable: Gosmos opens nothing outside itself.
+struct LinkPolicy: Sendable {
+    /// The library whose lessons links may open.
+    var catalog: Catalog = .empty
+
+    /// The URL a link to `destination` carries, or nil when it does nothing.
+    func url(_ destination: String) -> URL? {
+        guard LinkTarget(destination: destination, isLesson: { catalog.summary($0) != nil }) != nil else { return nil }
+        return URL(string: destination.trimmingCharacters(in: .whitespaces))
+    }
+}
+
+private struct LinkPolicyKey: EnvironmentKey {
+    static let defaultValue = LinkPolicy()
+}
+
+extension EnvironmentValues {
+    var linkPolicy: LinkPolicy {
+        get { self[LinkPolicyKey.self] }
+        set { self[LinkPolicyKey.self] = newValue }
+    }
+}
+
 /// Inline Markdown as styled text.
 enum Inline {
-    static func attributed(_ inlines: [MDInline], size: CGFloat, weight: Font.Weight = .regular) -> AttributedString {
+    static func attributed(_ inlines: [MDInline], size: CGFloat, weight: Font.Weight = .regular, links: LinkPolicy = LinkPolicy()) -> AttributedString {
         var out = AttributedString()
         func walk(_ items: [MDInline], bold: Bool, italic: Bool, strike: Bool, link: URL?, raised: Bool = false) {
             for item in items {
@@ -237,7 +254,7 @@ enum Inline {
                 case .superscript(let c):
                     walk(c, bold: bold, italic: italic, strike: strike, link: link, raised: true)
                 case .link(let dest, _, let c):
-                    walk(c, bold: bold, italic: italic, strike: strike, link: webURL(dest) ?? link, raised: raised)
+                    walk(c, bold: bold, italic: italic, strike: strike, link: links.url(dest) ?? link, raised: raised)
                 case .image:
                     break // no pictures or videos
                 case .lineBreak:
@@ -249,12 +266,6 @@ enum Inline {
         }
         walk(inlines, bold: false, italic: false, strike: false, link: nil)
         return out
-    }
-
-    static func webURL(_ dest: String) -> URL? {
-        guard let url = URL(string: dest.trimmingCharacters(in: .whitespaces)),
-              let scheme = url.scheme?.lowercased(), ["http", "https", "mailto"].contains(scheme) else { return nil }
-        return url
     }
 }
 
@@ -519,6 +530,7 @@ struct TableBlockView: View {
     let header: [[MDInline]]
     let rows: [[[MDInline]]]
     @ViewState private var available: CGFloat = 0
+    @Environment(\.linkPolicy) private var links
 
     var body: some View {
         let layout = TableColumns(header: header, rows: rows, available: available)
@@ -564,7 +576,7 @@ struct TableBlockView: View {
         case .right: .trailing
         default: .leading
         }
-        return Text(Inline.attributed(cell, size: TableColumns.fontSize, weight: header ? .semibold : .regular))
+        return Text(Inline.attributed(cell, size: TableColumns.fontSize, weight: header ? .semibold : .regular, links: links))
             .multilineTextAlignment(alignment == .trailing ? .trailing : alignment == .center ? .center : .leading)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, TableColumns.padding)

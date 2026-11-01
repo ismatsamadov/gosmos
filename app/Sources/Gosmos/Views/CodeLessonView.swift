@@ -142,8 +142,15 @@ struct FileEditor: View {
             showsLineNumbers: app.showLineNumbers,
             accessibilityLabel: buffer.readOnly ? "\(buffer.name), read only" : buffer.name,
             proxy: session.editor,
-            onIdle: { _ in session.save() }
+            onIdle: { _ in session.save() },
+            onOptionClick: quickHelp
         )
+    }
+
+    /// Quick Help on Option-click, for Go files.
+    private var quickHelp: (@MainActor (Int) -> Void)? {
+        guard buffer.name.hasSuffix(".go") else { return nil }
+        return { [app, session] offset in app.showQuickHelp(session, at: offset) }
     }
 }
 
@@ -239,9 +246,9 @@ struct ConsolePane: View {
             .background(Color(nsColor: .textBackgroundColor))
         } else if let toolchain = app.toolchain, toolchain.go == nil {
             ContentUnavailableView {
-                Label("Go Is Not Installed", systemImage: "exclamationmark.triangle")
+                Label("Go Can't Run", systemImage: "exclamationmark.triangle")
             } description: {
-                Text("Install Go from go.dev/dl, or with Homebrew: brew install go. Then Gosmos finds it, or set its path in Settings.")
+                Text(toolchain.problem ?? "There is no Go to run your code with. Choose one in Settings.")
                     .foregroundStyle(Theme.secondaryText)
             } actions: {
                 SettingsLink { Text("Open Settings…") }
@@ -284,7 +291,7 @@ struct RunStatusBar: View {
         let shown = format ?? (session.isRunning ? nil : session.result)
         HStack(spacing: 8) {
             // One icon that stays and changes, so its bounce plays when a Submit passes; during
-            // a run it is the turning spinner symbol the command-line steps use.
+            // a run it is a turning spinner symbol.
             Image(systemName: running ? "progress.indicator" : shown.map { Self.symbol($0.status) } ?? "terminal")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(running ? .primary : shown.map { Self.color($0.status) } ?? .secondary)

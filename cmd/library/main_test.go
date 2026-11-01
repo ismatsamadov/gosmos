@@ -1,7 +1,7 @@
 package main
 
-// Every library in these tests is invented here: a small course about testing in Go, with one
-// lesson of each type.
+// Every library in these tests is invented here: a small course about testing in Go, with
+// lessons of every type.
 
 import (
 	"bufio"
@@ -55,7 +55,7 @@ var smallLibrary = []string{
 	`PRAGMA foreign_keys = ON`,
 	`INSERT INTO course VALUES ('c-test', 'learn-testing', 'Learn Testing', 'Course', 'Tests, from the start.', 'A small invented course.', 0)`,
 	`INSERT INTO chapter VALUES ('ch-basics', 'c-test', 0, '1-basics', 'Basics', 'First steps.')`,
-	`INSERT INTO chapter VALUES ('ch-tools', 'c-test', 1, '2-tools', 'Tools', 'The command line.')`,
+	`INSERT INTO chapter VALUES ('ch-more', 'c-test', 1, '2-more', 'More', 'Tables of tests.')`,
 	lesson("l-hello", "ch-basics", "type_code", 0),
 	`INSERT INTO code_lesson VALUES ('l-hello', 'type_code', 'go', 'Hello, tests!' || char(10), 'Println ends the line for you.')`,
 	`INSERT INTO lesson_hint VALUES ('l-hello', 0, 'Start from what main prints now.'), ('l-hello', 1, 'fmt.Println adds the newline.')`,
@@ -68,19 +68,9 @@ var smallLibrary = []string{
 	`INSERT INTO quiz_lesson VALUES ('l-quiz', 'type_choice', 0)`,
 	`INSERT INTO quiz_question VALUES ('l-quiz', 0, 'Which functions does go test run?')`,
 	`INSERT INTO quiz_answer VALUES ('l-quiz', 0, 0, 'Functions named TestXxx', 1, 'go test runs the functions whose names start with Test.'), ('l-quiz', 0, 1, 'Every function', 0, 'A helper without the Test prefix never runs on its own.')`,
-	lesson("l-shell", "ch-tools", "type_cli", 0),
-	`INSERT INTO cli_lesson VALUES ('l-shell', 'type_cli', 'http://localhost:8080', 0, 0, 0)`,
-	`INSERT INTO cli_lesson_os VALUES ('l-shell', 'darwin'), ('l-shell', 'linux')`,
-	`INSERT INTO cli_step VALUES ('l-shell', 0, 'command', 'Print the Go version.', 0, NULL), ('l-shell', 1, 'http', 'Ask your server.', 0, NULL)`,
-	`INSERT INTO cli_command VALUES ('l-shell', 0, 'command', 'go version', NULL)`,
-	`INSERT INTO cli_command_test (lesson_uuid, step_position, position, kind, exit_code) VALUES ('l-shell', 0, 0, 'exit_code', 0)`,
-	`INSERT INTO cli_http_request VALUES ('l-shell', 1, 'http', 'GET', '${baseURL}/health', 1, NULL, NULL, NULL, NULL)`,
-	`INSERT INTO cli_http_test (lesson_uuid, step_position, position, kind, status_code) VALUES ('l-shell', 1, 0, 'status_code', 200)`,
-	lesson("l-repo", "ch-tools", "type_github_checks", 1),
-	`INSERT INTO github_lesson VALUES ('l-repo', 'type_github_checks', 0, 0)`,
-	`INSERT INTO github_step (lesson_uuid, position, kind) VALUES ('l-repo', 0, 'repo_exists')`,
-	lesson("l-talk", "ch-tools", "type_interview_chat", 2),
-	`INSERT INTO interview_lesson VALUES ('l-talk', 'type_interview_chat', 'Explain table-driven tests.', 'Mentions t.Run.')`,
+	lesson("l-table", "ch-more", "type_code_tests", 0),
+	`INSERT INTO code_lesson VALUES ('l-table', 'type_code_tests', 'go', NULL, 'Each case is a row of the table.')`,
+	`INSERT INTO starter_file VALUES ('l-table', 'double.go', 0, 'package main', 0, 0), ('l-table', 'double_test.go', 1, 'package main', 0, 1)`,
 }
 
 func newLibrary(t *testing.T, stmts ...string) string {
@@ -96,16 +86,16 @@ func newLibrary(t *testing.T, stmts ...string) string {
 func TestCreateThenCheck(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "libraries", "empty.sqlite")
 	code, out, errOut := runCmd(t, "create", path)
-	if code != 0 || !regexp.MustCompile(`^created `+regexp.QuoteMeta(path)+`: an empty library of format 7, "empty" version 1 \(uuid [0-9a-f-]{36}\)\n$`).MatchString(out) {
+	if code != 0 || !regexp.MustCompile(`^created `+regexp.QuoteMeta(path)+`: an empty library of format 8, "empty" version 1 \(uuid [0-9a-f-]{36}\)\n$`).MatchString(out) {
 		t.Fatalf("create: %d %q %q", code, out, errOut)
 	}
 	code, out, _ = runCmd(t, "check", path)
-	if code != 0 || !regexp.MustCompile(`^ok: `+regexp.QuoteMeta(path)+` is "empty" version 1 \(uuid [0-9a-f-]{36}\), a library of format 7 with 0 courses, 0 chapters and 0 lessons\n$`).MatchString(out) {
+	if code != 0 || !regexp.MustCompile(`^ok: `+regexp.QuoteMeta(path)+` is "empty" version 1 \(uuid [0-9a-f-]{36}\), a library of format 8 with 0 courses, 0 chapters and 0 lessons\n$`).MatchString(out) {
 		t.Errorf("check of an empty library: %d %q", code, out)
 	}
 
 	titled := filepath.Join(t.TempDir(), "apogee.sqlite")
-	if code, out, errOut := runCmd(t, "create", "--title", "Apogee", titled, "--version", "2026.11"); code != 0 || !strings.Contains(out, `format 7, "Apogee" version 2026.11 (uuid `) {
+	if code, out, errOut := runCmd(t, "create", "--title", "Apogee", titled, "--version", "2026.11"); code != 0 || !strings.Contains(out, `format 8, "Apogee" version 2026.11 (uuid `) {
 		t.Errorf("create with a title and a version: %d %q %q", code, out, errOut)
 	}
 	if code, _, errOut := runCmd(t, "create", "--version", " ", filepath.Join(t.TempDir(), "x.sqlite")); code != 1 || !strings.Contains(errOut, "--version must not be empty") {
@@ -125,7 +115,7 @@ func TestCheckSmallLibrary(t *testing.T) {
 	path := newLibrary(t, smallLibrary...)
 	before, _ := os.ReadFile(path)
 	code, out, errOut := runCmd(t, "check", path)
-	if code != 0 || !strings.Contains(out, "with 1 course, 2 chapters and 6 lessons") {
+	if code != 0 || !strings.Contains(out, "with 1 course, 2 chapters and 4 lessons") {
 		t.Errorf("check: %d %q %q", code, out, errOut)
 	}
 	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
@@ -148,17 +138,17 @@ func TestCheckFindsEachProblem(t *testing.T) {
 		{
 			name:    "a library of format 6",
 			breakIt: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`},
-			want:    []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 7; library migrate brings it up to date"},
+			want:    []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 8; library migrate brings it up to date"},
 		},
 		{
 			name:    "an older format",
-			breakIt: []string{`PRAGMA user_version = 6`},
-			want:    []string{"user_version is 6, not 7: the library is of an older format; library migrate brings it up to date"},
+			breakIt: []string{`PRAGMA user_version = 7`},
+			want:    []string{"user_version is 7, not 8: the library is of an older format; library migrate brings it up to date"},
 		},
 		{
 			name:    "a newer format",
 			breakIt: []string{`PRAGMA user_version = 9`},
-			want:    []string{"user_version is 9, not 7: the library is of a newer format than this program knows"},
+			want:    []string{"user_version is 9, not 8: the library is of a newer format than this program knows"},
 		},
 		{
 			name:    "a hint for a lesson that is not there",
@@ -172,29 +162,26 @@ func TestCheckFindsEachProblem(t *testing.T) {
 		},
 		{
 			name:    "a lesson without its per-type row",
-			breakIt: []string{`DELETE FROM interview_lesson`},
-			want:    []string{"lesson l-talk (type_interview_chat) has 0 interview_lesson rows, want 1"},
+			breakIt: []string{`DELETE FROM quiz_lesson`},
+			want:    []string{"lesson l-quiz (type_choice) has 0 quiz_lesson rows, want 1"},
 		},
 		{
 			name:    "a lesson with another type's row",
-			breakIt: []string{`PRAGMA foreign_keys = OFF`, `INSERT INTO github_lesson VALUES ('l-talk', 'type_github_checks', 0, 0)`},
-			want: []string{"foreign key: github_lesson row 2 points at a missing lesson row",
-				"lesson l-talk (type_interview_chat) has 1 github_lesson rows, want 0"},
+			breakIt: []string{`PRAGMA foreign_keys = OFF`, `INSERT INTO quiz_lesson VALUES ('l-table', 'type_choice', 0)`},
+			want: []string{"foreign key: quiz_lesson row 2 points at a missing lesson row",
+				"lesson l-table (type_code_tests) has 1 quiz_lesson rows, want 0"},
+		},
+		{
+			name:    "a lesson of a type format 8 removed",
+			breakIt: []string{`PRAGMA foreign_keys = OFF`, `PRAGMA ignore_check_constraints = ON`, `UPDATE lesson SET type = 'type_interview_chat' WHERE uuid = 'l-quiz'`},
+			want: []string{"foreign key: quiz_lesson row 1 points at a missing lesson row",
+				"lesson l-quiz (type_interview_chat) has 1 quiz_lesson rows, want 0",
+				"lesson l-quiz (type_interview_chat) is of a type format 8 does not have"},
 		},
 		{
 			name:    "a quiz question without its right answer",
 			breakIt: []string{`UPDATE quiz_answer SET is_correct = 0`},
 			want:    []string{"quiz question 0 of lesson l-quiz has 0 right answers, want 1"},
-		},
-		{
-			name:    "a command step without its command",
-			breakIt: []string{`DELETE FROM cli_command`},
-			want:    []string{"cli_step 0 of lesson l-shell (command) has no cli_command row"},
-		},
-		{
-			name:    "an HTTP step without its request",
-			breakIt: []string{`DELETE FROM cli_http_request`},
-			want:    []string{"cli_step 1 of lesson l-shell (http) has no cli_http_request row"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -251,85 +238,55 @@ func TestCheckDamagedAndForeignFiles(t *testing.T) {
 	}
 }
 
-// v3Library makes a library of format 3 from the schema kept in db/history: a course with a
-// lesson that asks for the address of your own server, as format 3 wrote it ('override'), and
-// the learner's project for the course.
-func v3Library(t *testing.T) string {
+// historySchema returns the schema of an older format, as db/history keeps it.
+func historySchema(t *testing.T, v int) string {
 	t.Helper()
-	schema, err := os.ReadFile(filepath.Join("..", "..", "db", "history", "schema_v3.sql"))
+	schema, err := os.ReadFile(filepath.Join("..", "..", "db", "history", fmt.Sprintf("schema_v%d.sql", v)))
 	if err != nil {
 		t.Fatal(err)
 	}
+	return string(schema)
+}
+
+// v3Library makes a library of format 3 from the schema kept in db/history: a course with a
+// code lesson, the learner's progress in it, and the learner's project folder for the course,
+// which only command-line lessons used.
+func v3Library(t *testing.T) string {
+	t.Helper()
 	path := filepath.Join(t.TempDir(), "old.sqlite")
 	exec(t, path,
-		string(schema),
-		`INSERT INTO course VALUES ('c-ship', 'learn-shipping', 'Learn Shipping', 'Course', 'Ship it.', 'An invented course about deploying.', 0)`,
-		`INSERT INTO chapter VALUES ('ch-deploy', 'c-ship', 0, '1-deploy', 'Deploy', '')`,
+		historySchema(t, 3),
+		`INSERT INTO course VALUES ('c-ship', 'learn-shipping', 'Learn Shipping', 'Course', 'Ship it.', 'An invented course about shipping code.', 0)`,
+		`INSERT INTO chapter VALUES ('ch-build', 'c-ship', 0, '1-build', 'Build', '')`,
 		`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-			VALUES ('l-deploy', 'ch-deploy', 0, '1-deploy', 'Deploy your app', 'type_cli', 1, 30, 'Deploy it.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`,
-		`INSERT INTO cli_lesson VALUES ('l-deploy', 'type_cli', 'override', 0, 0)`,
-		`INSERT INTO cli_step VALUES ('l-deploy', 0, 'http', 'Ask the deployed app.', 0, NULL)`,
-		`INSERT INTO cli_http_request VALUES ('l-deploy', 0, 'http', 'GET', '${baseURL}/healthz', 1, NULL, NULL, NULL, NULL)`,
-		`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-			VALUES ('l-review', 'ch-deploy', 1, '2-review', 'Review a deploy', 'type_interview_chat', 1, 20, 'Talk it through.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`,
-		`INSERT INTO interview_lesson VALUES ('l-review', 'type_interview_chat', 'Walk me through your last deploy.', '')`,
+			VALUES ('l-build', 'ch-build', 0, '1-build', 'Build your app', 'type_code', 1, 30, 'Build it.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`,
+		`INSERT INTO code_lesson VALUES ('l-build', 'type_code', 'go', 'built' || char(10))`,
+		`INSERT INTO starter_file VALUES ('l-build', 'main.go', 0, 'package main', 0, 0)`,
+		`INSERT INTO progress VALUES ('l-build', NULL, '2026-10-31T12:00:00Z')`,
 		`INSERT INTO project VALUES ('c-ship', '/Users/me/shipping', 'https://my-app.example.com')`,
 	)
 	return path
 }
 
-// v4Library makes a library of format 4 from the schema kept in db/history: an invented
-// interview lesson whose acceptance criteria are empty, as format 4 stored them, and one with
-// real criteria. It holds no learner data.
-func v4Library(t *testing.T) string {
+// v7Library makes a library of format 7 from the schema kept in db/history: the small library,
+// and the statements given.
+func v7Library(t *testing.T, stmts ...string) string {
 	t.Helper()
-	schema, err := os.ReadFile(filepath.Join("..", "..", "db", "history", "schema_v4.sql"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(t.TempDir(), "v4.sqlite")
-	lesson := func(uuid string, position int) string {
-		return `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-			VALUES ('` + uuid + `', 'ch-talk', ` + string(rune('0'+position)) + `, '` + uuid + `', 'Interview ` + uuid + `', 'type_interview_chat', 1, 20, 'Talk it through.',
-			'2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`
-	}
-	exec(t, path,
-		string(schema),
-		`INSERT INTO course VALUES ('c-talk', 'learn-talking', 'Learn Talking', 'Course', 'Talk.', 'An invented course of mock interviews.', 0)`,
-		`INSERT INTO chapter VALUES ('ch-talk', 'c-talk', 0, '1-talk', 'Talk', '')`,
-		lesson("l-blank", 0), lesson("l-criteria", 1),
-		`INSERT INTO interview_lesson VALUES ('l-blank', 'type_interview_chat', 'Describe a bug you fixed.', '')`,
-		`INSERT INTO interview_lesson VALUES ('l-criteria', 'type_interview_chat', 'Describe a test you wrote.', 'Names what the test checks.')`,
-	)
+	path := filepath.Join(t.TempDir(), "v7.sqlite")
+	exec(t, path, append([]string{historySchema(t, 7),
+		`INSERT INTO library_info VALUES (1, '0b7f3e52-9a41-4c6d-8f20-6e5d1c9b7a34', 'Learn Testing', '2')`}, append(smallLibrary, stmts...)...)...)
 	return path
 }
 
-// criteria returns an interview lesson's acceptance_criteria, "NULL" for NULL.
-func criteria(t *testing.T, path, uuid string) string {
-	t.Helper()
-	d, _, err := db.Inspect(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer d.Close()
-	var c string
-	if err := d.QueryRow(`SELECT coalesce(acceptance_criteria, 'NULL') FROM interview_lesson WHERE lesson_uuid = ?`, uuid).Scan(&c); err != nil {
-		t.Fatal(err)
-	}
-	return c
-}
-
-func TestMigrateFrom4(t *testing.T) {
-	path := v4Library(t)
+// Format 7 goes to 8 in place: the library keeps its uuid, its title and every lesson.
+func TestMigrateFrom7(t *testing.T) {
+	path := v7Library(t)
 	code, out, errOut := runCmd(t, "migrate", path)
-	if code != 0 || !regexp.MustCompile(`^migrated `+regexp.QuoteMeta(path)+` from format 4 to 7: "Learn Talking" version 1 \(uuid [0-9a-f-]{36}\)\nok: `).MatchString(out) {
-		t.Fatalf("migrate: %d %q %q", code, out, errOut)
-	}
-	if got := criteria(t, path, "l-blank"); got != "NULL" {
-		t.Errorf("empty criteria became %q, want NULL", got)
-	}
-	if got := criteria(t, path, "l-criteria"); got != "Names what the test checks." {
-		t.Errorf("real criteria became %q", got)
+	want := `^migrated ` + regexp.QuoteMeta(path) + ` from format 7 to 8: "Learn Testing" version 2 \(uuid 0b7f3e52-9a41-4c6d-8f20-6e5d1c9b7a34\)
+ok: ` + regexp.QuoteMeta(path) + ` is "Learn Testing" version 2 \(uuid 0b7f3e52-9a41-4c6d-8f20-6e5d1c9b7a34\), a library of format 8 with 1 course, 2 chapters and 4 lessons
+$`
+	if code != 0 || !regexp.MustCompile(want).MatchString(out) {
+		t.Fatalf("migrate: %d\n%s\n%s", code, out, errOut)
 	}
 }
 
@@ -339,7 +296,7 @@ func TestMigrate(t *testing.T) {
 		t.Fatalf("check before migrating: %d %q", code, out)
 	}
 	unchanged, _ := os.ReadFile(path)
-	if code, _, errOut := runCmd(t, "migrate", path); code != 1 || !strings.Contains(errOut, "holds the learner's data (1 project rows); give a learner database to move it into (--learner <file>): nothing changed") {
+	if code, _, errOut := runCmd(t, "migrate", path); code != 1 || !strings.Contains(errOut, "holds the learner's data (1 progress rows); give a learner database to move it into (--learner <file>): nothing changed") {
 		t.Fatalf("migrate without a learner database: %d %q", code, errOut)
 	}
 	if after, _ := os.ReadFile(path); !bytes.Equal(unchanged, after) {
@@ -347,40 +304,27 @@ func TestMigrate(t *testing.T) {
 	}
 	learner := filepath.Join(t.TempDir(), "Gosmos", "learner.sqlite")
 	code, out, errOut := runCmd(t, "migrate", path, "--learner", learner, "--title", "Shipping")
-	want := `^migrated ` + regexp.QuoteMeta(path) + ` from format 3 to 7: "Shipping" version 1 \(uuid ([0-9a-f-]{36})\)
-moved its learner data into ` + regexp.QuoteMeta(learner) + `, a new learner database: progress 0, attempt 0, note 0, code_file 0, project 1, server_address 0, setting 0
+	want := `^migrated ` + regexp.QuoteMeta(path) + ` from format 3 to 8: "Shipping" version 1 \(uuid ([0-9a-f-]{36})\)
+moved its learner data into ` + regexp.QuoteMeta(learner) + `, a new learner database: progress 1, attempt 0, note 0, code_file 0, setting 0
+dropped the learner data only command-line lessons used, which Gosmos no longer has: project 1
 ok: `
 	m := regexp.MustCompile(want).FindStringSubmatch(out)
 	if code != 0 || m == nil {
 		t.Fatalf("migrate: %d\n%s\n%s", code, out, errOut)
 	}
-	d, _, err := db.Inspect(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var version, asks int
-	var base sql.NullString
-	d.QueryRow(`SELECT (SELECT user_version FROM pragma_user_version), asks_for_base_url, base_url_default FROM cli_lesson WHERE lesson_uuid = 'l-deploy'`).Scan(&version, &asks, &base)
-	d.Close()
-	if version != 7 || asks != 1 || base.Valid {
-		t.Errorf("after migrating: user_version %d, asks_for_base_url %d, base_url_default %v", version, asks, base)
-	}
-	if got := criteria(t, path, "l-review"); got != "NULL" {
-		t.Errorf("empty criteria became %q after the steps, want NULL", got)
-	}
 	l, err := db.OpenLearner(learner)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var dir, address string
-	l.QueryRow(`SELECT dir, base_url FROM project WHERE library_uuid = ? AND course_uuid = 'c-ship'`, m[1]).Scan(&dir, &address)
+	var opened string
+	l.QueryRow(`SELECT last_opened_at FROM progress WHERE library_uuid = ? AND lesson_uuid = 'l-build'`, m[1]).Scan(&opened)
 	l.Close()
-	if dir != "/Users/me/shipping" || address != "https://my-app.example.com" {
-		t.Errorf("the project became %q %q in the learner database", dir, address)
+	if opened != "2026-10-31T12:00:00Z" {
+		t.Errorf("the progress became %q in the learner database", opened)
 	}
 
 	before, _ := os.ReadFile(path)
-	if code, out, _ := runCmd(t, "migrate", path, "--learner", learner); code != 0 || !strings.HasPrefix(out, path+" is already of format 7: \"Shipping\" version 1 (uuid "+m[1]+")") {
+	if code, out, _ := runCmd(t, "migrate", path, "--learner", learner); code != 0 || !strings.HasPrefix(out, path+" is already of format 8: \"Shipping\" version 1 (uuid "+m[1]+")") {
 		t.Errorf("migrating again: %d %q", code, out)
 	}
 	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
@@ -389,11 +333,15 @@ ok: `
 }
 
 func TestMigrateRefuses(t *testing.T) {
-	newer := newLibrary(t, `PRAGMA user_version = 8`)
+	newer := newLibrary(t, `PRAGMA user_version = 9`)
 	other := filepath.Join(t.TempDir(), "other.sqlite")
 	exec(t, other, `CREATE TABLE recipe (name TEXT)`)
+	interview := v7Library(t, `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		VALUES ('l-talk', 'ch-more', 1, 'l-talk', 'Talk it through', 'type_interview_chat', 1, 3, 'Explain table tests.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')`,
+		`INSERT INTO interview_lesson VALUES ('l-talk', 'type_interview_chat', 'Explain table-driven tests.', 'Mentions t.Run.')`)
 	for _, tc := range []struct{ path, want string }{
-		{newer, "newer than this program's 7"},
+		{newer, "newer than this program's 8"},
+		{interview, "holds lessons of types format 8 removed (type_interview_chat 1): Gosmos is self-contained, with code, tests and quiz lessons only, which it checks on the Mac alone; nothing changed"},
 		{other, "not a Gosmos library (application_id 0); nothing changed"},
 		{filepath.Join(t.TempDir(), "missing.sqlite"), "no database file"},
 	} {
@@ -442,7 +390,7 @@ func TestHelperInterruptedWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range 400 {
-		if _, err := tx.Exec(`INSERT INTO lesson_hint VALUES ('l-talk', ?, ?)`, i, fmt.Sprintf("Unfinished hint %03d: %s", i, strings.Repeat("x", 4000))); err != nil {
+		if _, err := tx.Exec(`INSERT INTO lesson_hint VALUES ('l-quiz', ?, ?)`, i, fmt.Sprintf("Unfinished hint %03d: %s", i, strings.Repeat("x", 4000))); err != nil {
 			t.Fatal(err)
 		}
 	}

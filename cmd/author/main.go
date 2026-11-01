@@ -416,14 +416,9 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		items = append(items, it)
 	}
 	rows.Close()
-	var skipped []string
 	written := 0
 	for _, it := range items {
 		pkg, err := authoring.Load(d, it.uuid)
-		if errors.Is(err, authoring.ErrUnsupported) {
-			skipped = append(skipped, err.Error())
-			continue
-		}
 		if err != nil {
 			return err
 		}
@@ -437,8 +432,5 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		written++
 	}
 	fmt.Fprintf(out, "exported %d lessons of %s to %s\n", written, *courseSlug, outDir)
-	for _, s := range skipped {
-		fmt.Fprintf(out, "  left out: %s\n", s)
-	}
 	return nil
 }

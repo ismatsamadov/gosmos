@@ -83,24 +83,30 @@ struct LocalPreferences {
     }
 }
 
-/// Lessons visited, for the toolbar's back and forward buttons.
-struct VisitHistory {
-    private(set) var back: [LessonRef] = []
-    private(set) var forward: [LessonRef] = []
+/// A place Back and Forward return to: a lesson, or a place in the Go documentation.
+enum Place: Hashable {
+    case lesson(LessonRef)
+    case doc(DocLink)
+}
 
-    mutating func visit(from current: LessonRef?) {
-        if let current { back.append(current) }
+/// Places visited, for the toolbar's back and forward buttons.
+struct VisitHistory {
+    private(set) var back: [Place] = []
+    private(set) var forward: [Place] = []
+
+    mutating func visit(from current: Place?) {
+        if let current, back.last != current { back.append(current) }
         if back.count > 200 { back.removeFirst() }
         forward.removeAll()
     }
 
-    mutating func goBack(from current: LessonRef?) -> LessonRef? {
+    mutating func goBack(from current: Place?) -> Place? {
         guard let target = back.popLast() else { return nil }
         if let current { forward.append(current) }
         return target
     }
 
-    mutating func goForward(from current: LessonRef?) -> LessonRef? {
+    mutating func goForward(from current: Place?) -> Place? {
         guard let target = forward.popLast() else { return nil }
         if let current { back.append(current) }
         return target
@@ -119,10 +125,13 @@ struct ShelfLibrary: Identifiable {
     var error: AppDatabaseError?
 }
 
-/// What the sidebar can select: the review, or a lesson.
+/// What the sidebar can select: the review, the Go documentation, a lesson, or a place in the
+/// documentation that search found.
 enum SidebarItem: Hashable {
     case review
+    case documentation
     case lesson(LessonRef)
+    case doc(DocLink)
 }
 
 /// The app's state: the learner database, the libraries in the sidebar with your progress,
@@ -162,9 +171,25 @@ final class AppModel {
     private(set) var dueCount = 0
     /// The review, while the sidebar's Review is selected.
     private(set) var review: ReviewSession?
+    /// The Go documentation built into the app; nil until it has opened, or when it can't.
+    private(set) var docs: DocsModel?
+    /// The standard library's names, for links in readmes and Quick Help.
+    private(set) var docNames = DocNames.empty
+    /// What search found in the documentation, below the lessons.
+    private(set) var docSearchResults: [DocSearchHit] = []
+    /// The documentation is the place on screen, or about to be, for the history.
+    @ObservationIgnored private var docsActive = false
 
     /// The review is on screen: selected, with no lesson still leaving.
     var showsReview: Bool { selection == .review && lesson == nil }
+
+    /// The documentation is on screen: selected, with no lesson still leaving.
+    var showsDocumentation: Bool {
+        switch selection {
+        case .documentation?, .doc?: lesson == nil && docs != nil
+        default: false
+        }
+    }
 
     /// Shows an error from work that has no place of its own on screen, such as a save. Work
     /// that was cancelled (another lesson or search replaced it) ends silently.
@@ -190,8 +215,6 @@ final class AppModel {
     /// Set while the app saves before it quits.
     private(set) var isQuitting = false
     @ObservationIgnored private var started = false
-    /// jq for command-line checks, compiled in; its programs are cached for the session.
-    let jq = CompiledJQ()
     var confirmReset = false
     /// Bumped to open the Settings window (views own the openSettings action).
     private(set) var settingsRequests = 0
@@ -223,11 +246,12 @@ final class AppModel {
         started = true
         launchInterval = signposter.beginInterval("Launch")
         ObsoletePreferences.remove(from: preferences.defaults)
+        openDocumentationDatabase()
         // What runs left behind after a crash; not the lesson folders.
         let workspace = workspace
         Task.detached(priority: .background) { workspace.removeStaleRuns() }
-        let goOverride = preferences.goPath
-        toolchainTask = Task.detached(priority: .utility) { await Toolchain.discover(goOverride: goOverride) }
+        let goOverride = preferences.goPath, goCaches = goCaches
+        toolchainTask = Task.detached(priority: .utility) { await Toolchain.discover(goOverride: goOverride, caches: goCaches) }
         defer {
             Task { [weak self] in
                 guard let self, let task = self.toolchainTask else { return }
@@ -437,8 +461,10 @@ final class AppModel {
         guard let learner, let db = library(ref.library)?.database, let catalog = library(ref.library)?.catalog,
               catalog.summary(ref.lesson) != nil else { return }
         review = nil
-        let current = lesson.map { $0.detail.ref }
+        // A lesson still leaving for the documentation is not on screen any more.
+        let current = docsActive ? nil : lesson.map { $0.detail.ref }
         if remember && ref != current { history.visit(from: visited) }
+        docsActive = false
         if selection != .lesson(ref) { selection = .lesson(ref) }
         if let loc = catalog.location(of: ref.lesson) {
             let course = catalog.courses[loc.course]
@@ -456,11 +482,16 @@ final class AppModel {
         guard let learner, let db = library(ref.library)?.database, summary(ref) != nil else { return }
         selection = nil
         review = nil
+        docsActive = false
         startLoading(ref, db: db, learner: learner, review: true)
     }
 
-    /// The lesson on screen as the back and forward history knows it; a redo is not in it.
-    private var visited: LessonRef? { lesson?.isReview == false ? lesson?.detail.ref : nil }
+    /// The place on screen as the back and forward history knows it: the documentation's page,
+    /// or the lesson; a redo is not in it.
+    private var visited: Place? {
+        if docsActive { return docs?.location.map(Place.doc) }
+        return lesson?.isReview == false ? lesson.map { .lesson($0.detail.ref) } : nil
+    }
 
     private func startLoading(_ ref: LessonRef, db: AppDatabase, learner: LearnerDatabase, review: Bool) {
         let interval = signposter.beginInterval("Lesson switch")
@@ -527,11 +558,14 @@ final class AppModel {
             }
             return
         }
+        if action.hasPrefix("doc") || action.hasPrefix("quick-help:") {
+            Task { [weak self] in await self?.performDocumentationAction(action, on: model) }
+            return
+        }
         switch action {
         case "settings": settingsRequests += 1
         case "run": model.run()
         case "submit": model.submit()
-        case "check": model.run()
         case "footer": model.showFooter()
         case "hints":
             // Every hint that may show: all but a last one that waits for a failed Submit.
@@ -562,15 +596,46 @@ final class AppModel {
         }
     }
 
+    /// The documentation's launch actions, once it has opened: `doc:<link>` shows a place in
+    /// it (`doc:godoc:fmt.Println`, `doc:acknowledgements`), `doc-search:<text>` types a search
+    /// in the browser, and `quick-help:<text>` shows Quick Help for the first `<text>` in the
+    /// editor's file.
+    private func performDocumentationAction(_ action: String, on model: LessonModel) async {
+        for _ in 0..<50 where docs == nil || (action.hasPrefix("quick-help:") && model.code?.editor.text == nil) {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        guard let docs else { return }
+        let argument = String(action.drop { $0 != ":" }.dropFirst())
+        if action.hasPrefix("doc:") {
+            openDocumentation(argument == "acknowledgements" ? .acknowledgements : DocLink(string: argument))
+        } else if action.hasPrefix("doc-search:") {
+            openDocumentation()
+            for end in argument.indices {
+                try? await Task.sleep(for: .milliseconds(120))
+                docs.searchText = String(argument[...end])
+            }
+        } else if let code = model.code, let text = code.editor.text {
+            let found = (text as NSString).range(of: argument)
+            if found.location != NSNotFound { showQuickHelp(code, at: found.location) }
+        }
+    }
+
     var canGoBack: Bool { !history.back.isEmpty }
     var canGoForward: Bool { !history.forward.isEmpty }
 
     func goBack() {
-        if let ref = history.goBack(from: visited) { open(ref, remember: false) }
+        if let place = history.goBack(from: visited) { go(to: place) }
     }
 
     func goForward() {
-        if let ref = history.goForward(from: visited) { open(ref, remember: false) }
+        if let place = history.goForward(from: visited) { go(to: place) }
+    }
+
+    private func go(to place: Place) {
+        switch place {
+        case .lesson(let ref): open(ref, remember: false)
+        case .doc(let link): openDocumentation(link, remember: false)
+        }
     }
 
     var nextLesson: LessonSummary? {
@@ -615,6 +680,7 @@ final class AppModel {
     func showReview() {
         guard let learner else { return }
         if let ref = visited { history.visit(from: ref) }
+        docsActive = false
         selection = .review
         isLoadingLesson = false
         loadTask?.cancel()
@@ -640,15 +706,82 @@ final class AppModel {
         }
     }
 
+    // MARK: Documentation
+
+    /// Opens the Go documentation built into the app, off the main actor, and reads the
+    /// standard library's names for links. Without it the app works as before, with no
+    /// documentation.
+    private func openDocumentationDatabase() {
+        guard let url = ReferenceDatabase.bundledURL else { return }
+        Task { [weak self] in
+            let opened = await Task.detached(priority: .userInitiated) { () -> Result<(ReferenceDatabase, DocNames), any Error> in
+                Result {
+                    let reference = try ReferenceDatabase(url: url)
+                    return (reference, try reference.names())
+                }
+            }.value
+            guard let self else { return }
+            switch opened {
+            case .success(let (reference, names)):
+                self.docs = DocsModel(reference: reference, app: self)
+                self.docNames = names
+            case .failure(let error):
+                Log.app.error("Go documentation: \(error.localizedDescription, privacy: .public)")
+                self.report(error)
+            }
+        }
+    }
+
+    /// Shows a place in the documentation, or the page shown last; `remember` adds the place on
+    /// screen to the back history. A lesson on screen is saved and left, as when another opens.
+    func openDocumentation(_ link: DocLink? = nil, remember: Bool = true, selecting item: SidebarItem = .documentation) {
+        guard let docs else { return }
+        let target = link ?? docs.location
+        if remember, let place = visited, place != target.map(Place.doc) { history.visit(from: place) }
+        docsActive = true
+        if selection != item { selection = item }
+        if let target { docs.show(target) }
+        review = nil
+        isLoadingLesson = false
+        loadTask?.cancel()
+        guard let previous = lesson else { return }
+        loadTask = Task { [weak self] in
+            await previous.leave()
+            guard let self, !Task.isCancelled else { return }
+            self.lesson = nil
+        }
+    }
+
+    /// Follows a link clicked in the app: into the documentation, or to a lesson of the
+    /// library on screen. Any other address does nothing; Gosmos opens nothing outside itself.
+    func follow(_ url: URL) -> Bool {
+        let library = lesson?.detail.library
+        let catalog = library.flatMap { self.library($0)?.catalog }
+        switch LinkTarget(destination: url.absoluteString, isLesson: { catalog?.summary($0) != nil }) {
+        case .doc(let link)?:
+            openDocumentation(link)
+            return true
+        case .lesson(let id)?:
+            if let library { open(LessonRef(library: library, lesson: id)) }
+            return true
+        case nil:
+            return false
+        }
+    }
+
     // MARK: Search
 
     private func searchChanged() {
         searchTask?.cancel()
         let text = searchText
         let databases = shelf.compactMap(\.database)
-        guard !databases.isEmpty, !text.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let reference = docs?.reference
+        guard !databases.isEmpty || reference != nil, !text.trimmingCharacters(in: .whitespaces).isEmpty else {
             searchResults = []
+            docSearchResults = []
             searching = false
+            // The place search found stays on screen, as the documentation.
+            if case .doc? = selection { selection = .documentation }
             return
         }
         searching = true
@@ -665,8 +798,14 @@ final class AppModel {
                 found = ([], [:])
                 self?.report(error)
             }
+            // The documentation's best matches, below the lessons.
+            var docHits: [DocSearchHit] = []
+            if let reference {
+                do { docHits = try await reference.search(text, limit: 8) } catch { self?.report(error) }
+            }
             guard let self, !Task.isCancelled else { return }
             self.searchResults = found.hits
+            self.docSearchResults = docHits
             self.searchSnippets = found.snippets
             self.searching = false
             if let interval { self.signposter.endInterval("Search", interval) }
@@ -694,11 +833,16 @@ final class AppModel {
         return t
     }
 
+    /// Where Go keeps its caches: ~/Library/Caches/Gosmos, beside the lesson folders, or the
+    /// data folder of a scripted run.
+    private var goCaches: URL { preferences.dataFolder ?? Toolchain.defaultCaches }
+
+    /// Runs your code with the Go at `goPath`, or with the built-in Go when it is nil.
     func rediscoverToolchain(goPath: String?) {
         preferences.setGoPath(goPath)
         toolchain = nil
-        let override = preferences.goPath
-        toolchainTask = Task.detached(priority: .userInitiated) { await Toolchain.discover(goOverride: override) }
+        let override = preferences.goPath, goCaches = goCaches
+        toolchainTask = Task.detached(priority: .userInitiated) { await Toolchain.discover(goOverride: override, caches: goCaches) }
         Task { [weak self] in
             guard let self, let task = self.toolchainTask else { return }
             self.toolchain = await task.value
@@ -715,13 +859,8 @@ final class AppModel {
 
     // MARK: Lesson folders
 
-    /// The folder of the lesson on screen: its work folder for code, its project for
-    /// command-line lessons.
-    var lessonFolder: URL? {
-        if let code = lesson?.code { return code.folder }
-        if let checks = lesson?.checks, !checks.projectDir.isEmpty { return URL(fileURLWithPath: checks.projectDir, isDirectory: true) }
-        return nil
-    }
+    /// The folder of the lesson on screen: a code lesson's work folder.
+    var lessonFolder: URL? { lesson?.code?.folder }
 
     func revealLessonFolder() {
         Task {
@@ -755,12 +894,6 @@ final class AppModel {
         }
     }
 
-    // MARK: Command-line checks
-
-    func makeChecker() -> CLIChecker? {
-        CLIChecker(environment: toolchain?.environment ?? ProcessInfo.processInfo.environment, jq: jq)
-    }
-
     /// Saves what is pending before the app quits. Lesson programs stop at once; the app
     /// delegate bounds the whole wait.
     func prepareToQuit() async {
@@ -768,8 +901,8 @@ final class AppModel {
         // A code conflict asks first; without a choice in 15 seconds both versions are kept.
         await lesson?.leave(within: .seconds(15))
         ProcessRunner.terminateAll(.lesson)
-        // The writes nothing else waits for (a review answer, a hint, a done mark, the address
-        // the lesson just left kept) land before the app goes.
+        // The writes nothing else waits for (a review answer, a hint, a done mark) land before
+        // the app goes.
         await learner?.pendingWrites.finish()
     }
 }

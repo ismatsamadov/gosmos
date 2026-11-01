@@ -42,12 +42,9 @@ enum Fixtures {
     static let codeLesson = "l0000000-0000-0000-0000-000000000001"
     static let testsLesson = "l0000000-0000-0000-0000-000000000002"
     static let quizLesson = "l0000000-0000-0000-0000-000000000003"
-    static let cliLesson = "l0000000-0000-0000-0000-000000000004"
-    static let githubLesson = "l0000000-0000-0000-0000-000000000005"
-    static let interviewLesson = "l0000000-0000-0000-0000-000000000006"
+    static let planetsLesson = "l0000000-0000-0000-0000-000000000004"
+    static let loopsLesson = "l0000000-0000-0000-0000-000000000005"
     static let optionalLesson = "l0000000-0000-0000-0000-000000000007"
-    /// A command-line lesson that checks a server you deployed: no suggested address.
-    static let askingLesson = "l0000000-0000-0000-0000-000000000008"
 
     static let addTests = """
     package main
@@ -85,8 +82,8 @@ enum Fixtures {
 
     """
 
-    /// Creates a library from db/schema.sql with lessons of every type; `id` and `title` go
-    /// into its library_info.
+    /// Creates a library from db/schema.sql with lessons of every type, in two courses; `id` and
+    /// `title` go into its library_info.
     static func makeDatabase(at url: URL, id: String = libraryID, title: String = libraryTitle) throws {
         let queue = try DatabaseQueue(path: url.path)
         try queue.writeWithoutTransaction { db in
@@ -145,68 +142,22 @@ enum Fixtures {
                                arguments: [quizLesson, 1, i, a, a == "Yes" ? 1 : 0])
             }
 
-            try lesson(cliLesson, chapter2, 0, "1-server", "Your Server", "type_cli", "# Your Server\n\nStart it.")
-            try db.execute(sql: "INSERT INTO cli_lesson(lesson_uuid, base_url_default, use_agent_prompt, contains_complete_dir) VALUES (?,?,?,?)",
-                           arguments: [cliLesson, "http://localhost:8080", 0, 1])
-            try db.execute(sql: "INSERT INTO cli_lesson_os(lesson_uuid, os) VALUES (?,?)", arguments: [cliLesson, "darwin"])
-            try db.execute(sql: "INSERT INTO cli_step(lesson_uuid, position, kind, description, no_penalty_on_fail) VALUES (?,?,?,?,?)",
-                           arguments: [cliLesson, 0, "command", "Build it", 0])
-            try db.execute(sql: "INSERT INTO cli_command(lesson_uuid, step_position, command) VALUES (?,?,?)", arguments: [cliLesson, 0, "echo built"])
-            try db.execute(sql: "INSERT INTO cli_command_variable(lesson_uuid, step_position, position, name, regex) VALUES (?,?,?,?,?)",
-                           arguments: [cliLesson, 0, 0, "word", "(b\\w+)"])
-            try db.execute(sql: "INSERT INTO cli_command_test(lesson_uuid, step_position, position, kind, exit_code) VALUES (?,?,?,?,?)",
-                           arguments: [cliLesson, 0, 0, "exit_code", 0])
-            try db.execute(sql: "INSERT INTO cli_command_test(lesson_uuid, step_position, position, kind) VALUES (?,?,?,?)",
-                           arguments: [cliLesson, 0, 1, "stdout_contains_all"])
-            try db.execute(sql: "INSERT INTO cli_command_test_text(lesson_uuid, step_position, test_position, test_kind, position, text) VALUES (?,?,?,?,?,?)",
-                           arguments: [cliLesson, 0, 1, "stdout_contains_all", 0, "built"])
-            try db.execute(sql: "INSERT INTO cli_command_test(lesson_uuid, step_position, position, kind, jq_query, jq_input) VALUES (?,?,?,?,?,?)",
-                           arguments: [cliLesson, 0, 2, "stdout_jq", ".ok", "json"])
-            try db.execute(sql: "INSERT INTO cli_command_test_jq_result(lesson_uuid, step_position, test_position, position, operator, value_type, bool_value) VALUES (?,?,?,?,?,?,?)",
-                           arguments: [cliLesson, 0, 2, 0, "==", "bool", 1])
-            try db.execute(sql: "INSERT INTO cli_step(lesson_uuid, position, kind, description, no_penalty_on_fail, sleep_after_ms) VALUES (?,?,?,?,?,?)",
-                           arguments: [cliLesson, 1, "http", "It answers", 1, 10])
-            try db.execute(sql: "INSERT INTO cli_http_request(lesson_uuid, step_position, method, full_url, follow_redirects, body_kind, body_json) VALUES (?,?,?,?,?,?,?)",
-                           arguments: [cliLesson, 1, "POST", "${baseURL}/api/login", 0, "json", #"{"email":"ada@example.com"}"#])
-            try db.execute(sql: "INSERT INTO cli_http_header(lesson_uuid, step_position, position, name, value) VALUES (?,?,?,?,?)",
-                           arguments: [cliLesson, 1, 0, "X-Trace", "abc"])
-            try db.execute(sql: "INSERT INTO cli_http_body_variable(lesson_uuid, step_position, position, name, json_path) VALUES (?,?,?,?,?)",
-                           arguments: [cliLesson, 1, 0, "token", ".token"])
-            try db.execute(sql: "INSERT INTO cli_http_header_variable(lesson_uuid, step_position, position, name, header, regex) VALUES (?,?,?,?,?,?)",
-                           arguments: [cliLesson, 1, 1, "session", "Set-Cookie", "^(session_id=[^;]+)"])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, status_code) VALUES (?,?,?,?,?)",
-                           arguments: [cliLesson, 1, 0, "status_code", 200])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, json_path, json_operator, value_type, int_value) VALUES (?,?,?,?,?,?,?,?)",
-                           arguments: [cliLesson, 1, 1, "json_value", ".user.id", "gte", "int", 7])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, field_name, field_value) VALUES (?,?,?,?,?,?)",
-                           arguments: [cliLesson, 1, 2, "trailers_equal", "X-Sum", "42"])
+            try lesson(planetsLesson, chapter2, 0, "1-planets", "Planets", "type_code", "# Planets\n\nPrint the inner planets, one a line.")
+            try db.execute(sql: "INSERT INTO code_lesson(lesson_uuid, lesson_type, prog_lang, expected_output) VALUES (?,?,?,?)",
+                           arguments: [planetsLesson, "type_code", "go", "Mercury\nVenus\nEarth\nMars\n"])
+            try db.execute(sql: "INSERT INTO starter_file(lesson_uuid, name, position, content, is_hidden, is_readonly) VALUES (?,?,?,?,?,?)",
+                           arguments: [planetsLesson, "main.go", 0, "package main\n\nfunc main() {\n}\n", 0, 0])
 
-            try lesson(githubLesson, chapter2, 1, "2-ci", "CI", "type_github_checks", "# CI\n\nPush it.")
-            try db.execute(sql: "INSERT INTO github_lesson(lesson_uuid, showcase_repo, contains_complete_dir) VALUES (?,?,?)", arguments: [githubLesson, 0, 1])
-            try db.execute(sql: "INSERT INTO github_step(lesson_uuid, position, kind, workflow_name, workflow_status) VALUES (?,?,?,?,?)",
-                           arguments: [githubLesson, 0, "workflow_status", "ci.yml", "success"])
-            try db.execute(sql: "INSERT INTO github_step(lesson_uuid, position, kind, workflow_name) VALUES (?,?,?,?)",
-                           arguments: [githubLesson, 1, "workflow_logs_contains", "ci.yml"])
-            try db.execute(sql: "INSERT INTO github_log_text(lesson_uuid, step_position, job, position, text) VALUES (?,?,?,?,?)",
-                           arguments: [githubLesson, 1, "Style", 0, "staticcheck"])
+            try lesson(loopsLesson, chapter2, 1, "2-loops", "Loops", "type_choice", "# Loops\n\nHow does Go loop?")
+            try db.execute(sql: "INSERT INTO quiz_lesson(lesson_uuid, contains_complete_dir) VALUES (?,?)", arguments: [loopsLesson, 0])
+            try db.execute(sql: "INSERT INTO quiz_question(lesson_uuid, position, question) VALUES (?,?,?)", arguments: [loopsLesson, 0, "Which keyword loops?"])
+            for (i, a) in ["`for`", "`while`"].enumerated() {
+                try db.execute(sql: "INSERT INTO quiz_answer(lesson_uuid, question_position, position, answer, is_correct) VALUES (?,?,?,?,?)",
+                               arguments: [loopsLesson, 0, i, a, i == 0 ? 1 : 0])
+            }
 
-            try lesson(interviewLesson, chapter2, 2, "3-talk", "Explain It", "type_interview_chat", "# Explain It")
-            try db.execute(sql: "INSERT INTO interview_lesson(lesson_uuid, student_prompt, acceptance_criteria) VALUES (?,?,?)",
-                           arguments: [interviewLesson, "Explain tracing.", "Mentions spans."])
-
-            try lesson(askingLesson, chapter2, 3, "4-deployed", "Your Deployed App", "type_cli", "# Your Deployed App")
-            try db.execute(sql: "INSERT INTO cli_lesson(lesson_uuid, base_url_default, asks_for_base_url, use_agent_prompt, contains_complete_dir) VALUES (?,?,?,?,?)",
-                           arguments: [askingLesson, nil, 1, 0, 0])
-            try db.execute(sql: "INSERT INTO cli_step(lesson_uuid, position, kind, description, no_penalty_on_fail) VALUES (?,?,?,?,?)",
-                           arguments: [askingLesson, 0, "http", "It is up", 0])
-            try db.execute(sql: "INSERT INTO cli_http_request(lesson_uuid, step_position, method, full_url, follow_redirects) VALUES (?,?,?,?,?)",
-                           arguments: [askingLesson, 0, "GET", "${baseURL}/healthz", 1])
-            try db.execute(sql: "INSERT INTO cli_http_test(lesson_uuid, step_position, position, kind, status_code) VALUES (?,?,?,?,?)",
-                           arguments: [askingLesson, 0, 0, "status_code", 200])
-
-            try lesson(optionalLesson, chapter3, 0, "1-extra", "Extra Credit", "type_interview_chat", "# Extra Credit", required: 0)
-            try db.execute(sql: "INSERT INTO interview_lesson(lesson_uuid, student_prompt, acceptance_criteria) VALUES (?,?,NULL)",
-                           arguments: [optionalLesson, "Anything."])
+            try lesson(optionalLesson, chapter3, 0, "1-extra", "Extra Credit", "type_choice", "# Extra Credit", required: 0)
+            try db.execute(sql: "INSERT INTO quiz_lesson(lesson_uuid, contains_complete_dir) VALUES (?,?)", arguments: [optionalLesson, 0])
         }
         try queue.close()
     }
@@ -247,10 +198,17 @@ enum Fixtures {
 
     static let helloSolution = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, gopher\")\n\tfmt.Printf(\"2 + 2 = %d\\n\", 2+2)\n}\n"
 
+    /// The Go on this machine's PATH, as if chosen in Settings (`swift test` has no app with a
+    /// Go built in), or nil: then the tests that run it are skipped.
     static func toolchain() async -> Toolchain? {
-        let t = await Toolchain.discover(goOverride: nil)
+        guard let go = ProcessRunner.resolve("go", environment: ProcessInfo.processInfo.environment) else { return nil }
+        let t = await Toolchain.discover(goOverride: go, builtIn: nil, caches: goCaches)
         return t.go == nil ? nil : t
     }
+
+    /// Go's caches for the tests, kept between runs so builds after the first are quick; never
+    /// the app's.
+    static let goCaches = FileManager.default.temporaryDirectory.appendingPathComponent("gosmos-tests-go", isDirectory: true)
 }
 
 /// Holds work where it calls `pass`, until opened: a load where it asks for the Go version, so

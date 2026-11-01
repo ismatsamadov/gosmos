@@ -45,7 +45,7 @@ enum Theme {
         }
     }
 
-    /// GitHub's callout colors; info and other kinds look like a note, danger like a caution.
+    /// The callout colors; info and other kinds look like a note, danger like a caution.
     static func calloutColor(_ kind: String) -> Color {
         switch Readme.calloutKind(kind) {
         case "tip": success

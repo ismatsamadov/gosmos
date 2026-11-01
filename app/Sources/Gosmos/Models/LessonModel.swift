@@ -10,12 +10,11 @@ import os
 @Observable @MainActor
 final class LessonModel {
     let detail: LessonDetail
-    /// The readme, quiz questions and interview prompt as blocks.
+    /// The readme and quiz questions as blocks.
     let parsed: ParsedLesson
     let isReview: Bool
     private(set) var code: CodeSession?
     private(set) var quiz: QuizSession?
-    private(set) var checks: ChecksSession?
     var note = "" { didSet { if noteLoaded && note != oldValue { scheduleNoteSave() } } }
     private var noteLoaded = false
     /// The note as the database holds it, so an unchanged note is never written.
@@ -25,7 +24,7 @@ final class LessonModel {
     var justPassed = false
     /// Set when a pass put the lesson in review, due tomorrow.
     private(set) var comesBackForReview = false
-    /// Bumped to bring the part below the readme (quiz, checks) into view.
+    /// Bumped to bring the part below the readme (the quiz) into view.
     private(set) var footerRequests = 0
     /// Which hints show, and whether the next may.
     private(set) var hints: HintState
@@ -49,17 +48,14 @@ final class LessonModel {
         case .code(let c): code = CodeSession(lesson: detail, exercise: c, tests: false, saved: saved, learner: learner, review: review, app: app)
         case .codeTests(let c): code = CodeSession(lesson: detail, exercise: c, tests: true, saved: saved, learner: learner, review: review, app: app)
         case .choice(let q): quiz = QuizSession(lesson: detail, quiz: q, learner: learner, app: app)
-        case .cli(let c): checks = ChecksSession(lesson: detail, cli: c, learner: learner, app: app)
-        case .githubChecks, .interviewChat: break
         }
     }
 
     var ref: LessonRef { detail.ref }
     var isDone: Bool { app?.isDone(ref) ?? false }
 
-    /// The attempts whose failure unlocks the last hint: Submits, a quiz's answers, or the
-    /// command-line checks.
-    var submitKind: AttemptKind { quiz != nil ? .answer : checks != nil ? .check : .submit }
+    /// The attempts whose failure unlocks the last hint: Submits, or a quiz's answers.
+    var submitKind: AttemptKind { quiz != nil ? .answer : .submit }
 
     /// Reads what this lesson needs from the learner database and the work folder.
     func load() async {
@@ -79,7 +75,6 @@ final class LessonModel {
             app?.report(error)
         }
         await code?.load()
-        await checks?.load()
     }
 
     /// Saves pending edits; called before another lesson opens and when the app quits. A code
@@ -92,8 +87,6 @@ final class LessonModel {
             await saveNote()
             await code?.settle(within: limit)
             code?.stop()
-            checks?.commitAddress()
-            checks?.stop()
         }.value
     }
 
@@ -152,26 +145,18 @@ final class LessonModel {
         }
     }
 
-    /// Run ⌘R: runs code, or a command-line lesson's checks.
+    /// Run ⌘R: runs code.
     func run() {
-        if let code {
-            code.run(submit: false)
-        } else if let checks {
-            footerRequests += 1
-            checks.runAll()
-        }
+        code?.run(submit: false)
     }
 
-    /// Submit ⌘↩: submits code, checks a quiz, or runs the checks.
+    /// Submit ⌘↩: submits code, or checks a quiz.
     func submit() {
         if let code {
             code.run(submit: true)
         } else if let quiz {
             footerRequests += 1
             quiz.submit()
-        } else if let checks {
-            footerRequests += 1
-            checks.runAll()
         }
     }
 
@@ -181,9 +166,9 @@ final class LessonModel {
     }
 
     /// Code in another language opens and reads as usual, but does not run.
-    var canRun: Bool { code?.exercise.runsHere == true || checks != nil }
-    var canSubmit: Bool { code?.exercise.runsHere == true || quiz?.canSubmit == true || checks != nil }
-    var isBusy: Bool { code?.isRunning == true || checks?.isRunning == true }
+    var canRun: Bool { code?.exercise.runsHere == true }
+    var canSubmit: Bool { code?.exercise.runsHere == true || quiz?.canSubmit == true }
+    var isBusy: Bool { code?.isRunning == true }
 
     /// The lesson passed: done (the learner database recorded it with the attempt), and the
     /// Next Lesson button. A redo for review leaves the done mark alone.
@@ -424,7 +409,7 @@ final class CodeSession {
         case .format:
             if !file.name.hasSuffix(".go") { return "Format works on .go files" }
             if let toolchain = app?.toolchain {
-                if toolchain.go == nil { return "Go wasn't found: choose it in Settings" }
+                if toolchain.go == nil { return "Go can't run: see Settings" }
                 if toolchain.gofmt == nil { return "This Go has no gofmt: choose another in Settings" }
             }
         case .toggleComment:
@@ -459,7 +444,7 @@ final class CodeSession {
             let outcome: Result<String, GoFormatError>
             do {
                 guard let formatter = GoFormatter(toolchain: toolchain) else {
-                    throw GoFormatError.failed(toolchain.go == nil ? "Go wasn't found: choose it in Settings."
+                    throw GoFormatError.failed(toolchain.go == nil ? toolchain.problem ?? "Go can't run: see Settings."
                                                                    : "This Go has no gofmt: choose another in Settings.")
                 }
                 outcome = .success(try await formatter.format(source, fileName: file.name))

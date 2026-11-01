@@ -60,7 +60,7 @@ public struct OutputComparison: Sendable, Equatable {
     }
 }
 
-/// Checks code lessons with your own Go toolchain. A Run shows what the code does; a Submit
+/// Checks code lessons with the Go toolchain (Toolchain). A Run shows what the code does; a Submit
 /// decides whether the lesson passes. For test lessons a Run uses the smaller set of test
 /// cases (the tests' withSubmit switch is off) and a Submit all of them.
 ///
@@ -102,7 +102,7 @@ public struct GoRunner: Sendable {
     private func check(_ code: CodeExercise, tests: Bool, folder: URL, submit: Bool) async -> RunResult {
         guard code.runsHere else { return RunResult(status: .error, output: code.otherLanguageNote) }
         guard let go = toolchain.go else {
-            return RunResult(status: .error, output: "Go was not found. Install it from https://go.dev/dl/ or with Homebrew (brew install go), or set its path in Settings.")
+            return RunResult(status: .error, output: toolchain.problem ?? "There is no Go to run your code with. Choose one in Settings.")
         }
         // The go command matches overlay paths against the real directory, so resolve
         // symlinks (such as /var -> /private/var) first.
@@ -236,8 +236,8 @@ public struct GoRunner: Sendable {
     }
 
     /// Runs `go mod tidy` when the lesson imports packages from outside the standard library
-    /// that go.mod does not list yet. Downloading a module needs the network once; after that
-    /// it comes from the module cache. Returns the failure to show, if any.
+    /// that go.mod does not list yet. Go runs offline (GOPROXY=off), so only a module go.mod
+    /// replaces with a folder on this Mac can be added. Returns the failure to show, if any.
     func addRequirements(go: String, dir: String, env: [String: String]) async -> String? {
         guard let mod = try? String(contentsOfFile: dir + "/go.mod", encoding: .utf8) else { return nil }
         let have = mod.matches(of: /(?m)^\s*(?:require\s+)?([A-Za-z0-9][-A-Za-z0-9._~\/]*\.[-A-Za-z0-9._~\/]+)\s+v\d/).map { String($0.1) }
@@ -256,7 +256,7 @@ public struct GoRunner: Sendable {
         guard missing else { return nil }
         let out = await ProcessRunner.run(ProcessRequest(executable: go, arguments: ["mod", "tidy"], directory: dir, environment: env,
                                                          timeout: GoRunner.buildTimeout, outputLimit: GoRunner.maxOutput, killGroupOnExit: true))
-        return out.succeeded ? nil : "go mod tidy could not add the modules this lesson imports (it needs the network the first time):\n\n" + out.combined
+        return out.succeeded ? nil : "Gosmos runs Go offline, so it can't add the modules this lesson imports from outside the standard library:\n\n" + out.combined
     }
 
     public static func realPath(_ path: String) -> String {

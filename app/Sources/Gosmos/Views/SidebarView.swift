@@ -24,6 +24,10 @@ struct SidebarView: View {
                     List(selection: app.sidebarSelection) {
                         ReviewRow()
                             .tag(SidebarItem.review)
+                        if app.docs != nil {
+                            DocumentationRow()
+                                .tag(SidebarItem.documentation)
+                        }
                         ForEach(app.shelf) { library in
                             LibrarySection(library: library)
                         }
@@ -57,7 +61,9 @@ extension AppModel {
                     guard self.selection == item else { return }
                     switch item {
                     case .review: self.showReview()
+                    case .documentation: self.openDocumentation()
                     case .lesson(let ref): self.open(ref)
+                    case .doc(let link): self.openDocumentation(link, selecting: item)
                     }
                 }
             })
@@ -81,6 +87,22 @@ struct ReviewRow: View {
         .frame(minHeight: 24)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(app.dueCount == 0 ? "Review, nothing due" : "Review, \(app.dueCount) due")
+    }
+}
+
+/// The Go documentation built into the app: the language and the standard library.
+struct DocumentationRow: View {
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "text.book.closed")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text("Go Documentation")
+            Spacer(minLength: 4)
+        }
+        .frame(minHeight: 24)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -249,14 +271,24 @@ struct SearchResultsList: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        if app.searchResults.isEmpty && !app.searching {
+        if app.searchResults.isEmpty && app.docSearchResults.isEmpty && !app.searching {
             ContentUnavailableView.search(text: app.searchText)
         } else {
             List(selection: app.sidebarSelection) {
-                Section("\(app.searchResults.count) Lesson\(app.searchResults.count == 1 ? "" : "s")") {
-                    ForEach(app.searchResults) { hit in
-                        SearchHitRow(hit: hit)
-                            .tag(SidebarItem.lesson(hit.ref))
+                if !app.searchResults.isEmpty || app.docSearchResults.isEmpty {
+                    Section("\(app.searchResults.count) Lesson\(app.searchResults.count == 1 ? "" : "s")") {
+                        ForEach(app.searchResults) { hit in
+                            SearchHitRow(hit: hit)
+                                .tag(SidebarItem.lesson(hit.ref))
+                        }
+                    }
+                }
+                if !app.docSearchResults.isEmpty {
+                    Section("Documentation") {
+                        ForEach(app.docSearchResults) { hit in
+                            DocHitRow(hit: hit)
+                                .tag(SidebarItem.doc(hit.link))
+                        }
                     }
                 }
             }
@@ -265,7 +297,7 @@ struct SearchResultsList: View {
             // differing heights while it keeps its top row still, resizes in the middle of that
             // and re-enters its own row-height cache, which AppKit logs as a reentrant
             // operation in its delegate and will turn into an assertion.
-            .id(app.searchResults.map(\.ref))
+            .id(app.searchResults.map { "\($0.ref.library)/\($0.ref.lesson)" } + app.docSearchResults.map(\.link.url))
         }
     }
 }

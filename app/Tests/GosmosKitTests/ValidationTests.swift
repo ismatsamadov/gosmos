@@ -34,16 +34,16 @@ import Testing
     @Test func header() throws {
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 7") }
             == ["application_id is 7, not 1196641619: the file is not a Gosmos library"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 6") }
-            == ["user_version is 6, not 7: the library is of an older format; migrating brings it up to date"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 8") }
-            == ["user_version is 8, not 7: the library is of a newer format than this program knows"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 7") }
+            == ["user_version is 7, not 8: the library is of an older format; migrating brings it up to date"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 9") }
+            == ["user_version is 9, not 8: the library is of a newer format than this program knows"])
         // An older file is to be migrated with the tool; the app never migrates.
-        let older = try open { try $0.execute(sql: "PRAGMA user_version = 6") }.error
+        let older = try open { try $0.execute(sql: "PRAGMA user_version = 7") }.error
         #expect(older?.recoverySuggestion?.contains("go run ./cmd/library migrate") == true)
     }
 
-    /// Check 7: a library names itself in exactly one library_info row.
+    /// Check 6: a library names itself in exactly one library_info row.
     @Test func oneLibraryInfoRow() throws {
         #expect(try problems { try $0.execute(sql: "DELETE FROM library_info") } == ["library_info holds 0 rows, not exactly 1"])
     }
@@ -91,23 +91,29 @@ import Testing
     }
 
     @Test func oneTypeRowPerLesson() throws {
-        #expect(try problems { try $0.execute(sql: "DELETE FROM interview_lesson WHERE lesson_uuid = ?", arguments: [Fixtures.interviewLesson]) }
-            == ["lesson \(Fixtures.interviewLesson) (type_interview_chat) has 0 interview_lesson rows, want 1"])
+        // The quiz goes with its questions and answers, so only the lesson is left without its row.
+        #expect(try problems { db in
+            try db.execute(sql: "PRAGMA foreign_keys = ON")
+            try db.execute(sql: "DELETE FROM quiz_lesson WHERE lesson_uuid = ?", arguments: [Fixtures.loopsLesson])
+        } == ["lesson \(Fixtures.loopsLesson) (type_choice) has 0 quiz_lesson rows, want 1"])
+    }
+
+    /// A lesson of a type format 8 removed: only a write past lesson.type's CHECK leaves one, and
+    /// quick_check on a read-only connection lets it pass, so the per-type check names it.
+    @Test func noLessonOfAnotherType() throws {
+        #expect(try problems { db in
+            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
+            try db.execute(sql: "UPDATE lesson SET type = 'type_cli' WHERE uuid = ?", arguments: [Fixtures.optionalLesson])
+        } == [
+            "foreign key: quiz_lesson row 3 points at a missing lesson row",
+            "lesson \(Fixtures.optionalLesson) (type_cli) has 1 quiz_lesson rows, want 0",
+            "lesson \(Fixtures.optionalLesson) (type_cli) is of a type format 8 does not have",
+        ])
     }
 
     @Test func oneRightAnswerPerQuestion() throws {
         #expect(try problems { try $0.execute(sql: "UPDATE quiz_answer SET is_correct = 0 WHERE lesson_uuid = ? AND question_position = 1", arguments: [Fixtures.quizLesson]) }
             == ["quiz question 1 of lesson \(Fixtures.quizLesson) has 0 right answers, want 1"])
-    }
-
-    @Test func everyStepHasItsDetail() throws {
-        // The command goes with its own parts, so only the step itself is left without detail.
-        let found = try problems { db in
-            for table in ["cli_command_test_text", "cli_command_test_jq_result", "cli_command_test", "cli_command_variable", "cli_command"] {
-                try db.execute(sql: "DELETE FROM \(table) WHERE lesson_uuid = ? AND step_position = 0", arguments: [Fixtures.cliLesson])
-            }
-        }
-        #expect(found == ["cli_step 0 of lesson \(Fixtures.cliLesson) (command) has no cli_command row"], "\(found)")
     }
 
     @Test func everySolutionSolvesAnEditableFile() throws {

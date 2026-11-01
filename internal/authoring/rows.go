@@ -1,7 +1,6 @@
 package authoring
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -12,9 +11,6 @@ import (
 
 // lessonType maps a package type to the library's lesson type, and back.
 var lessonType = map[string]string{"code": "type_code", "code_tests": "type_code_tests", "quiz": "type_choice"}
-
-// ErrUnsupported is a lesson of a type packages do not hold.
-var ErrUnsupported = errors.New("packages hold code, code_tests and quiz lessons only")
 
 // Times are the timestamps a lesson's row carries, in RFC 3339 UTC.
 type Times struct {
@@ -80,7 +76,7 @@ func Load(q store.Querier, uuid string) (Package, error) {
 		}
 	}
 	if p.Type == "" {
-		return p, fmt.Errorf("lesson %s is a %s lesson: %w", l.Slug, l.Type, ErrUnsupported)
+		return p, fmt.Errorf("lesson %s is a %s lesson; packages hold code, code_tests and quiz lessons only", l.Slug, l.Type)
 	}
 	rows, err := store.ReadParts(q, uuid)
 	if err != nil {

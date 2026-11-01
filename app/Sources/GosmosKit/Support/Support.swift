@@ -22,11 +22,6 @@ public enum Clock {
     }
 }
 
-/// Paths of the system programs the app relies on.
-public enum SystemTools {
-    public static let zsh = "/bin/zsh"
-}
-
 /// Which errors reach the person. Work is cancelled when something newer replaces it: another
 /// lesson, the next keystroke of a search, another library. That work ends silently, whatever
 /// it threw on the way out; the newer work meets any real problem again.

@@ -53,11 +53,37 @@ public enum LearnerDatabaseError: Error, LocalizedError, Equatable, Sendable {
 public final class LearnerDatabase: Sendable {
     /// 'GSML'.
     public static let applicationID = 1_196_641_612
-    public static let schemaVersion = 1
-    /// How to bring a file up one version, by the version it is at. Version 1 is the first,
-    /// so there are none yet: each new learner.sql comes with the step from the one before.
+    public static let schemaVersion = 2
+    /// How to bring a file up one version, by the version it is at: each new learner.sql comes
+    /// with the step from the one before.
     public typealias Migration = @Sendable (Database) throws -> Void
-    static let migrations: [Int: Migration] = [:]
+    static let migrations: [Int: Migration] = [1: dropCommandLineData]
+
+    /// Version 1 to 2 drops what only the lesson types library format 8 removed used: the course
+    /// project folders (project), your server addresses (server_address) and the attempts of
+    /// command-line checks; attempt takes the other kinds only. Every other row stays as it was,
+    /// each attempt with its id. The new attempt table is learner.sql's.
+    static let dropCommandLineData: Migration = { db in
+        try db.execute(sql: """
+            DROP TABLE project;
+            DROP TABLE server_address;
+            CREATE TABLE new_attempt (
+              id           INTEGER PRIMARY KEY,
+              library_uuid TEXT NOT NULL REFERENCES library(uuid),
+              lesson_uuid  TEXT NOT NULL CHECK (lesson_uuid <> ''),
+              kind         TEXT NOT NULL CHECK (kind IN ('run', 'submit', 'answer', 'review')),
+              passed       INTEGER NOT NULL CHECK (passed IN (0, 1)),
+              output       TEXT NOT NULL,
+              duration_ms  INTEGER CHECK (duration_ms >= 0),
+              at           TEXT NOT NULL CHECK (at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(at) IS NOT NULL)
+            ) STRICT;
+            INSERT INTO new_attempt (id, library_uuid, lesson_uuid, kind, passed, output, duration_ms, at)
+              SELECT id, library_uuid, lesson_uuid, kind, passed, output, duration_ms, at FROM attempt WHERE kind <> 'check';
+            DROP TABLE attempt;
+            ALTER TABLE new_attempt RENAME TO attempt;
+            CREATE INDEX attempt_lesson ON attempt(library_uuid, lesson_uuid, at);
+            """)
+    }
 
     let dbQueue: DatabaseQueue
     /// The writes nothing else waits for, such as a review answer; quitting waits for them.
@@ -301,22 +327,21 @@ public final class LearnerDatabase: Sendable {
                          arguments: [ref.library, ref.lesson, kind.rawValue]) ?? 0
     }
 
-    /// Records a Submit, or a run of a lesson's checks. A pass finishes the lesson. For a
-    /// lesson you can redo (`reviewable`: a code lesson), a pass after a look at its solution,
-    /// or after three failed Submits or more, also puts it in review, due in a day; returns
-    /// whether it did.
+    /// Records a Submit. A pass finishes the lesson. For a lesson you can redo (`reviewable`: a
+    /// code lesson), a pass after a look at its solution, or after three failed Submits or more,
+    /// also puts it in review, due in a day; returns whether it did.
     @discardableResult
-    public func recordSubmit(_ ref: LessonRef, kind: AttemptKind = .submit, passed: Bool, output: String, durationMs: Int?,
+    public func recordSubmit(_ ref: LessonRef, passed: Bool, output: String, durationMs: Int?,
                              reviewable: Bool, now: Date = Date()) async throws -> Bool {
         try await dbQueue.write { db in
             let at = Clock.string(now)
-            try LearnerDatabase.insertAttempt(db, ref, kind: kind, passed: passed, output: output, durationMs: durationMs, at: at)
+            try LearnerDatabase.insertAttempt(db, ref, kind: .submit, passed: passed, output: output, durationMs: durationMs, at: at)
             guard passed else { return false }
             try LearnerDatabase.writeDone(db, ref, true, at: at)
             guard reviewable else { return false }
             let viewed = try Bool.fetchOne(db, sql: "SELECT EXISTS (SELECT 1 FROM solution_view WHERE library_uuid = ? AND lesson_uuid = ?)",
                                            arguments: [ref.library, ref.lesson]) ?? false
-            let failed = try LearnerDatabase.countFailed(db, ref, kind: kind)
+            let failed = try LearnerDatabase.countFailed(db, ref, kind: .submit)
             guard SolutionPolicy.passNeedsReview(viewedSolution: viewed, failedSubmits: failed) else { return false }
             try db.execute(sql: """
                 INSERT INTO review_lesson(library_uuid, lesson_uuid, due_at, interval_days) VALUES (?, ?, ?, ?)
@@ -344,7 +369,7 @@ public final class LearnerDatabase: Sendable {
         }
     }
 
-    // MARK: Notes, code, projects, server addresses, settings
+    // MARK: Notes, code, settings
 
     public func note(for ref: LessonRef) async throws -> String? {
         try await dbQueue.read { db in
@@ -394,62 +419,6 @@ public final class LearnerDatabase: Sendable {
                 changed = changed || db.changesCount > 0
             }
             return changed
-        }
-    }
-
-    public func project(library: String, course: String) async throws -> Project? {
-        try await dbQueue.read { db in try LearnerDatabase.fetchProject(db, library: library, course: course) }
-    }
-
-    static func fetchProject(_ db: Database, library: String, course: String) throws -> Project? {
-        try Row.fetchOne(db, sql: "SELECT dir, base_url FROM project WHERE library_uuid = ? AND course_uuid = ?", arguments: [library, course]).map {
-            Project(dir: $0["dir"], baseURL: $0["base_url"])
-        }
-    }
-
-    /// Saves a course's project: the folder its command-line lessons run in, and your own
-    /// server's address for the lessons that ask for one. Empty values count as missing; with
-    /// both missing the row goes.
-    public func saveProject(library: String, course: String, _ p: Project) async throws {
-        func clean(_ s: String?) -> String? { s.map { $0.trimmingCharacters(in: .whitespaces) }.flatMap { $0.isEmpty ? nil : $0 } }
-        let dir = clean(p.dir), base = clean(p.baseURL)
-        try await dbQueue.write { db in
-            if dir == nil && base == nil {
-                try db.execute(sql: "DELETE FROM project WHERE library_uuid = ? AND course_uuid = ?", arguments: [library, course])
-            } else {
-                try db.execute(sql: """
-                    INSERT INTO project(library_uuid, course_uuid, dir, base_url) VALUES (?, ?, ?, ?)
-                    ON CONFLICT(library_uuid, course_uuid) DO UPDATE SET dir = excluded.dir, base_url = excluded.base_url
-                    WHERE dir IS NOT excluded.dir OR base_url IS NOT excluded.base_url
-                    """, arguments: [library, course, dir, base])
-            }
-        }
-    }
-
-    /// Stores your address for a suggested one; nil, empty or the suggestion itself removes
-    /// the row, so the lessons use their suggestion again ("Use Suggested").
-    public func setServerAddress(_ url: String?, for suggested: String) async throws {
-        let url = url.map { $0.trimmingCharacters(in: .whitespaces) }.flatMap { $0.isEmpty || $0 == suggested ? nil : $0 }
-        try await dbQueue.write { db in
-            if let url {
-                try db.execute(sql: """
-                    INSERT INTO server_address(default_url, url) VALUES (?, ?)
-                    ON CONFLICT(default_url) DO UPDATE SET url = excluded.url WHERE url IS NOT excluded.url
-                    """, arguments: [suggested, url])
-            } else {
-                try db.execute(sql: "DELETE FROM server_address WHERE default_url = ?", arguments: [suggested])
-            }
-        }
-    }
-
-    /// The address a command-line lesson's ${baseURL} stands for, with where it comes from.
-    public func baseURL(for lesson: CLILesson, library: String, course: String) async throws -> BaseURL {
-        try await dbQueue.read { db in
-            let project = lesson.asksForBaseURL ? try LearnerDatabase.fetchProject(db, library: library, course: course) : nil
-            let yours = try lesson.defaultBaseURL.flatMap {
-                try String.fetchOne(db, sql: "SELECT url FROM server_address WHERE default_url = ?", arguments: [$0])
-            }
-            return BaseURL(lesson: lesson, projectBaseURL: project?.baseURL, serverAddress: yours)
         }
     }
 
@@ -568,22 +537,9 @@ public final class LearnerDatabase: Sendable {
 
 // MARK: - Study records
 
-/// What an attempt row records: a Run, a Submit, a quiz answer, a run of the checks, or a
-/// review.
+/// What an attempt row records: a Run, a Submit, a quiz answer, or a review.
 public enum AttemptKind: String, Sendable, CaseIterable {
-    case run, submit, answer, check, review
-}
-
-/// A course's project (the project table): the folder its command-line lessons run in, and
-/// the address of your own server for the lessons that ask for one. Either may be missing.
-public struct Project: Hashable, Sendable {
-    public var dir: String?
-    public var baseURL: String?
-
-    public init(dir: String?, baseURL: String?) {
-        self.dir = dir
-        self.baseURL = baseURL
-    }
+    case run, submit, answer, review
 }
 
 public struct CodeFileRecord: Hashable, Sendable {

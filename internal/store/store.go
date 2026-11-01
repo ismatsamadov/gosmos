@@ -53,33 +53,14 @@ type Querier interface {
 // tableCols lists, for each table that holds part of a lesson, its columns in the order a Row's
 // values come in.
 var tableCols = map[string][]string{
-	"lesson_topic":               {"lesson_uuid", "topic"},
-	"lesson_hint":                {"lesson_uuid", "position", "text"},
-	"code_lesson":                {"lesson_uuid", "lesson_type", "prog_lang", "expected_output", "solution_note"},
-	"starter_file":               {"lesson_uuid", "name", "position", "content", "is_hidden", "is_readonly"},
-	"solution_file":              {"lesson_uuid", "name", "content"},
-	"quiz_lesson":                {"lesson_uuid", "lesson_type", "contains_complete_dir"},
-	"quiz_question":              {"lesson_uuid", "position", "question"},
-	"quiz_answer":                {"lesson_uuid", "question_position", "position", "answer", "is_correct", "explanation"},
-	"cli_lesson":                 {"lesson_uuid", "lesson_type", "base_url_default", "asks_for_base_url", "use_agent_prompt", "contains_complete_dir"},
-	"cli_lesson_os":              {"lesson_uuid", "os"},
-	"cli_step":                   {"lesson_uuid", "position", "kind", "description", "no_penalty_on_fail", "sleep_after_ms"},
-	"cli_command":                {"lesson_uuid", "step_position", "step_kind", "command", "stdout_filter_tmdl"},
-	"cli_command_variable":       {"lesson_uuid", "step_position", "position", "name", "regex"},
-	"cli_command_test":           {"lesson_uuid", "step_position", "position", "kind", "exit_code", "lines_gt", "jq_query", "jq_input"},
-	"cli_command_test_text":      {"lesson_uuid", "step_position", "test_position", "test_kind", "position", "text"},
-	"cli_command_test_jq_result": {"lesson_uuid", "step_position", "test_position", "test_kind", "position", "operator", "value_type", "bool_value", "int_value", "string_value"},
-	"cli_http_request":           {"lesson_uuid", "step_position", "step_kind", "method", "full_url", "follow_redirects", "basic_auth_username", "basic_auth_password", "body_kind", "body_json"},
-	"cli_http_header":            {"lesson_uuid", "step_position", "position", "name", "value"},
-	"cli_http_form_field":        {"lesson_uuid", "step_position", "body_kind", "position", "name", "value"},
-	"cli_http_body_variable":     {"lesson_uuid", "step_position", "position", "name", "json_path", "regex"},
-	"cli_http_header_variable":   {"lesson_uuid", "step_position", "position", "name", "header", "regex"},
-	"cli_http_test":              {"lesson_uuid", "step_position", "position", "kind", "status_code", "text", "field_name", "field_value", "json_path", "json_operator", "value_type", "bool_value", "int_value", "string_value"},
-	"github_lesson":              {"lesson_uuid", "lesson_type", "showcase_repo", "contains_complete_dir"},
-	"github_step":                {"lesson_uuid", "position", "kind", "branch_name", "file_path", "pr_base_owner", "pr_base_repo", "pr_base_branch", "pr_compare_branch", "workflow_name", "workflow_status"},
-	"github_file_text":           {"lesson_uuid", "step_position", "step_kind", "position", "text"},
-	"github_log_text":            {"lesson_uuid", "step_position", "step_kind", "job", "position", "text"},
-	"interview_lesson":           {"lesson_uuid", "lesson_type", "student_prompt", "acceptance_criteria"},
+	"lesson_topic":  {"lesson_uuid", "topic"},
+	"lesson_hint":   {"lesson_uuid", "position", "text"},
+	"code_lesson":   {"lesson_uuid", "lesson_type", "prog_lang", "expected_output", "solution_note"},
+	"starter_file":  {"lesson_uuid", "name", "position", "content", "is_hidden", "is_readonly"},
+	"solution_file": {"lesson_uuid", "name", "content"},
+	"quiz_lesson":   {"lesson_uuid", "lesson_type", "contains_complete_dir"},
+	"quiz_question": {"lesson_uuid", "position", "question"},
+	"quiz_answer":   {"lesson_uuid", "question_position", "position", "answer", "is_correct", "explanation"},
 }
 
 // partTables are the tables of tableCols, parents before children.
@@ -87,16 +68,11 @@ var partTables = []string{
 	"lesson_topic", "lesson_hint",
 	"code_lesson", "starter_file", "solution_file",
 	"quiz_lesson", "quiz_question", "quiz_answer",
-	"cli_lesson", "cli_lesson_os", "cli_step", "cli_command", "cli_command_variable", "cli_command_test",
-	"cli_command_test_text", "cli_command_test_jq_result", "cli_http_request", "cli_http_header",
-	"cli_http_form_field", "cli_http_body_variable", "cli_http_header_variable", "cli_http_test",
-	"github_lesson", "github_step", "github_file_text", "github_log_text",
-	"interview_lesson",
 }
 
 // rootTables are the tables a lesson's parts hang from: deleting a lesson's rows in them
 // removes all its parts.
-var rootTables = []string{"lesson_topic", "lesson_hint", "code_lesson", "quiz_lesson", "cli_lesson", "github_lesson", "interview_lesson"}
+var rootTables = []string{"lesson_topic", "lesson_hint", "code_lesson", "quiz_lesson"}
 
 // Put writes one lesson into its chapter: a new lesson is inserted; one whose row or parts
 // differ is rewritten in place, keeping its id; one that is the same is left alone. Another

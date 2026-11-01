@@ -94,12 +94,9 @@ struct GosmosCommands: Commands {
             Button("Submit") { app.lesson?.submit() }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(!(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
-            Button("Stop") {
-                app.lesson?.code?.stop()
-                app.lesson?.checks?.stop()
-            }
-            .keyboardShortcut(".", modifiers: .command)
-            .disabled(!(app.lesson?.isBusy ?? false))
+            Button("Stop") { app.lesson?.code?.stop() }
+                .keyboardShortcut(".", modifiers: .command)
+                .disabled(!(app.lesson?.isBusy ?? false))
             Divider()
             Button("Next Lesson") { app.openNext() }
                 .keyboardShortcut("]", modifiers: .command)
@@ -156,6 +153,12 @@ struct GosmosCommands: Commands {
             Button("Outdent") { app.lesson?.code?.perform(.outdent) }
                 .keyboardShortcut("[", modifiers: [.command, .option])
                 .disabled(!(app.lesson?.canPerform(.outdent) ?? false))
+            Divider()
+            // Quick Help for the name at the insertion point, as Option-click gives it; ⌃⌘? as
+            // in Xcode.
+            Button("Show Documentation") { if let code = app.lesson?.code { app.showQuickHelp(code) } }
+                .keyboardShortcut("?", modifiers: [.command, .control])
+                .disabled(!app.canShowQuickHelp)
         }
         CommandGroup(after: .sidebar) {
             Button("Show Inspector") { app.showInspector.toggle() }

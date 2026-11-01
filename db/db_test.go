@@ -51,10 +51,10 @@ func TestCreate(t *testing.T) {
 	}{
 		{`PRAGMA journal_mode`, "delete"},
 		{`PRAGMA foreign_keys`, "1"},
-		{`PRAGMA user_version`, "7"},
+		{`PRAGMA user_version`, "8"},
 		{`PRAGMA application_id`, "1196641619"},
-		{`SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('library_info', 'course', 'chapter', 'lesson', 'lesson_topic', 'lesson_hint', 'code_lesson', 'starter_file', 'solution_file', 'quiz_lesson', 'quiz_question', 'quiz_answer', 'cli_lesson', 'cli_step', 'cli_http_test', 'github_lesson', 'interview_lesson')`, "17"},
-		{`SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('progress', 'attempt', 'note', 'code_file', 'project', 'server_address', 'setting')`, "0"},
+		{`SELECT group_concat(name, ' ') FROM (SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'lesson_search%' ORDER BY name)`,
+			"chapter code_lesson course lesson lesson_hint lesson_topic library_info quiz_answer quiz_lesson quiz_question solution_file starter_file"},
 		{`SELECT count(*) FROM sqlite_schema WHERE type = 'trigger'`, "3"},
 		{`SELECT uuid || ' ' || title || ' ' || version FROM library_info`, testInfo.UUID + " Learn Passes 1"},
 	} {
@@ -66,7 +66,7 @@ func TestCreate(t *testing.T) {
 			t.Errorf("%s = %s, want %s", tc.query, got, tc.want)
 		}
 	}
-	if Version != 7 || ApplicationID != 1196641619 || LearnerVersion != 1 || LearnerApplicationID != 1196641612 {
+	if Version != 8 || ApplicationID != 1196641619 || LearnerVersion != 2 || LearnerApplicationID != 1196641612 {
 		t.Errorf("Version, ApplicationID, LearnerVersion, LearnerApplicationID = %d, %d, %d, %d; want what the schemas set",
 			Version, ApplicationID, LearnerVersion, LearnerApplicationID)
 	}
@@ -136,9 +136,9 @@ func TestOpen(t *testing.T) {
 	}{
 		{name: "a database it made", ok: true},
 		{name: "one left in WAL mode", setup: []string{`PRAGMA journal_mode = WAL`}, ok: true},
-		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 7; library migrate brings it up to date"},
-		{name: "an older format", setup: []string{`PRAGMA user_version = 6`}, err: "older than 7"},
-		{name: "a newer format", setup: []string{`PRAGMA user_version = 8`}, err: "newer than this program's 7"},
+		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 8; library migrate brings it up to date"},
+		{name: "a library of format 7", setup: []string{`PRAGMA user_version = 7`}, err: "the library is of format 7, older than 8; library migrate brings it up to date"},
+		{name: "a newer format", setup: []string{`PRAGMA user_version = 9`}, err: "newer than this program's 8"},
 		{name: "not a Gosmos file", setup: []string{`PRAGMA application_id = 42`}, err: "not a Gosmos library (application_id 42)"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -269,17 +269,17 @@ func TestValidate(t *testing.T) {
 		{
 			name:  "a library of format 6",
 			stmts: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`},
-			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 7; library migrate brings it up to date"},
+			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 8; library migrate brings it up to date"},
 		},
 		{
 			name:  "an older format",
-			stmts: []string{`PRAGMA user_version = 6`},
-			want:  []string{"user_version is 6, not 7: the library is of an older format; library migrate brings it up to date"},
+			stmts: []string{`PRAGMA user_version = 7`},
+			want:  []string{"user_version is 7, not 8: the library is of an older format; library migrate brings it up to date"},
 		},
 		{
 			name:  "a newer format",
-			stmts: []string{`PRAGMA user_version = 8`},
-			want:  []string{"user_version is 8, not 7: the library is of a newer format than this program knows"},
+			stmts: []string{`PRAGMA user_version = 9`},
+			want:  []string{"user_version is 9, not 8: the library is of a newer format than this program knows"},
 		},
 		{
 			name:  "no library_info row",
@@ -309,9 +309,16 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:  "a lesson with another type's row",
-			stmts: []string{lesson("l1", "type_choice", 0), `PRAGMA foreign_keys = OFF`, `INSERT INTO interview_lesson VALUES ('l1', 'type_interview_chat', 'Ask.', 'Answer.')`},
-			want: []string{"foreign key: interview_lesson row 1 points at a missing lesson row",
-				"lesson l1 (type_choice) has 0 quiz_lesson rows, want 1", "lesson l1 (type_choice) has 1 interview_lesson rows, want 0"},
+			stmts: []string{lesson("l1", "type_choice", 0), `PRAGMA foreign_keys = OFF`, `INSERT INTO code_lesson VALUES ('l1', 'type_code', 'go', 'Hi' || char(10), NULL)`},
+			want: []string{"foreign key: code_lesson row 1 points at a missing lesson row",
+				"lesson l1 (type_choice) has 1 code_lesson rows, want 0", "lesson l1 (type_choice) has 0 quiz_lesson rows, want 1"},
+		},
+		{
+			// Only a write that ignores lesson.type's CHECK can make one, and quick_check lets
+			// it pass.
+			name:  "a lesson of a type format 8 removed",
+			stmts: []string{`PRAGMA ignore_check_constraints = ON`, lesson("l1", "type_cli", 0)},
+			want:  []string{"lesson l1 (type_cli) is of a type format 8 does not have"},
 		},
 		{
 			name:  "a quiz question without a right answer",
@@ -324,22 +331,12 @@ func TestValidate(t *testing.T) {
 			want:  []string{"quiz question 0 of lesson l1 has 0 right answers, want 1"},
 		},
 		{
-			name:  "a command step without its command",
-			stmts: []string{lesson("l1", "type_cli", 0), `INSERT INTO cli_lesson VALUES ('l1', 'type_cli', NULL, 0, 0, 0)`, `INSERT INTO cli_step VALUES ('l1', 0, 'command', 'Run it.', 0, NULL)`},
-			want:  []string{"cli_step 0 of lesson l1 (command) has no cli_command row"},
-		},
-		{
 			name: "solutions for files the learner does not edit",
 			stmts: []string{lesson("l1", "type_code_tests", 0), `INSERT INTO code_lesson VALUES ('l1', 'type_code_tests', 'go', NULL, NULL)`,
 				`INSERT INTO starter_file VALUES ('l1', 'sum.go', 0, 'package main', 0, 0), ('l1', 'sum_test.go', 1, 'package main', 0, 1)`,
 				`INSERT INTO solution_file VALUES ('l1', 'sum.go', 'package main // solved'), ('l1', 'sum_test.go', 'package main'), ('l1', 'extra.go', 'package main')`},
 			want: []string{"solution_file extra.go of lesson l1 solves no editable starter file",
 				"solution_file sum_test.go of lesson l1 solves no editable starter file"},
-		},
-		{
-			name:  "an HTTP step without its request",
-			stmts: []string{lesson("l1", "type_cli", 0), `INSERT INTO cli_lesson VALUES ('l1', 'type_cli', 'http://localhost:8080', 0, 0, 0)`, `INSERT INTO cli_step VALUES ('l1', 0, 'http', 'Ask the server.', 0, NULL)`},
-			want:  []string{"cli_step 0 of lesson l1 (http) has no cli_http_request row"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

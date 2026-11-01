@@ -12,6 +12,8 @@ struct RootView: View {
             // Declared once, here, for the window's whole life: the items follow the app's
             // state, so changing lessons, lesson types or libraries never adds a second set.
             .toolbar { LessonToolbar() }
+            // Links act in the app or not at all: Gosmos opens nothing outside itself.
+            .environment(\.openURL, OpenURLAction { url in app.follow(url) ? .handled : .discarded })
             .onChange(of: app.settingsRequests) { openSettings() }
             .alert(app.libraryError?.title ?? "", isPresented: Binding(get: { app.libraryError != nil }, set: { if !$0 { app.libraryError = nil } }),
                    presenting: app.libraryError) { _ in
@@ -103,7 +105,7 @@ struct MainView: View {
         } detail: {
             DetailView(minWidth: lessonMinimum)
         }
-        .searchable(text: $app.searchText, placement: .toolbar, prompt: "Search Lessons")
+        .searchable(text: $app.searchText, placement: .toolbar, prompt: "Search")
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
     }
 
@@ -125,7 +127,9 @@ struct DetailView: View {
     var body: some View {
         @Bindable var app = app
         Group {
-            if app.showsReview {
+            if app.showsDocumentation, let docs = app.docs {
+                DocsBrowser(docs: docs)
+            } else if app.showsReview {
                 if let review = app.review {
                     ReviewScreen(session: review)
                 } else {
@@ -145,8 +149,8 @@ struct DetailView: View {
         // Sidebar 240 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
         .frame(minWidth: minWidth)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
-        .navigationTitle(app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
-        .navigationSubtitle(app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        .navigationTitle(app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
+        .navigationSubtitle(app.showsDocumentation ? "Go Documentation" : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)
@@ -167,10 +171,6 @@ struct LessonView: View {
             CodeLessonView(lesson: lesson, session: code)
         } else if let quiz = lesson.quiz {
             QuizLessonView(lesson: lesson, session: quiz)
-        } else if let checks = lesson.checks {
-            ChecksLessonView(lesson: lesson, session: checks)
-        } else {
-            ManualLessonView(lesson: lesson)
         }
     }
 }
@@ -233,8 +233,8 @@ struct LessonToolbar: ToolbarContent {
     }
 }
 
-/// The open lesson's actions: Next Lesson after a pass, Run or Stop, and Submit or Mark as
-/// Done, by its type and state.
+/// The open lesson's actions: Next Lesson after a pass, Run or Stop, and Submit, by its type
+/// and state.
 struct LessonActions: View {
     let lesson: LessonModel
     @Environment(AppModel.self) private var app
@@ -246,21 +246,14 @@ struct LessonActions: View {
                 .help("Next lesson: \(next.title) (⌘])")
         }
         if lesson.canRun {
-            let run = Button {
-                if lesson.isBusy { lesson.code?.stop(); lesson.checks?.stop() } else { lesson.run() }
+            Button {
+                if lesson.isBusy { lesson.code?.stop() } else { lesson.run() }
             } label: {
-                Label(lesson.isBusy ? "Stop" : lesson.checks != nil ? "Run Checks" : "Run",
-                      systemImage: lesson.isBusy ? "stop.fill" : "play.fill")
+                Label(lesson.isBusy ? "Stop" : "Run", systemImage: lesson.isBusy ? "stop.fill" : "play.fill")
                     .contentTransition(.symbolEffect(.replace))
             }
             .labelStyle(.titleAndIcon)
             .help(lesson.isBusy ? "Stop (⌘.)" : "Run (⌘R)")
-            // A command-line lesson's checks are its main action, styled like Submit and Mark as Done.
-            if lesson.checks != nil {
-                run.prominentGlassButton()
-            } else {
-                run
-            }
         }
         if lesson.code != nil || lesson.quiz != nil {
             Button { lesson.submit() } label: { Label("Submit", systemImage: "paperplane.fill") }
@@ -268,16 +261,6 @@ struct LessonActions: View {
                 .prominentGlassButton()
                 .disabled(lesson.isBusy || !lesson.canSubmit)
                 .help("Submit (⌘↩)")
-        }
-        if lesson.detail.type.isManual {
-            let done = app.isDone(lesson.ref)
-            Button { app.setDone(lesson.ref, !done) } label: {
-                Label(done ? "Done" : "Mark as Done", systemImage: done ? "checkmark.circle.fill" : "checkmark.circle")
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .labelStyle(.titleAndIcon)
-            .prominentGlassButton()
-            .help(done ? "Mark as not done (⇧⌘D)" : "Mark as done (⇧⌘D)")
         }
     }
 }

@@ -15,7 +15,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
     case newerFormat(path: String, version: Int)
     /// quick_check's findings, one line each.
     case damaged(path: String, problems: [String])
-    /// The foreign key, per-type row, quiz answer and command-line step checks' findings.
+    /// The foreign key, per-type row, quiz answer, solution and library_info checks' findings.
     case failedChecks(path: String, problems: [String])
     /// A write to the file was cut short; only a writer, the library tool, can roll it back.
     case interruptedWrite(path: String)
@@ -88,7 +88,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
 /// immutable, so SQLite does not even lock it. Everything of yours lives in the learner
 /// database instead.
 public final class AppDatabase: Sendable {
-    public static let schemaVersion = 7
+    public static let schemaVersion = 8
     /// 'GSMS'.
     public static let applicationID = 1_196_641_619
 
@@ -215,8 +215,7 @@ public final class AppDatabase: Sendable {
                 problems.append("foreign key: \(row["t"] as String) row \(row["r"] as Int64? ?? 0) points at a missing \(row["p"] as String) row")
             }
             let typeTables: [(table: String, types: [String])] = [
-                ("code_lesson", ["type_code", "type_code_tests"]), ("quiz_lesson", ["type_choice"]), ("cli_lesson", ["type_cli"]),
-                ("github_lesson", ["type_github_checks"]), ("interview_lesson", ["type_interview_chat"]),
+                ("code_lesson", ["type_code", "type_code_tests"]), ("quiz_lesson", ["type_choice"]),
             ]
             let counts = typeTables.enumerated().map { "(SELECT count(*) FROM \($1.table) x WHERE x.lesson_uuid = l.uuid) AS n\($0)" }
             for row in try Row.fetchAll(db, sql: "SELECT l.uuid AS uuid, l.type AS type, \(counts.joined(separator: ", ")) FROM lesson l ORDER BY l.uuid") {
@@ -225,6 +224,10 @@ public final class AppDatabase: Sendable {
                     let want = t.types.contains(type) ? 1 : 0
                     let n: Int = row["n\(i)"]
                     if n != want { problems.append("lesson \(uuid) (\(type)) has \(n) \(t.table) rows, want \(want)") }
+                }
+                // Only a write past lesson.type's CHECK leaves one, and quick_check lets it pass.
+                if !typeTables.contains(where: { $0.types.contains(type) }) {
+                    problems.append("lesson \(uuid) (\(type)) is of a type format \(schemaVersion) does not have")
                 }
             }
             for row in try Row.fetchAll(db, sql: """
@@ -235,16 +238,6 @@ public final class AppDatabase: Sendable {
                 WHERE n <> 1 ORDER BY 1, 2
                 """) {
                 problems.append("quiz question \(row["position"] as Int) of lesson \(row["lesson_uuid"] as String) has \(row["n"] as Int) right answers, want 1")
-            }
-            for row in try Row.fetchAll(db, sql: """
-                SELECT s.lesson_uuid, s.position, s.kind FROM cli_step s
-                WHERE (s.kind = 'command' AND NOT EXISTS (SELECT 1 FROM cli_command c WHERE c.lesson_uuid = s.lesson_uuid AND c.step_position = s.position AND c.step_kind = s.kind))
-                   OR (s.kind = 'http' AND NOT EXISTS (SELECT 1 FROM cli_http_request h WHERE h.lesson_uuid = s.lesson_uuid AND h.step_position = s.position AND h.step_kind = s.kind))
-                ORDER BY 1, 2
-                """) {
-                let kind: String = row["kind"]
-                let detail = kind == "command" ? "cli_command" : "cli_http_request"
-                problems.append("cli_step \(row["position"] as Int) of lesson \(row["lesson_uuid"] as String) (\(kind)) has no \(detail) row")
             }
             for row in try Row.fetchAll(db, sql: """
                 SELECT s.lesson_uuid, s.name FROM solution_file s
