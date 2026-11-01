@@ -5,7 +5,7 @@ import SwiftUI
 
 /// A lesson's readme as native text, in a readable column centered in its pane, then the
 /// lesson's help (hints and its reference solution), then anything the lesson type adds
-/// (quiz, checks, done button).
+/// (the quiz).
 struct ReadmeColumn<Footer: View>: View {
     let lesson: LessonModel
     @ViewBuilder var footer: Footer
@@ -18,9 +18,10 @@ struct ReadmeColumn<Footer: View>: View {
                 VStack(alignment: .leading, spacing: 0) {
                     LessonHeader(lesson: lesson)
                         .padding(.bottom, 18)
-                    // A readme that is only its title shows no reading block.
+                    // A readme that is only its title shows no reading block. Its inline code that
+                    // names the standard library links to the documentation.
                     if !lesson.parsed.readme.isEmpty {
-                        MarkdownBlocks(blocks: lesson.parsed.readme)
+                        MarkdownBlocks(blocks: DocLinker.link(lesson.parsed.readme, names: app.docNames))
                     }
                     if !lesson.hints.hints.isEmpty {
                         HintsPanel(state: lesson.hints, lockedReason: lockedReason) { lesson.revealHint() }
@@ -40,27 +41,20 @@ struct ReadmeColumn<Footer: View>: View {
                 .padding(.bottom, 40)
                 .frame(maxWidth: .infinity)
             }
+            // Text scrolled up under the toolbar stops at a hard edge, so it never runs into
+            // the window's title.
+            .scrollEdgeEffectStyle(.hard, for: .top)
             .onChange(of: lesson.footerRequests) {
                 withAnimation(reduceMotion ? nil : .smooth) { proxy.scrollTo(ReadmeColumnAnchor.footer, anchor: .top) }
             }
         }
         .textSelection(.enabled)
-        .environment(\.openURL, OpenURLAction { url in
-            // A link whose path names a lesson of this library opens it here; the rest open
-            // in the browser.
-            let library = lesson.detail.library
-            if let id = url.pathComponents.last(where: { app.summary(LessonRef(library: library, lesson: $0)) != nil }) {
-                app.open(LessonRef(library: library, lesson: id))
-                return .handled
-            }
-            return .systemAction
-        })
+        // Links to lessons of this library act here too; the window follows them (AppModel.follow).
+        .environment(\.linkPolicy, LinkPolicy(catalog: app.library(lesson.detail.library)?.catalog ?? .empty))
     }
 
-    /// Why the last hint waits: for a failed Submit, or a failed run of the checks.
-    private var lockedReason: String {
-        lesson.checks != nil ? "The last hint opens after the checks fail once." : "The last hint opens after a Submit that fails."
-    }
+    /// Why the last hint waits: for a failed Submit.
+    private var lockedReason: String { "The last hint opens after a Submit that fails." }
 }
 
 enum ReadmeColumnAnchor: Hashable { case footer }
@@ -158,6 +152,7 @@ struct MarkdownBlocks: View {
 
 struct BlockView: View {
     let block: MDBlock
+    @Environment(\.linkPolicy) private var links
 
     var body: some View {
         switch block {
@@ -171,15 +166,16 @@ struct BlockView: View {
                         .background(.quaternary, in: Capsule())
                         .foregroundStyle(Theme.secondaryText)
                 }
-                Text(Inline.attributed(inlines, size: Theme.headingSize(level), weight: .semibold))
+                Text(Inline.attributed(inlines, size: Theme.headingSize(level), weight: .semibold, links: links))
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
             }
             .padding(.top, level <= 2 ? 14 : 6)
         case .paragraph(let inlines):
-            Text(Inline.attributed(inlines, size: Theme.bodySize))
+            Text(Inline.attributed(inlines, size: Theme.bodySize, links: links))
                 .lineSpacing(Theme.bodySize * 0.45)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: Theme.proseWidth, alignment: .leading)
         case .code(let language, let text):
             CodeBlockView(language: language, code: text)
         case .quote(let callout, let blocks):
@@ -204,9 +200,34 @@ struct BlockView: View {
     }
 }
 
+/// Which links in Markdown act, from the environment: links into the Go documentation, and in
+/// a lesson's text links to the lessons of its library (LinkTarget). Any other address is plain
+/// text, neither colored nor clickable: Gosmos opens nothing outside itself.
+struct LinkPolicy: Sendable {
+    /// The library whose lessons links may open.
+    var catalog: Catalog = .empty
+
+    /// The URL a link to `destination` carries, or nil when it does nothing: the app's own
+    /// (LinkTarget.url), never the web address a link to a lesson gave.
+    func url(_ destination: String) -> URL? {
+        LinkTarget(destination: destination, isLesson: { catalog.summary($0) != nil }).flatMap { URL(string: $0.url) }
+    }
+}
+
+private struct LinkPolicyKey: EnvironmentKey {
+    static let defaultValue = LinkPolicy()
+}
+
+extension EnvironmentValues {
+    var linkPolicy: LinkPolicy {
+        get { self[LinkPolicyKey.self] }
+        set { self[LinkPolicyKey.self] = newValue }
+    }
+}
+
 /// Inline Markdown as styled text.
 enum Inline {
-    static func attributed(_ inlines: [MDInline], size: CGFloat, weight: Font.Weight = .regular) -> AttributedString {
+    static func attributed(_ inlines: [MDInline], size: CGFloat, weight: Font.Weight = .regular, links: LinkPolicy = LinkPolicy()) -> AttributedString {
         var out = AttributedString()
         func walk(_ items: [MDInline], bold: Bool, italic: Bool, strike: Bool, link: URL?, raised: Bool = false) {
             for item in items {
@@ -237,7 +258,7 @@ enum Inline {
                 case .superscript(let c):
                     walk(c, bold: bold, italic: italic, strike: strike, link: link, raised: true)
                 case .link(let dest, _, let c):
-                    walk(c, bold: bold, italic: italic, strike: strike, link: webURL(dest) ?? link, raised: raised)
+                    walk(c, bold: bold, italic: italic, strike: strike, link: links.url(dest) ?? link, raised: raised)
                 case .image:
                     break // no pictures or videos
                 case .lineBreak:
@@ -249,12 +270,6 @@ enum Inline {
         }
         walk(inlines, bold: false, italic: false, strike: false, link: nil)
         return out
-    }
-
-    static func webURL(_ dest: String) -> URL? {
-        guard let url = URL(string: dest.trimmingCharacters(in: .whitespaces)),
-              let scheme = url.scheme?.lowercased(), ["http", "https", "mailto"].contains(scheme) else { return nil }
-        return url
     }
 }
 
@@ -313,7 +328,19 @@ struct CodeBlockView: View {
 /// Code as attributed text for `WrappingText`: SF Mono in the editor's colors, each line
 /// hanging its continuation lines under its own indentation plus two spaces.
 enum CodeText {
-    static func attributed(_ code: String, language: String, size: CGFloat) -> NSAttributedString {
+    /// Highlighted code by its text, language and size. A view's body runs again on every hover
+    /// of a code block, and a block of the documentation runs to 48 KB (syscall's constants):
+    /// it is highlighted once. Its colors are dynamic and follow the appearance by themselves.
+    @MainActor private static let highlighted: NSCache<NSString, NSAttributedString> = {
+        let cache = NSCache<NSString, NSAttributedString>()
+        cache.totalCostLimit = 8_000_000 // UTF-16 units of code
+        return cache
+    }()
+
+    /// The code highlighted, the same text object each time for the same code, language and size.
+    @MainActor static func attributed(_ code: String, language: String, size: CGFloat) -> NSAttributedString {
+        let key = "\(language) \(size)\n\(code)" as NSString
+        if let kept = highlighted.object(forKey: key) { return kept }
         let theme = SyntaxTheme.xcode
         let result = NSMutableAttributedString(string: code, attributes: theme.attributes(for: .plain, size: size))
         hangLines(of: result, size: size)
@@ -323,7 +350,9 @@ enum CodeText {
             guard range.location != NSNotFound, range.length > 0, NSMaxRange(range) <= length else { continue }
             result.addAttributes(theme.attributes(for: token.kind, size: size), range: range)
         }
-        return result
+        let text = NSAttributedString(attributedString: result)
+        highlighted.setObject(text, forKey: key, cost: length)
+        return text
     }
 
     /// Gives every line a paragraph style: tabs four spaces wide, and continuation lines that
@@ -367,6 +396,14 @@ struct WrappingText: NSViewRepresentable {
     let text: NSAttributedString
     var accessibilityLabel: String?
 
+    /// The text object the view shows, so an update with that very object, such as highlighted
+    /// code CodeText kept, isn't compared with it run by run.
+    final class Coordinator {
+        var shown: NSAttributedString?
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeNSView(context: Context) -> WrappingTextView {
         let view = WrappingTextView(usingTextLayoutManager: false)
         view.isEditable = false
@@ -378,14 +415,18 @@ struct WrappingText: NSViewRepresentable {
         view.isVerticallyResizable = false
         view.isHorizontallyResizable = false
         view.textStorage?.setAttributedString(text)
+        context.coordinator.shown = text
         view.setAccessibilityLabel(accessibilityLabel)
         return view
     }
 
     func updateNSView(_ view: WrappingTextView, context: Context) {
-        if view.textStorage?.isEqual(to: text) != true {
-            view.textStorage?.setAttributedString(text)
-            view.invalidateIntrinsicContentSize()
+        if context.coordinator.shown !== text {
+            if view.textStorage?.isEqual(to: text) != true {
+                view.textStorage?.setAttributedString(text)
+                view.invalidateIntrinsicContentSize()
+            }
+            context.coordinator.shown = text
         }
         view.setAccessibilityLabel(accessibilityLabel)
     }
@@ -519,6 +560,7 @@ struct TableBlockView: View {
     let header: [[MDInline]]
     let rows: [[[MDInline]]]
     @ViewState private var available: CGFloat = 0
+    @Environment(\.linkPolicy) private var links
 
     var body: some View {
         let layout = TableColumns(header: header, rows: rows, available: available)
@@ -564,7 +606,7 @@ struct TableBlockView: View {
         case .right: .trailing
         default: .leading
         }
-        return Text(Inline.attributed(cell, size: TableColumns.fontSize, weight: header ? .semibold : .regular))
+        return Text(Inline.attributed(cell, size: TableColumns.fontSize, weight: header ? .semibold : .regular, links: links))
             .multilineTextAlignment(alignment == .trailing ? .trailing : alignment == .center ? .center : .leading)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, TableColumns.padding)

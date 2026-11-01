@@ -34,7 +34,11 @@ enum Theme {
 
     static let bodySize: CGFloat = 15
     static let codeSize: CGFloat = 13
+    /// The reading column: room for 80 columns of code.
     static let readableWidth: CGFloat = 680
+    /// The measure of body text in the column, about 80 characters of SF Pro at 15 pt; code,
+    /// tables and panels take the whole column.
+    static let proseWidth: CGFloat = 560
 
     static func headingSize(_ level: Int) -> CGFloat {
         switch level {
@@ -45,7 +49,7 @@ enum Theme {
         }
     }
 
-    /// GitHub's callout colors; info and other kinds look like a note, danger like a caution.
+    /// The callout colors; info and other kinds look like a note, danger like a caution.
     static func calloutColor(_ kind: String) -> Color {
         switch Readme.calloutKind(kind) {
         case "tip": success
@@ -93,6 +97,12 @@ extension View {
         buttonStyle(.glassProminent).tint(Theme.prominent)
     }
 
+    /// Shows the view only once it has been on screen for a moment, so a spinner for a wait
+    /// that ends quickly never flashes.
+    func appearsAfterDelay(_ delay: Duration = .milliseconds(400)) -> some View {
+        modifier(AppearsAfterDelay(delay: delay))
+    }
+
     /// Turns the spinner symbol (progress.indicator) while work runs; with Reduce Motion its
     /// spokes light in turn instead. Used in place of ProgressView's spinner, which the
     /// system draws dimmed in a window that is not active (about 2:1 in light mode).
@@ -109,5 +119,19 @@ private struct RunningSymbolEffect: ViewModifier {
         content
             .symbolEffect(.rotate.clockwise, options: .repeat(.continuous), isActive: isActive && !reduceMotion)
             .symbolEffect(.variableColor.iterative.nonReversing, options: .repeating, isActive: isActive && reduceMotion)
+    }
+}
+
+private struct AppearsAfterDelay: ViewModifier {
+    let delay: Duration
+    @ViewState private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .task {
+                try? await Task.sleep(for: delay)
+                shown = true
+            }
     }
 }

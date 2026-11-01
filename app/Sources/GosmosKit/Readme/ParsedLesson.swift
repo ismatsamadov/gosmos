@@ -1,23 +1,15 @@
 import Foundation
 
 /// A lesson's Markdown as blocks, parsed once off the main actor: the readme, and a quiz's
-/// questions or an interview's prompt and what a good answer covers.
+/// questions.
 public struct ParsedLesson: Sendable {
     public var readme: [MDBlock]
     public var questions: [[MDBlock]] = []
-    public var prompt: [MDBlock] = []
-    public var criteria: [MDBlock] = []
 
     public init(_ lesson: LessonDetail) {
         readme = Readme.parse(lesson.readme, droppingTitle: lesson.title)
-        switch lesson.content {
-        case .choice(let quiz):
+        if case .choice(let quiz) = lesson.content {
             questions = quiz.questions.map { Readme.parse($0.question) }
-        case .interviewChat(let interview):
-            prompt = Readme.parse(interview.studentPrompt)
-            criteria = interview.acceptanceCriteria.map { Readme.parse($0) } ?? []
-        default:
-            break
         }
     }
 }

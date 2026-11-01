@@ -100,6 +100,48 @@ import Testing
         #expect(result.status == .cancelled)
     }
 
+    /// The go command builds in a work folder of its own, a test's binary included, and runs
+    /// the test from there. That folder is in the run's, so it never lands in TMPDIR, outside
+    /// the app's caches, and goes with the run even when Stop kills go before it can clean up.
+    @Test func goWorksInTheRunsFolderAndLeavesNothingBehindWhenStopped() async throws {
+        guard var toolchain = await Fixtures.toolchain() else { return }
+        let root = try Fixtures.tempDir("work")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let tmp = root.appendingPathComponent("tmp", isDirectory: true)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        toolchain.environment["TMPDIR"] = tmp.path
+        let code = CodeExercise(starterFiles: [
+            StarterFile(name: "main.go", content: "package main\n\nfunc main() {}\n"),
+            StarterFile(name: "main_test.go", content: """
+                package main
+
+                import (
+                \t"os"
+                \t"testing"
+                \t"time"
+                )
+
+                func TestSlow(t *testing.T) {
+                \tos.WriteFile("started", []byte(os.Args[0]), 0o644)
+                \ttime.Sleep(time.Minute)
+                }
+
+                """),
+        ])
+        let l = lesson("slow-tests", .codeTests, code)
+        let dir = try Workspace(root: root).prepare(l, code: code, saved: [:], goVersion: toolchain.languageVersion).folder
+        let runs = root.appendingPathComponent(".runs")
+        let task = Task { await GoRunner(toolchain: toolchain, scratch: runs).run(code, tests: true, folder: dir, submit: false) }
+        let started = dir.appendingPathComponent("started")
+        for _ in 0..<600 where !FileManager.default.fileExists(atPath: started.path) { try await Task.sleep(for: .milliseconds(100)) }
+        let binary = try String(contentsOf: started, encoding: .utf8)
+        #expect(GoRunner.realPath(binary).hasPrefix(GoRunner.realPath(runs.path) + "/"), "the test ran from \(binary)")
+        task.cancel()
+        #expect(await task.value.status == .cancelled)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: tmp.path).isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: runs.path).isEmpty)
+    }
+
     @Test func outputNamesTheLessonsFiles() {
         let folder = URL(fileURLWithPath: "/Users/me/Library/Caches/Gosmos/work/abc")
         let raw = "/Users/me/Library/Caches/Gosmos/work/.runs/run-VIBkng/overlay-0-main_test.go:37:7: not enough arguments\n/Users/me/Library/Caches/Gosmos/work/abc/main.go:3:1: syntax error"

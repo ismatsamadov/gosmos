@@ -40,7 +40,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.app.info("Launched")
+        // Another copy of this app runs and has the learner database: it comes forward, and
+        // this one quits before it opens anything (SingleInstance).
+        if let other = runningCopy() {
+            Log.app.notice("Another copy of Gosmos runs, process \(other.processIdentifier, privacy: .public): quitting")
+            NSApp.yieldActivation(to: other)
+            other.activate()
+            NSApp.terminate(nil)
+            return
+        }
         Task { await app.start() }
+    }
+
+    /// The copy of this app, by bundle id, that this launch gives way to: one launched before it.
+    private func runningCopy() -> NSRunningApplication? {
+        guard let id = Bundle.main.bundleIdentifier else { return nil }
+        func described(_ r: NSRunningApplication) -> SingleInstance.App {
+            SingleInstance.App(pid: r.processIdentifier, bundleIdentifier: r.bundleIdentifier, launchDate: r.launchDate)
+        }
+        let running = NSRunningApplication.runningApplications(withBundleIdentifier: id).filter { !$0.isTerminated }
+        guard let copy = SingleInstance.runningCopy(for: described(.current), in: running.map(described)) else { return nil }
+        return running.first { $0.processIdentifier == copy.pid }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -80,12 +100,19 @@ final class ReplyOnce {
 
 struct GosmosCommands: Commands {
     let app: AppModel
+    @FocusedValue(\.searchFocus) private var searchFocus
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("Open Library…") { app.chooseLibrary() }
                 .keyboardShortcut("o", modifiers: .command)
                 .disabled(app.learner == nil || app.isAddingLibrary)
+        }
+        CommandGroup(after: .textEditing) {
+            // ⇧⌘F, as Xcode's Find in Project, since ⌘F is the editor's Find.
+            Button("Search") { searchFocus?.focus() }
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .disabled(searchFocus == nil)
         }
         CommandMenu("Lesson") {
             Button("Run") { app.lesson?.run() }
@@ -94,12 +121,9 @@ struct GosmosCommands: Commands {
             Button("Submit") { app.lesson?.submit() }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(!(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
-            Button("Stop") {
-                app.lesson?.code?.stop()
-                app.lesson?.checks?.stop()
-            }
-            .keyboardShortcut(".", modifiers: .command)
-            .disabled(!(app.lesson?.isBusy ?? false))
+            Button("Stop") { app.lesson?.code?.stop() }
+                .keyboardShortcut(".", modifiers: .command)
+                .disabled(!(app.lesson?.isBusy ?? false))
             Divider()
             Button("Next Lesson") { app.openNext() }
                 .keyboardShortcut("]", modifiers: .command)
@@ -156,6 +180,12 @@ struct GosmosCommands: Commands {
             Button("Outdent") { app.lesson?.code?.perform(.outdent) }
                 .keyboardShortcut("[", modifiers: [.command, .option])
                 .disabled(!(app.lesson?.canPerform(.outdent) ?? false))
+            Divider()
+            // Quick Help for the name at the insertion point, as Option-click gives it; ⌃⌘? as
+            // in Xcode.
+            Button("Show Documentation") { if let code = app.lesson?.code { app.showQuickHelp(code) } }
+                .keyboardShortcut("?", modifiers: [.command, .control])
+                .disabled(!app.canShowQuickHelp)
         }
         CommandGroup(after: .sidebar) {
             Button("Show Inspector") { app.showInspector.toggle() }

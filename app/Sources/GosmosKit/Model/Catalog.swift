@@ -5,19 +5,12 @@ public enum LessonType: String, Sendable, CaseIterable {
     case code = "type_code"
     case codeTests = "type_code_tests"
     case choice = "type_choice"
-    case cli = "type_cli"
-    case githubChecks = "type_github_checks"
-    case interview = "type_interview_chat"
-
 
     public var label: String {
         switch self {
         case .code: "Code"
         case .codeTests: "Code with tests"
         case .choice: "Quiz"
-        case .cli: "Command line"
-        case .githubChecks: "GitHub"
-        case .interview: "Interview"
         }
     }
 
@@ -27,14 +20,8 @@ public enum LessonType: String, Sendable, CaseIterable {
         case .code: "chevron.left.forwardslash.chevron.right"
         case .codeTests: "checklist"
         case .choice: "questionmark.bubble"
-        case .cli: "terminal"
-        case .githubChecks: "arrow.triangle.branch"
-        case .interview: "person.wave.2"
         }
     }
-
-    /// Lessons you finish by marking them done yourself.
-    public var isManual: Bool { self == .githubChecks || self == .interview }
 }
 
 public struct LessonSummary: Identifiable, Hashable, Sendable {

@@ -2,8 +2,8 @@ import Darwin
 import Foundation
 import os
 
-/// Which processes `ProcessRunner.terminateAll` stops: lesson programs (builds, runs,
-/// command-line checks) are stopped when the app quits.
+/// Which processes `ProcessRunner.terminateAll` stops: lesson programs (builds, runs, tests)
+/// are stopped when the app quits.
 public struct ProcessKind: Hashable, Sendable {
     public let name: String
     public init(_ name: String) { self.name = name }

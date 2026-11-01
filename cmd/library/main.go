@@ -36,7 +36,8 @@ const usage = `usage:
       bring a library of an older format up to date. Going to format 7, the library gets its
       title (else its first course's, else the file's name), and the learner's data in it
       moves to the learner database, made from learner.sql if it does not exist; a library
-      that holds such data needs --learner
+      that holds such data needs --learner. Format 8 has code, tests and quiz lessons only: a
+      library with command-line, GitHub or interview lessons is refused
   library verify <file> [--course <slug>] [--teaching]
       run every code lesson with the Go toolchain: it must pass with its solution and fail
       with its starter. With --teaching, every code lesson must also have 2 or 3 hints and a
@@ -219,6 +220,15 @@ func migrate(ctx context.Context, path string, opt db.MigrateOptions, out io.Wri
 		default:
 			fmt.Fprintf(out, "moved its learner data into the learner database %s: %s\n", m.Learner, strings.Join(counts, ", "))
 		}
+	}
+	var dropped []string
+	for _, r := range m.Dropped {
+		if r.Rows > 0 {
+			dropped = append(dropped, fmt.Sprintf("%s %d", r.Table, r.Rows))
+		}
+	}
+	if len(dropped) > 0 {
+		fmt.Fprintf(out, "dropped the learner data only command-line lessons used, which Gosmos no longer has: %s\n", strings.Join(dropped, ", "))
 	}
 	ok, err := check(ctx, path, out)
 	if err == nil && !ok {

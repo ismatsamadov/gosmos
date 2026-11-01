@@ -59,11 +59,17 @@ struct HintsPanel: View {
                     .accessibilityLabel("Hint \(i + 1): \(Readme.plainText(Readme.parseInline(hint)))")
                 }
                 if revealed < hints.count, let reason = nextLockedReason {
-                    Label(reason, systemImage: "lock")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel("Hint \(revealed + 1) of \(hints.count) is locked. \(reason)")
+                    // The lock where a hint's number is, and the reason where its text is.
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: "lock")
+                            .frame(width: 18)
+                        Text(reason)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.secondaryText)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Hint \(revealed + 1) of \(hints.count) is locked. \(reason)")
                 }
             }
             .padding(.horizontal, 14)

@@ -9,7 +9,9 @@
 --     with a trailing Z. An optional value that is missing is NULL, not ''.
 --   * Every connection sets PRAGMA foreign_keys = ON.
 --   * This file makes a new, empty learner database. A change raises user_version and comes
---     with a migration; the app applies them when it opens an older file.
+--     with a migration; the app applies them when it opens an older file (LearnerDatabase).
+--     Version 2 dropped what only the lesson types format 8 removed used: course project
+--     folders, server addresses and command-line check attempts.
 
 PRAGMA foreign_keys = ON;
 
@@ -31,12 +33,12 @@ CREATE TABLE progress (
 ) STRICT;
 CREATE INDEX progress_last_opened ON progress(last_opened_at);
 
--- Every Run, Submit, quiz answer, command-line check and review, passed or not.
+-- Every Run, Submit, quiz answer and review, passed or not.
 CREATE TABLE attempt (
   id           INTEGER PRIMARY KEY,
   library_uuid TEXT NOT NULL REFERENCES library(uuid),
   lesson_uuid  TEXT NOT NULL CHECK (lesson_uuid <> ''),
-  kind         TEXT NOT NULL CHECK (kind IN ('run', 'submit', 'answer', 'check', 'review')),
+  kind         TEXT NOT NULL CHECK (kind IN ('run', 'submit', 'answer', 'review')),
   passed       INTEGER NOT NULL CHECK (passed IN (0, 1)),
   output       TEXT NOT NULL,                           -- what the run printed, or the answer you picked
   duration_ms  INTEGER CHECK (duration_ms >= 0),
@@ -61,24 +63,6 @@ CREATE TABLE code_file (
   content      TEXT NOT NULL,
   updated_at   TEXT NOT NULL CHECK (updated_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z' AND julianday(updated_at) IS NOT NULL),
   PRIMARY KEY (library_uuid, lesson_uuid, name)
-) STRICT;
-
--- The folder a course's command-line lessons run in, and the address of your own server for
--- the lessons that ask for one (cli_lesson.asks_for_base_url). Either may be missing, not both.
-CREATE TABLE project (
-  library_uuid TEXT NOT NULL REFERENCES library(uuid),
-  course_uuid  TEXT NOT NULL CHECK (course_uuid <> ''),
-  dir          TEXT CHECK (dir <> ''),
-  base_url     TEXT CHECK (base_url <> ''),
-  CHECK (dir IS NOT NULL OR base_url IS NOT NULL),
-  PRIMARY KEY (library_uuid, course_uuid)
-) STRICT;
-
--- The address you run a lesson's server at when it is not the one the lesson suggests
--- (cli_lesson.base_url_default). Lessons that suggest the same address share it.
-CREATE TABLE server_address (
-  default_url TEXT PRIMARY KEY CHECK (default_url <> ''),
-  url         TEXT NOT NULL CHECK (url <> '')
 ) STRICT;
 
 -- Each hint you revealed (lesson_hint.position), so the lesson shows it again.
@@ -134,4 +118,4 @@ CREATE TABLE setting (
 
 -- 'GSML' marks the file as a Gosmos learner database; user_version is its schema version.
 PRAGMA application_id = 1196641612;
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;

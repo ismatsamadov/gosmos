@@ -3,13 +3,13 @@ import GRDB
 import Testing
 @testable import GosmosKit
 
-/// A course library, as the app reads it: read-only, from the tables of format 7.
+/// A course library, as the app reads it: read-only, from the tables of format 8.
 @Suite struct DatabaseTests {
     @Test func opensAnyFileNameAndKnowsItsLibrary() async throws {
         let (db, dir) = try Fixtures.database()
         defer { try? FileManager.default.removeItem(at: dir) }
         #expect(db.info == LibraryInfo(uuid: Fixtures.libraryID, title: Fixtures.libraryTitle))
-        #expect(try await db.catalog().lessonCount == 8)
+        #expect(try await db.catalog().lessonCount == 6)
         let missing = dir.appendingPathComponent("missing.library")
         #expect(throws: AppDatabaseError.missing(path: missing.path)) { try AppDatabase(url: missing) }
         #expect(!FileManager.default.fileExists(atPath: missing.path)) // never created
@@ -23,13 +23,13 @@ import Testing
         #expect(catalog.courses[1].isGuidedProject && !catalog.courses[0].isGuidedProject)
         #expect(catalog.courses[0].chapters.map(\.title) == ["Basics", "More"])
         #expect(catalog.courses[0].chapters[0].lessons.map(\.title) == ["Hello Gopher", "Adding Numbers", "Functions Quiz"])
-        #expect(catalog.lessonCount == 8)
+        #expect(catalog.lessonCount == 6)
         #expect(catalog.courses[1].requiredLessons.isEmpty)
-        #expect(catalog.next(after: Fixtures.quizLesson)?.id == Fixtures.cliLesson) // across chapters
-        #expect(catalog.previous(before: Fixtures.cliLesson)?.id == Fixtures.quizLesson)
+        #expect(catalog.next(after: Fixtures.quizLesson)?.id == Fixtures.planetsLesson) // across chapters
+        #expect(catalog.previous(before: Fixtures.planetsLesson)?.id == Fixtures.quizLesson)
         #expect(catalog.previous(before: Fixtures.codeLesson) == nil)
-        #expect(catalog.next(after: Fixtures.interviewLesson)?.id == Fixtures.askingLesson)
-        #expect(catalog.next(after: Fixtures.askingLesson) == nil) // not into another course
+        #expect(catalog.next(after: Fixtures.planetsLesson)?.id == Fixtures.loopsLesson)
+        #expect(catalog.next(after: Fixtures.loopsLesson) == nil) // not into another course
         #expect(catalog.firstLesson?.id == Fixtures.codeLesson)
     }
 
@@ -69,32 +69,10 @@ import Testing
         #expect(try await db.quiz(Fixtures.quizLesson)?.questions.count == 2)
         #expect(try await db.quiz(Fixtures.codeLesson) == nil)
 
-        guard case .cli(let cli)? = try await db.lesson(Fixtures.cliLesson)?.content else { Issue.record("cli"); return }
-        #expect(cli.defaultBaseURL == "http://localhost:8080" && !cli.asksForBaseURL)
-        #expect(cli.steps.count == 2 && cli.usesBaseURL && cli.hasCommands)
-        guard case .command(let c) = cli.steps[0].action, case .http(let h) = cli.steps[1].action else { Issue.record("steps"); return }
-        #expect(c.command == "echo built" && c.tests.count == 3 && c.variables == [NameValue("word", "(b\\w+)")])
-        if case .stdoutJq(let q, let jsonl, let expected) = c.tests[2] {
-            #expect(q == ".ok" && !jsonl && expected == [JqExpectation("==", .bool(true))])
-        } else { Issue.record("jq test") }
-        #expect(h.method == "POST" && !h.followRedirects && h.headers == [NameValue("X-Trace", "abc")])
-        if case .json(let body)? = h.body { #expect(body.contains("ada@example.com")) } else { Issue.record("json body") }
-        #expect(h.bodyVariables == [.init(name: "token", jsonPath: ".token")])
-        #expect(h.headerVariables == [.init(name: "session", header: "Set-Cookie", regex: "^(session_id=[^;]+)")])
-        #expect(h.tests.count == 3)
-        if case .jsonValue(let path, let op, let value) = h.tests[1] { #expect(path == ".user.id" && op == "gte" && value == .int(7)) }
-        if case .trailersEqual(let k, let v) = h.tests[2] { #expect(k == "X-Sum" && v == "42") }
-        #expect(cli.steps[1].sleepAfterMs == 10)
-
-        guard case .githubChecks(let gh)? = try await db.lesson(Fixtures.githubLesson)?.content else { Issue.record("github"); return }
-        #expect(gh.steps.map(\.kind) == ["workflow_status", "workflow_logs_contains"])
-        #expect(gh.steps[1].summary.contains("staticcheck") && gh.steps[1].summary.contains("Style"))
-
-        guard case .interviewChat(let interview)? = try await db.lesson(Fixtures.interviewLesson)?.content else { Issue.record("interview"); return }
-        #expect(interview.studentPrompt == "Explain tracing." && interview.acceptanceCriteria == "Mentions spans.")
-        // No criteria is NULL, and the answer section shows none.
-        guard case .interviewChat(let open)? = try await db.lesson(Fixtures.optionalLesson)?.content else { Issue.record("optional"); return }
-        #expect(open.acceptanceCriteria == nil)
+        // A quiz without questions yet, and optional: it opens like any other.
+        let optional = try #require(try await db.lesson(Fixtures.optionalLesson))
+        guard case .choice(let empty) = optional.content else { Issue.record("optional"); return }
+        #expect(empty.questions.isEmpty && !optional.summary.required)
         #expect(try await db.lesson("no-such-lesson") == nil)
     }
 
@@ -134,7 +112,7 @@ import Testing
             Fixtures.testsLesson: "# Adding Numbers\n\nComplete `add` for the café.\n\n```zig\nconst sum = 1 + 2;\n```",
             // The address names warning three times, so the index ranks this lesson first for it.
             Fixtures.quizLesson: "# Functions Quiz\n\n> [!info]\n> Each answer counts once.\n\nSee [the guide](https://kettle.example.org/warning/warning/warning).",
-            Fixtures.cliLesson: "# Your Server\n\n> [!warning]\n> Stop it when you are done.",
+            Fixtures.planetsLesson: "# Planets\n\n> [!warning]\n> Pluto is not one of them.",
         ]
         let (db, dir) = try Fixtures.database { db in
             for (id, readme) in readmes { try db.execute(sql: "UPDATE lesson SET readme = ? WHERE uuid = ?", arguments: [readme, id]) }
@@ -149,52 +127,18 @@ import Testing
         }
         // A callout's title is drawn, so its marker's word is a match you can see; the hit the
         // index ranks first only had it in an address.
-        #expect(try await db.search("warning").map(\.ref) == [ref(Fixtures.quizLesson), ref(Fixtures.cliLesson)])
+        #expect(try await db.search("warning").map(\.ref) == [ref(Fixtures.quizLesson), ref(Fixtures.planetsLesson)])
         let warning = try await texts.search("warning", in: [db])
-        #expect(warning.hits.map(\.ref) == [ref(Fixtures.cliLesson)])
-        #expect(warning.snippets[ref(Fixtures.cliLesson)]?.filter(\.matched).map(\.text) == ["Warning"])
+        #expect(warning.hits.map(\.ref) == [ref(Fixtures.planetsLesson)])
+        #expect(warning.snippets[ref(Fixtures.planetsLesson)]?.filter(\.matched).map(\.text) == ["Warning"])
         // Dropped hits leave room for the next best.
-        #expect(try await texts.search("warning", in: [db], limit: 1).hits.map(\.ref) == [ref(Fixtures.cliLesson)])
+        #expect(try await texts.search("warning", in: [db], limit: 1).hits.map(\.ref) == [ref(Fixtures.planetsLesson)])
         // The title counts, code counts, and diacritics fold as the index folds them.
         #expect(try await texts.search("quiz", in: [db]).hits.map(\.ref) == [ref(Fixtures.quizLesson)])
         #expect(try await texts.search("sum", in: [db]).hits.map(\.ref) == [ref(Fixtures.testsLesson)])
         let cafe = try await texts.search("cafe", in: [db])
         #expect(cafe.hits.map(\.ref) == [ref(Fixtures.testsLesson)])
         #expect(cafe.snippets[ref(Fixtures.testsLesson)]?.filter(\.matched).map(\.text) == ["café"])
-    }
-}
-
-/// v4: where a command-line lesson's ${baseURL} comes from, from the library's suggestion and
-/// the learner database's addresses and projects.
-@Suite struct ServerAddressTests {
-    @Test func baseURLFromTheSuggestionYourAddressOrYourServer() async throws {
-        let (db, dir) = try Fixtures.database()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let learner = try await Fixtures.learner(in: dir)
-        let library = Fixtures.libraryID
-        guard case .cli(let suggests)? = try await db.lesson(Fixtures.cliLesson)?.content,
-              case .cli(let asks)? = try await db.lesson(Fixtures.askingLesson)?.content else { Issue.record("cli lessons"); return }
-        #expect(asks.asksForBaseURL && asks.baseURLDefault == nil && asks.defaultBaseURL == nil)
-
-        // A suggested address, until you set yours; "Use Suggested" removes your row.
-        #expect(try await learner.baseURL(for: suggests, library: library, course: Fixtures.courseID) == .suggested("http://localhost:8080", yours: nil))
-        try await learner.setServerAddress("http://192.168.1.20:8080", for: "http://localhost:8080")
-        let replaced = try await learner.baseURL(for: suggests, library: library, course: Fixtures.courseID)
-        #expect(replaced == .suggested("http://localhost:8080", yours: "http://192.168.1.20:8080") && replaced.url == "http://192.168.1.20:8080")
-        try await learner.setServerAddress("http://localhost:8080", for: "http://localhost:8080") // the suggestion itself
-        #expect(try await learner.baseURL(for: suggests, library: library, course: Fixtures.courseID) == .suggested("http://localhost:8080", yours: nil))
-        try await learner.setServerAddress("http://localhost:9090", for: "http://localhost:8080")
-        try await learner.setServerAddress(nil, for: "http://localhost:8080")
-        #expect(try await learner.baseURL(for: suggests, library: library, course: Fixtures.courseID).url == "http://localhost:8080")
-
-        // Your own server: missing until the course's project has it; then the project wins.
-        let missing = try await learner.baseURL(for: asks, library: library, course: Fixtures.courseID)
-        #expect(missing == .yourServer(nil) && missing.isMissing && missing.url == nil)
-        try await learner.saveProject(library: library, course: Fixtures.courseID, Project(dir: nil, baseURL: "https://quill.example.com"))
-        #expect(try await learner.baseURL(for: asks, library: library, course: Fixtures.courseID).url == "https://quill.example.com")
-
-        // Neither: no ${baseURL}.
-        #expect(BaseURL(lesson: CLILesson(steps: []), projectBaseURL: "https://x.example.com", serverAddress: nil) == .none)
     }
 }
 

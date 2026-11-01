@@ -1,6 +1,3 @@
-# jq and Oniguruma are third-party C, compiled into the app; keep them out of language stats and diffs.
-app/Packages/JQ/Sources/CJQ/** linguist-vendored
-app/Packages/JQ/Sources/COniguruma/** linguist-vendored
-
-# Course libraries are binary SQLite files; git never diffs or merges them as text.
+# Course libraries and the Go reference are binary SQLite files; git never diffs or merges them as text.
 courses/*.sqlite binary
+reference/*.sqlite binary

@@ -1,8 +1,9 @@
 # Gosmos
 
 A quiet, native macOS app for learning Go by doing: courses on the left, the lesson in the
-middle, your own Go toolchain checking your code. Short lessons, hints when you are stuck,
-and spaced review. No browser, no local web server, no account, no pictures or videos.
+middle, the Go toolchain built into the app checking your code. Short lessons, hints when you
+are stuck, and spaced review. No browser, no local web server, no account, no network, no
+pictures or videos.
 
 The app is not tied to any course. It reads **libraries**: SQLite files holding a syllabus,
 in the format described in `docs/library-format.md`. Any file in that format plugs in and
@@ -17,9 +18,9 @@ ground-station startup, planned in `docs/apogee/`. Everything in them is written
 - A **library** is content only: courses, chapters and lessons, starter and solution files,
   hints, quizzes with explanations. The app opens it read-only and never writes to it. Every
   part of a lesson has its own table, and keys, foreign keys and checks keep bad data out: a
-  quiz question has one right answer, a test sets only its own kind's fields. The one piece
-  of JSON is the body of an HTTP request a lesson sends to your server, kept whole like a
-  code file. `db/schema.sql` explains each table.
+  quiz question has one right answer, and only a lesson checked by what its program prints
+  has expected output. Every lesson is checked on the Mac: a program or its tests with the
+  built-in Go, a quiz by its answers. `db/schema.sql` explains each table.
 - The **learner database**, `~/Library/Application Support/Gosmos/learner.sqlite`, holds
   everything that is yours: progress, every Run and Submit, notes, your code, the hints and
   solutions you looked at, and your review schedule. `db/learner.sql` explains each table.
@@ -37,7 +38,8 @@ never runs git and syncs nothing.
 | Path | What it is |
 |---|---|
 | `courses/` | The course libraries built into the app |
-| `db/schema.sql` | A library's tables, constraints and conventions (format 7) |
+| `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, read offline: the standard library's docs and examples, the spec, the memory model, Effective Go, the FAQ and How to Write Go Code; `make reference` remakes it, `docs/reference-format.md` says how |
+| `db/schema.sql` | A library's tables, constraints and conventions (format 8) |
 | `db/learner.sql` | The learner database's tables |
 | `db/` | The Go package that creates, opens, checks and migrates libraries; `db/history/` keeps the schema of every older format |
 | `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify` |
@@ -51,5 +53,7 @@ never runs git and syncs nothing.
 
 ## Requirements
 
-- macOS 27 or later, Xcode Command Line Tools (`xcode-select --install`)
-- Go 1.27 or later, for the lessons and the library tools
+- To use Gosmos: macOS 27 or later, nothing else. The app carries its own Go toolchain and
+  works offline; you install nothing, and it never needs the internet.
+- To build it: the Xcode Command Line Tools (`xcode-select --install`) and Go 1.27 or later.
+  `make app` builds the Go it runs with into the app; `GO_ROOT=<folder>` picks another Go.

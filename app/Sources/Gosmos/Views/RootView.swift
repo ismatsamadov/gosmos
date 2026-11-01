@@ -12,6 +12,8 @@ struct RootView: View {
             // Declared once, here, for the window's whole life: the items follow the app's
             // state, so changing lessons, lesson types or libraries never adds a second set.
             .toolbar { LessonToolbar() }
+            // Links act in the app or not at all: Gosmos opens nothing outside itself.
+            .environment(\.openURL, OpenURLAction { url in app.follow(url) ? .handled : .discarded })
             .onChange(of: app.settingsRequests) { openSettings() }
             .alert(app.libraryError?.title ?? "", isPresented: Binding(get: { app.libraryError != nil }, set: { if !$0 { app.libraryError = nil } }),
                    presenting: app.libraryError) { _ in
@@ -90,6 +92,7 @@ struct MainView: View {
     @ViewState private var columns: NavigationSplitViewVisibility = .all
     @ViewState private var windowWidth: CGFloat = 0
     @ViewState private var sidebarWidth: CGFloat = 0
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         @Bindable var app = app
@@ -98,12 +101,23 @@ struct MainView: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { sidebarWidth = $0 }
                 // On the column's outermost view, where the split view reads it. The split view
                 // keeps the sidebar and the inspector at their ideal widths, so those ideals plus
-                // the lesson's 600 fit the 1100 pt minimum window: 240 + 600 + 240.
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 400)
+                // the lesson's 600 fit the 1100 pt minimum window: 260 + 600 + 240. 260 leaves a
+                // lesson title about 20 characters a line; longer ones take a second line.
+                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 400)
         } detail: {
             DetailView(minWidth: lessonMinimum)
         }
-        .searchable(text: $app.searchText, placement: .toolbar, prompt: "Search Lessons")
+        .searchable(text: $app.searchText, placement: .toolbar, prompt: "Search")
+        .searchFocused($searchFocused)
+        // Edit › Search (⇧⌘F): the documentation's own field while it is on screen, else the
+        // toolbar's.
+        .focusedSceneValue(\.searchFocus, SearchFocusAction { [app] in
+            if app.showsDocumentation {
+                NotificationCenter.default.post(name: DocsSearchField.focusRequest, object: nil)
+            } else {
+                searchFocused = true
+            }
+        })
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
     }
 
@@ -118,6 +132,22 @@ struct MainView: View {
     }
 }
 
+/// What Edit › Search does in the focused window: puts the insertion point in its search field.
+struct SearchFocusAction {
+    let focus: @MainActor () -> Void
+}
+
+private struct SearchFocusKey: FocusedValueKey {
+    typealias Value = SearchFocusAction
+}
+
+extension FocusedValues {
+    var searchFocus: SearchFocusAction? {
+        get { self[SearchFocusKey.self] }
+        set { self[SearchFocusKey.self] = newValue }
+    }
+}
+
 struct DetailView: View {
     var minWidth: CGFloat = 600
     @Environment(AppModel.self) private var app
@@ -125,28 +155,31 @@ struct DetailView: View {
     var body: some View {
         @Bindable var app = app
         Group {
-            if app.showsReview {
+            if app.showsDocumentation, let docs = app.docs {
+                DocsBrowser(docs: docs)
+            } else if app.showsReview {
                 if let review = app.review {
                     ReviewScreen(session: review)
                 } else {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else if let lesson = app.lesson {
                 LessonView(lesson: lesson)
                     .id(lesson.detail.ref)
             } else if app.isLoadingLesson {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ContentUnavailableView("No Lesson Selected", systemImage: "book.closed",
                                        description: Text(app.shelf.isEmpty ? "Add a library with File › Open Library… to start."
                                                                            : "Choose a lesson in the sidebar, or search for one.").foregroundStyle(Theme.secondaryText))
             }
         }
-        // Sidebar 240 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
+        // Sidebar 260 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
         .frame(minWidth: minWidth)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
-        .navigationTitle(app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
-        .navigationSubtitle(app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        .navigationTitle(app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
+        // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
+        .navigationSubtitle(app.showsDocumentation ? (app.docs?.page == nil ? "" : "Go Documentation") : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)
@@ -167,10 +200,6 @@ struct LessonView: View {
             CodeLessonView(lesson: lesson, session: code)
         } else if let quiz = lesson.quiz {
             QuizLessonView(lesson: lesson, session: quiz)
-        } else if let checks = lesson.checks {
-            ChecksLessonView(lesson: lesson, session: checks)
-        } else {
-            ManualLessonView(lesson: lesson)
         }
     }
 }
@@ -233,8 +262,8 @@ struct LessonToolbar: ToolbarContent {
     }
 }
 
-/// The open lesson's actions: Next Lesson after a pass, Run or Stop, and Submit or Mark as
-/// Done, by its type and state.
+/// The open lesson's actions: Next Lesson after a pass, Run or Stop, and Submit, by its type
+/// and state.
 struct LessonActions: View {
     let lesson: LessonModel
     @Environment(AppModel.self) private var app
@@ -246,21 +275,14 @@ struct LessonActions: View {
                 .help("Next lesson: \(next.title) (⌘])")
         }
         if lesson.canRun {
-            let run = Button {
-                if lesson.isBusy { lesson.code?.stop(); lesson.checks?.stop() } else { lesson.run() }
+            Button {
+                if lesson.isBusy { lesson.code?.stop() } else { lesson.run() }
             } label: {
-                Label(lesson.isBusy ? "Stop" : lesson.checks != nil ? "Run Checks" : "Run",
-                      systemImage: lesson.isBusy ? "stop.fill" : "play.fill")
+                Label(lesson.isBusy ? "Stop" : "Run", systemImage: lesson.isBusy ? "stop.fill" : "play.fill")
                     .contentTransition(.symbolEffect(.replace))
             }
             .labelStyle(.titleAndIcon)
             .help(lesson.isBusy ? "Stop (⌘.)" : "Run (⌘R)")
-            // A command-line lesson's checks are its main action, styled like Submit and Mark as Done.
-            if lesson.checks != nil {
-                run.prominentGlassButton()
-            } else {
-                run
-            }
         }
         if lesson.code != nil || lesson.quiz != nil {
             Button { lesson.submit() } label: { Label("Submit", systemImage: "paperplane.fill") }
@@ -268,16 +290,6 @@ struct LessonActions: View {
                 .prominentGlassButton()
                 .disabled(lesson.isBusy || !lesson.canSubmit)
                 .help("Submit (⌘↩)")
-        }
-        if lesson.detail.type.isManual {
-            let done = app.isDone(lesson.ref)
-            Button { app.setDone(lesson.ref, !done) } label: {
-                Label(done ? "Done" : "Mark as Done", systemImage: done ? "checkmark.circle.fill" : "checkmark.circle")
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .labelStyle(.titleAndIcon)
-            .prominentGlassButton()
-            .help(done ? "Mark as not done (⇧⌘D)" : "Mark as done (⇧⌘D)")
         }
     }
 }
@@ -301,7 +313,7 @@ struct ReviewScreen: View {
                 // A new session (Review chosen again) starts the view over.
                 .id(ObjectIdentifier(session))
         } else {
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

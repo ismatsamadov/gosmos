@@ -106,56 +106,8 @@ func quizLesson() Record {
 	)
 }
 
-func cliLesson() Record {
-	return record(lesson("l-station", "ground-station", "type_cli", 3, "# Ground Station\n\nRun the telemetry server and talk to it.\n"),
-		row("cli_lesson", "type_cli", "http://localhost:8080", int64(0), int64(0), int64(0)),
-		row("cli_lesson_os", "darwin"),
-		row("cli_lesson_os", "linux"),
-		row("cli_step", int64(0), "command", "Build the telemetry server.", int64(0), nil),
-		row("cli_command", int64(0), "command", "./telemetry --version", nil),
-		row("cli_command_variable", int64(0), int64(0), "version", `v(\d+\.\d+)`),
-		row("cli_command_test", int64(0), int64(0), "exit_code", int64(0), nil, nil, nil),
-		row("cli_command_test", int64(0), int64(1), "stdout_contains_all", nil, nil, nil, nil),
-		row("cli_command_test_text", int64(0), int64(1), "stdout_contains_all", int64(0), "telemetry"),
-		row("cli_command_test", int64(0), int64(2), "stdout_jq", nil, nil, ".status", "json"),
-		row("cli_command_test_jq_result", int64(0), int64(2), "stdout_jq", int64(0), "==", "string", nil, nil, "ok"),
-		row("cli_step", int64(1), "http", "Send the server a reading.", int64(1), int64(500)),
-		row("cli_http_request", int64(1), "http", "POST", "${baseURL}/readings", int64(1), "pilot", "countdown", "json", `{"altitude": 1200}`),
-		row("cli_http_header", int64(1), int64(0), "X-Probe", "apogee-1"),
-		row("cli_http_body_variable", int64(1), int64(0), "readingID", ".id", nil),
-		row("cli_http_header_variable", int64(1), int64(0), "location", "Location", nil),
-		row("cli_http_test", int64(1), int64(0), "status_code", int64(201), nil, nil, nil, nil, nil, nil, nil, nil, nil),
-		row("cli_http_test", int64(1), int64(1), "json_value", nil, nil, nil, nil, ".altitude", "eq", "int", nil, int64(1200), nil),
-		row("cli_http_test", int64(1), int64(2), "headers_contain", nil, nil, "Content-Type", "application/json", nil, nil, nil, nil, nil, nil),
-		row("cli_step", int64(2), "http", "Log in at the console.", int64(0), nil),
-		row("cli_http_request", int64(2), "http", "POST", "${baseURL}/login", int64(0), nil, nil, "form", nil),
-		row("cli_http_form_field", int64(2), "form", int64(0), "callsign", "apogee"),
-		row("cli_http_test", int64(2), int64(0), "body_contains", nil, "welcome", nil, nil, nil, nil, nil, nil, nil, nil),
-	)
-}
-
-func githubLesson() Record {
-	return record(lesson("l-repo", "flight-log-repo", "type_github_checks", 4, "# Flight Log Repository\n\nPublish the flight log.\n"),
-		row("github_lesson", "type_github_checks", int64(0), int64(0)),
-		row("github_step", int64(0), "repo_exists", nil, nil, nil, nil, nil, nil, nil, nil),
-		row("github_step", int64(1), "branch_exists", "telemetry", nil, nil, nil, nil, nil, nil, nil),
-		row("github_step", int64(2), "file_contains", nil, "README.md", nil, nil, nil, nil, nil, nil),
-		row("github_file_text", int64(2), "file_contains", int64(0), "# Flight log"),
-		row("github_step", int64(3), "pr_exists", nil, nil, "apogee-space", "flight-log", "main", "telemetry", nil, nil),
-		row("github_step", int64(4), "workflow_status", nil, nil, nil, nil, nil, nil, "ci", "success"),
-		row("github_step", int64(5), "workflow_logs_contains", nil, nil, nil, nil, nil, nil, "ci", nil),
-		row("github_log_text", int64(5), "workflow_logs_contains", "test", int64(0), "PASS"),
-	)
-}
-
-func interviewLesson() Record {
-	return record(lesson("l-review", "mission-review", "type_interview_chat", 5, "# Mission Review\n\nWalk the flight director through a scrub.\n"),
-		row("interview_lesson", "type_interview_chat", "Explain what the countdown does when a launch is scrubbed.", "Says the timer stops and starts again from the top."),
-	)
-}
-
 func everyType() []Record {
-	return []Record{codeLesson(), testsLesson(), quizLesson(), cliLesson(), githubLesson(), interviewLesson()}
+	return []Record{codeLesson(), testsLesson(), quizLesson()}
 }
 
 func put(t *testing.T, d *sql.DB, recs ...Record) {
@@ -259,8 +211,8 @@ func TestPutEveryType(t *testing.T) {
 			t.Errorf("%s: read back different %v", r.Lesson.Slug, diff)
 		}
 	}
-	if count(t, d, `SELECT count(*) FROM lesson_search WHERE lesson_search MATCH 'telemetry'`) != 1 {
-		t.Error("search does not find the ground station lesson")
+	if count(t, d, `SELECT count(*) FROM lesson_search WHERE lesson_search MATCH 'burn'`) != 1 {
+		t.Error("search does not find the fuel budget lesson")
 	}
 
 	// Writing the same lessons again changes nothing, down to the file's bytes.

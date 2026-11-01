@@ -24,6 +24,10 @@ struct SidebarView: View {
                     List(selection: app.sidebarSelection) {
                         ReviewRow()
                             .tag(SidebarItem.review)
+                        if app.docs != nil {
+                            DocumentationRow()
+                                .tag(SidebarItem.documentation)
+                        }
                         ForEach(app.shelf) { library in
                             LibrarySection(library: library)
                         }
@@ -57,7 +61,9 @@ extension AppModel {
                     guard self.selection == item else { return }
                     switch item {
                     case .review: self.showReview()
+                    case .documentation: self.openDocumentation()
                     case .lesson(let ref): self.open(ref)
+                    case .doc(let link): self.openDocumentation(link, selecting: item)
                     }
                 }
             })
@@ -81,6 +87,22 @@ struct ReviewRow: View {
         .frame(minHeight: 24)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(app.dueCount == 0 ? "Review, nothing due" : "Review, \(app.dueCount) due")
+    }
+}
+
+/// The Go documentation built into the app: the language and the standard library.
+struct DocumentationRow: View {
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "text.book.closed")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text("Go Documentation")
+            Spacer(minLength: 4)
+        }
+        .frame(minHeight: 24)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -148,7 +170,7 @@ struct CourseGroup: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary)
                 }
-                Text(course.title).lineLimit(1)
+                Text(course.title).lineLimit(1).layoutPriority(1)
                 Spacer(minLength: 6)
                 ProgressRing(done: progress.done, total: progress.total)
             }
@@ -201,9 +223,13 @@ struct ChapterGroup: View {
             }
         } label: {
             let done = app.doneCount(chapter, in: library)
-            HStack(spacing: 6) {
-                Text(chapter.title)
-                    .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                // A long title takes a second line rather than losing its end. It is laid out
+                // first, so the spacer doesn't take half of the row from it.
+                Text(chapter.title.keepingHyphenatedWords)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                 Spacer(minLength: 6)
                 Text("\(done)/\(chapter.lessons.count)")
                     .font(.caption.monospacedDigit())
@@ -223,13 +249,18 @@ struct LessonRow: View {
 
     var body: some View {
         let done = app.isDone(ref)
-        HStack(spacing: 7) {
+        // The symbol and the done mark sit on the title's first line.
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
             Image(systemName: lesson.type.symbol)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
                 .frame(width: 18)
-            Text(lesson.title)
-                .lineLimit(1)
+            // Two lines, so a long title is read whole instead of cut at the sidebar's width;
+            // laid out first, so the spacer doesn't take half of the row from it.
+            Text(lesson.title.keepingHyphenatedWords)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
                 // Selected, the row is white on the accent, so an optional title takes the list's own secondary.
                 .foregroundStyle(lesson.required ? AnyShapeStyle(.primary) : prominence == .increased ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.secondaryText))
             Spacer(minLength: 4)
@@ -249,14 +280,24 @@ struct SearchResultsList: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        if app.searchResults.isEmpty && !app.searching {
+        if app.searchResults.isEmpty && app.docSearchResults.isEmpty && !app.searching {
             ContentUnavailableView.search(text: app.searchText)
         } else {
             List(selection: app.sidebarSelection) {
-                Section("\(app.searchResults.count) Lesson\(app.searchResults.count == 1 ? "" : "s")") {
-                    ForEach(app.searchResults) { hit in
-                        SearchHitRow(hit: hit)
-                            .tag(SidebarItem.lesson(hit.ref))
+                if !app.searchResults.isEmpty || app.docSearchResults.isEmpty {
+                    Section("\(app.searchResults.count) Lesson\(app.searchResults.count == 1 ? "" : "s")") {
+                        ForEach(app.searchResults) { hit in
+                            SearchHitRow(hit: hit)
+                                .tag(SidebarItem.lesson(hit.ref))
+                        }
+                    }
+                }
+                if !app.docSearchResults.isEmpty {
+                    Section("Documentation") {
+                        ForEach(app.docSearchResults) { hit in
+                            DocHitRow(hit: hit)
+                                .tag(SidebarItem.doc(hit.link))
+                        }
                     }
                 }
             }
@@ -265,7 +306,7 @@ struct SearchResultsList: View {
             // differing heights while it keeps its top row still, resizes in the middle of that
             // and re-enters its own row-height cache, which AppKit logs as a reentrant
             // operation in its delegate and will turn into an assertion.
-            .id(app.searchResults.map(\.ref))
+            .id(app.searchResults.map { "\($0.ref.library)/\($0.ref.lesson)" } + app.docSearchResults.map(\.link.url))
         }
     }
 }
@@ -284,6 +325,7 @@ struct SearchHitRow: View {
                 Text(title)
                     .fontWeight(.medium)
                     .lineLimit(1)
+                    .layoutPriority(1)
                 Spacer(minLength: 4)
                 if app.isDone(hit.ref) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
@@ -343,4 +385,10 @@ struct SearchHitRow: View {
         }
         return out
     }
+}
+
+extension String {
+    /// The text with its hyphens non-breaking, so a title that takes two lines breaks between
+    /// words ("The Pre-Pass / Checklist") and not inside one ("The Pre- / Pass Checklist").
+    var keepingHyphenatedWords: String { replacingOccurrences(of: "-", with: "\u{2011}") }
 }

@@ -9,6 +9,12 @@ package db
 // addresses and settings) out of the library into a learner database (learner.sql). The step
 // from 6 to 7 therefore writes two files: the learner database first, and the library only
 // once that is committed.
+//
+// Format 8 keeps only the lessons Gosmos checks on the learner's Mac alone: code, tests and
+// quizzes. Gosmos never uses the network, so the lesson types that reached outside the Mac or
+// were only marked done by hand are gone: command-line lessons (shell commands, HTTP requests,
+// jq checks), GitHub checks and interviews. Migrate refuses a library that holds any of them
+// before it changes anything, so the steps before 8 only ever meet those types' tables empty.
 
 import (
 	"context"
@@ -23,7 +29,7 @@ import (
 	"time"
 )
 
-//go:embed history/*.sql
+//go:embed history/schema_v*.sql
 var history embed.FS
 
 // formatSchema returns the schema of format v: schema.sql for this program's format, the kept
@@ -48,11 +54,33 @@ var steps = map[int]func(ctx context.Context, tx *sql.Tx) error{
 	3: migrate3to4,
 	4: migrate4to5,
 	5: migrate5to6,
+	7: migrate7to8,
 }
 
 // learnerTables are the tables of format 6 and older that hold the learner's data, in the order
-// Migrate moves them.
-var learnerTables = []string{"progress", "attempt", "note", "code_file", "project", "server_address", "setting"}
+// Migrate moves them, each with an SQL condition that picks the rows it moves into the learner
+// database. The others only served command-line lessons, which format 8 removed: the courses'
+// project folders and server addresses, and the attempts of command-line checks. They go with
+// the library's learner tables, and Migration.Dropped counts them.
+var learnerTables = []struct{ name, moves string }{
+	{"progress", "true"}, {"attempt", movedAttempts}, {"note", "true"}, {"code_file", "true"},
+	{"project", "false"}, {"server_address", "false"}, {"setting", "true"},
+}
+
+// movedAttempts picks the attempts Migrate moves: all but those of command-line checks.
+const movedAttempts = "kind <> 'check'"
+
+// removedTypes are the lesson types format 8 removed, and removedTables the tables of format 7
+// that held them.
+var (
+	removedTypes  = []string{"type_cli", "type_github_checks", "type_interview_chat"}
+	removedTables = []string{
+		"cli_lesson", "cli_lesson_os", "cli_step", "cli_command", "cli_command_variable", "cli_command_test",
+		"cli_command_test_text", "cli_command_test_jq_result", "cli_http_request", "cli_http_header",
+		"cli_http_form_field", "cli_http_body_variable", "cli_http_header_variable", "cli_http_test",
+		"github_lesson", "github_step", "github_file_text", "github_log_text", "interview_lesson",
+	}
+)
 
 // migrate3to4 makes format 4:
 //   - cli_lesson.base_url_default holds only real addresses. The source's 'override', which
@@ -112,11 +140,12 @@ type TableRows struct {
 type Migration struct {
 	From, To  int
 	Recovered bool        // an interrupted write was rolled back first (RecoveredMessage)
-	Info      Info        // the library's library_info row, once it is of format 7
+	Info      Info        // the library's library_info row, once it is of format 7 or later
 	Learner   string      // the learner database its learner data went to, if one was given
 	Created   bool        // Migrate made that learner database from learner.sql
 	Moved     []TableRows // the learner's rows of each table, which the learner database now holds
 	Already   bool        // an earlier run had copied them, so none was copied again
+	Dropped   []TableRows // the learner's rows only command-line lessons used, gone with the library's learner tables
 }
 
 // Migrate brings the library at path up to this program's format, one format at a time. Each
@@ -128,13 +157,19 @@ type Migration struct {
 // learner's data into the learner database opt.Learner, under a library row for the file
 // (location: its absolute path). That transaction commits first. Only then is the library
 // rebuilt without the learner tables, in one transaction that checks every other table kept
-// its rows, and vacuumed, so no copy of the learner's data stays in it. Run again after an
-// interruption, Migrate finds the file's library row in the learner database, takes its uuid
-// and title, and copies nothing a second time as long as the row counts match.
+// its rows. Run again after an interruption, Migrate finds the file's library row in the
+// learner database, takes its uuid and title, and copies nothing a second time as long as the
+// row counts match.
 //
-// A library that holds learner data is refused without opt.Learner, and so is one whose
-// learner database is not one of this program's, before anything changes. A file of this
-// format is left alone; a newer one, or one that is not a library, is refused.
+// The step from 7 to 8 drops the tables of the lesson types format 8 removed and narrows
+// lesson.type to the three it keeps; every other row stays as it is, the library_info row
+// included, so the library keeps its uuid. The file is vacuumed last, so no copy of what went
+// stays in it.
+//
+// A library that holds lessons of the removed types is refused, and so is one that holds learner
+// data without opt.Learner, or whose learner database is not one of this program's, before
+// anything changes. A file of this format is left alone; a newer one, or one that is not a
+// library, is refused.
 func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, error) {
 	m := Migration{To: Version}
 	if info, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
@@ -161,6 +196,7 @@ func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, e
 	case app == ApplicationID && m.From == Version:
 		m.Info, err = ReadInfo(ctx, d)
 		return m, err
+	case app == ApplicationID && m.From == 7:
 	case app == LegacyApplicationID && m.From >= oldest && m.From <= 6:
 	case app == LegacyApplicationID && m.From < oldest:
 		return m, fmt.Errorf("%s is of format %d; library migrate takes format %d and later only", path, m.From, oldest)
@@ -172,21 +208,51 @@ func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, e
 	}
 
 	// Everything that can refuse the migration does so before it changes anything.
-	held, err := learnerRows(ctx, d)
-	if err != nil {
+	if removed, err := removedLessons(ctx, d); err != nil {
+		return m, err
+	} else if removed != "" {
+		return m, fmt.Errorf("%s holds lessons of types format 8 removed (%s): Gosmos is self-contained, with code, tests and quiz lessons only, which it checks on the Mac alone; nothing changed", path, removed)
+	}
+	if m.From == 7 {
+		if m.Info, err = ReadInfo(ctx, d); err != nil {
+			return m, fmt.Errorf("%s: %w; nothing changed", path, err)
+		}
+	} else if m.Info, err = migrateTo7(ctx, d, path, opt, &m); err != nil {
 		return m, err
 	}
+	if err := migrate(ctx, d, 7, steps[7]); err != nil {
+		return m, err
+	}
+	// The pages of the tables that went are free now but may still hold their rows: VACUUM
+	// writes the file again without them. Lessons keep their ids (lesson.id is an INTEGER
+	// PRIMARY KEY).
+	if _, err := d.ExecContext(ctx, `VACUUM`); err != nil {
+		return m, fmt.Errorf("vacuuming %s: %w", path, err)
+	}
+	return m, nil
+}
+
+// migrateTo7 takes a library of format 6 or older to format 7: the steps inside the file up to
+// 6, the learner's data into the learner database, then the step from 6 to 7. It refuses a
+// library that holds learner data to move without opt.Learner, or whose learner database is
+// not one of this program's, before it changes anything. It returns the library_info row the
+// library got, and records in m what happened to the learner's data.
+func migrateTo7(ctx context.Context, d *sql.DB, path string, opt MigrateOptions, m *Migration) (Info, error) {
+	held, dropped, err := learnerRows(ctx, d)
+	if err != nil {
+		return Info{}, err
+	}
 	if total(held) > 0 && opt.Learner == "" {
-		return m, fmt.Errorf("%s holds the learner's data (%s); give a learner database to move it into (--learner <file>): nothing changed", path, describe(held))
+		return Info{}, fmt.Errorf("%s holds the learner's data (%s); give a learner database to move it into (--learner <file>): nothing changed", path, describe(held))
 	}
 	var l *sql.DB
 	if opt.Learner != "" {
 		if same, err := sameFile(path, opt.Learner); err != nil || same {
-			return m, errors.Join(err, fmt.Errorf("the learner database cannot be the library itself: nothing changed"))
+			return Info{}, errors.Join(err, fmt.Errorf("the learner database cannot be the library itself: nothing changed"))
 		}
 		if _, err := os.Stat(opt.Learner); err == nil {
 			if l, err = OpenLearner(opt.Learner); err != nil {
-				return m, fmt.Errorf("%w: nothing changed", err)
+				return Info{}, fmt.Errorf("%w: nothing changed", err)
 			}
 			defer l.Close()
 		}
@@ -194,40 +260,35 @@ func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, e
 
 	for v := m.From; v < 6; v++ {
 		if err := migrate(ctx, d, v, steps[v]); err != nil {
-			return m, err
+			return Info{}, err
 		}
 	}
 	info := Info{UUID: NewUUID(), Version: "1"}
 	if info.Title, err = pickTitle(ctx, d, path, opt.Title); err != nil {
-		return m, err
+		return Info{}, err
 	}
 	if opt.Learner != "" {
 		if l == nil {
 			if l, err = CreateLearner(opt.Learner); err != nil {
-				return m, err
+				return Info{}, err
 			}
 			defer l.Close()
 			m.Created = true
 		}
 		abs, err := filepath.Abs(path)
 		if err != nil {
-			return m, err
+			return Info{}, err
 		}
 		m.Learner = opt.Learner
 		if m.Moved, m.Already, err = moveLearnerData(ctx, l, abs, &info, opt.Now); err != nil {
-			return m, err
+			return Info{}, err
 		}
 	}
 	if err := migrate(ctx, d, 6, func(ctx context.Context, tx *sql.Tx) error { return migrate6to7(ctx, tx, info) }); err != nil {
-		return m, err
+		return Info{}, err
 	}
-	// The learner tables' pages are free now but still hold their rows: VACUUM writes the
-	// file again without them. Lessons keep their ids (lesson.id is an INTEGER PRIMARY KEY).
-	if _, err := d.ExecContext(ctx, `VACUUM`); err != nil {
-		return m, fmt.Errorf("vacuuming %s: %w", path, err)
-	}
-	m.Info = info
-	return m, nil
+	m.Dropped = dropped
+	return info, nil
 }
 
 // migrate6to7 makes format 7 inside the library, once its learner data is in the learner
@@ -242,10 +303,10 @@ func migrate6to7(ctx context.Context, tx *sql.Tx, info Info) error {
 		return err
 	}
 	for _, t := range learnerTables {
-		if _, err := tx.ExecContext(ctx, `DROP TABLE `+t); err != nil {
-			return fmt.Errorf("dropping %s: %w", t, err)
+		if _, err := tx.ExecContext(ctx, `DROP TABLE `+t.name); err != nil {
+			return fmt.Errorf("dropping %s: %w", t.name, err)
 		}
-		delete(before, t)
+		delete(before, t.name)
 	}
 	// Each lesson keeps its id, the search index's key.
 	if err := rebuild(ctx, tx, 7, "lesson", `
@@ -272,20 +333,12 @@ func migrate6to7(ctx context.Context, tx *sql.Tx, info Info) error {
 	if _, err := tx.ExecContext(ctx, `INSERT INTO library_info (singleton, uuid, title, version) VALUES (1, ?, ?, ?)`, info.UUID, info.Title, info.Version); err != nil {
 		return fmt.Errorf("library_info: %w", err)
 	}
-	after, err := tableRows(ctx, tx)
+	after, err := keptRows(ctx, tx, before)
 	if err != nil {
 		return err
 	}
-	for t, n := range before {
-		if after[t] != n {
-			return fmt.Errorf("%s holds %d rows after the rebuild, not %d", t, after[t], n)
-		}
-	}
 	if after["library_info"] != 1 || after["lesson_hint"] != 0 {
 		return fmt.Errorf("library_info holds %d rows and lesson_hint %d, not 1 and 0", after["library_info"], after["lesson_hint"])
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO lesson_search(lesson_search, rank) VALUES ('integrity-check', 1)`); err != nil {
-		return fmt.Errorf("the search index no longer matches the lessons: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`PRAGMA application_id = %d`, ApplicationID)); err != nil {
 		return err
@@ -293,10 +346,75 @@ func migrate6to7(ctx context.Context, tx *sql.Tx, info Info) error {
 	return nil
 }
 
+// migrate7to8 makes format 8: the tables of the lesson types it removed go, and lesson.type
+// takes code, tests and quiz lessons only. Migrate refuses a library with lessons of the
+// removed types before this runs, so those tables are empty; a row in one fails the step all
+// the same. Every table it keeps must hold as many rows as before, and the search index must
+// still match the lessons.
+func migrate7to8(ctx context.Context, tx *sql.Tx) error {
+	before, err := tableRows(ctx, tx)
+	if err != nil {
+		return err
+	}
+	for _, t := range removedTables {
+		if before[t] > 0 {
+			return fmt.Errorf("%s holds %d rows, of a lesson type format 8 removed", t, before[t])
+		}
+		if _, err := tx.ExecContext(ctx, `DROP TABLE `+t); err != nil {
+			return fmt.Errorf("dropping %s: %w", t, err)
+		}
+		delete(before, t)
+	}
+	// Each lesson keeps its id, the search index's key.
+	if err := rebuild(ctx, tx, 8, "lesson", `
+		INSERT INTO new_lesson (id, uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+		SELECT id, uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod
+		FROM lesson`); err != nil {
+		return err
+	}
+	_, err = keptRows(ctx, tx, before)
+	return err
+}
+
+// keptRows counts the rows of every table after a step and checks that each table of before
+// still holds as many, and that the search index still matches the lessons. It returns the
+// counts.
+func keptRows(ctx context.Context, tx *sql.Tx, before map[string]int) (map[string]int, error) {
+	after, err := tableRows(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	for t, n := range before {
+		if after[t] != n {
+			return nil, fmt.Errorf("%s holds %d rows after the rebuild, not %d", t, after[t], n)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO lesson_search(lesson_search, rank) VALUES ('integrity-check', 1)`); err != nil {
+		return nil, fmt.Errorf("the search index no longer matches the lessons: %w", err)
+	}
+	return after, nil
+}
+
+// removedLessons lists how many lessons of each type format 8 removed a library holds, such as
+// "type_cli 2, type_interview_chat 1", or returns "" when it holds none.
+func removedLessons(ctx context.Context, d *sql.DB) (string, error) {
+	var parts []string
+	for _, typ := range removedTypes {
+		var n int
+		if err := d.QueryRowContext(ctx, `SELECT count(*) FROM lesson WHERE type = ?`, typ).Scan(&n); err != nil {
+			return "", fmt.Errorf("counting the %s lessons: %w", typ, err)
+		}
+		if n > 0 {
+			parts = append(parts, fmt.Sprintf("%s %d", typ, n))
+		}
+	}
+	return strings.Join(parts, ", "), nil
+}
+
 // moveLearnerData copies the learner's data from the library file at abs into the learner
-// database l, in one transaction: a library row for the file, then its rows of every learner
-// table, keyed by the library's uuid. Attempts get new ids in their old order. A server address
-// or setting the learner database already has keeps its value there. Every table's rows are
+// database l, in one transaction: a library row for the file, then the rows each learner table
+// moves (learnerTables), keyed by the library's uuid. Attempts get new ids in their old order. A
+// setting the learner database already has keeps its value there. Every table's rows are
 // counted on both sides before the transaction commits.
 //
 // A library row already there for the same location is an earlier run's: its uuid and title
@@ -335,16 +453,11 @@ func moveLearnerData(ctx context.Context, l *sql.DB, abs string, info *Info, now
 			`INSERT INTO main.progress (library_uuid, lesson_uuid, done_at, last_opened_at)
 				SELECT ?1, lesson_uuid, done_at, last_opened_at FROM content.progress ORDER BY lesson_uuid`,
 			`INSERT INTO main.attempt (library_uuid, lesson_uuid, kind, passed, output, duration_ms, at)
-				SELECT ?1, lesson_uuid, kind, passed, output, duration_ms, at FROM content.attempt ORDER BY id`,
+				SELECT ?1, lesson_uuid, kind, passed, output, duration_ms, at FROM content.attempt WHERE ` + movedAttempts + ` ORDER BY id`,
 			`INSERT INTO main.note (library_uuid, lesson_uuid, body, updated_at)
 				SELECT ?1, lesson_uuid, body, updated_at FROM content.note ORDER BY lesson_uuid`,
 			`INSERT INTO main.code_file (library_uuid, lesson_uuid, name, content, updated_at)
 				SELECT ?1, lesson_uuid, name, content, updated_at FROM content.code_file ORDER BY lesson_uuid, name`,
-			`INSERT INTO main.project (library_uuid, course_uuid, dir, base_url)
-				SELECT ?1, course_uuid, dir, base_url FROM content.project ORDER BY course_uuid`,
-			`INSERT INTO main.server_address (default_url, url)
-				SELECT default_url, url FROM content.server_address WHERE ?1 IS NOT NULL ORDER BY default_url
-				ON CONFLICT (default_url) DO NOTHING`,
 			`INSERT INTO main.setting (key, value)
 				SELECT key, value FROM content.setting WHERE ?1 IS NOT NULL ORDER BY key
 				ON CONFLICT (key) DO NOTHING`,
@@ -372,16 +485,13 @@ func moveLearnerData(ctx context.Context, l *sql.DB, abs string, info *Info, now
 	return moved, false, tx.Commit()
 }
 
-// compareLearnerRows counts, for every learner table, the file's rows and the ones the learner
-// database holds of them for the library: the rows of the library's uuid, or for server
-// addresses and settings, the rows with the same key. Attempts must also come in the same
-// order. It returns the file's counts and a line for each difference.
+// compareLearnerRows counts, for every learner table that moves rows, the rows the file has to
+// move and the ones the learner database holds of them for the library: the rows of the
+// library's uuid, or for settings, the rows with the same key. Attempts must also come in the
+// same order. It returns the file's counts and a line for each difference.
 func compareLearnerRows(ctx context.Context, tx *sql.Tx, uuid string) ([]TableRows, []string, error) {
 	held := func(t string) string {
-		switch t {
-		case "server_address":
-			return `SELECT count(*) FROM content.server_address c WHERE EXISTS (SELECT 1 FROM main.server_address s WHERE s.default_url = c.default_url)`
-		case "setting":
+		if t == "setting" {
 			return `SELECT count(*) FROM content.setting c WHERE EXISTS (SELECT 1 FROM main.setting s WHERE s.key = c.key)`
 		}
 		return `SELECT count(*) FROM main.` + t + ` WHERE library_uuid = ?1`
@@ -389,18 +499,21 @@ func compareLearnerRows(ctx context.Context, tx *sql.Tx, uuid string) ([]TableRo
 	var counts []TableRows
 	var mismatch []string
 	for _, t := range learnerTables {
-		var want, got int
-		if err := tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM content.`+t+`), (`+held(t)+`)`, uuid).Scan(&want, &got); err != nil {
-			return nil, nil, fmt.Errorf("counting %s: %w", t, err)
+		if t.moves == "false" {
+			continue
 		}
-		counts = append(counts, TableRows{t, want})
+		var want, got int
+		if err := tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM content.`+t.name+` WHERE `+t.moves+`), (`+held(t.name)+`)`, uuid).Scan(&want, &got); err != nil {
+			return nil, nil, fmt.Errorf("counting %s: %w", t.name, err)
+		}
+		counts = append(counts, TableRows{t.name, want})
 		if got != want {
-			mismatch = append(mismatch, fmt.Sprintf("%s: %d rows in the file, %d in the learner database", t, want, got))
+			mismatch = append(mismatch, fmt.Sprintf("%s: %d rows in the file, %d in the learner database", t.name, want, got))
 		}
 	}
 	var misplaced int
 	if err := tx.QueryRowContext(ctx, `WITH
-		a AS (SELECT row_number() OVER (ORDER BY id) AS n, lesson_uuid, kind, passed, output, duration_ms, at FROM content.attempt),
+		a AS (SELECT row_number() OVER (ORDER BY id) AS n, lesson_uuid, kind, passed, output, duration_ms, at FROM content.attempt WHERE `+movedAttempts+`),
 		b AS (SELECT row_number() OVER (ORDER BY id) AS n, lesson_uuid, kind, passed, output, duration_ms, at FROM main.attempt WHERE library_uuid = ?1)
 		SELECT count(*) FROM a JOIN b USING (n)
 		WHERE a.lesson_uuid IS NOT b.lesson_uuid OR a.kind IS NOT b.kind OR a.passed IS NOT b.passed
@@ -413,22 +526,28 @@ func compareLearnerRows(ctx context.Context, tx *sql.Tx, uuid string) ([]TableRo
 	return counts, mismatch, nil
 }
 
-// learnerRows counts the rows of the learner tables a library of format 6 or older has.
-func learnerRows(ctx context.Context, d *sql.DB) ([]TableRows, error) {
-	var out []TableRows
+// learnerRows counts the rows of the learner tables a library of format 6 or older has: those
+// Migrate moves into the learner database, for each table that moves any, and those it drops,
+// for each table whose rows only command-line lessons used.
+func learnerRows(ctx context.Context, d *sql.DB) (moved, dropped []TableRows, err error) {
 	for _, t := range learnerTables {
-		var exists, n int
-		if err := d.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = ?`, t).Scan(&exists); err != nil {
-			return nil, err
+		var exists, keep, drop int
+		if err := d.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = ?`, t.name).Scan(&exists); err != nil {
+			return nil, nil, err
 		}
 		if exists == 1 {
-			if err := d.QueryRowContext(ctx, `SELECT count(*) FROM `+t).Scan(&n); err != nil {
-				return nil, fmt.Errorf("counting %s: %w", t, err)
+			if err := d.QueryRowContext(ctx, `SELECT count(*) FILTER (WHERE `+t.moves+`), count(*) FILTER (WHERE NOT (`+t.moves+`)) FROM `+t.name).Scan(&keep, &drop); err != nil {
+				return nil, nil, fmt.Errorf("counting %s: %w", t.name, err)
 			}
 		}
-		out = append(out, TableRows{t, n})
+		if t.moves != "false" {
+			moved = append(moved, TableRows{t.name, keep})
+		}
+		if t.moves != "true" {
+			dropped = append(dropped, TableRows{t.name, drop})
+		}
 	}
-	return out, nil
+	return moved, dropped, nil
 }
 
 func total(rows []TableRows) int {

@@ -31,3 +31,34 @@ import Testing
         #expect(await cache.parsed(for: renewed).readme == [.paragraph([.text("A new kettle.")])])
     }
 }
+
+/// One copy of the app at a time: a launch gives way to a copy of the same bundle id that
+/// launched before it, and never to another app such as a QA build.
+@Suite struct SingleInstanceTests {
+    @Test func aLaunchGivesWayToAnEarlierCopyOfTheSameApp() {
+        let id = "app.gosmos.Gosmos"
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let me = SingleInstance.App(pid: 500, bundleIdentifier: id, launchDate: t0.addingTimeInterval(60))
+        let installed = SingleInstance.App(pid: 400, bundleIdentifier: id, launchDate: t0)
+        let qa = SingleInstance.App(pid: 300, bundleIdentifier: "app.gosmos.GosmosQA", launchDate: t0)
+
+        // Alone, or beside another app: it runs. The system lists this process too.
+        #expect(SingleInstance.runningCopy(for: me, in: []) == nil)
+        #expect(SingleInstance.runningCopy(for: me, in: [me, qa]) == nil)
+        // Another copy, such as ~/Applications/Gosmos.app while build/Gosmos.app launches.
+        #expect(SingleInstance.runningCopy(for: me, in: [me, qa, installed]) == installed)
+        // That copy, launched after this one, gives way instead: of two launched at once, one stays.
+        #expect(SingleInstance.runningCopy(for: installed, in: [me, installed]) == nil)
+        // Several earlier copies: the first.
+        let older = SingleInstance.App(pid: 600, bundleIdentifier: id, launchDate: t0.addingTimeInterval(-60))
+        #expect(SingleInstance.runningCopy(for: me, in: [installed, me, older]) == older)
+        // The same launch date, or none known: the process id decides.
+        let twin = SingleInstance.App(pid: 450, bundleIdentifier: id, launchDate: me.launchDate)
+        #expect(SingleInstance.runningCopy(for: me, in: [me, twin]) == twin)
+        #expect(SingleInstance.runningCopy(for: twin, in: [me, twin]) == nil)
+        let undated = SingleInstance.App(pid: 100, bundleIdentifier: id)
+        #expect(SingleInstance.runningCopy(for: SingleInstance.App(pid: 200, bundleIdentifier: id), in: [undated]) == undated)
+        // A bare binary has no bundle id: nothing to compare.
+        #expect(SingleInstance.runningCopy(for: SingleInstance.App(pid: 500, bundleIdentifier: nil), in: [SingleInstance.App(pid: 1, bundleIdentifier: nil)]) == nil)
+    }
+}

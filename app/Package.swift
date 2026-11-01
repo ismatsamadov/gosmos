@@ -18,10 +18,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", exact: "7.11.1"),
         .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
-        // The HTTP/1.1 client for command-line checks, on SwiftNIO (app/Packages/LessonHTTP).
-        .package(path: "Packages/LessonHTTP"),
-        // jq 1.8.2 with Oniguruma, compiled in (app/Packages/JQ).
-        .package(path: "Packages/JQ"),
         // The code editor (TextKit 2), and SyntaxCore: the highlighting types it shares with
         // the Go lexer (app/Packages/CodeEditor).
         .package(path: "Packages/CodeEditor"),
@@ -33,8 +29,6 @@ let package = Package(
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Markdown", package: "swift-markdown"),
-                .product(name: "LessonHTTP", package: "LessonHTTP"),
-                .product(name: "JQ", package: "JQ"),
                 .product(name: "SyntaxCore", package: "CodeEditor"),
             ]
         ),
@@ -52,7 +46,6 @@ let package = Package(
             dependencies: [
                 "GosmosKit",
                 .product(name: "GRDB", package: "GRDB.swift"),
-                .product(name: "JQ", package: "JQ"),
                 .product(name: "SyntaxCore", package: "CodeEditor"),
             ],
             swiftSettings: testSettings

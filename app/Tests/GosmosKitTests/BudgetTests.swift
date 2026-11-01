@@ -30,10 +30,10 @@ import Testing
                         try db.execute(sql: """
                             INSERT INTO lesson(uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
                             VALUES (?,?,?,?,?,?,?,?,?,?,?)
-                            """, arguments: ["\(chapter)l\(l)", chapter, l, "lesson-\(l)", "Lesson \(words[l + h]) \(c)-\(h)-\(l)", "type_github_checks", 1, 2,
+                            """, arguments: ["\(chapter)l\(l)", chapter, l, "lesson-\(l)", "Lesson \(words[l + h]) \(c)-\(h)-\(l)", "type_choice", 1, 2,
                                              readme, Fixtures.ts, Fixtures.ts])
-                        try db.execute(sql: "INSERT INTO github_lesson(lesson_uuid, showcase_repo, contains_complete_dir) VALUES (?,?,?)",
-                                       arguments: ["\(chapter)l\(l)", 0, 0])
+                        try db.execute(sql: "INSERT INTO quiz_lesson(lesson_uuid, contains_complete_dir) VALUES (?,?)",
+                                       arguments: ["\(chapter)l\(l)", 0])
                     }
                 }
             }
@@ -70,6 +70,49 @@ import Testing
         let c = clock.now
         _ = try await db.catalog()
         #expect(clock.now - c < .milliseconds(200), "catalog \(clock.now - c)")
+    }
+
+    /// The documentation's budgets, on the full Go reference the app ships: a package's page
+    /// opens in under 100 ms, the biggest ones too, and each keystroke of a search takes under
+    /// 30 ms.
+    @Test(.enabled(if: FileManager.default.fileExists(atPath: ReferenceFixture.fullURL.path)))
+    func documentationPagesAndSearchAreFast() async throws {
+        let reference = try ReferenceDatabase(url: ReferenceFixture.fullURL)
+        let clock = ContinuousClock()
+        // As at launch, when the names for links are read.
+        #expect(!(try reference.names()).isEmpty)
+
+        // Each the best of three, so the other tests running meanwhile don't count.
+        func best(_ work: () async throws -> Void) async rethrows -> Duration {
+            var best = Duration.seconds(60)
+            for _ in 0..<3 {
+                let t = clock.now
+                try await work()
+                best = min(best, clock.now - t)
+            }
+            return best
+        }
+
+        var slowest = Duration.zero
+        for path in ["net/http", "syscall", "debug/elf", "reflect", "go/types", "strings", "fmt", "os"] {
+            slowest = max(slowest, try await best {
+                let page = try await reference.page(.package(path))
+                #expect(page != nil, "\(path)")
+            })
+        }
+        #expect(slowest < .milliseconds(100), "slowest package page \(slowest)")
+
+        var slowestSearch = Duration.zero
+        for query in ["p", "pr", "pri", "prin", "print", "printl", "println", "B", "Bu", "Builder", "strings.B", "strings.Builder.Gr",
+                      "g", "go", "gor", "goroutine", "slice of", "http.Cl", "time.Dur"] {
+            slowestSearch = max(slowestSearch, try await best {
+                let hits = try await reference.search(query)
+                #expect(!hits.isEmpty, "\(query)")
+            })
+        }
+        #expect(slowestSearch < .milliseconds(30), "slowest search \(slowestSearch)")
+        #expect(try await reference.search("Println").first?.title == "fmt.Println")
+        #expect(try await reference.search("Builder").first?.title == "strings.Builder")
     }
 }
 

@@ -76,6 +76,8 @@ func OpenLearner(path string) (*sql.DB, error) {
 		err = fmt.Errorf("opening %s: %w", path, err)
 	case app != LearnerApplicationID:
 		err = fmt.Errorf("%s is not a Gosmos learner database (application_id %d, not %d)", path, app, LearnerApplicationID)
+	case version < LearnerVersion:
+		err = fmt.Errorf("%s is a learner database of version %d, older than %d: Gosmos brings it up to date when it opens it", path, version, LearnerVersion)
 	case version != LearnerVersion:
 		err = fmt.Errorf("%s is a learner database of version %d; this program writes version %d only", path, version, LearnerVersion)
 	}

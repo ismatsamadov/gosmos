@@ -112,7 +112,7 @@ func crashLibrary(t *testing.T) (string, string) {
 		t.Fatal(err)
 	}
 	defer d.Close()
-	return path, dump(t, d)
+	return path, dump(t, d, nil)
 }
 
 func TestInspectRecoversAnInterruptedWrite(t *testing.T) {
@@ -138,7 +138,7 @@ func TestInspectRecoversAnInterruptedWrite(t *testing.T) {
 	if _, err := os.Stat(path + "-journal"); err == nil {
 		t.Error("the journal is still there")
 	}
-	if got := dump(t, d); got != want {
+	if got := dump(t, d, nil); got != want {
 		t.Errorf("the rows are not as they were before the write:\n%s\nwant\n%s", got, want)
 	}
 	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
@@ -163,7 +163,7 @@ func TestOpenRecoversAnInterruptedWrite(t *testing.T) {
 	if !strings.Contains(logged.String(), RecoveredMessage(path)) {
 		t.Errorf("Open logged %q, want the message that it recovered an interrupted write", logged.String())
 	}
-	if got := dump(t, d); got != want {
+	if got := dump(t, d, nil); got != want {
 		t.Errorf("the rows are not as they were before the write:\n%s\nwant\n%s", got, want)
 	}
 }

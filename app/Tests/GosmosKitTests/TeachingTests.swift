@@ -75,20 +75,17 @@ import Testing
         #expect(try Fixtures.rows(in: dir, "SELECT lesson_uuid FROM review_lesson").map { $0["lesson_uuid"] as String } == [Fixtures.codeLesson])
     }
 
-    /// Three failed Submits or more before a pass bring a code lesson back too; checks don't.
+    /// Three failed Submits or more before a pass bring a code lesson back too.
     @Test func strugglingBringsALessonBack() async throws {
         let dir = try Fixtures.tempDir("struggle")
         defer { try? FileManager.default.removeItem(at: dir) }
         let learner = try await Fixtures.learner(in: dir)
-        let ref = Fixtures.ref(Fixtures.testsLesson), checks = Fixtures.ref(Fixtures.cliLesson)
+        let ref = Fixtures.ref(Fixtures.testsLesson)
         for _ in 0..<2 { try await learner.recordSubmit(ref, passed: false, output: "FAIL", durationMs: 5, reviewable: true) }
         #expect(SolutionPolicy.passNeedsReview(viewedSolution: false, failedSubmits: 2) == false)
         try await learner.recordSubmit(ref, passed: false, output: "FAIL", durationMs: 5, reviewable: true)
         #expect(SolutionPolicy.passNeedsReview(viewedSolution: false, failedSubmits: 3))
         #expect(try await learner.recordSubmit(ref, passed: true, output: "ok", durationMs: 5, reviewable: true))
-        for _ in 0..<4 { try await learner.recordSubmit(checks, kind: .check, passed: false, output: "x", durationMs: 5, reviewable: false) }
-        #expect(try await !learner.recordSubmit(checks, kind: .check, passed: true, output: "ok", durationMs: 5, reviewable: false))
-        #expect(try await learner.failedAttempts(checks, kind: .check) == 4)
         #expect(try Fixtures.rows(in: dir, "SELECT lesson_uuid FROM review_lesson").map { $0["lesson_uuid"] as String } == [Fixtures.testsLesson])
     }
 
