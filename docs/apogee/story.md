@@ -51,7 +51,8 @@ Latitude is positive north, longitude positive east.
   new piece of software runs here first, against a Pipit.
 - **Salar Quieto.** At 3,840 m, people walk slowly and dust gets everywhere. Its 3° mask is
   the lowest in the network; huge day-night temperature swings make the dish's pointing
-  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita.
+  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita. The
+  only road up is the Quebrada Añil.
 - **Lantern Atoll.** Tropical downpours fade the X-band link (rain fade), so it has none.
   Diesel power, salt corrosion, a caretaker on site. A high horizon of palm trees gives it
   the network's highest mask.
