@@ -33,7 +33,7 @@ struct GosmosApp: App {
 
 /// Owns the app's model and starts it when the app has launched, whether or not its window is
 /// visible yet (a window that can't be seen, such as on a locked screen, runs no view tasks).
-/// Saves pending work and syncs before the app quits.
+/// Saves pending work before the app quits.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let app = AppModel()
@@ -44,8 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // Saves and syncs, but quits within 20 seconds even if git is slow or offline: a git
-        // still pushing then finishes on its own.
+        // Saves, but quits within 20 seconds whatever happens.
         let reply = ReplyOnce { sender.reply(toApplicationShouldTerminate: true) }
         Task {
             await app.prepareToQuit()
@@ -59,9 +58,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Back from another app, such as the editor the lesson folder is open in: take in edits
-    /// made there.
+    /// made there, and count what has come due meanwhile.
     func applicationDidBecomeActive(_ notification: Notification) {
         app.lesson?.code?.save()
+        Task { await app.refreshDueCount() }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -85,24 +85,7 @@ struct GosmosCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("Open Library…") { app.chooseLibrary() }
                 .keyboardShortcut("o", modifiers: .command)
-                .disabled(app.isOpeningLibrary)
-            Menu("Open Recent") {
-                ForEach(app.recentLibraries, id: \.self) { url in
-                    Button(url.lastPathComponent) { app.open(library: url) }
-                        .help(url.path)
-                }
-                if !app.recentLibraries.isEmpty {
-                    Divider()
-                    Button("Clear Menu") { app.clearRecentLibraries() }
-                }
-            }
-            .disabled(app.recentLibraries.isEmpty || app.isOpeningLibrary)
-        }
-        CommandGroup(after: .saveItem) {
-            Button("Commit and Push Now") { Task { await app.commitAndPush() } }
-                .disabled(app.database == nil || app.git == nil || app.isSyncing)
-            Button("Pull") { app.pullNow() }
-                .disabled(app.database == nil || app.git == nil || app.isSyncing || app.isOpeningLibrary)
+                .disabled(app.learner == nil || app.isAddingLibrary)
         }
         CommandMenu("Lesson") {
             Button("Run") { app.lesson?.run() }
@@ -131,13 +114,23 @@ struct GosmosCommands: Commands {
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
                 .disabled(!app.canGoForward)
             Divider()
-            if let lesson = app.lesson {
-                let done = app.isDone(lesson.detail.id)
-                Button(done ? "Mark as Not Done" : "Mark as Done") { app.setDone(lesson.detail.id, !done) }
+            Button("Show Hint") { app.lesson?.revealHint() }
+                .keyboardShortcut("h", modifiers: [.command, .option])
+                .disabled(!(app.lesson?.hints.canReveal ?? false))
+            Button("Show Solution") { app.lesson?.showSolution() }
+                .keyboardShortcut("s", modifiers: [.command, .option])
+                .disabled(!(app.lesson?.hasSolution ?? false))
+            Button("Review") { app.showReview() }
+                .keyboardShortcut("y", modifiers: [.command, .shift])
+                .disabled(app.learner == nil)
+            Divider()
+            if let lesson = app.lesson, !lesson.isReview {
+                let done = app.isDone(lesson.ref)
+                Button(done ? "Mark as Not Done" : "Mark as Done") { app.setDone(lesson.ref, !done) }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
             }
             Button("Reset to Starter Code…") { app.confirmReset = true }
-                .disabled(app.lesson?.code == nil)
+                .disabled(app.lesson?.code == nil || app.lesson?.isReview == true)
             Divider()
             Button("Reveal Lesson Folder in Finder") { app.revealLessonFolder() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])

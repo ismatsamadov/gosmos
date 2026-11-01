@@ -56,7 +56,10 @@ covered by Swift Testing tests.
   from its tables.
 - **LearnerDatabase**: the learner database, through one GRDB `DatabaseQueue`. It does every
   write: progress, attempts, notes, code, hints and solutions looked at, review. The UI
-  follows your progress through `ValueObservation`.
+  follows your progress through `ValueObservation`. A write nothing else waits for, such as
+  a review answer, goes through `PendingWrites`, and quitting waits for those as it waits
+  for a lesson's saves. A new database is made aside and moved in whole; a draft that a
+  crash left beside it goes at a later launch.
 - **Teaching**: the rules, as pure values and functions.
   - Hints show one at a time and stay shown; the last waits for a failed Submit.
   - The reference solution is there whenever you want it. Looking before you pass is
@@ -79,9 +82,10 @@ covered by Swift Testing tests.
     whole group.
 - **Go toolchain**: `go` comes from the path set in Settings, else from the login shell's
   PATH, else from the usual install locations.
-- **Code runs**: your code_file rows are written to
-  `~/Library/Caches/Gosmos/work/<lesson>/`. `go run` or `go test` runs there, and the
-  output is compared or the tests are read.
+- **Code runs**: your saved code is written to
+  `~/Library/Caches/Gosmos/work/<library>/<lesson>/`. `go run` or `go test` runs there, and
+  the output is compared or the tests are read. A review redo works from the starter code in
+  `work/review/<library>/<lesson>/` and is never saved.
 - **Command-line checks**:
   - Steps run in order in the course's project folder, with captured `${names}` passed on
     to later steps.

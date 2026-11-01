@@ -32,17 +32,15 @@ struct RootView: View {
             ProgressView("Opening your lessons…")
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .welcome:
-            WelcomeView()
         case .failed(let error):
-            WelcomeView(error: error)
+            UnavailableView(error: error)
         case .ready:
             MainView()
         }
     }
 }
 
-/// While the app saves and syncs before it quits.
+/// While the app saves before it quits.
 struct SavingOverlay: View {
     var body: some View {
         ZStack {
@@ -62,64 +60,25 @@ struct SavingOverlay: View {
     }
 }
 
-/// Without a library: open one. When the library could not open, why, in the words of the
-/// library tool's checks, and what to do.
-struct WelcomeView: View {
-    var error: AppError?
-    @Environment(AppModel.self) private var app
+/// When your study data can't be opened: why, and what to do. Nothing else opens without it,
+/// since nothing of what you do could be kept.
+struct UnavailableView: View {
+    let error: AppError
 
     var body: some View {
         ContentUnavailableView {
-            if let error {
-                Label(error.title, systemImage: "books.vertical.trianglebadge.exclamationmark")
-            } else {
-                Label("Open a Library", systemImage: "books.vertical")
-            }
+            Label(error.title, systemImage: "externaldrive.badge.exclamationmark")
         } description: {
             VStack(spacing: 8) {
-                if let error {
-                    if case .database(let e) = error {
-                        ForEach(Array(e.problems.prefix(6).enumerated()), id: \.offset) { _, line in
-                            Text(line).font(.system(.callout, design: .monospaced))
-                        }
-                        if e.problems.count > 6 { Text("and \(e.problems.count - 6) more") }
-                    } else if let text = error.errorDescription {
-                        Text(text)
-                    }
-                    if let suggestion = error.recoverySuggestion { Text(suggestion) }
-                    if let path = app.libraryURL?.path, error.recoverySuggestion?.contains(path) != true {
-                        Text(path).font(.system(.callout, design: .monospaced)).foregroundStyle(Theme.secondaryText)
-                    }
-                } else {
-                    Text("A library is one SQLite file with courses, their lessons and your progress in them. Gosmos opens any library.")
-                }
+                if let text = error.errorDescription { Text(text) }
+                if let suggestion = error.recoverySuggestion { Text(suggestion) }
             }
             .foregroundStyle(Theme.secondaryText)
             .textSelection(.enabled)
         } actions: {
-            VStack(spacing: 10) {
-                HStack {
-                    Button("Open Library…") { app.chooseLibrary() }
-                        .prominentGlassButton()
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(app.isOpeningLibrary)
-                    if error != nil {
-                        Button("Try Again") { app.open(app.libraryURL) }
-                            .secondaryGlassButton()
-                            .disabled(app.isOpeningLibrary)
-                    }
-                }
-                let others = app.recentLibraries.filter { $0 != app.libraryURL }.prefix(4)
-                if !others.isEmpty {
-                    HStack {
-                        ForEach(Array(others), id: \.self) { url in
-                            Button(url.lastPathComponent, systemImage: "clock") { app.open(library: url) }
-                                .secondaryGlassButton()
-                                .disabled(app.isOpeningLibrary)
-                                .help(url.path)
-                        }
-                    }
-                }
+            if case .learner(let e) = error, let path = e.path {
+                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)]) }
+                    .secondaryGlassButton()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -136,7 +95,6 @@ struct MainView: View {
         @Bindable var app = app
         NavigationSplitView(columnVisibility: $columns) {
             SidebarView()
-                .safeAreaBar(edge: .bottom) { SyncFooter() }
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { sidebarWidth = $0 }
                 // On the column's outermost view, where the split view reads it. The split view
                 // keeps the sidebar and the inspector at their ideal widths, so those ideals plus
@@ -160,42 +118,6 @@ struct MainView: View {
     }
 }
 
-/// A quiet line under the sidebar about git.
-struct SyncFooter: View {
-    @Environment(AppModel.self) private var app
-
-    var body: some View {
-        if !app.syncStatus.isEmpty || app.isSyncing {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 6) {
-                    if app.isSyncing {
-                        ProgressView().controlSize(.mini)
-                        Text("Syncing…")
-                    } else {
-                        Image(systemName: app.syncError == nil ? "checkmark.icloud" : "exclamationmark.icloud")
-                            .symbolRenderingMode(.hierarchical)
-                        Text(app.syncStatus).lineLimit(2)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .font(.caption)
-                .foregroundStyle(app.syncError == nil ? AnyShapeStyle(Theme.secondaryText) : AnyShapeStyle(Theme.warning))
-                .help(app.syncError?.recoverySuggestion ?? app.syncStatus)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                if case .staleLock? = app.syncError {
-                    Button("Remove Lock File") { Task { await app.removeStaleLock() } }
-                        .secondaryGlassButton()
-                        .controlSize(.small)
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 8)
-                        .help("No git is running, so its lock file is left over; removing it lets Gosmos commit again")
-                }
-            }
-        }
-    }
-}
-
 struct DetailView: View {
     var minWidth: CGFloat = 600
     @Environment(AppModel.self) private var app
@@ -203,21 +125,28 @@ struct DetailView: View {
     var body: some View {
         @Bindable var app = app
         Group {
-            if let lesson = app.lesson {
+            if app.showsReview {
+                if let review = app.review {
+                    ReviewScreen(session: review)
+                } else {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else if let lesson = app.lesson {
                 LessonView(lesson: lesson)
-                    .id(lesson.detail.id)
+                    .id(lesson.detail.ref)
             } else if app.isLoadingLesson {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ContentUnavailableView("No Lesson Selected", systemImage: "book.closed",
-                                       description: Text("Choose a lesson in the sidebar, or search for one.").foregroundStyle(Theme.secondaryText))
+                                       description: Text(app.shelf.isEmpty ? "Add a library with File › Open Library… to start."
+                                                                           : "Choose a lesson in the sidebar, or search for one.").foregroundStyle(Theme.secondaryText))
             }
         }
         // Sidebar 240 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
         .frame(minWidth: minWidth)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
-        .navigationTitle(app.lesson?.detail.title ?? "Gosmos")
-        .navigationSubtitle(app.lesson.map { "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        .navigationTitle(app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
+        .navigationSubtitle(app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)
@@ -341,14 +270,38 @@ struct LessonActions: View {
                 .help("Submit (⌘↩)")
         }
         if lesson.detail.type.isManual {
-            let done = app.isDone(lesson.detail.id)
-            Button { app.setDone(lesson.detail.id, !done) } label: {
+            let done = app.isDone(lesson.ref)
+            Button { app.setDone(lesson.ref, !done) } label: {
                 Label(done ? "Done" : "Mark as Done", systemImage: done ? "checkmark.circle.fill" : "checkmark.circle")
                     .contentTransition(.symbolEffect(.replace))
             }
             .labelStyle(.titleAndIcon)
             .prominentGlassButton()
             .help(done ? "Mark as not done (⇧⌘D)" : "Mark as done (⇧⌘D)")
+        }
+    }
+}
+
+/// The Review screen's place in the window. It hosts the review views (Views/Teaching) with the
+/// session's values and actions; until a session has loaded, it waits in place.
+struct ReviewScreen: View {
+    let session: ReviewSession
+
+    var body: some View {
+        if session.isLoaded {
+            ReviewView(questions: session.questions.map { ReviewView.Question(ref: $0.ref, lessonTitle: $0.lessonTitle, question: $0.question) },
+                       lessons: session.lessons.map {
+                           ReviewView.Lesson(ref: $0.ref, title: $0.title, type: $0.type,
+                                             reason: ReviewView.Lesson.reason(viewedSolution: $0.viewedSolution, failedSubmits: $0.failedSubmits))
+                       },
+                       onAnswer: { question, answer, right in
+                           session.answer(question.ref, position: question.position, answer: answer, correct: right)
+                       },
+                       onOpenLesson: { session.redo($0.ref) })
+                // A new session (Review chosen again) starts the view over.
+                .id(ObjectIdentifier(session))
+        } else {
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

@@ -2,17 +2,23 @@ import Foundation
 import GRDB
 @testable import GosmosKit
 
-/// Test databases made from the repository's db/schema.sql, filled with lessons written for
-/// these tests (they only mimic the shape of real lessons). Nothing here touches
-/// libraries/practice.library or the repository's git.
+/// Test libraries made from the repository's db/schema.sql and learner databases made from
+/// db/learner.sql, in $TMPDIR, filled with lessons written for these tests (they only mimic
+/// the shape of real lessons). Nothing here touches a real library or the real learner
+/// database.
 enum Fixtures {
-    static let schemaURL = URL(fileURLWithPath: #filePath)
+    static let repository = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        .appendingPathComponent("db/schema.sql")
+    static let schemaURL = repository.appendingPathComponent("db/schema.sql")
+    static let learnerSchemaURL = repository.appendingPathComponent("db/learner.sql")
+
+    /// The fixture library's identity (library_info).
+    static let libraryID = "b0000000-0000-0000-0000-000000000001"
+    static let libraryTitle = "Practice"
 
     /// A code lesson outside any database, for runs and folders.
     static func codeLesson(_ id: String, _ type: LessonType, _ code: CodeExercise) -> LessonDetail {
-        LessonDetail(summary: LessonSummary(id: id, chapterID: "h", title: "Test", type: type, required: true),
+        LessonDetail(library: libraryID, summary: LessonSummary(id: id, chapterID: "h", title: "Test", type: type, required: true),
                      courseID: "c", courseTitle: "Test Course", chapterTitle: "Chapter",
                      readme: "# Test lesson", difficulty: 1, topics: [], content: type == .code ? .code(code) : .codeTests(code))
     }
@@ -79,14 +85,16 @@ enum Fixtures {
 
     """
 
-    /// Creates a database from db/schema.sql with lessons of every type.
-    static func makeDatabase(at url: URL) throws {
+    /// Creates a library from db/schema.sql with lessons of every type; `id` and `title` go
+    /// into its library_info.
+    static func makeDatabase(at url: URL, id: String = libraryID, title: String = libraryTitle) throws {
         let queue = try DatabaseQueue(path: url.path)
         try queue.writeWithoutTransaction { db in
             try db.execute(sql: String(contentsOf: schemaURL, encoding: .utf8))
             try db.execute(sql: "PRAGMA journal_mode = DELETE")
         }
         try queue.write { db in
+            try db.execute(sql: "INSERT INTO library_info(singleton, uuid, title, version) VALUES (1, ?, ?, '1')", arguments: [id, title])
             try db.execute(sql: "INSERT INTO course(uuid, slug, title, kind, short_description, description, position) VALUES (?,?,?,?,?,?,?)",
                            arguments: [courseID, "learn-testing", "Learn Testing", "Course", "Short", "Long", 0])
             try db.execute(sql: "INSERT INTO course(uuid, slug, title, kind, short_description, description, position) VALUES (?,?,?,?,?,?,?)",
@@ -98,15 +106,20 @@ enum Fixtures {
             }
             func lesson(_ id: String, _ chapter: String, _ pos: Int, _ slug: String, _ title: String, _ type: String, _ readme: String, required: Int = 1) throws {
                 try db.execute(sql: """
-                    INSERT INTO lesson(uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, synced_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-                    """, arguments: [id, chapter, pos, slug, title, type, required, 3, readme, ts, ts, ts])
+                    INSERT INTO lesson(uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    """, arguments: [id, chapter, pos, slug, title, type, required, 3, readme, ts, ts])
             }
             try lesson(codeLesson, chapter1, 0, "1-hello", "Hello Gopher", "type_code", "# Hello Gopher\n\nPrint a greeting with `fmt.Println`.")
-            try db.execute(sql: "INSERT INTO code_lesson(lesson_uuid, lesson_type, prog_lang, expected_output) VALUES (?,?,?,?)",
-                           arguments: [codeLesson, "type_code", "go", "Hello, gopher\n2 + 2 = 4\n"])
+            try db.execute(sql: "INSERT INTO code_lesson(lesson_uuid, lesson_type, prog_lang, expected_output, solution_note) VALUES (?,?,?,?,?)",
+                           arguments: [codeLesson, "type_code", "go", "Hello, gopher\n2 + 2 = 4\n", "Println ends each line; %d formats the sum."])
             try db.execute(sql: "INSERT INTO starter_file(lesson_uuid, name, position, content, is_hidden, is_readonly) VALUES (?,?,?,?,?,?)",
                            arguments: [codeLesson, "main.go", 0, "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, world\")\n}\n", 0, 0])
+            try db.execute(sql: "INSERT INTO solution_file(lesson_uuid, name, content) VALUES (?,?,?)",
+                           arguments: [codeLesson, "main.go", helloSolution])
+            for (i, hint) in ["Look at what the program prints now.", "Println takes the text to print.", "Print \"Hello, gopher\", then the sum with Printf."].enumerated() {
+                try db.execute(sql: "INSERT INTO lesson_hint(lesson_uuid, position, text) VALUES (?,?,?)", arguments: [codeLesson, i, hint])
+            }
             try db.execute(sql: "INSERT INTO lesson_topic(lesson_uuid, topic) VALUES (?,?)", arguments: [codeLesson, "printing"])
             try db.execute(sql: "INSERT INTO lesson_topic(lesson_uuid, topic) VALUES (?,?)", arguments: [codeLesson, "fmt"])
 
@@ -122,8 +135,9 @@ enum Fixtures {
             try db.execute(sql: "INSERT INTO quiz_lesson(lesson_uuid, contains_complete_dir) VALUES (?,?)", arguments: [quizLesson, 0])
             try db.execute(sql: "INSERT INTO quiz_question(lesson_uuid, position, question) VALUES (?,?,?)", arguments: [quizLesson, 0, "Which keyword declares a function?"])
             for (i, a) in ["`fn`", "`func`", "`def`"].enumerated() {
-                try db.execute(sql: "INSERT INTO quiz_answer(lesson_uuid, question_position, position, answer, is_correct) VALUES (?,?,?,?,?)",
-                               arguments: [quizLesson, 0, i, a, a == "`func`" ? 1 : 0])
+                let why: String? = a == "`func`" ? "Go declares every function with func." : a == "`def`" ? "def is Python's keyword." : nil
+                try db.execute(sql: "INSERT INTO quiz_answer(lesson_uuid, question_position, position, answer, is_correct, explanation) VALUES (?,?,?,?,?,?)",
+                               arguments: [quizLesson, 0, i, a, a == "`func`" ? 1 : 0, why])
             }
             try db.execute(sql: "INSERT INTO quiz_question(lesson_uuid, position, question) VALUES (?,?,?)", arguments: [quizLesson, 1, "Is Go compiled?"])
             for (i, a) in ["Yes", "No"].enumerated() {
@@ -197,25 +211,72 @@ enum Fixtures {
         try queue.close()
     }
 
-    /// An AppDatabase over a fresh fixture in its own directory.
-    /// Rows of a test database, read on a connection of their own (the app's API has no
-    /// reader for these tables).
+    /// Rows of the learner database in `dir`, read on a connection of their own (the app's
+    /// API has no reader for some of these tables).
     static func rows(in dir: URL, _ sql: String, _ arguments: StatementArguments = []) throws -> [Row] {
         var config = Configuration()
         config.readonly = true
-        let queue = try DatabaseQueue(path: dir.appendingPathComponent(Fixtures.libraryName).path, configuration: config)
+        let queue = try DatabaseQueue(path: dir.appendingPathComponent("learner.sqlite").path, configuration: config)
         return try queue.read { try Row.fetchAll($0, sql: sql, arguments: arguments) }
     }
 
-    static func database() throws -> (AppDatabase, URL) {
+    /// The fixture library in a directory of its own, opened as the app opens it; `edit`
+    /// changes the file first, on a connection of its own (the app's is read-only).
+    static func database(_ edit: ((Database) throws -> Void)? = nil) throws -> (AppDatabase, URL) {
         let dir = try tempDir("db")
         let url = dir.appendingPathComponent(Fixtures.libraryName)
         try makeDatabase(at: url)
+        if let edit {
+            let queue = try DatabaseQueue(path: url.path)
+            try queue.write(edit)
+            try queue.close()
+        }
         return (try AppDatabase(url: url), dir)
     }
+
+    /// A new learner database in `dir`, made from db/learner.sql, with the fixture library in
+    /// its library table.
+    static func learner(in dir: URL) async throws -> LearnerDatabase {
+        let learner = try LearnerDatabase(url: dir.appendingPathComponent("learner.sqlite"), schema: learnerSchemaURL)
+        try await learner.registerLibrary(LibraryInfo(uuid: libraryID, title: libraryTitle), location: dir.appendingPathComponent(libraryName).path)
+        return learner
+    }
+
+    /// A lesson of the fixture library, for the learner database.
+    static func ref(_ lesson: String) -> LessonRef { LessonRef(library: libraryID, lesson: lesson) }
+
+    static let helloSolution = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, gopher\")\n\tfmt.Printf(\"2 + 2 = %d\\n\", 2+2)\n}\n"
 
     static func toolchain() async -> Toolchain? {
         let t = await Toolchain.discover(goOverride: nil)
         return t.go == nil ? nil : t
+    }
+}
+
+/// Holds work where it calls `pass`, until opened: a load where it asks for the Go version, so
+/// a test can type while the load is under way, or a write, so a test can quit meanwhile.
+actor Gate {
+    private var isOpen = false
+    private var held: [CheckedContinuation<Void, Never>] = []
+    private var watchers: [CheckedContinuation<Void, Never>] = []
+
+    /// Waits here until the gate opens.
+    func pass() async {
+        guard !isOpen else { return }
+        for watcher in watchers { watcher.resume() }
+        watchers = []
+        await withCheckedContinuation { held.append($0) }
+    }
+
+    /// Returns once something waits at the gate.
+    func somethingWaits() async {
+        guard held.isEmpty else { return }
+        await withCheckedContinuation { watchers.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        for waiter in held { waiter.resume() }
+        held = []
     }
 }

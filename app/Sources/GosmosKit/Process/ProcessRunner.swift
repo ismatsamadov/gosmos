@@ -2,15 +2,13 @@ import Darwin
 import Foundation
 import os
 
-/// Which processes `ProcessRunner.terminateAll` stops. Lesson programs (builds, runs,
-/// command-line checks) are stopped when the app quits; git is not, because a killed git
-/// leaves .git/index.lock behind and every later commit and pull fails.
+/// Which processes `ProcessRunner.terminateAll` stops: lesson programs (builds, runs,
+/// command-line checks) are stopped when the app quits.
 public struct ProcessKind: Hashable, Sendable {
     public let name: String
     public init(_ name: String) { self.name = name }
 
     public static let lesson = ProcessKind("lesson")
-    public static let git = ProcessKind("git")
 }
 
 /// One program to run: a resolved path, an argument array (never a shell string), an
@@ -29,14 +27,10 @@ public struct ProcessRequest: Sendable {
     /// Stop whatever is left in the process group once the process exits.
     public var killGroupOnExit = false
     public var kind: ProcessKind = .lesson
-    /// How a timeout or a cancellation stops the program: nil kills the process group at
-    /// once (SIGKILL); a grace period sends SIGTERM first, so the program can clean up (git
-    /// removes its lock file), and SIGKILL only if it is still running when the period ends.
-    public var gracePeriod: Duration?
 
     public init(executable: String, arguments: [String], directory: String, environment: [String: String],
                 timeout: Duration = .seconds(60), outputLimit: Int = 256 << 10, killGroupOnExit: Bool = false,
-                kind: ProcessKind = .lesson, gracePeriod: Duration? = nil) {
+                kind: ProcessKind = .lesson) {
         self.executable = executable
         self.arguments = arguments
         self.directory = directory
@@ -45,7 +39,6 @@ public struct ProcessRequest: Sendable {
         self.outputLimit = outputLimit
         self.killGroupOnExit = killGroupOnExit
         self.kind = kind
-        self.gracePeriod = gracePeriod
     }
 }
 
@@ -74,9 +67,8 @@ public enum ProcessRunner {
     private static let running = OSAllocatedUnfairLock<[pid_t: ProcessKind]>(initialState: [:])
 
     /// Kills the process groups of one kind still running: lesson programs when the app
-    /// quits. Git is never stopped this way; it gets SIGTERM and a grace period instead.
+    /// quits.
     public static func terminateAll(_ kind: ProcessKind = .lesson) {
-        guard kind != .git else { return }
         for (pid, k) in running.withLock({ $0 }) where k == kind { kill(-pid, SIGKILL) }
     }
 
@@ -183,24 +175,10 @@ public enum ProcessRunner {
         var exitedAt: ContinuousClock.Instant?
         var status: Int32 = 0
         var dropped = false
-        var terminatedAt: ContinuousClock.Instant?
-        var killed = false
 
         func stopGroup(_ why: () -> Void) {
             why()
-            if request.gracePeriod != nil {
-                kill(-pid, SIGTERM)
-                terminatedAt = clock.now
-            } else {
-                kill(-pid, SIGKILL)
-                killed = true
-            }
-        }
-        /// After SIGTERM, SIGKILL once the grace period is over.
-        func escalate() {
-            guard !killed, !exited, let at = terminatedAt, let grace = request.gracePeriod, clock.now - at >= grace else { return }
             kill(-pid, SIGKILL)
-            killed = true
         }
         func reap() {
             guard !exited else { return }
@@ -221,7 +199,6 @@ public enum ProcessRunner {
         while fds.contains(where: { $0.fd >= 0 }) {
             reap()
             checkLimits()
-            escalate()
             if let at = exitedAt, clock.now - at > request.waitDelay { break }
             let n = poll(&fds, nfds_t(fds.count), 50)
             if n < 0 {
@@ -253,7 +230,6 @@ public enum ProcessRunner {
             reap()
             if exited { break }
             checkLimits()
-            escalate()
             usleep(10_000)
         }
 

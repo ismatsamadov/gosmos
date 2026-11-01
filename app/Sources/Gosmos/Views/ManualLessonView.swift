@@ -127,7 +127,7 @@ struct MarkDoneBar: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        let done = app.isDone(lesson.detail.id)
+        let done = app.isDone(lesson.ref)
         HStack(spacing: 12) {
             // Always there, hidden until done, so the bounce plays when you mark it done.
             Image(systemName: "checkmark.circle.fill")
@@ -142,7 +142,7 @@ struct MarkDoneBar: View {
                     .foregroundStyle(.tint)
                     .font(.system(size: 14, weight: .semibold))
                 Spacer()
-                Button("Mark as Not Done") { app.setDone(lesson.detail.id, false) }
+                Button("Mark as Not Done") { app.setDone(lesson.ref, false) }
                     .secondaryGlassButton()
                 if let next = app.nextLesson {
                     Button("Next: \(next.title)", systemImage: "arrow.right") { app.openNext() }
@@ -154,7 +154,7 @@ struct MarkDoneBar: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.secondaryText)
                 Spacer()
-                Button("Mark as Done", systemImage: "checkmark") { lesson.markPassed() }
+                Button("Mark as Done", systemImage: "checkmark") { lesson.markPassed(review: false) }
                     .prominentGlassButton()
                     .controlSize(.large)
             }
@@ -183,19 +183,27 @@ struct InspectorContent: View {
         let detail = lesson.detail
         Form {
             Section("Note") {
-                NoteEditor(lesson: lesson, placeholder: "Write a note for this lesson…", fontSize: 13,
-                           accessibilityLabel: "Note for this lesson")
-                    .frame(minHeight: 160)
-                Text("Saved as you type.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondaryText)
+                if lesson.isReview {
+                    // A redo is done without help, the note included; nothing typed here could be kept.
+                    Text("A redo is done without your note. It is there when you open the lesson.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    NoteEditor(lesson: lesson, placeholder: "Write a note for this lesson…", fontSize: 13,
+                               accessibilityLabel: "Note for this lesson")
+                        .frame(minHeight: 160)
+                    Text("Saved as you type.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                }
             }
             Section("Lesson") {
                 LabeledContent("Type") { Label(detail.type.label, systemImage: detail.type.symbol).lineLimit(1) }
                 LabeledContent("Difficulty") { DifficultyView(level: detail.difficulty) }
                 LabeledContent("Course") { FactText(detail.courseTitle) }
                 LabeledContent("Chapter") { FactText(detail.chapterTitle) }
-                LabeledContent("Status") { FactText(app.isDone(detail.id) ? "Done" : detail.summary.required ? "Not done" : "Optional") }
+                LabeledContent("Status") { FactText(app.isDone(detail.ref) ? "Done" : detail.summary.required ? "Not done" : "Optional") }
             }
             if !detail.topics.isEmpty {
                 Section("Topics") {
@@ -222,19 +230,12 @@ struct FactText: View {
     }
 }
 
-/// Difficulty as five dots; the lessons' difficulty runs from about 5 to 70.
+/// Difficulty as five dots; lessons rate it from 1 (easiest) to 10.
 struct DifficultyView: View {
     let level: Int
 
-    var dots: Int {
-        switch level {
-        case ..<12: 1
-        case ..<20: 2
-        case ..<30: 3
-        case ..<45: 4
-        default: 5
-        }
-    }
+    /// 1 and 2 are one dot, 9 and 10 five.
+    var dots: Int { min(5, max(1, (level + 1) / 2)) }
 
     var body: some View {
         HStack(spacing: 3) {
@@ -244,9 +245,9 @@ struct DifficultyView: View {
                     .frame(width: 7, height: 7)
             }
         }
-        .help("Difficulty \(level) of 70")
+        .help("Difficulty \(level) of 10")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Difficulty \(dots) of 5")
+        .accessibilityLabel("Difficulty \(level) of 10")
     }
 }
 

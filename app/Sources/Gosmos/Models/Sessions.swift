@@ -12,10 +12,12 @@ final class QuizSession {
     var focusedQuestion = 0
     private(set) var successCount = 0
     @ObservationIgnored private weak var app: AppModel?
+    @ObservationIgnored private let learner: LearnerDatabase
 
-    init(lesson: LessonDetail, quiz: Quiz, app: AppModel) {
+    init(lesson: LessonDetail, quiz: Quiz, learner: LearnerDatabase, app: AppModel) {
         self.lesson = lesson
         self.state = QuizState(quiz: quiz)
+        self.learner = learner
         self.app = app
     }
 
@@ -34,20 +36,29 @@ final class QuizSession {
         pick(number - 1, for: focusedQuestion)
     }
 
-    /// Grades the picks, records them, and finishes the lesson when every answer is right.
+    /// Why each answer of a graded question is right or wrong; nothing before it is graded.
+    func explanations(for question: Int) -> [String?] { state.explanations(for: question) }
+
+    /// Grades the picks, records them (a question right for the first time comes back for
+    /// review), and finishes the lesson when every answer is right.
     func submit() {
         guard canSubmit, let app else { return }
         let answers = state.submit()
-        if let db = app.database {
-            let id = lesson.id
-            Task {
-                do { try await db.addAnswers(id, answers) } catch { app.report(error) }
+        let learner = learner, ref = lesson.ref
+        learner.pendingWrites.start {
+            do {
+                try await learner.recordAnswers(ref, answers)
+                await app.refreshDueCount()
+            } catch {
+                app.report(error)
             }
         }
+        let owner = app.lesson.flatMap { $0.quiz === self ? $0 : nil }
+        if answers.contains(where: { !$0.right }) { owner?.noteFailedSubmit() }
         if allCorrect {
             successCount += 1
             NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-            app.lesson?.markPassed()
+            owner?.markPassed(review: false)
         }
     }
 }
@@ -77,10 +88,12 @@ final class ChecksSession {
     private(set) var successCount = 0
     @ObservationIgnored private weak var app: AppModel?
     @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private let learner: LearnerDatabase
 
-    init(lesson: LessonDetail, cli: CLILesson, app: AppModel) {
+    init(lesson: LessonDetail, cli: CLILesson, learner: LearnerDatabase, app: AppModel) {
         self.lesson = lesson
         self.cli = cli
+        self.learner = learner
         self.app = app
         states = Array(repeating: .pending, count: cli.steps.count)
     }
@@ -92,14 +105,13 @@ final class ChecksSession {
     }
 
     func load() async {
-        guard let app, let db = app.database else { return }
         do {
-            let project = try await db.project(for: lesson.courseID)
+            let project = try await learner.project(library: lesson.library, course: lesson.courseID)
             projectDir = project?.dir ?? ""
             projectBaseURL = project?.baseURL
-            baseURL = try await db.baseURL(for: cli, course: lesson.courseID)
+            baseURL = try await learner.baseURL(for: cli, library: lesson.library, course: lesson.courseID)
         } catch {
-            app.report(error)
+            app?.report(error)
         }
         addressField = baseURL.url ?? ""
     }
@@ -109,7 +121,7 @@ final class ChecksSession {
     /// (the suggestion itself, or nothing, removes your row). Called on Return, before a
     /// run, and when the lesson closes.
     func commitAddress() {
-        guard let db = app?.database else { return }
+        let learner = learner
         let typed = addressField.trimmingCharacters(in: .whitespaces)
         switch baseURL {
         case .yourServer(let current):
@@ -123,8 +135,8 @@ final class ChecksSession {
             if url == nil { addressField = suggested }
             guard url != yours else { return }
             baseURL = .suggested(suggested, yours: url)
-            Task { [weak app] in
-                do { try await db.setServerAddress(url, for: suggested) } catch { app?.report(error) }
+            learner.pendingWrites.start { [weak app] in
+                do { try await learner.setServerAddress(url, for: suggested) } catch { app?.report(error) }
             }
         case .none:
             break
@@ -154,10 +166,10 @@ final class ChecksSession {
 
     /// The course's project: the folder and your own server's address.
     private func saveProject() {
-        guard let db = app?.database else { return }
+        let learner = learner, library = lesson.library
         let course = lesson.courseID, project = Project(dir: projectDir.isEmpty ? nil : projectDir, baseURL: projectBaseURL)
-        Task { [weak app] in
-            do { try await db.saveProject(course, project) } catch { app?.report(error) }
+        learner.pendingWrites.start { [weak app] in
+            do { try await learner.saveProject(library: library, course: course, project) } catch { app?.report(error) }
         }
     }
 
@@ -181,7 +193,7 @@ final class ChecksSession {
         lastStatus = nil
         results = [:]
         states = Array(repeating: .pending, count: cli.steps.count)
-        let cli = cli, dir = projectDir, address = baseURL.url, id = lesson.id
+        let cli = cli, dir = projectDir, address = baseURL.url, ref = lesson.ref, learner = learner
         let report: @Sendable (Int, StepResult?) async -> Void = { [weak self] index, result in
             await self?.apply(index, result)
         }
@@ -193,14 +205,24 @@ final class ChecksSession {
             self.lastDuration = run.duration
             if let error = run.error { self.runError = error }
             if run.status == .cancelled { return }
-            if let db = app.database {
-                let ms = Int(run.duration.components.seconds * 1000 + run.duration.components.attoseconds / 1_000_000_000_000_000)
-                do { try await db.addAttempt(lesson: id, kind: .check, passed: run.status == .passed, output: run.report, durationMs: ms) }
-                catch { app.report(error) }
+            let ms = Int(run.duration.components.seconds * 1000 + run.duration.components.attoseconds / 1_000_000_000_000_000)
+            // Written to the end even if the lesson closes meanwhile; quitting waits for it.
+            let passed = run.status == .passed, report = run.report
+            do {
+                _ = try await learner.pendingWrites.start {
+                    try await learner.recordSubmit(ref, kind: .check, passed: passed, output: report, durationMs: ms, reviewable: false)
+                }.value
+            } catch {
+                app.report(error)
             }
+            // The lesson these checks belong to, if still on screen: the checks can end after
+            // another lesson opened, whose done mark and hints are not theirs to change.
+            let owner = app.lesson.flatMap { $0.checks === self ? $0 : nil }
             if run.status == .passed {
                 self.successCount += 1
-                app.lesson?.markPassed()
+                owner?.markPassed(review: false)
+            } else {
+                owner?.noteFailedSubmit()
             }
         }
     }

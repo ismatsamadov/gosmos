@@ -21,8 +21,9 @@ import Testing
         let prepared = try workspace.prepare(lesson, code: code, saved: [:], goVersion: "1.27")
         let file = prepared.folder.appendingPathComponent("main.go")
         let start = try String(contentsOf: file, encoding: .utf8)
-        let saver = CodeSaver(database: db, workspace: workspace, lesson: lesson, saved: ["main.go": start])
-        func stored() async throws -> String? { try await db.codeFiles(for: lesson.id)["main.go"]?.content }
+        let learner = try await Fixtures.learner(in: dir)
+        let saver = CodeSaver(learner: learner, workspace: workspace, lesson: lesson, saved: ["main.go": start])
+        func stored() async throws -> String? { try await learner.codeFiles(for: lesson.ref)["main.go"]?.content }
         func onDisk() throws -> String { try String(contentsOf: file, encoding: .utf8) }
 
         // You type: code_file and the folder get it.
@@ -60,7 +61,8 @@ import Testing
         let workspace = Workspace(root: dir.appendingPathComponent("work"))
         let prepared = try workspace.prepare(lesson, code: code, saved: [:], goVersion: "1.27")
         let start = try String(contentsOf: prepared.folder.appendingPathComponent("main.go"), encoding: .utf8)
-        let saver = CodeSaver(database: db, workspace: workspace, lesson: lesson, saved: ["main.go": start])
+        let learner = try await Fixtures.learner(in: dir)
+        let saver = CodeSaver(learner: learner, workspace: workspace, lesson: lesson, saved: ["main.go": start])
 
         // Idle saves and a run's save at once: each waits for the one before, so none sees a
         // half-written save, nothing counts as a conflict, and code_file and the folder agree.
@@ -70,7 +72,7 @@ import Testing
             return try await group.reduce(into: []) { $0.append($1) }
         }
         #expect(outcomes.count == texts.count && outcomes.allSatisfy { $0["main.go"] == .saved })
-        let stored = try await db.codeFiles(for: lesson.id)["main.go"]?.content
+        let stored = try await learner.codeFiles(for: lesson.ref)["main.go"]?.content
         let onDisk = try String(contentsOf: prepared.folder.appendingPathComponent("main.go"), encoding: .utf8)
         #expect(stored == onDisk && texts.contains(onDisk))
         #expect(try await saver.sync(["main.go": onDisk]) == ["main.go": .unchanged])
@@ -79,6 +81,7 @@ import Testing
     /// A saver over a lesson folder with one file, and helpers to read both copies.
     struct Bench {
         let db: AppDatabase
+        let learner: LearnerDatabase
         let dir: URL
         let lesson: LessonDetail
         let workspace: Workspace
@@ -86,6 +89,7 @@ import Testing
 
         init() async throws {
             (db, dir) = try Fixtures.database()
+            learner = try await Fixtures.learner(in: dir)
             lesson = try #require(try await db.lesson(Fixtures.codeLesson))
             workspace = Workspace(root: dir.appendingPathComponent("work"))
             let prepared = try workspace.prepare(lesson, code: try #require(lesson.code), saved: [:], goVersion: "1.27")
@@ -93,9 +97,9 @@ import Testing
         }
 
         func saver(unsettled: Set<String> = []) throws -> CodeSaver {
-            CodeSaver(database: db, workspace: workspace, lesson: lesson, saved: ["main.go": try onDisk()], unsettled: unsettled)
+            CodeSaver(learner: learner, workspace: workspace, lesson: lesson, saved: ["main.go": try onDisk()], unsettled: unsettled)
         }
-        func stored() async throws -> String? { try await db.codeFiles(for: lesson.id)["main.go"]?.content }
+        func stored() async throws -> String? { try await learner.codeFiles(for: lesson.ref)["main.go"]?.content }
         func onDisk() throws -> String { try String(contentsOf: file, encoding: .utf8) }
         func otherEditorSaves(_ text: String) throws { try text.write(to: file, atomically: true, encoding: .utf8) }
     }
@@ -145,10 +149,10 @@ import Testing
 
         // The next session leaves the disk alone, shows yours, and asks again.
         let prepared = try bench.workspace.prepare(bench.lesson, code: try #require(bench.lesson.code),
-                                                   saved: try await bench.db.codeFiles(for: bench.lesson.id), goVersion: "1.27", unsettled: ["main.go"])
+                                                   saved: try await bench.learner.codeFiles(for: bench.lesson.ref), goVersion: "1.27", unsettled: ["main.go"])
         #expect(prepared.files.first { $0.name == "main.go" }?.content == "mine again" && prepared.readBack.isEmpty)
         #expect(try bench.onDisk() == "theirs again")
-        let next = CodeSaver(database: bench.db, workspace: bench.workspace, lesson: bench.lesson, saved: ["main.go": "mine again"], unsettled: ["main.go"])
+        let next = CodeSaver(learner: bench.learner, workspace: bench.workspace, lesson: bench.lesson, saved: ["main.go": "mine again"], unsettled: ["main.go"])
         #expect(try await next.sync(["main.go": "mine again"]) == ["main.go": .conflict(disk: "theirs again")])
     }
 }

@@ -4,10 +4,11 @@ import Observation
 import os
 import SwiftUI
 
-/// A failure the app shows: as an inline banner, or as the window's content when no library
-/// can open.
+/// A failure the app shows: as an inline banner, an alert, or as the window's content when
+/// your study data can't be opened.
 enum AppError: LocalizedError, Identifiable, Equatable {
     case database(AppDatabaseError)
+    case learner(LearnerDatabaseError)
     case lesson(String)
     case files(String)
 
@@ -16,6 +17,7 @@ enum AppError: LocalizedError, Identifiable, Equatable {
     var errorDescription: String? {
         switch self {
         case .database(let e): e.errorDescription
+        case .learner(let e): e.errorDescription
         case .lesson(let m): m
         case .files(let m): m
         }
@@ -24,50 +26,33 @@ enum AppError: LocalizedError, Identifiable, Equatable {
     var recoverySuggestion: String? {
         switch self {
         case .database(let e): e.recoverySuggestion
+        case .learner(let e): e.recoverySuggestion
         case .lesson, .files: nil
         }
     }
 
-    /// The welcome view's headline for the error.
+    /// The headline for the error.
     var title: String {
         switch self {
         case .database(let e): e.title
+        case .learner(let e): e.title
         case .lesson: "The Lesson Cannot Open"
         case .files: "Files Error"
         }
     }
 }
 
-/// Settings that belong to this Mac, in UserDefaults; everything else lives in the library.
+/// Settings that belong to this Mac, in UserDefaults; your progress lives in the learner
+/// database.
 struct LocalPreferences {
-    static let libraryKey = "LibraryPath"
-    static let recentKey = "RecentLibraries"
     static let goPathKey = "GoPath"
-    static let lastPushKey = "LastPush"
-    static let unsettledKey = "UnsettledFiles"
+    static let unsettledKey = "UnsettledCode"
+    /// Scripted runs (screenshots, tests of the app) keep their study data apart:
+    /// `-GosmosDataFolder <folder>` holds the learner database and the lesson folders. It lives
+    /// in the argument domain only, never stored.
+    static let dataFolderKey = "GosmosDataFolder"
 
     let defaults: UserDefaults
-
-    /// The library to open at launch (LibraryPath, or -LibraryPath on the command line). The
-    /// app reads it once; after that the open library is the model's state.
-    var launchLibrary: URL? {
-        guard let path = defaults.string(forKey: LocalPreferences.libraryKey)?.trimmingCharacters(in: .whitespaces), !path.isEmpty else { return nil }
-        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
-    }
-
-    var recentLibraries: [URL] {
-        (defaults.stringArray(forKey: LocalPreferences.recentKey) ?? []).map { URL(fileURLWithPath: $0) }
-    }
-
-    /// Stores what the model says is open now and what was opened lately.
-    func store(_ libraries: OpenLibraries) {
-        if let current = libraries.current { defaults.set(current.path, forKey: LocalPreferences.libraryKey) }
-        if libraries.recent.isEmpty {
-            defaults.removeObject(forKey: LocalPreferences.recentKey)
-        } else {
-            defaults.set(libraries.recent.map(\.path), forKey: LocalPreferences.recentKey)
-        }
-    }
 
     var goPath: String? {
         let p = defaults.string(forKey: LocalPreferences.goPathKey)?.trimmingCharacters(in: .whitespaces)
@@ -76,85 +61,116 @@ struct LocalPreferences {
 
     func setGoPath(_ path: String?) { defaults.set(path ?? "", forKey: LocalPreferences.goPathKey) }
 
-    /// Commit and push automatically (on by default).
+    var dataFolder: URL? {
+        defaults.string(forKey: LocalPreferences.dataFolderKey).map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath, isDirectory: true) }
+    }
 
-    var lastPush: Date? { defaults.object(forKey: LocalPreferences.lastPushKey) as? Date }
-    func setLastPush(_ date: Date) { defaults.set(date, forKey: LocalPreferences.lastPushKey) }
-
-    /// Code files left in conflict when the app quit, as "<lesson>/<file>": the lesson folder on
-    /// this Mac holds the other editor's version, so this list belongs to the Mac too.
-    func unsettledFiles(in lesson: String) -> Set<String> {
-        Set((defaults.stringArray(forKey: LocalPreferences.unsettledKey) ?? []).compactMap { entry in
-            entry.hasPrefix(lesson + "/") ? String(entry.dropFirst(lesson.count + 1)) : nil
+    /// Code files left in conflict when the app quit, as "<library>/<lesson>/<file>": the
+    /// lesson folder on this Mac holds the other editor's version, so this list belongs to the
+    /// Mac too.
+    func unsettledFiles(in ref: LessonRef) -> Set<String> {
+        let prefix = ref.library + "/" + ref.lesson + "/"
+        return Set((defaults.stringArray(forKey: LocalPreferences.unsettledKey) ?? []).compactMap { entry in
+            entry.hasPrefix(prefix) ? String(entry.dropFirst(prefix.count)) : nil
         })
     }
 
-    func setUnsettled(_ file: String, in lesson: String, _ unsettled: Bool) {
-        var list = (defaults.stringArray(forKey: LocalPreferences.unsettledKey) ?? []).filter { $0 != lesson + "/" + file }
-        if unsettled { list.append(lesson + "/" + file) }
+    func setUnsettled(_ file: String, in ref: LessonRef, _ unsettled: Bool) {
+        let entry = ref.library + "/" + ref.lesson + "/" + file
+        var list = (defaults.stringArray(forKey: LocalPreferences.unsettledKey) ?? []).filter { $0 != entry }
+        if unsettled { list.append(entry) }
         if list.isEmpty { defaults.removeObject(forKey: LocalPreferences.unsettledKey) } else { defaults.set(list, forKey: LocalPreferences.unsettledKey) }
     }
 }
 
-
 /// Lessons visited, for the toolbar's back and forward buttons.
 struct VisitHistory {
-    private(set) var back: [String] = []
-    private(set) var forward: [String] = []
+    private(set) var back: [LessonRef] = []
+    private(set) var forward: [LessonRef] = []
 
-    mutating func visit(from current: String?) {
+    mutating func visit(from current: LessonRef?) {
         if let current { back.append(current) }
         if back.count > 200 { back.removeFirst() }
         forward.removeAll()
     }
 
-    mutating func goBack(from current: String?) -> String? {
+    mutating func goBack(from current: LessonRef?) -> LessonRef? {
         guard let target = back.popLast() else { return nil }
         if let current { forward.append(current) }
         return target
     }
 
-    mutating func goForward(from current: String?) -> String? {
+    mutating func goForward(from current: LessonRef?) -> LessonRef? {
         guard let target = forward.popLast() else { return nil }
         if let current { back.append(current) }
         return target
     }
 }
 
-/// The app's state: which database is open, the catalog with your progress, the lesson on
-/// screen, search, and the services lessons use. Views read it from the environment.
+/// A library in the sidebar: built into the app, or one you opened.
+struct ShelfLibrary: Identifiable {
+    /// The library's uuid; the file's location while it can't be read.
+    let id: String
+    let title: String
+    let url: URL
+    let isBuiltIn: Bool
+    var database: AppDatabase?
+    var catalog: Catalog = .empty
+    var error: AppDatabaseError?
+}
+
+/// What the sidebar can select: the review, or a lesson.
+enum SidebarItem: Hashable {
+    case review
+    case lesson(LessonRef)
+}
+
+/// The app's state: the learner database, the libraries in the sidebar with your progress,
+/// the lesson on screen, search, review, and the services lessons use. Views read it from the
+/// environment.
 @Observable @MainActor
 final class AppModel {
     enum Phase: Equatable {
         case starting
-        /// No library chosen yet.
-        case welcome
-        /// The library could not open; the welcome view says why.
+        /// Your study data can't be opened, so nothing can be kept: the window says why.
         case failed(AppError)
         case ready
     }
 
     private(set) var phase: Phase = .starting
-    private(set) var database: AppDatabase?
+    private(set) var learner: LearnerDatabase?
+    /// The sidebar's libraries: the ones built into the app first, then those you opened.
+    private(set) var shelf: [ShelfLibrary] = []
     private(set) var toolchain: Toolchain?
-    private(set) var catalog: Catalog = .empty
-    private(set) var done: Set<String> = []
+    /// Finished lessons, by library.
+    private(set) var done: [String: Set<String>] = [:]
     private(set) var lesson: LessonModel?
     private(set) var isLoadingLesson = false
-    var selection: String?
-    var expandedChapters: Set<String> = []
+    var selection: SidebarItem?
+    /// Open chapters and guided projects, as "<library>/<chapter or course>".
+    var expanded: Set<String> = []
     var searchText = "" { didSet { searchChanged() } }
     private(set) var searchResults: [SearchHit] = []
-    /// Excerpts for the results, by lesson; they arrive just after the results.
-    private(set) var searchSnippets: [String: [Snippet.Part]] = [:]
+    /// Excerpts for the results, by lesson.
+    private(set) var searchSnippets: [LessonRef: [Snippet.Part]] = [:]
     private(set) var searching = false
     var banner: AppError?
+    /// A library you chose that can't be added: the alert names the problems.
+    var libraryError: AppError?
+    private(set) var isAddingLibrary = false
+    /// Quiz questions and lessons due for review now.
+    private(set) var dueCount = 0
+    /// The review, while the sidebar's Review is selected.
+    private(set) var review: ReviewSession?
+
+    /// The review is on screen: selected, with no lesson still leaving.
+    var showsReview: Bool { selection == .review && lesson == nil }
 
     /// Shows an error from work that has no place of its own on screen, such as a save. Work
-    /// that was cancelled (another lesson, search or library replaced it) ends silently.
+    /// that was cancelled (another lesson or search replaced it) ends silently.
     func report(_ error: any Error) {
         guard !Reporting.isSilent(error) else { return }
-        banner = (error as? AppError) ?? (error as? AppDatabaseError).map(AppError.database) ?? .database(.sqlite(error.localizedDescription))
+        banner = (error as? AppError) ?? (error as? AppDatabaseError).map(AppError.database) ?? .lesson(error.localizedDescription)
     }
 
     /// The same, for a problem with a lesson's files.
@@ -162,6 +178,7 @@ final class AppModel {
         guard !Reporting.isSilent(error) else { return }
         banner = .files(error.localizedDescription)
     }
+
     /// Whether the inspector is open, remembered on this Mac.
     var showInspector: Bool {
         get { access(keyPath: \.showInspector); return preferences.defaults.bool(forKey: "ShowInspector") }
@@ -170,14 +187,7 @@ final class AppModel {
     private(set) var history = VisitHistory()
     var editorFontSize: Double = 13
     var showLineNumbers = true
-    private(set) var git: GitSync?
-    /// A quiet line about git: the last push, or why it did not happen.
-    private(set) var syncStatus = ""
-    private(set) var syncError: GitSyncError?
-    /// Git steps the app is waiting on (they run one at a time inside GitSync).
-    private var syncsRunning = 0
-    var isSyncing: Bool { syncsRunning > 0 }
-    /// Set while the app saves and syncs before it quits.
+    /// Set while the app saves before it quits.
     private(set) var isQuitting = false
     @ObservationIgnored private var started = false
     /// jq for command-line checks, compiled in; its programs are cached for the session.
@@ -187,11 +197,10 @@ final class AppModel {
     private(set) var settingsRequests = 0
 
     let preferences: LocalPreferences
-    let workspace = Workspace()
+    let workspace: Workspace
     private let readmes = ReadmeCache()
-    /// Readmes as plain text, for search excerpts; made ahead of time once a library opens.
+    /// Readmes as plain text, for search excerpts; made ahead of time for every library.
     private let readmeTexts = ReadmeTexts()
-    private var warmTask: Task<Void, Never>?
     private var observeTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var loadTask: Task<Void, Never>?
@@ -201,206 +210,141 @@ final class AppModel {
 
     init(defaults: UserDefaults = .standard) {
         preferences = LocalPreferences(defaults: defaults)
+        workspace = Workspace(root: preferences.dataFolder?.appendingPathComponent("work", isDirectory: true) ?? Workspace.defaultRoot)
     }
-
-    /// The library open now (or the one last tried) and the recent ones: model state, read
-    /// from the stored setting once at launch.
-    private(set) var libraries = OpenLibraries(launch: nil, recent: [])
-    var libraryURL: URL? { libraries.current }
-    var recentLibraries: [URL] { libraries.recent }
-    /// Set when a library chosen while another is open fails its checks; the open one stays.
-    var libraryError: AppError?
-    /// While a library opens; the open commands wait.
-    private(set) var isOpeningLibrary = false
-    /// Why sync is off for the open library, if it is.
-    private(set) var syncOffReason: String?
-    @ObservationIgnored private let opener = Superseding()
 
     // MARK: Launch
 
-    /// Opens the library and the lesson you had open. The app delegate calls it once the app
-    /// has launched, before or without a visible window; only the first call does anything.
+    /// Opens the learner database, the libraries built into the app and the ones you opened,
+    /// and the lesson you had open. The app delegate calls it once the app has launched,
+    /// before or without a visible window; only the first call does anything.
     func start() async {
         guard !started else { return }
         started = true
-        libraries = OpenLibraries(launch: preferences.launchLibrary, recent: preferences.recentLibraries)
+        launchInterval = signposter.beginInterval("Launch")
+        ObsoletePreferences.remove(from: preferences.defaults)
         // What runs left behind after a crash; not the lesson folders.
         let workspace = workspace
         Task.detached(priority: .background) { workspace.removeStaleRuns() }
-        launchInterval = signposter.beginInterval("Launch")
         let goOverride = preferences.goPath
         toolchainTask = Task.detached(priority: .utility) { await Toolchain.discover(goOverride: goOverride) }
-        open(libraries.current)
-        await opener.wait()
-        Task { [weak self] in
-            guard let self, let task = self.toolchainTask else { return }
-            self.toolchain = await task.value
-        }
-    }
-
-    /// File > Open Library…: any file; it is checked before the open library lets go.
-    func chooseLibrary() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.prompt = "Open"
-        panel.message = "Choose a Gosmos library: an SQLite file with courses and your progress in them"
-        if let current = libraryURL { panel.directoryURL = current.deletingLastPathComponent() }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        open(library: url)
-    }
-
-    /// Opens another library you chose (File > Open, Open Recent, Settings). It passes the
-    /// format's checks first; one that fails is named in an alert and the open library stays.
-    func open(library url: URL) {
-        opener.run { [weak self] in
-            guard let self else { return }
-            if self.database != nil {
-                self.isOpeningLibrary = true
-                defer { self.isOpeningLibrary = false }
-                let refused = await Task.detached(priority: .userInitiated) { () -> AppDatabaseError? in
-                    do { try AppDatabase(url: url).close(); return nil } catch let e as AppDatabaseError { return e } catch { return .sqlite(error.localizedDescription) }
-                }.value
-                // Superseded: the newer choice speaks, not this one.
-                if Task.isCancelled { return }
-                if let refused {
-                    self.libraryError = .database(refused)
-                    return
-                }
+        defer {
+            Task { [weak self] in
+                guard let self, let task = self.toolchainTask else { return }
+                self.toolchain = await task.value
             }
-            self.libraries.opened(url)
-            self.preferences.store(self.libraries)
-            await self.openLibrary(url, pull: false)
         }
-    }
 
-    /// Opens `url` again (Try Again), or the welcome view for nil.
-    func open(_ url: URL?) {
-        opener.run { [weak self] in await self?.openLibrary(url, pull: false) }
-    }
-
-    func clearRecentLibraries() {
-        libraries.clearRecent()
-        preferences.store(libraries)
-    }
-
-    /// Lets go of the open library: settles the lesson (a code conflict is asked about first),
-    /// stops what works on it, commits and pushes it when asked (sync on, or a pull next), and
-    /// closes the file.
-    private func closeLibrary(commit: Bool) async {
-        guard let db = database else { return }
-        // A lesson still loading never takes the place of the one leaving.
-        loadTask?.cancel()
-        await lesson?.leave()
-        searchTask?.cancel()
-        warmTask?.cancel()
-        observeTask?.cancel()
-        if commit, git != nil { await commitAndPush() }
-        lesson = nil
-        database = nil
-        do { try db.close() } catch { report(error) }
-    }
-
-    /// Opens a library, one at a time (`opener`): closes the open one first, since git must
-    /// never replace a file under an open connection; finds whether git tracks the file;
-    /// pulls; then opens and checks it off the main actor. Superseded by a newer request, it
-    /// stops before it changes anything.
-    private func openLibrary(_ url: URL?, pull: Bool) async {
-        isOpeningLibrary = true
-        defer { isOpeningLibrary = false }
-        await closeLibrary(commit: pull)
-        // Another library, or a pull, may give the same lesson ids new text.
-        await readmes.clear()
-        await readmeTexts.clear()
-        searchResults = []
-        searchSnippets = [:]
-        if Task.isCancelled { return }
-        guard let url else {
-            git = nil
-            syncOffReason = nil
-            phase = .welcome
+        let opened = ContinuousClock.now
+        let url = preferences.dataFolder?.appendingPathComponent("learner.sqlite") ?? LearnerDatabase.defaultURL
+        let schema = LearnerDatabase.bundledSchema
+        let opening = await Task.detached(priority: .userInitiated) { () -> Result<LearnerDatabase, LearnerDatabaseError> in
+            Result { () throws(LearnerDatabaseError) in try LearnerDatabase(url: url, schema: schema) }
+        }.value
+        let learner: LearnerDatabase
+        switch opening {
+        case .success(let opened): learner = opened
+        case .failure(let e):
+            phase = .failed(.learner(e))
             finishLaunch()
             return
         }
-        if libraries.current != url { libraries = OpenLibraries(launch: url, recent: libraries.recent) }
-        Log.app.info("Opening library \(url.path, privacy: .public)")
-        phase = .starting
-        let openStarted = ContinuousClock.now
-        defer { AppModel.logPhase("open (pull, check, catalog)", since: openStarted) }
-        // Reading the file first: in a folder macOS protects, its question about access comes
-        // now, and nothing below (git's timeouts included) starts before it is answered.
-        if let refused = await Task.detached(priority: .userInitiated, operation: { AppDatabase.access(url) }).value {
-            if Task.isCancelled { return }
-            git = nil
-            syncOffReason = nil
-            phase = .failed(.database(refused))
-            finishLaunch()
-            return
-        }
-        if Task.isCancelled { return }
-        let location = await GitSync.locate(url)
-        if Task.isCancelled { return }
-        // One GitSync per work tree and file, so its steps stay one at a time.
-        if let found = location.sync, let current = git, current.repository == found.repository, current.file == found.file {
-            // keep the current one
-        } else {
-            git = location.sync
-        }
-        switch location {
-        case .tracked: syncOffReason = nil
-        case .untracked: syncOffReason = "This library isn't tracked by git in the repository it sits in; changes stay on this Mac."
-        case .outside: syncOffReason = "This library isn't in a git repository; changes stay on this Mac."
-        }
-        syncError = nil
-        syncStatus = ""
-        if let git, pull {
-            // Before the library opens: fast-forward only; a conflict is reported.
-            syncsRunning += 1
-            do {
-                if case .done = try await git.pullFastForward() {
-                    syncStatus = "Pulled \(Date().formatted(date: .omitted, time: .shortened))"
-                }
-            } catch {
-                syncError = error
-                syncStatus = error.localizedDescription
-                Log.git.notice("Pull before opening: \(error.localizedDescription, privacy: .public)")
-            }
-            syncsRunning -= 1
-            AppModel.logPhase("pull", since: openStarted)
-        }
-        if Task.isCancelled { return }
+        self.learner = learner
+        await loadShelf(learner)
+        AppModel.logPhase("open (learner database and libraries)", since: opened)
         do {
-            // Opening runs the format's checks, off the main actor.
-            let db: AppDatabase = try await Task.detached(priority: .userInitiated) { try AppDatabase(url: url) }.value
-            if Task.isCancelled {
-                try db.close()
-                return
-            }
-            database = db
-            catalog = try await db.catalog()
-            done = try await db.doneLessons()
-            editorFontSize = Double(try await db.setting("editor_font_size") ?? "") ?? 13
-            showLineNumbers = (try await db.setting("editor_line_numbers")) != "0"
-            phase = .ready
-            observeDone(db)
-            let texts = readmeTexts
-            warmTask = Task.detached(priority: .utility) {
+            done = try await learner.done()
+            editorFontSize = Double(try await learner.setting("editor_font_size") ?? "") ?? 13
+            showLineNumbers = (try await learner.setting("editor_line_numbers")) != "0"
+        } catch {
+            report(error)
+        }
+        observeDone(learner)
+        phase = .ready
+        let texts = readmeTexts, databases = shelf.compactMap(\.database)
+        Task.detached(priority: .utility) {
+            for db in databases {
                 do { try await texts.warm(db) } catch { Log.app.notice("Search excerpts: \(error.localizedDescription, privacy: .public)") }
             }
-            let last = try await db.lastOpenedLesson()
-            let requested = preferences.defaults.string(forKey: LaunchArguments.openLesson)
-            if let id = requested.flatMap({ catalog.summary($0)?.id }) ?? last.flatMap({ catalog.summary($0)?.id }) ?? catalog.firstLesson?.id {
-                open(id, remember: false)
+        }
+        await refreshDueCount()
+        if let ref = await launchLesson(learner) {
+            // The "redo" launch actions open the lesson as its redo for review.
+            if preferences.defaults.string(forKey: LaunchArguments.action)?.hasPrefix("redo") == true {
+                redo(ref)
             } else {
-                finishLaunch()
+                open(ref, remember: false)
             }
-        } catch let e as AppDatabaseError {
-            phase = .failed(.database(e))
-            finishLaunch()
-        } catch {
-            phase = .failed(.database(.sqlite(error.localizedDescription)))
+        } else {
             finishLaunch()
         }
+    }
+
+    /// The libraries built into the app, then the ones you opened, each opened read-only and
+    /// checked off the main actor. One that can't be read stays in the sidebar with why.
+    private func loadShelf(_ learner: LearnerDatabase) async {
+        var libraries: [ShelfLibrary] = []
+        for file in BuiltInLibraries.files(in: BuiltInLibraries.folder) {
+            var entry = await AppModel.openLibrary(file, builtIn: true)
+            if let info = entry.database?.info {
+                do {
+                    try await learner.registerLibrary(info, location: BuiltInLibraries.location(of: file))
+                } catch {
+                    report(error)
+                }
+                if libraries.contains(where: { $0.id == info.uuid }) { entry = ShelfLibrary(id: file.path, title: file.lastPathComponent, url: file, isBuiltIn: true, error: .sqlite("another built-in library has the same uuid")) }
+            }
+            libraries.append(entry)
+        }
+        do {
+            for row in BuiltInLibraries.opened(from: try await learner.libraries()) {
+                let url = URL(fileURLWithPath: row.location)
+                var entry = await AppModel.openLibrary(url, builtIn: false)
+                if let info = entry.database?.info, info.uuid != row.uuid {
+                    // Another library now sits at that path.
+                    entry = ShelfLibrary(id: row.uuid, title: row.title, url: url, isBuiltIn: false,
+                                         error: .sqlite("\(url.path) now holds another library, \(info.title)."))
+                } else if entry.database == nil {
+                    entry = ShelfLibrary(id: row.uuid, title: row.title, url: url, isBuiltIn: false, error: entry.error)
+                }
+                libraries.append(entry)
+            }
+        } catch {
+            report(error)
+        }
+        shelf = libraries
+    }
+
+    /// Opens and checks a library off the main actor, with its catalog.
+    private static func openLibrary(_ url: URL, builtIn: Bool) async -> ShelfLibrary {
+        await Task.detached(priority: .userInitiated) { () -> ShelfLibrary in
+            do {
+                let db = try AppDatabase(url: url, immutable: builtIn)
+                let catalog = try await db.catalog()
+                return ShelfLibrary(id: db.info.uuid, title: db.info.title, url: url, isBuiltIn: builtIn, database: db, catalog: catalog)
+            } catch let e as AppDatabaseError {
+                return ShelfLibrary(id: url.path, title: url.deletingPathExtension().lastPathComponent, url: url, isBuiltIn: builtIn, error: e)
+            } catch {
+                return ShelfLibrary(id: url.path, title: url.deletingPathExtension().lastPathComponent, url: url, isBuiltIn: builtIn,
+                                    error: .sqlite(error.localizedDescription))
+            }
+        }.value
+    }
+
+    /// The lesson to open at launch: the one a scripted run asks for, else the one you opened
+    /// last in any library, else the first one.
+    private func launchLesson(_ learner: LearnerDatabase) async -> LessonRef? {
+        if let requested = preferences.defaults.string(forKey: LaunchArguments.openLesson) {
+            let parts = requested.split(separator: "/").map(String.init)
+            let ref = parts.count == 2 ? LessonRef(library: parts[0], lesson: parts[1])
+                : shelf.lazy.compactMap { lib in lib.catalog.summary(requested).map { _ in LessonRef(library: lib.id, lesson: requested) } }.first
+            if let ref, summary(ref) != nil { return ref }
+        }
+        if let last = try? await learner.lastOpened(), summary(last) != nil { return last }
+        for library in shelf {
+            if let first = library.catalog.firstLesson { return LessonRef(library: library.id, lesson: first.id) }
+        }
+        return nil
     }
 
     private func finishLaunch() {
@@ -426,12 +370,12 @@ final class AppModel {
         return Date(timeIntervalSince1970: Double(t.tv_sec) + Double(t.tv_usec) / 1_000_000)
     }()
 
-    /// Follows finished lessons as the app writes them.
-    private func observeDone(_ db: AppDatabase) {
+    /// Follows finished lessons as the app records them.
+    private func observeDone(_ learner: LearnerDatabase) {
         observeTask?.cancel()
         observeTask = Task { [weak self] in
             do {
-                for try await done in db.doneLessonUpdates() {
+                for try await done in learner.doneUpdates() {
                     self?.done = done
                 }
             } catch {
@@ -440,17 +384,85 @@ final class AppModel {
         }
     }
 
+    // MARK: Libraries
+
+    /// File › Open Library…: adds a library file to the sidebar, after its checks.
+    func chooseLibrary() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.prompt = "Add"
+        panel.message = "Choose a Gosmos library: an SQLite file of courses. Your progress in it stays on this Mac."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Task { await addLibrary(url) }
+    }
+
+    /// Adds a library you chose: it is checked first, recorded in the learner database with
+    /// where it is, and shown after the others. One that is already there opens instead; one
+    /// there that can't be read (its file moved, say) is this file from now on.
+    func addLibrary(_ url: URL) async {
+        guard let learner, !isAddingLibrary else { return }
+        isAddingLibrary = true
+        defer { isAddingLibrary = false }
+        let entry = await AppModel.openLibrary(url, builtIn: false)
+        guard let db = entry.database else {
+            libraryError = .database(entry.error ?? .missing(path: url.path))
+            return
+        }
+        if let existing = shelf.first(where: { $0.id == db.info.uuid }), existing.database != nil {
+            if let first = existing.catalog.firstLesson { open(LessonRef(library: existing.id, lesson: first.id)) }
+            return
+        }
+        do {
+            let info = db.info, location = url.path
+            try await learner.pendingWrites.start { try await learner.registerLibrary(info, location: location) }.value
+        } catch {
+            report(error)
+            return
+        }
+        if let unreadable = shelf.firstIndex(where: { $0.id == db.info.uuid }) { shelf[unreadable] = entry } else { shelf.append(entry) }
+        let texts = readmeTexts
+        Task.detached(priority: .utility) { try? await texts.warm(db) }
+        if let first = entry.catalog.firstLesson { open(LessonRef(library: entry.id, lesson: first.id)) }
+    }
+
+    func library(_ id: String) -> ShelfLibrary? { shelf.first { $0.id == id } }
+
     // MARK: Lessons
 
-    func summary(_ id: String) -> LessonSummary? { catalog.summary(id) }
+    func summary(_ ref: LessonRef) -> LessonSummary? { library(ref.library)?.catalog.summary(ref.lesson) }
 
     /// Shows a lesson; `remember` adds the one on screen to the back history.
-    func open(_ id: String, remember: Bool = true) {
-        guard let db = database, catalog.summary(id) != nil else { return }
-        if remember && id != lesson?.detail.id { history.visit(from: lesson?.detail.id) }
-        if selection != id { selection = id }
-        if let loc = catalog.location(of: id) { expandedChapters.insert(catalog.courses[loc.course].chapters[loc.chapter].id) }
-        guard lesson?.detail.id != id else { return }
+    func open(_ ref: LessonRef, remember: Bool = true) {
+        guard let learner, let db = library(ref.library)?.database, let catalog = library(ref.library)?.catalog,
+              catalog.summary(ref.lesson) != nil else { return }
+        review = nil
+        let current = lesson.map { $0.detail.ref }
+        if remember && ref != current { history.visit(from: visited) }
+        if selection != .lesson(ref) { selection = .lesson(ref) }
+        if let loc = catalog.location(of: ref.lesson) {
+            let course = catalog.courses[loc.course]
+            expanded.insert(ref.library + "/" + course.chapters[loc.chapter].id)
+            expanded.insert(ref.library + "/" + course.id)
+        }
+        guard current != ref || lesson?.isReview == true else { return }
+        startLoading(ref, db: db, learner: learner, review: false)
+    }
+
+    /// Redoes a lesson due for review: its starter code in a folder of its own; your saved
+    /// code and its done mark stay as they are. The redo is off the sidebar's selection, so
+    /// Review brings the review back when it is done.
+    func redo(_ ref: LessonRef) {
+        guard let learner, let db = library(ref.library)?.database, summary(ref) != nil else { return }
+        selection = nil
+        review = nil
+        startLoading(ref, db: db, learner: learner, review: true)
+    }
+
+    /// The lesson on screen as the back and forward history knows it; a redo is not in it.
+    private var visited: LessonRef? { lesson?.isReview == false ? lesson?.detail.ref : nil }
+
+    private func startLoading(_ ref: LessonRef, db: AppDatabase, learner: LearnerDatabase, review: Bool) {
         let interval = signposter.beginInterval("Lesson switch")
         let started = ContinuousClock.now
         isLoadingLesson = true
@@ -460,14 +472,13 @@ final class AppModel {
             await previous?.leave()
             guard let self else { return }
             do {
-                guard let detail = try await db.lesson(id) else { throw AppError.lesson("This lesson is not in the database.") }
-                // Superseded: the readme cache may already belong to another library.
+                guard let detail = try await db.lesson(ref.lesson) else { throw AppError.lesson("This lesson is not in its library.") }
                 try Task.checkCancellation()
                 let parsed = await self.readmes.parsed(for: detail)
                 var saved: [String: CodeFileRecord] = [:]
-                if detail.code != nil { saved = try await db.codeFiles(for: id) }
+                if detail.code != nil && !review { saved = try await learner.codeFiles(for: ref) }
                 try Task.checkCancellation()
-                let model = LessonModel(detail: detail, parsed: parsed, saved: saved, database: db, app: self)
+                let model = LessonModel(detail: detail, parsed: parsed, saved: saved, learner: learner, review: review, app: self)
                 self.lesson = model
                 self.isLoadingLesson = false
                 self.signposter.endInterval("Lesson switch", interval)
@@ -475,7 +486,10 @@ final class AppModel {
                 Log.app.notice("Timing lesson switch \(Int(ms), privacy: .public) ms (\(detail.type.rawValue, privacy: .public))")
                 self.finishLaunch()
                 await model.load()
-                do { try await db.markOpened(id) } catch { self.report(error) }
+                // Not once a newer lesson replaced this one: that one is the last opened.
+                if !review && !Task.isCancelled {
+                    do { try await learner.pendingWrites.start { try await learner.markOpened(ref) }.value } catch { self.report(error) }
+                }
                 self.performLaunchAction(on: model)
             } catch let error where Reporting.isSilent(error) {
                 self.signposter.endInterval("Lesson switch", interval)
@@ -490,8 +504,8 @@ final class AppModel {
     }
 
     /// Launch arguments for scripted runs (screenshots, debugging): `-GosmosOpenLesson
-    /// <uuid>` opens a lesson, and `-GosmosLaunchAction run|submit|check|answer` acts on
-    /// it once, after it loads. They live in the argument domain only, never stored.
+    /// [<library>/]<lesson>` opens a lesson, and `-GosmosLaunchAction <action>` acts on it once,
+    /// after it loads. They live in the argument domain only, never stored.
     enum LaunchArguments {
         static let openLesson = "GosmosOpenLesson"
         static let action = "GosmosLaunchAction"
@@ -513,22 +527,18 @@ final class AppModel {
             }
             return
         }
-        if action == "walk" {
-            // Opens the next ten lessons one after another, to measure switching.
-            Task { [weak self] in
-                for _ in 0..<10 {
-                    try? await Task.sleep(for: .milliseconds(400))
-                    self?.openNext()
-                }
-            }
-            return
-        }
         switch action {
         case "settings": settingsRequests += 1
         case "run": model.run()
         case "submit": model.submit()
         case "check": model.run()
         case "footer": model.showFooter()
+        case "hints":
+            // Every hint that may show: all but a last one that waits for a failed Submit.
+            while model.hints.canReveal { model.revealHint() }
+        case "solution": model.showSolution()
+        case "review": showReview()
+        case "redo-submit": model.submit()
         case "answer":
             // The first question right, the others wrong: both outcomes on screen.
             guard let quiz = model.quiz else { return }
@@ -546,47 +556,87 @@ final class AppModel {
     var canGoForward: Bool { !history.forward.isEmpty }
 
     func goBack() {
-        if let id = history.goBack(from: lesson?.detail.id) { open(id, remember: false) }
+        if let ref = history.goBack(from: visited) { open(ref, remember: false) }
     }
 
     func goForward() {
-        if let id = history.goForward(from: lesson?.detail.id) { open(id, remember: false) }
+        if let ref = history.goForward(from: visited) { open(ref, remember: false) }
     }
 
-    var nextLesson: LessonSummary? { lesson.flatMap { catalog.next(after: $0.detail.id) } }
-    var previousLesson: LessonSummary? { lesson.flatMap { catalog.previous(before: $0.detail.id) } }
+    var nextLesson: LessonSummary? {
+        guard let ref = lesson?.detail.ref, lesson?.isReview == false else { return nil }
+        return library(ref.library)?.catalog.next(after: ref.lesson)
+    }
+    var previousLesson: LessonSummary? {
+        guard let ref = lesson?.detail.ref, lesson?.isReview == false else { return nil }
+        return library(ref.library)?.catalog.previous(before: ref.lesson)
+    }
 
-    func openNext() { if let n = nextLesson { open(n.id) } }
-    func openPrevious() { if let p = previousLesson { open(p.id) } }
+    func openNext() { if let n = nextLesson, let library = lesson?.detail.library { open(LessonRef(library: library, lesson: n.id)) } }
+    func openPrevious() { if let p = previousLesson, let library = lesson?.detail.library { open(LessonRef(library: library, lesson: p.id)) } }
 
-    func isDone(_ id: String) -> Bool { done.contains(id) }
+    func isDone(_ ref: LessonRef) -> Bool { done[ref.library]?.contains(ref.lesson) ?? false }
 
-    func setDone(_ id: String, _ value: Bool) {
-        guard let db = database else { return }
-        if value { done.insert(id) } else { done.remove(id) }
-        Task {
-            do {
-                try await db.setDone(id, value)
-            } catch {
-                report(error)
-            }
+    func setDone(_ ref: LessonRef, _ value: Bool) {
+        guard let learner else { return }
+        if value { done[ref.library, default: []].insert(ref.lesson) } else { done[ref.library]?.remove(ref.lesson) }
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.setDone(ref, value) } catch { self?.report(error) }
         }
     }
 
     /// Finished lessons out of required ones, for a course's ring.
-    func progress(of course: Course) -> (done: Int, total: Int) {
+    func progress(of course: Course, in library: String) -> (done: Int, total: Int) {
         let required = course.requiredLessons
-        return (required.filter { done.contains($0.id) }.count, required.count)
+        let finished = done[library] ?? []
+        return (required.filter { finished.contains($0.id) }.count, required.count)
     }
 
-    func doneCount(_ chapter: Chapter) -> Int { chapter.lessons.filter { done.contains($0.id) }.count }
+    func doneCount(_ chapter: Chapter, in library: String) -> Int {
+        let finished = done[library] ?? []
+        return chapter.lessons.filter { finished.contains($0.id) }.count
+    }
+
+    // MARK: Review
+
+    /// Shows the review: due quiz questions, interleaved across lessons, and lessons to redo.
+    /// The lesson on screen stays until it is saved, as when another lesson opens, so a code
+    /// conflict can still be asked about; Back returns to it.
+    func showReview() {
+        guard let learner else { return }
+        if let ref = visited { history.visit(from: ref) }
+        selection = .review
+        isLoadingLesson = false
+        loadTask?.cancel()
+        let previous = lesson
+        let session = ReviewSession(learner: learner, app: self)
+        loadTask = Task { [weak self] in
+            await previous?.leave()
+            guard let self, !Task.isCancelled else { return }
+            self.lesson = nil
+            self.review = session
+            await session.load()
+        }
+    }
+
+    /// Counts what is due now, for the sidebar's Review: what the review would show.
+    func refreshDueCount() async {
+        guard let learner else { return }
+        do {
+            let due = try await ReviewSession.due(learner, in: self)
+            dueCount = due.questions.count + due.lessons.count
+        } catch {
+            report(error)
+        }
+    }
 
     // MARK: Search
 
     private func searchChanged() {
         searchTask?.cancel()
         let text = searchText
-        guard let db = database, !text.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let databases = shelf.compactMap(\.database)
+        guard !databases.isEmpty, !text.trimmingCharacters(in: .whitespaces).isEmpty else {
             searchResults = []
             searching = false
             return
@@ -597,10 +647,10 @@ final class AppModel {
             let interval = self?.signposter.beginInterval("Search")
             let started = ContinuousClock.now
             // The index's hits that show a match, with their excerpts, from the readmes as
-            // the app renders them.
-            let found: (hits: [SearchHit], snippets: [String: [Snippet.Part]])
+            // the app renders them, through every library in the sidebar's order.
+            let found: (hits: [SearchHit], snippets: [LessonRef: [Snippet.Part]])
             do {
-                found = try await texts.search(text, in: db)
+                found = try await texts.search(text, in: databases)
             } catch {
                 found = ([], [:])
                 self?.report(error)
@@ -619,10 +669,10 @@ final class AppModel {
 
     func setEditorFontSize(_ size: Double) {
         editorFontSize = min(max(size, 9), 28)
-        guard let db = database else { return }
+        guard let learner else { return }
         let value = String(Int(editorFontSize))
-        Task { [weak self] in
-            do { try await db.setSetting("editor_font_size", value) } catch { self?.report(error) }
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.setSetting("editor_font_size", value) } catch { self?.report(error) }
         }
     }
 
@@ -647,9 +697,9 @@ final class AppModel {
 
     func setShowLineNumbers(_ on: Bool) {
         showLineNumbers = on
-        guard let db = database else { return }
-        Task { [weak self] in
-            do { try await db.setSetting("editor_line_numbers", on ? "1" : "0") } catch { self?.report(error) }
+        guard let learner else { return }
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.setSetting("editor_line_numbers", on ? "1" : "0") } catch { self?.report(error) }
         }
     }
 
@@ -701,57 +751,15 @@ final class AppModel {
         CLIChecker(environment: toolchain?.environment ?? ProcessInfo.processInfo.environment, jq: jq)
     }
 
-    // MARK: Git
-
-    /// Commits the library file if it changed, then pushes. A call while another sync
-    /// runs waits for it (GitSync runs its steps one at a time) and commits what changed
-    /// since. Quiet: the outcome goes to the sync status line, and a conflict is reported,
-    /// never merged.
-    func commitAndPush() async {
-        guard let git, let db = database else { return }
-        syncsRunning += 1
-        defer { syncsRunning -= 1 }
-        do {
-            let (_, push) = try await git.commitAndPush(db)
-            if case .done = push { preferences.setLastPush(Date()) }
-            syncError = nil
-            syncStatus = preferences.lastPush.map { "Pushed \($0.formatted(.relative(presentation: .named)))" } ?? "Up to date"
-        } catch {
-            syncError = error
-            syncStatus = error.localizedDescription
-            Log.git.notice("Sync: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    /// Pull, only when you ask: opens the library again with a pull first (closing it commits
-    /// and pushes it, so the pull can fast-forward).
-    func pullNow() {
-        guard git != nil, database != nil, !isSyncing else { return }
-        let url = libraryURL
-        opener.run { [weak self] in await self?.openLibrary(url, pull: true) }
-    }
-
-    /// Removes git's lock file when git reported it stale (left by a git that stopped), then
-    /// syncs again.
-    func removeStaleLock() async {
-        guard let git else { return }
-        do {
-            try await git.removeStaleLock()
-            syncError = nil
-            syncStatus = ""
-            await commitAndPush()
-        } catch {
-            syncError = error
-            syncStatus = error.localizedDescription
-        }
-    }
-
-    /// Saves what is pending before the app quits. Lesson programs stop at once; a sync you
-    /// started is not stopped, and the app delegate bounds the whole wait.
+    /// Saves what is pending before the app quits. Lesson programs stop at once; the app
+    /// delegate bounds the whole wait.
     func prepareToQuit() async {
         isQuitting = true
         // A code conflict asks first; without a choice in 15 seconds both versions are kept.
         await lesson?.leave(within: .seconds(15))
         ProcessRunner.terminateAll(.lesson)
+        // The writes nothing else waits for (a review answer, a hint, a done mark, the address
+        // the lesson just left kept) land before the app goes.
+        await learner?.pendingWrites.finish()
     }
 }

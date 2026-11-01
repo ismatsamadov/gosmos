@@ -4,7 +4,7 @@ import Testing
 @testable import GosmosKit
 
 /// Each check docs/library-format.md lists refuses a file that breaks it, with the same words
-/// as the library tool, and writes nothing to the file.
+/// as the library tool, and writes nothing to the file. A library is only ever read.
 @Suite struct ValidationTests {
     /// A good library, broken by `change` (run with foreign keys off), then opened.
     func open(_ change: (Database) throws -> Void) throws -> (error: AppDatabaseError?, untouched: Bool) {
@@ -33,14 +33,19 @@ import Testing
 
     @Test func header() throws {
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 7") }
-            == ["application_id is 7, not 1196447556: the file is not a Gosmos library"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 5") }
-            == ["user_version is 5, not 6: the library is of an older format; migrating brings it up to date"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 7") }
-            == ["user_version is 7, not 6: the library is of a newer format than this program knows"])
+            == ["application_id is 7, not 1196641619: the file is not a Gosmos library"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 6") }
+            == ["user_version is 6, not 7: the library is of an older format; migrating brings it up to date"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 8") }
+            == ["user_version is 8, not 7: the library is of a newer format than this program knows"])
         // An older file is to be migrated with the tool; the app never migrates.
-        let older = try open { try $0.execute(sql: "PRAGMA user_version = 5") }.error
+        let older = try open { try $0.execute(sql: "PRAGMA user_version = 6") }.error
         #expect(older?.recoverySuggestion?.contains("go run ./cmd/library migrate") == true)
+    }
+
+    /// Check 7: a library names itself in exactly one library_info row.
+    @Test func oneLibraryInfoRow() throws {
+        #expect(try problems { try $0.execute(sql: "DELETE FROM library_info") } == ["library_info holds 0 rows, not exactly 1"])
     }
 
     @Test func notSQLite() throws {
@@ -106,10 +111,10 @@ import Testing
     }
 
     @Test func everySolutionSolvesAnEditableFile() throws {
-        // A solution for the editable main.go passes; one for a file the lesson doesn't have, or
-        // for a read-only test file, is refused in the tool's words.
+        // The fixture's solution for the editable main.go passes; one for a file the lesson
+        // doesn't have, or for a read-only test file, is refused in the tool's words.
         let found = try problems { db in
-            for (lesson, name) in [(Fixtures.codeLesson, "main.go"), (Fixtures.codeLesson, "other.go"), (Fixtures.testsLesson, "main_test.go")] {
+            for (lesson, name) in [(Fixtures.codeLesson, "other.go"), (Fixtures.testsLesson, "main_test.go")] {
                 try db.execute(sql: "INSERT INTO solution_file(lesson_uuid, name, content) VALUES (?, ?, ?)", arguments: [lesson, name, "package main\n"])
             }
         }
@@ -142,19 +147,20 @@ import Testing
         }
         try await Task.sleep(for: .milliseconds(150))
         do {
-            try AppDatabase.check(url.path, busyTimeout: 0.2)
-            Issue.record("checked a locked file")
+            _ = try AppDatabase(url: url, immutable: false, busyTimeout: 0.2)
+            Issue.record("opened a locked file")
         } catch {
             #expect(error == .busy(path: url.path) && error.problems == ["another program is writing to this library; try again"])
             #expect(error.title == "Library Busy")
         }
         // Waiting longer than the lock lasts: the library opens.
-        try AppDatabase.check(url.path, busyTimeout: 5)
+        _ = try AppDatabase(url: url, immutable: false, busyTimeout: 5)
         try await holding.value
     }
 
-    /// A write cut short leaves a hot journal; opening rolls it back first, then checks.
-    @Test func anInterruptedWriteIsRecovered() throws {
+    /// A write cut short leaves a hot journal. Rolling it back is a write, which the app never
+    /// makes: the library is refused with what to do, and the file and its journal stay.
+    @Test func anInterruptedWriteIsReportedNotRolledBack() throws {
         let dir = try Fixtures.tempDir("interrupted")
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appendingPathComponent(Fixtures.libraryName), copy = dir.appendingPathComponent("interrupted.library")
@@ -178,10 +184,55 @@ import Testing
         }
         try writer.close()
         #expect(try Data(contentsOf: copy) != Data(contentsOf: url)) // the copy holds part of the write
-        _ = try AppDatabase(url: copy)
-        #expect(!FileManager.default.fileExists(atPath: copy.path + "-journal"))
-        let spill = try DatabaseQueue(path: copy.path).read { try $0.tableExists("spill") }
-        #expect(!spill, "the interrupted write is rolled back")
+        let bytes = try Data(contentsOf: copy), journal = try Data(contentsOf: URL(fileURLWithPath: copy.path + "-journal"))
+        #expect(throws: AppDatabaseError.interruptedWrite(path: copy.path)) { try AppDatabase(url: copy) }
+        #expect(try Data(contentsOf: copy) == bytes && Data(contentsOf: URL(fileURLWithPath: copy.path + "-journal")) == journal)
+        let refused = AppDatabaseError.interruptedWrite(path: copy.path)
+        #expect(refused.title == "Library Needs Recovery" && refused.recoverySuggestion?.contains("go run ./cmd/library check \(copy.path)") == true)
+    }
+
+    /// Opening and reading everything writes nothing: not a byte, not the modification time, no
+    /// journal. A library built into the app opens immutable, even from a folder no one may
+    /// write to, and nothing can be written through the app's connection.
+    @Test func librariesAreOnlyRead() async throws {
+        let dir = try Fixtures.tempDir("readonly")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.appendingPathComponent("Courses").path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        let url = dir.appendingPathComponent(Fixtures.libraryName)
+        try Fixtures.makeDatabase(at: url)
+        let before = try Data(contentsOf: url)
+        let modified = try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+        func readEverything(_ db: AppDatabase) async throws {
+            let catalog = try await db.catalog()
+            for course in catalog.courses { for lesson in course.lessons { _ = try await db.lesson(lesson.id) } }
+            _ = try await db.search("greeting")
+            _ = try await db.readmes()
+        }
+        let db = try AppDatabase(url: url)
+        try await readEverything(db)
+        await #expect(throws: DatabaseError.self) {
+            try await db.dbQueue.writeWithoutTransaction { try $0.execute(sql: "UPDATE lesson SET title = 'x'") }
+        }
+        try db.close()
+        #expect(try Data(contentsOf: url) == before)
+        #expect(try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date == modified)
+        for suffix in ["-journal", "-wal", "-shm"] { #expect(!FileManager.default.fileExists(atPath: url.path + suffix)) }
+
+        // As built into the app: a read-only file in a read-only folder.
+        let courses = dir.appendingPathComponent("Courses")
+        try FileManager.default.createDirectory(at: courses, withIntermediateDirectories: true)
+        let bundled = courses.appendingPathComponent("practice.sqlite")
+        try FileManager.default.copyItem(at: url, to: bundled)
+        try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: bundled.path)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: courses.path)
+        let builtIn = try AppDatabase(url: bundled, immutable: true)
+        #expect(builtIn.info.uuid == Fixtures.libraryID)
+        try await readEverything(builtIn)
+        try builtIn.close()
+        #expect(try Data(contentsOf: bundled) == before)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: courses.path) == ["practice.sqlite"])
     }
 
     @Test func accessIsAskedForFirstAndARefusalIsNamed() throws {

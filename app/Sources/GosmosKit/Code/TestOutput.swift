@@ -91,3 +91,45 @@ public struct TestOutput: Sendable, Equatable {
         tail.append(contentsOf: current[(end + 1)...])
     }
 }
+
+/// A Go test that failed, as `go test` reports it: a "--- FAIL: TestName (0.00s)" line and the
+/// messages the test logged under it, such as "main_test.go:16: add(1, 2) = 0, want 3".
+public struct FailedTest: Hashable, Sendable {
+    public let name: String
+    public let messages: [String]
+
+    public init(name: String, messages: [String]) {
+        self.name = name
+        self.messages = messages
+    }
+
+    /// The failed tests in `go test` output, in order. A subtest is named Parent/Sub, and a
+    /// test that failed only through its subtests is left out for them. A message that goes on
+    /// over more lines keeps them.
+    public static func parse(_ output: String) -> [FailedTest] {
+        var found: [(name: String, indent: Int, messages: [String], messageIndent: Int?)] = []
+        var current: Int?
+        for raw in output.components(separatedBy: "\n") {
+            let line = raw.replacingOccurrences(of: "\t", with: "    ")
+            let indent = line.prefix { $0 == " " }.count
+            let text = String(line.dropFirst(indent))
+            if let m = text.firstMatch(of: /^--- FAIL: (\S+) \(/) {
+                found.append((String(m.1), indent, [], nil))
+                current = found.count - 1
+                continue
+            }
+            guard let c = current, !text.isEmpty else { continue }
+            if indent <= found[c].indent {
+                current = nil
+            } else if let deeper = found[c].messageIndent, indent > deeper, !found[c].messages.isEmpty {
+                found[c].messages[found[c].messages.count - 1] += "\n" + text
+            } else {
+                found[c].messages.append(text)
+                found[c].messageIndent = indent
+            }
+        }
+        let names = found.map(\.name)
+        return found.filter { t in !(t.messages.isEmpty && names.contains { $0.hasPrefix(t.name + "/") }) }
+            .map { FailedTest(name: $0.name, messages: $0.messages) }
+    }
+}

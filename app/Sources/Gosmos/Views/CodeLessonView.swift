@@ -15,7 +15,7 @@ struct CodeLessonView: View {
             PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.62, minFirst: 180, minSecond: 140) {
                 EditorPane(session: session)
             } second: {
-                ConsolePane(session: session)
+                ConsolePane(session: session, comesBackForReview: lesson.comesBackForReview)
             }
         }
         .alert(
@@ -28,6 +28,16 @@ struct CodeLessonView: View {
             Button("Use the File on Disk") { session.resolveConflict(keepMine: false) }
         } message: { name in
             Text("You changed \(name) here, and it changed in the lesson folder too, since it was last saved. Which version do you want to keep?")
+        }
+        .sheet(isPresented: Binding(get: { lesson.showingSolution }, set: { lesson.showingSolution = $0 })) {
+            SolutionCompareView(files: solutionFiles, note: session.exercise.solutionNote) { lesson.showingSolution = false }
+        }
+    }
+
+    /// The solution's files, each beside your version as the editor holds it now.
+    private var solutionFiles: [SolutionCompareView.File] {
+        session.exercise.solutionFiles.map { solution in
+            SolutionCompareView.File(solution, yours: session.files.first { $0.name == solution.name }?.text ?? "")
         }
     }
 }
@@ -152,6 +162,8 @@ struct CodeLoadFailed: View {
 
 struct ConsolePane: View {
     let session: CodeSession
+    /// The last pass put the lesson in review.
+    let comesBackForReview: Bool
     @Environment(AppModel.self) private var app
 
     var body: some View {
@@ -189,7 +201,7 @@ struct ConsolePane: View {
             }
             .padding(8)
             ScrollView {
-                ConsoleBody(session: session)
+                ConsoleBody(session: session, comesBackForReview: comesBackForReview)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 14)
@@ -275,10 +287,21 @@ struct RunStatusBar: View {
 
 struct ConsoleBody: View {
     let session: CodeSession
+    let comesBackForReview: Bool
 
     var body: some View {
         if let result = session.result {
             VStack(alignment: .leading, spacing: 10) {
+                if result.status == .passed, session.resultWasSubmit, comesBackForReview {
+                    Label("This lesson comes back for review in a day, to make it stick.", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                // What failed comes first: each failing test by name, with its own messages.
+                if result.status == .failed, !result.failedTests.isEmpty {
+                    FailingTests(tests: result.failedTests)
+                }
                 // The cases and the comparison were made off the main actor with the result.
                 if let parsed = result.tests, !parsed.cases.isEmpty {
                     if !parsed.before.isEmpty { LongText(text: parsed.before) }
@@ -302,6 +325,37 @@ struct ConsoleBody: View {
                 .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// The Go tests that failed, by name, each with the messages it logged, above the output.
+struct FailingTests: View {
+    let tests: [FailedTest]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(tests.count == 1 ? "1 test failed" : "\(tests.count) tests failed")
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.failure)
+            ForEach(Array(tests.enumerated()), id: \.offset) { _, test in
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(test.name, systemImage: "xmark.circle.fill")
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .symbolRenderingMode(.multicolor)
+                    ForEach(Array(test.messages.enumerated()), id: \.offset) { _, message in
+                        Text(message)
+                            .font(.system(size: 12, design: .monospaced))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.leading, 22)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 

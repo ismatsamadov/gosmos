@@ -53,7 +53,9 @@ public final class CodeBuffers {
     /// A file that changed both here and in another editor; the lesson asks which to keep.
     public private(set) var conflict: String?
 
-    private let database: AppDatabase
+    /// Where your code is kept; nil for a review, which starts from the starter code in a
+    /// folder of its own each time and keeps nothing.
+    private let learner: LearnerDatabase?
     private let workspace: Workspace
     private let unsettled: Set<String>
     private let goVersion: @MainActor () async -> String
@@ -63,13 +65,14 @@ public final class CodeBuffers {
 
     /// `saved` is your code from code_file, and `unsettled` names the files left in conflict
     /// when the app last quit. `goVersion` gives the Go version for a new folder's go.mod;
-    /// `remember` keeps, across launches, whether a file is still in conflict.
-    public init(lesson: LessonDetail, exercise: CodeExercise, saved: [String: CodeFileRecord], database: AppDatabase,
+    /// `remember` keeps, across launches, whether a file is still in conflict. Without a
+    /// `learner` database the buffers are a review's: the starter code, saved nowhere.
+    public init(lesson: LessonDetail, exercise: CodeExercise, saved: [String: CodeFileRecord], learner: LearnerDatabase?,
                 workspace: Workspace, unsettled: Set<String>, goVersion: @escaping @MainActor () async -> String,
                 remember: @escaping @MainActor (_ name: String, _ unsettled: Bool) -> Void) {
         self.lesson = lesson
         self.exercise = exercise
-        self.database = database
+        self.learner = learner
         self.workspace = workspace
         self.unsettled = unsettled
         self.goVersion = goVersion
@@ -93,19 +96,21 @@ public final class CodeBuffers {
 
     private func loadNow() async {
         do {
-            let saved = try await database.codeFiles(for: lesson.id)
+            let saved = try await learner?.codeFiles(for: lesson.ref) ?? [:]
             let version = await goVersion()
-            let lesson = lesson, exercise = exercise, workspace = workspace, unsettled = unsettled
+            let lesson = lesson, exercise = exercise, workspace = workspace, unsettled = unsettled, fresh = learner == nil
             let prepared = try await Task.detached(priority: .userInitiated) {
-                try workspace.prepare(lesson, code: exercise, saved: saved, goVersion: version, unsettled: unsettled)
+                // A review starts over from the starter code every time.
+                if fresh { try workspace.remove(lesson) }
+                return try workspace.prepare(lesson, code: exercise, saved: saved, goVersion: version, unsettled: unsettled)
             }.value
             folder = prepared.folder
             let (start, conflicted) = adopt(prepared.files)
             // The folder's newer edits go into code_file, except where they meet text typed
             // before the load landed: those wait for your choice.
             let readBack = prepared.readBack.filter { !conflicted.contains($0.name) }
-            if !readBack.isEmpty { try await database.saveCode(lesson: lesson.id, files: readBack) }
-            saver = CodeSaver(database: database, workspace: workspace, lesson: lesson, saved: start, unsettled: unsettled)
+            if !readBack.isEmpty { try await learner?.saveCode(lesson.ref, files: readBack) }
+            saver = CodeSaver(learner: learner, workspace: workspace, lesson: lesson, saved: start, unsettled: unsettled)
             loadError = nil
             isLoaded = true
         } catch {
@@ -154,9 +159,9 @@ public final class CodeBuffers {
         guard let saver else {
             // No folder (the load failed): your text still goes into code_file.
             let edited = files.filter { !$0.readOnly && $0.isEdited }
-            guard !edited.isEmpty else { return true }
+            guard let learner, !edited.isEmpty else { return true }
             let now = Clock.now()
-            try await database.saveCode(lesson: lesson.id, files: edited.map { CodeFileRecord(name: $0.name, content: $0.text, updatedAt: now) })
+            try await learner.saveCode(lesson.ref, files: edited.map { CodeFileRecord(name: $0.name, content: $0.text, updatedAt: now) })
             for buffer in edited { buffer.fill(buffer.text) }
             return true
         }
@@ -189,7 +194,8 @@ public final class CodeBuffers {
         return Task {
             let kept = try await saver.resolve(name, keepMine ? .mine(mine) : .disk)
             if !keepMine { buffer.fill(kept) }
-            remember(name, false)
+            // A review's conflict is in its own folder; the lesson's list is not its to change.
+            if learner != nil { remember(name, false) }
             if let next = await saver.conflicts.sorted().first {
                 conflict = next
                 return false
@@ -201,8 +207,8 @@ public final class CodeBuffers {
     /// Saves before the lesson closes, once a load under way has landed, so whatever the
     /// buffers hold is saved. With a conflict the alert asks, and closing waits for the
     /// choice. With a limit (quitting) and no choice in time, both versions are kept: yours in
-    /// code_file, the other editor's on disk, and the lesson asks again when it opens.
-    /// Returns the files kept so.
+    /// code_file, the other editor's on disk, and the lesson asks again when it opens; a
+    /// review keeps neither. Returns the files kept so.
     public func settle(within limit: Duration?) async throws -> [String] {
         if !isLoaded, loading != nil || files.contains(where: \.isEdited) { await load() }
         guard !(try await flush()), let saver else { return [] }
@@ -210,6 +216,8 @@ public final class CodeBuffers {
             try await flush() // edits made while the alert was up
             return []
         }
+        // A review keeps nothing: the next redo starts over in a new folder.
+        guard learner != nil else { return [] }
         let texts = Dictionary(files.filter { !$0.readOnly }.map { ($0.name, $0.text) }, uniquingKeysWith: { a, _ in a })
         let kept = try await saver.keepBoth(texts)
         for name in kept { remember(name, true) }

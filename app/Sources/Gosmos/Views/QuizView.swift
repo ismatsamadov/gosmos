@@ -34,10 +34,14 @@ struct QuestionCard: View {
                     .foregroundStyle(Theme.secondaryText)
             }
             MarkdownBlocks(blocks: blocks)
+            // Empty until the question is graded: the reasons would give the answer away.
+            let explanations = session.explanations(for: index)
             GlassEffectContainer(spacing: 8) {
                 VStack(spacing: 8) {
                     ForEach(Array(question.answers.enumerated()), id: \.offset) { a, answer in
-                        AnswerRow(number: a + 1, answer: answer, state: state(of: a)) {
+                        QuizAnswerRow(number: a + 1, text: answer, isPicked: session.picks[index] == a, isRight: question.isCorrect(answer),
+                                      explanation: explanations.indices.contains(a) ? explanations[a] : nil,
+                                      revealed: session.verdicts[index] != nil) {
                             session.pick(a, for: index)
                             focused = true
                         }
@@ -66,87 +70,6 @@ struct QuestionCard: View {
         .onAppear { if index == 0 { focused = true } }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Question \(index + 1)")
-    }
-
-    private func state(of answer: Int) -> AnswerRow.State {
-        let picked = session.picks[index] == answer
-        guard let verdict = session.verdicts[index] else { return picked ? .picked : .idle }
-        if question.answers[answer] == question.answer && (verdict || picked == false) { return .right }
-        if picked { return verdict ? .right : .wrong }
-        return .idle
-    }
-}
-
-struct AnswerRow: View {
-    enum State { case idle, picked, right, wrong }
-
-    let number: Int
-    let answer: String
-    let state: State
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text("\(number)")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(Theme.secondaryText)
-                    .frame(width: 20, height: 20)
-                    .background(.quaternary, in: Circle())
-                Text(Inline.attributed(Readme.parseInline(answer), size: 14))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: symbol)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-                    .opacity(state == .idle ? 0 : 1)
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .glassEffect(glass, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .accessibilityLabel("Answer \(number): \(Readme.plainText(Readme.parseInline(answer)))")
-        .accessibilityValue(accessibilityState)
-        .accessibilityHint("Press \(number) to pick it")
-    }
-
-    private var symbol: String {
-        switch state {
-        case .idle, .picked: "circle.inset.filled"
-        case .right: "checkmark.circle.fill"
-        case .wrong: "xmark.circle.fill"
-        }
-    }
-
-    private var tint: Color {
-        switch state {
-        case .idle, .picked: Theme.accent
-        case .right: Theme.success
-        case .wrong: Theme.failure
-        }
-    }
-
-    private var glass: Glass {
-        switch state {
-        case .idle: .regular.interactive()
-        case .picked: .regular.tint(Theme.accent.opacity(0.25)).interactive()
-        case .right: .regular.tint(.green.opacity(0.3))
-        case .wrong: .regular.tint(.red.opacity(0.3))
-        }
-    }
-
-    private var accessibilityState: String {
-        switch state {
-        case .idle: ""
-        case .picked: "Picked"
-        case .right: "Right answer"
-        case .wrong: "Wrong answer"
-        }
     }
 }
 

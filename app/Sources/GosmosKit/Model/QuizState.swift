@@ -5,8 +5,16 @@ import Foundation
 public struct QuizState: Sendable {
     /// One graded answer, for the attempt history.
     public struct Answer: Sendable, Equatable {
+        /// The question's position in its lesson.
+        public let question: Int
         public let text: String
         public let right: Bool
+
+        public init(question: Int, text: String, right: Bool) {
+            self.question = question
+            self.text = text
+            self.right = right
+        }
     }
 
     public let quiz: Quiz
@@ -39,6 +47,14 @@ public struct QuizState: Sendable {
         return true
     }
 
+    /// Why each answer of a question is right or wrong, once the question is graded: before,
+    /// they would give the answer away. Nil where the lesson gives no reason.
+    public func explanations(for question: Int) -> [String?] {
+        guard verdicts[question] != nil, quiz.questions.indices.contains(question) else { return [] }
+        let q = quiz.questions[question]
+        return q.answers.indices.map { q.explanation(of: $0) }
+    }
+
     /// Grades every pick not yet right, and returns those answers.
     public mutating func submit() -> [Answer] {
         guard canSubmit else { return [] }
@@ -48,7 +64,7 @@ public struct QuizState: Sendable {
             let text = q.answers[p]
             let right = q.isCorrect(text)
             verdicts[i] = right
-            graded.append(Answer(text: text, right: right))
+            graded.append(Answer(question: q.position, text: text, right: right))
         }
         return graded
     }

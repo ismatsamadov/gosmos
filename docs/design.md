@@ -68,11 +68,16 @@ calm typography, and every action on the keyboard. Nothing in it looks like a we
   - The console opens with a glass status bar: state symbol, duration, passed or failed.
     The output below it is monospaced, and the first failing test is expanded.
   - "Reset to Starter Code" asks first.
+  - Under the readme, hints show one at a time and stay shown; the last opens after a Submit
+    that fails. A Show Solution row (⌥⌘S) says that looking before you pass brings the lesson
+    back for review. It opens a sheet with your code and the solution side by side, the lines
+    that differ marked, and why the solution works. Nothing goes into the editor. A long file
+    is compared in the background, with a small spinner meanwhile.
 - **Quiz**:
   - Each question is a card, and its answers are large selectable rows. Keys 1 to 5 pick an
     answer.
   - After Submit the right answer turns green with a checkmark. A wrong pick turns red, and
-    the right one is shown.
+    the right one is shown. Under every answer, a line says why it is right or wrong.
   - Success gives a light trackpad haptic (NSHapticFeedbackManager) and the done mark
     bounces.
 - **Command line**:
@@ -82,7 +87,12 @@ calm typography, and every action on the keyboard. Nothing in it looks like a we
   - The project folder and server address sit at the top and can be edited.
 - **GitHub and interview**: the readme, the checks as a reference checklist, and a clear
   Mark as Done button.
-- After a pass, Next Lesson (⌘]) appears in the toolbar.
+- After a pass, Next Lesson (⌘]) appears in the toolbar. A pass that schedules a review says
+  so in the console.
+- **Review**: the sidebar's Review entry has a badge with the number of items due. Due quiz
+  questions come one at a time, lessons taking turns, then the lessons to redo, each with
+  its reason. A redo starts from the starter code in a folder of its own and isn't kept.
+  Calm on purpose: no streaks, no counts of misses, no reminders.
 
 ## States
 

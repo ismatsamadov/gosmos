@@ -28,6 +28,8 @@ public struct RunResult: Sendable {
     public var duration: Duration = .zero
     /// For a tests lesson, the cases found in the output, parsed once off the main actor.
     public var tests: TestOutput?
+    /// For a tests lesson, the Go tests that failed, with their messages.
+    public var failedTests: [FailedTest] = []
     /// For a Submit whose output differs: expected and actual output, line by line.
     public var comparison: OutputComparison?
 
@@ -87,7 +89,10 @@ public struct GoRunner: Sendable {
         let started = clock.now
         var result = await check(code, tests: tests, folder: folder, submit: submit)
         result.output = GoRunner.readablePaths(result.output, folder: folder)
-        if tests { result.tests = TestOutput(result.output) }
+        if tests {
+            result.tests = TestOutput(result.output)
+            result.failedTests = FailedTest.parse(result.output)
+        }
         if let expected = result.expected { result.comparison = OutputComparison(expected: expected, actual: result.output) }
         result.duration = clock.now - started
         if Task.isCancelled && result.status != .passed { result.status = .cancelled }
