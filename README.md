@@ -49,6 +49,7 @@ never runs git and syncs nothing.
 | `docs/architecture.md` | How the pieces fit together, and why |
 | `docs/design.md` | How the app looks and behaves |
 | `docs/apogee/` | The Apogee courses: their world, their Go syllabus, a sample chapter |
+| `docs/authoring.md` | How every new course is made: the steps, where things go, the checks |
 | `Makefile` | `make install` builds and installs the app; `make test`, `make check`, `make verify` |
 
 ## Requirements
