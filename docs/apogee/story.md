@@ -57,6 +57,8 @@ Latitude is positive north, longitude positive east.
   the network's highest mask.
 - **Cape Wren.** Nobody lives there; a contractor visits monthly. The dish stows itself when
   the wind passes 72 km/h, and tracks with a warning from 50 km/h.
+- **The test van.** A mobile station based at Port Ellery, with one 1.2 m dish, S-band only.
+  It carries the dish to sites for calibration.
 
 ## The fleet
 
