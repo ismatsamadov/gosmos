@@ -65,6 +65,11 @@ calm typography, and every action on the keyboard. Nothing in it looks like a we
   - Readme on the left. On the right, the editor above the console.
   - The editor is SF Mono 13 pt (size in Settings), with a quiet line-number gutter, a
     current-line highlight, tabs four wide, highlighting and the find bar.
+  - The file bar above it ends with borderless buttons, also in the Editor menu: Format
+    (`wand.and.stars`, gofmt, ⇧⌥F), Toggle Comment (`//`, ⌘/), Outdent (⌥⌘[) and Indent
+    (⌥⌘]). Each change is one undo step. A button that can't act, as on a read-only file, says
+    why in its help. Code gofmt can't parse stays as it is, and the console shows gofmt's
+    messages under Format.
   - The console opens with a glass status bar: state symbol, duration, passed or failed.
     The output below it is monospaced, and the first failing test is expanded.
   - "Reset to Starter Code" asks first.

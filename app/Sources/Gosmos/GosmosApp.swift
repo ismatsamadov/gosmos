@@ -114,8 +114,9 @@ struct GosmosCommands: Commands {
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
                 .disabled(!app.canGoForward)
             Divider()
+            // ⇧⌘H: the system keeps ⌥⌘H for Hide Others.
             Button("Show Hint") { app.lesson?.revealHint() }
-                .keyboardShortcut("h", modifiers: [.command, .option])
+                .keyboardShortcut("h", modifiers: [.command, .shift])
                 .disabled(!(app.lesson?.hints.canReveal ?? false))
             Button("Show Solution") { app.lesson?.showSolution() }
                 .keyboardShortcut("s", modifiers: [.command, .option])
@@ -138,6 +139,23 @@ struct GosmosCommands: Commands {
             Button("Open Lesson Folder in Editor") { app.openLessonFolderInEditor() }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
                 .disabled(app.lessonFolder == nil)
+        }
+        // The file in the editor; the buttons above it do the same.
+        CommandMenu("Editor") {
+            Button("Format Code") { app.lesson?.code?.perform(.format) }
+                .keyboardShortcut("f", modifiers: [.shift, .option])
+                .disabled(!(app.lesson?.canPerform(.format) ?? false))
+            Button("Toggle Comment") { app.lesson?.code?.perform(.toggleComment) }
+                .keyboardShortcut("/", modifiers: .command)
+                .disabled(!(app.lesson?.canPerform(.toggleComment) ?? false))
+            Divider()
+            // With Option: ⌘] and ⌘[ are the next and previous lesson.
+            Button("Indent") { app.lesson?.code?.perform(.indent) }
+                .keyboardShortcut("]", modifiers: [.command, .option])
+                .disabled(!(app.lesson?.canPerform(.indent) ?? false))
+            Button("Outdent") { app.lesson?.code?.perform(.outdent) }
+                .keyboardShortcut("[", modifiers: [.command, .option])
+                .disabled(!(app.lesson?.canPerform(.outdent) ?? false))
         }
         CommandGroup(after: .sidebar) {
             Button("Show Inspector") { app.showInspector.toggle() }

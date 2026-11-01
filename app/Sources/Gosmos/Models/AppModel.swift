@@ -537,6 +537,16 @@ final class AppModel {
             // Every hint that may show: all but a last one that waits for a failed Submit.
             while model.hints.canReveal { model.revealHint() }
         case "solution": model.showSolution()
+        case "format", "comment":
+            guard let code = model.code else { return }
+            Task {
+                // The editor attaches itself to the session once it is on screen.
+                for _ in 0..<50 {
+                    if code.editor.text != nil { break }
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+                code.perform(action == "format" ? .format : .toggleComment)
+            }
         case "review": showReview()
         case "redo-submit": model.submit()
         case "answer":

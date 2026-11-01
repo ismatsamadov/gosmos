@@ -77,11 +77,15 @@ covered by Swift Testing tests.
   - Programs start from a resolved path with an argument array, never a shell string,
     except for a lesson's own command line, which runs under `/bin/zsh -c`.
   - Each run gets an explicit environment and working folder.
-  - stdout and stderr are read concurrently.
+  - stdout and stderr are read concurrently, and stdin, when a run has input, is written
+    between the reads.
   - Each run starts in its own process group. A timeout or a cancelled task kills the
     whole group.
 - **Go toolchain**: `go` comes from the path set in Settings, else from the login shell's
-  PATH, else from the usual install locations.
+  PATH, else from the usual install locations. `gofmt` is the one in that Go's GOROOT.
+- **Formatting**: Format sends the file in the editor to `gofmt` on stdin and reads it back
+  from stdout, with a 10-second timeout, so nothing is written to the lesson folder. A syntax
+  error comes back as gofmt's messages, naming the file.
 - **Code runs**: your saved code is written to
   `~/Library/Caches/Gosmos/work/<library>/<lesson>/`. `go run` or `go test` runs there, and
   the output is compared or the tests are read. A review redo works from the starter code in
@@ -102,12 +106,15 @@ covered by Swift Testing tests.
 - `@main` App with a single main window. It is a `NavigationSplitView`: the sidebar holds
   courses, chapters and lessons with done marks and search, and the detail shows the lesson
   in a view made for its type.
-- A Settings scene, and menu commands: Run ⌘R, Submit ⌘↩, Next ⌘], Previous ⌘[.
+- A Settings scene, and menu commands: Run ⌘R, Submit ⌘↩, Next ⌘], Previous ⌘[, and the
+  Editor menu: Format Code ⇧⌥F, Toggle Comment ⌘/, Indent ⌥⌘] and Outdent ⌥⌘[.
 - State lives in `@Observable @MainActor` models that get their services through the
   environment. Views stay thin, and there are no singletons.
 - The code editor is an `NSTextView` (TextKit 2) behind `NSViewRepresentable`. It is
   monospaced, keeps tabs, and has line numbers, undo, find and highlighting. It saves your
-  code to the learner database after a second of idle typing.
+  code to the learner database after a second of idle typing. The Editor menu and the
+  buttons above the editor change the code through the package's `CodeEditorProxy`, each
+  change one undo step.
 - Errors are typed and shown to you, never swallowed. Logging uses `os.Logger`.
 
 ## Self-contained, fast, reliable
@@ -115,7 +122,8 @@ covered by Swift Testing tests.
 - **Self-contained**: the app is one process, and its bundle holds everything it runs: the
   database layer, Markdown, highlighting, jq and the HTTP client. Outside it, the app uses
   only what a Mac for learning Go has anyway:
-  - the Go toolchain, to run your code (the app finds it, or tells you how to install it);
+  - the Go toolchain, to run and format your code (the app finds it, or tells you how to
+    install it);
   - `/bin/zsh`, for a lesson's own command lines.
 
   It has no account, sends nothing anywhere and syncs nothing; the network is used only by

@@ -76,17 +76,20 @@ which the course keeps.
 | ⌥⌘← / ⌥⌘→ | Back / forward through lessons you visited |
 | 1 to 5 | Pick a quiz answer |
 | ⇧⌘D | Mark as done |
-| ⌥⌘H / ⌥⌘S | Show the next hint / the solution |
+| ⇧⌘H / ⌥⌘S | Show the next hint / the solution |
 | ⇧⌘Y | Review |
 | ⇧⌘R / ⇧⌘O | Reveal the lesson folder in Finder / open it in your editor |
 | ⌥⌘I | Show the inspector (note and lesson facts) |
 | ⌘= / ⌘- / ⌘0 | Bigger / smaller / actual-size code |
+| ⇧⌥F | Format the file with gofmt |
+| ⌘/ | Comment or uncomment the selected lines |
+| ⌥⌘] / ⌥⌘[ | Indent / outdent the selected lines |
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `Sources/GosmosKit` | Models and services, no SwiftUI or AppKit: the libraries and the learner database (GRDB), the teaching rules, readmes (swift-markdown), the Go lexer, process running, the Go toolchain, code runs, command-line checks |
+| `Sources/GosmosKit` | Models and services, no SwiftUI or AppKit: the libraries and the learner database (GRDB), the teaching rules, readmes (swift-markdown), the Go lexer, process running, the Go toolchain, code runs, gofmt, command-line checks |
 | `Sources/Gosmos` | The SwiftUI app: models, views, rendering |
 | `Tests/GosmosKitTests` | Swift Testing tests |
 | `Packages/` | Local packages: the HTTP client for checks, jq, the code editor |
@@ -107,5 +110,7 @@ open -n build/Gosmos.app --args -GosmosDataFolder /tmp/gosmos-shots -GosmosOpenL
 your own. `-GosmosOpenLesson` takes `<library uuid>/<lesson uuid>`, or a lesson uuid alone. The
 action is one of `run`, `submit`, `check`, `answer` (answers a quiz), `footer` (scrolls to the
 part below the readme), `hints` (shows every hint that may show), `solution` (shows the
-solution), `review` (shows the review), `redo-submit` (opens the lesson as a redo for review
-and submits it), `settings` (opens Settings) or `search:<text>` (types a search).
+solution), `format` (formats the file in the editor with gofmt), `comment` (comments out the
+editor's first line, or uncomments it), `review` (shows the review), `redo-submit` (opens the
+lesson as a redo for review and submits it), `settings` (opens Settings) or `search:<text>`
+(types a search).

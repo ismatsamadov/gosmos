@@ -9,11 +9,14 @@ public struct Toolchain: Sendable {
     public var go: String?
     /// Like "go1.27.3".
     public var goVersion: String?
+    /// The same Go's gofmt, in the bin folder of its GOROOT; nil when it isn't there.
+    public var gofmt: String?
 
-    public init(environment: [String: String], go: String? = nil, goVersion: String? = nil) {
+    public init(environment: [String: String], go: String? = nil, goVersion: String? = nil, gofmt: String? = nil) {
         self.environment = environment
         self.go = go
         self.goVersion = goVersion
+        self.gofmt = gofmt
     }
 
     /// The go.mod language version for new lesson folders, like "1.27".
@@ -84,12 +87,17 @@ public struct Toolchain: Sendable {
         let candidates = [goOverride, shellGo] + dirs.map { $0 + "/go" } + Toolchain.candidates(home: home)
         for c in candidates {
             guard let go = runnable(c) else { continue }
-            let out = await ProcessRunner.run(ProcessRequest(executable: go, arguments: ["env", "GOVERSION"], directory: home,
+            let out = await ProcessRunner.run(ProcessRequest(executable: go, arguments: ["env", "GOVERSION", "GOROOT"], directory: home,
                                                              environment: env, timeout: .seconds(20)))
-            let v = out.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            // One line each: the version, then the folder Go is installed in.
+            let lines = out.stdout.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+            let v = lines[0]
             if out.succeeded && v.hasPrefix("go") {
                 t.go = go
                 t.goVersion = v
+                if lines.count > 1, lines[1].hasPrefix("/") {
+                    t.gofmt = runnable(lines[1] + "/bin/gofmt")
+                }
                 break
             }
         }

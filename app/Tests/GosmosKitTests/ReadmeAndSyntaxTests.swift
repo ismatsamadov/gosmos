@@ -220,6 +220,26 @@ import Testing
         #expect(out.exitCode == 0 && out.stdout.count == 200_000 && out.stderr.count == 200_000 && out.combined.count == 400_000)
     }
 
+    @Test func writesStandardInputWhileReading() async {
+        // 1 MB through cat: a runner that wrote all the input before reading would stall here.
+        let input = Data((0..<(1 << 20)).map { UInt8(0x20 + $0 % 95) })
+        let out = await ProcessRunner.run(ProcessRequest(executable: "/bin/cat", arguments: [], directory: "/tmp", environment: env,
+                                                         timeout: .seconds(20), outputLimit: 2 << 20, input: input))
+        #expect(out.exitCode == 0 && !out.timedOut && Data(out.stdout.utf8) == input)
+        // Without input, standard input is empty.
+        let none = await ProcessRunner.run(ProcessRequest(executable: "/bin/cat", arguments: [], directory: "/tmp", environment: env, timeout: .seconds(5)))
+        #expect(none.exitCode == 0 && !none.timedOut && none.stdout.isEmpty)
+    }
+
+    @Test func aProgramThatStopsReadingEndsTheInput() async {
+        // The pipe closes with 4 MB unwritten: EPIPE ends the writing, and no SIGPIPE stops this process.
+        let input = Data(repeating: 0x61, count: 4 << 20)
+        let out = await ProcessRunner.run(ProcessRequest(executable: "/usr/bin/head", arguments: ["-c", "10"], directory: "/tmp", environment: env,
+                                                         timeout: .seconds(20), input: input))
+        #expect(out.exitCode == 0 && !out.timedOut && out.stdout == "aaaaaaaaaa")
+        #expect(out.duration < .seconds(5))
+    }
+
     @Test func resolvesExecutablesAndReportsLaunchErrors() async {
         #expect(ProcessRunner.resolve("ls", environment: env) == "/bin/ls")
         let missing = await ProcessRunner.run(ProcessRequest(executable: "no-such-program-xyz", arguments: [], directory: "/tmp", environment: env))
