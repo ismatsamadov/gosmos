@@ -9,15 +9,19 @@ numbers, times and extra test cases. `go run ./cmd/author export` writes them ou
 
 - **Title:** Go Foundations
 - **Slug:** `go-foundations` · **Kind:** Course
-- **Short description:** Learn Go from your first line to concurrent code as the newest
-  backend engineer at Apogee, a ground-station startup.
-- **Description:** You've just joined Apogee, whose five ground stations talk to small
-  satellites from the Arctic to the far south. Over one season you go from printing your
-  first message to Pipit-1 to running a whole pass day concurrently through a storm. Along
-  the way you schedule passes, parse and validate telemetry, model the fleet and the
-  stations, sign command uplinks, reassemble downlinked files and handle the anomalies that
-  wake the on-call engineer. Every lesson is one idea and one small, real task, checked by
-  your own Go toolchain with nothing but the standard library.
+- **Short description:** Learn Go from your first line of code to programs that do many
+  things at once, as the newest engineer at Apogee, a small space company.
+- **Description:** You've just joined Apogee, a small space company whose five radio dishes,
+  from an Arctic island to a windy cape near Antarctica, talk to satellites as they fly
+  overhead. Over one season you go from printing your first message to Pipit-1, Apogee's
+  little test satellite, to running a whole day of satellite passes at once through a storm.
+  Along the way you plan when each dish listens, check the health reports satellites send
+  down, keep track of the satellites and the stations, sign the commands that go up, put
+  downloaded files back together and handle the problems that wake the engineer on call.
+  Every lesson is one idea and one small, real task, checked on your Mac with nothing but
+  Go's standard library.
+- **Story:** the opening, each chapter's briefing and debrief, and the field guide are in the
+  course's story package (`author export --story`), told as `docs/storytelling.md` says.
 
 ## At a glance
 
