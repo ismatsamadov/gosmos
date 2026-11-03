@@ -64,13 +64,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let parts = size.split(separator: "x", omittingEmptySubsequences: false).map { Double($0) }
                 if parts.count == 2, let width = parts[0], let height = parts[1], width.isFinite, height.isFinite,
                    let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-                    // The window's frame is autosaved; this run saves none, so a size for a
-                    // layout check never becomes the size of the next launch.
+                    // The window's frame and its split view's column widths are autosaved; this
+                    // run saves neither, so a size for a layout check never becomes the layout of
+                    // the next launch.
                     _ = window.setFrameAutosaveName("")
+                    if let content = window.contentView { stopAutosavingSplits(in: content) }
                     window.setContentSize(NSSize(width: max(1100, width), height: max(700, height)))
                 }
             }
         }
+    }
+
+    /// Stops every split view in `view`, itself included, from saving its column widths.
+    private func stopAutosavingSplits(in view: NSView) {
+        if let split = view as? NSSplitView { split.autosaveName = nil }
+        for subview in view.subviews { stopAutosavingSplits(in: subview) }
     }
 
     /// The copy of this app, by bundle id, that this launch gives way to: one launched before it.

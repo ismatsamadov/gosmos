@@ -30,6 +30,13 @@ import Testing
         #expect(catalog.previous(before: Fixtures.codeLesson) == nil)
         #expect(catalog.next(after: Fixtures.planetsLesson)?.id == Fixtures.loopsLesson)
         #expect(catalog.next(after: Fixtures.loopsLesson) == nil) // not into another course
+        // Where Mission Control goes on once a lesson is done: on through its course past done
+        // lessons, then back to one skipped before it, never into another course.
+        #expect(catalog.nextUnfinished(after: Fixtures.codeLesson, isDone: { _ in false })?.id == Fixtures.testsLesson)
+        #expect(catalog.nextUnfinished(after: Fixtures.quizLesson, isDone: { $0 == Fixtures.planetsLesson })?.id == Fixtures.loopsLesson)
+        #expect(catalog.nextUnfinished(after: Fixtures.loopsLesson, isDone: { $0 != Fixtures.testsLesson })?.id == Fixtures.testsLesson)
+        #expect(catalog.nextUnfinished(after: Fixtures.planetsLesson, isDone: { $0 != Fixtures.optionalLesson }) == nil)
+        #expect(catalog.nextUnfinished(after: "no-such-lesson", isDone: { _ in false }) == nil)
         #expect(catalog.firstLesson?.id == Fixtures.codeLesson)
     }
 

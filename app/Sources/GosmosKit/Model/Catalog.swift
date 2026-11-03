@@ -127,6 +127,13 @@ public struct Catalog: Sendable {
     /// The previous lesson in the same course, across chapters.
     public func previous(before id: String) -> LessonSummary? { step(from: id, by: -1) }
 
+    /// Where to go on once `id` is done: the first lesson after it in the same course that
+    /// `isDone` doesn't hold, else the first one before it; nil once the whole course is done.
+    public func nextUnfinished(after id: String, isDone: (String) -> Bool) -> LessonSummary? {
+        guard let c = course(of: id), let ids = order[c.id], let i = ids.firstIndex(of: id) else { return nil }
+        return (ids[(i + 1)...] + ids[..<i]).first { !isDone($0) }.flatMap { summary($0) }
+    }
+
     private func step(from id: String, by delta: Int) -> LessonSummary? {
         guard let c = course(of: id), let ids = order[c.id], let i = ids.firstIndex(of: id) else { return nil }
         let j = i + delta

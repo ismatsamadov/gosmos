@@ -206,9 +206,17 @@ final class AppModel {
         learningProgress = LearningProgress(libraries: shelf.map { .init(id: $0.id, catalog: $0.catalog) }, done: done)
     }
 
-    /// Resume an unfinished lesson, or pick the first unfinished mission across libraries.
+    /// The lesson Mission Control offers: the one you opened last while it is unfinished, else
+    /// the next unfinished one in its course, so finishing a lesson moves you on from it; else
+    /// the first unfinished one on the shelf.
     var recommendedLesson: LessonRef? {
-        if let resumeLesson, summary(resumeLesson) != nil, !isDone(resumeLesson) { return resumeLesson }
+        if let ref = resumeLesson, let catalog = library(ref.library)?.catalog, catalog.summary(ref.lesson) != nil {
+            if !isDone(ref) { return ref }
+            let finished = done[ref.library] ?? []
+            if let next = catalog.nextUnfinished(after: ref.lesson, isDone: { finished.contains($0) }) {
+                return LessonRef(library: ref.library, lesson: next.id)
+            }
+        }
         for library in shelf {
             for course in library.catalog.courses {
                 if let lesson = firstUnfinished(course.lessons, in: library.id) {
