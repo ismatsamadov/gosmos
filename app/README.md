@@ -125,6 +125,10 @@ open -n build/Gosmos.app --args -GosmosDataFolder /tmp/gosmos-shots -GosmosOpenL
 `-GosmosDataFolder <folder>` keeps the learner database, the lesson folders and Go's caches
 there instead of your own. `-GosmosAppearance light` or `dark` selects an appearance for that
 run, and `-GosmosWindowSize 1100x700` sizes the main window for a layout check. Neither is saved.
+`-GosmosSnapshot <file.png>` draws the window into `<file.png>` once the launch and its action
+have settled (`-GosmosSnapshotDelay <seconds>`, 3 unless given), then quits: the app draws its
+own window, so it needs no permission to record the screen, though the picture leaves out Liquid
+Glass and the sidebar's list.
 `-GosmosOpenLesson` takes `<library uuid>/<lesson uuid>`, or a lesson uuid alone. The
 action is one of `run`, `submit`, `answer` (answers a quiz), `footer` (scrolls to the
 part below the readme), `hints` (shows every hint that may show), `solution` (shows the
