@@ -13,16 +13,21 @@ struct QuizAnswerRow: View {
     let explanation: String?
     /// The question is graded: verdicts and explanations show.
     let revealed: Bool
+    /// No pick can change now (answered right, or checked in the review): the row doesn't
+    /// answer the pointer.
+    let locked: Bool
     let action: () -> Void
+    @Environment(\.colorSchemeContrast) private var contrast
 
     init(number: Int, text: String, isPicked: Bool, isRight: Bool, explanation: String?, revealed: Bool,
-         action: @escaping () -> Void) {
+         locked: Bool = false, action: @escaping () -> Void) {
         self.number = number
         self.text = text
         self.isPicked = isPicked
         self.isRight = isRight
         self.explanation = explanation
         self.revealed = revealed
+        self.locked = locked
         self.action = action
     }
 
@@ -44,11 +49,13 @@ struct QuizAnswerRow: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
+                // The key stays the gray made for a digit on a fill: the tint behind it, the mark
+                // and the outline say the state, and the tint itself on its own fill reads below 4.5:1.
                 Text("\(number)")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundStyle(TeachingStyle.digitOnFill)
-                    .frame(width: 20, height: 20)
-                    .background(.quaternary, in: Circle())
+                    .frame(width: 26, height: 26)
+                    .background(mark == .idle ? Theme.secondaryText.opacity(0.08) : tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
                 VStack(alignment: .leading, spacing: 7) {
                     Text(Inline.attributed(Readme.parseInline(text), size: 14))
                         .multilineTextAlignment(.leading)
@@ -59,19 +66,25 @@ struct QuizAnswerRow: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // An empty radio mark keeps `.secondary`, enough for a symbol at 3:1.
                 Image(systemName: symbol)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-                    .opacity(mark == .idle ? 0 : 1)
+                    .foregroundStyle(mark == .idle ? AnyShapeStyle(.secondary) : AnyShapeStyle(tint))
                     .contentTransition(.symbolEffect(.replace))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 11)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .glassEffect(glass, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .buttonStyle(MissionRowButtonStyle(feedback: !locked))
+        .background(mark == .idle ? Theme.inset.opacity(0.65) : tint.opacity(0.07),
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(mark == .idle ? Theme.outline(contrast) : tint.opacity(contrast == .increased ? 1 : 0.6), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
         .accessibilityLabel("Answer \(number): \(Readme.plainText(Readme.parseInline(text)))")
         .accessibilityValue(accessibilityState)
         .accessibilityHint("Press \(number) to pick it")
@@ -79,7 +92,8 @@ struct QuizAnswerRow: View {
 
     private var symbol: String {
         switch mark {
-        case .idle, .picked: "circle.inset.filled"
+        case .idle: "circle"
+        case .picked: "circle.inset.filled"
         case .right: "checkmark.circle.fill"
         case .wrong: "xmark.circle.fill"
         }
@@ -90,15 +104,6 @@ struct QuizAnswerRow: View {
         case .idle, .picked: Theme.accent
         case .right: Theme.success
         case .wrong: Theme.failure
-        }
-    }
-
-    private var glass: Glass {
-        switch mark {
-        case .idle: .regular.interactive()
-        case .picked: .regular.tint(Theme.accent.opacity(0.25)).interactive()
-        case .right: .regular.tint(.green.opacity(0.3))
-        case .wrong: .regular.tint(.red.opacity(0.3))
         }
     }
 

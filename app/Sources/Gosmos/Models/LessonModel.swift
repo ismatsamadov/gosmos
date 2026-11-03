@@ -20,7 +20,8 @@ final class LessonModel {
     /// The note as the database holds it, so an unchanged note is never written.
     @ObservationIgnored private var savedNote = ""
     private var noteTask: Task<Void, Never>?
-    /// Set when the last Run or Submit passed, so the toolbar offers the next lesson.
+    /// Set when the last Submit passed, so the toolbar offers the next lesson and the readme
+    /// shows the completion panel; a Submit that fails clears it.
     var justPassed = false
     /// Set when a pass put the lesson in review, due tomorrow.
     private(set) var comesBackForReview = false
@@ -125,6 +126,7 @@ final class LessonModel {
     /// A graded attempt failed: the last hint may come now.
     func noteFailedSubmit() {
         hints.failedSubmits += 1
+        justPassed = false
     }
 
     /// Whether the lesson has a reference solution to compare with.
@@ -218,6 +220,8 @@ final class CodeSession {
     let isReview: Bool
     /// A redo's first Submit grades the review; later ones are practice.
     @ObservationIgnored private var reviewGraded = false
+    /// Whether a redo's graded Submit passed; nil until it has run.
+    private(set) var reviewPassed: Bool?
 
     init(lesson: LessonDetail, exercise: CodeExercise, tests: Bool, saved: [String: CodeFileRecord], learner: LearnerDatabase, review: Bool, app: AppModel) {
         self.tests = tests
@@ -348,6 +352,7 @@ final class CodeSession {
                     // The redo's first Submit grades the review; it never touches your code or done mark.
                     if submit && !self.reviewGraded {
                         self.reviewGraded = true
+                        self.reviewPassed = passed
                         try await learner.pendingWrites.start {
                             try await learner.recordLessonReview(ref, passed: passed, output: recorded, durationMs: ms)
                         }.value

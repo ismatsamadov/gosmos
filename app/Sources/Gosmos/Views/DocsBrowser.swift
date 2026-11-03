@@ -12,6 +12,7 @@ struct DocsBrowser: View {
             DocsList(docs: docs)
         } second: {
             DocPageView(docs: docs)
+                .background(Theme.canvas)
         }
     }
 }
@@ -26,6 +27,18 @@ struct DocsList: View {
     var body: some View {
         @Bindable var docs = docs
         VStack(spacing: 0) {
+            HStack(spacing: 9) {
+                MissionIcon(symbol: "text.book.closed", color: Theme.violet, size: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Field guide").font(.system(size: 14, weight: .semibold))
+                    Text("GO DOCUMENTATION").font(.system(size: 8, weight: .bold)).tracking(1.2)
+                        .foregroundStyle(Theme.secondaryText)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
             DocsSearchField(text: $docs.searchText, prompt: "Search Documentation") {
                 if let first = docs.results.first { app.openDocumentation(first.link) }
             }
@@ -47,6 +60,7 @@ struct DocsList: View {
                 contents
             }
         }
+        .background(Theme.surface)
         .onChange(of: docs.location, initial: true) { openGroup(of: docs.location) }
     }
 
@@ -272,14 +286,45 @@ struct DocPageView: View {
                 Text(error).foregroundStyle(Theme.secondaryText)
             }
         } else if docs.location == nil {
-            ContentUnavailableView {
-                Label("Go Documentation", systemImage: "text.book.closed")
-            } description: {
-                Text("The language specification, the guides and every package of the standard library, here without the internet. Choose one, or search.")
-                    .foregroundStyle(Theme.secondaryText)
-            }
+            DocsWelcome(docs: docs)
         } else {
             ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+private struct DocsWelcome: View {
+    let docs: DocsModel
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                MissionHeading(eyebrow: "YOUR OFFLINE FIELD GUIDE", title: "Curiosity, meet clarity.", subtitle: "The language, the guides, and the Go standard library. A good answer is always within reach.", symbol: "text.book.closed", color: Theme.violet)
+                    .padding(24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .missionCard(tint: Theme.violet, radius: 22)
+                Text("Explore the language").font(.system(size: 18, weight: .semibold))
+                ForEach(docs.outline.articles) { article in
+                    Button { app.openDocumentation(article.link) } label: {
+                        HStack(spacing: 14) {
+                            MissionIcon(symbol: "doc.text", color: Theme.violet, size: 34)
+                            Text(article.title).font(.system(size: 14, weight: .medium))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Image(systemName: "arrow.up.right").font(.system(size: 12)).foregroundStyle(Theme.violet)
+                        }
+                        .padding(16)
+                        .missionCard(radius: 14)
+                        .contentShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                }
+                Label("Looking for a package or function? Search the field guide.", systemImage: "magnifyingglass")
+                    .font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
+            }
+            .padding(30)
+            .frame(maxWidth: Theme.readableWidth)
+            .frame(maxWidth: .infinity)
         }
     }
 }
@@ -401,7 +446,7 @@ struct DocRowView: View {
                 Label(eyebrow, systemImage: symbol)
                     .symbolRenderingMode(.hierarchical)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.secondaryText)
+                    .foregroundStyle(Theme.violet)
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(title)
                         .font(.system(size: Theme.headingSize(1), weight: .semibold))
@@ -415,6 +460,9 @@ struct DocRowView: View {
                         .foregroundStyle(Theme.secondaryText)
                 }
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .missionCard(tint: Theme.violet)
             .padding(.top, 26)
             .padding(.bottom, 6)
         case .block(_, let block):

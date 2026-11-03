@@ -6,18 +6,26 @@ import SwiftUI
 struct CodeLessonView: View {
     let lesson: LessonModel
     let session: CodeSession
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         // The minimums fit the narrowest lesson pane: a 1100 pt window with the inspector open.
         PersistentSplit(.horizontal, key: "CodeSplitReadme", defaultFraction: 0.46, minFirst: 260, minSecond: 320) {
             ReadmeColumn(lesson: lesson) { EmptyView() }
         } second: {
-            PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.62, minFirst: 180, minSecond: 140) {
+            PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.70, minFirst: 180, minSecond: 140) {
                 EditorPane(session: session)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
+                    .padding(10)
             } second: {
                 ConsolePane(session: session, comesBackForReview: lesson.comesBackForReview)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
+                    .padding(10)
             }
         }
+        .background(Theme.canvas)
         .alert(
             "\(session.conflict ?? "A file") changed in another editor",
             isPresented: Binding(get: { session.conflict != nil }, set: { _ in }),
@@ -59,7 +67,8 @@ struct EditorPane: View {
                 fileBar(segmented: false, saysReadOnly: false)
             }
             .padding(.horizontal, 12)
-            .frame(height: 38)
+            .frame(height: 44)
+            .background(Theme.surface)
             Divider()
             if let file = session.activeFile {
                 if let error = session.loadError, !session.isLoaded {
@@ -292,22 +301,21 @@ struct ConsolePane: View {
 
     private var console: some View {
         VStack(spacing: 0) {
-            GlassEffectContainer {
-                RunStatusBar(session: session)
-                    .padding(.horizontal, 12)
-                    .frame(height: 38)
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .padding(8)
+            RunStatusBar(session: session)
+                .padding(.horizontal, 14)
+                .frame(height: 40)
+                .background(Theme.surface)
+            Divider()
             ScrollView {
                 ConsoleBody(session: session, comesBackForReview: comesBackForReview)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
+                    .padding(.top, 14)
                     .padding(.bottom, 14)
             }
             .textSelection(.enabled)
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(Theme.surface)
     }
 }
 
@@ -423,12 +431,32 @@ struct ConsoleBody: View {
                 }
             }
         } else if !session.isRunning {
-            Text(session.tests
-                 ? "Run checks your code against a few test cases; Submit runs them all and finishes the lesson when they pass."
-                 : "Run shows what your program prints; Submit compares it with the expected output.")
-                .font(.system(size: 12.5))
-                .foregroundStyle(Theme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("A space to experiment.")
+                    .font(.system(size: 13, weight: .medium))
+                Text(idleHint)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Label("Run  ⌘R", systemImage: "play")
+                    Label("Submit  ⌘↩", systemImage: "paperplane")
+                }
+                .font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
+                .padding(.top, 3)
+            }
+            .padding(.vertical, 10)
+        }
+    }
+
+    /// What Run and Submit do, with the condition: only a Submit that passes finishes the
+    /// lesson, and in a redo the first Submit grades the review instead.
+    private var idleHint: String {
+        switch (session.tests, session.isReview) {
+        case (true, false): "Run tries a few test cases. Submit runs them all and completes the lesson when they pass."
+        case (true, true): "Run tries a few test cases. Submit runs them all, and the first Submit grades the review."
+        case (false, false): "Run your code to see what happens. Submit compares its output with the expected output and completes the lesson when they match."
+        case (false, true): "Run your code to see what happens. Submit compares its output with the expected output, and the first Submit grades the review."
         }
     }
 }

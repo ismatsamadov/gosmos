@@ -31,9 +31,16 @@ struct RootView: View {
     @ViewBuilder private var content: some View {
         switch app.phase {
         case .starting:
-            ProgressView("Opening your lessons…")
-                .controlSize(.large)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 20) {
+                OrbitEmblem()
+                Text("A little Go. A long way.")
+                    .font(.system(size: 25, weight: .semibold))
+                ProgressView("Preparing your learning space…")
+                    .controlSize(.small)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.canvas)
         case .failed(let error):
             UnavailableView(error: error)
         case .ready:
@@ -169,17 +176,17 @@ struct DetailView: View {
             } else if app.isLoadingLesson {
                 ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ContentUnavailableView("No Lesson Selected", systemImage: "book.closed",
-                                       description: Text(app.shelf.isEmpty ? "Add a library with File › Open Library… to start."
-                                                                           : "Choose a lesson in the sidebar, or search for one.").foregroundStyle(Theme.secondaryText))
+                // Mission Control, and what shows when nothing else is on screen (a lesson that
+                // could not open, say): one branch, so the view keeps its identity and title.
+                DashboardView()
             }
         }
         // Sidebar 260 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
         .frame(minWidth: minWidth)
+        .background(Theme.canvas)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
-        .navigationTitle(app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
-        // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
-        .navigationSubtitle(app.showsDocumentation ? (app.docs?.page == nil ? "" : "Go Documentation") : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        .navigationTitle(title)
+        .navigationSubtitle(subtitle)
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)
@@ -189,6 +196,24 @@ struct DetailView: View {
         } message: {
             Text("Your code for this lesson is replaced by the lesson's starter code.")
         }
+    }
+
+    /// The window's title, for what the body shows, in the same order.
+    private var title: String {
+        if app.showsDocumentation { return app.docs?.title ?? "Go Documentation" }
+        if app.showsReview { return "Review" }
+        if let lesson = app.lesson { return lesson.detail.title }
+        return app.isLoadingLesson ? "Gosmos" : "Mission Control"
+    }
+
+    private var subtitle: String {
+        // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
+        if app.showsDocumentation { return app.docs?.page == nil ? "" : "Go Documentation" }
+        if app.showsReview { return "" }
+        if let lesson = app.lesson {
+            return (lesson.isReview ? "Redo for review · " : "") + "\(lesson.detail.courseTitle) › \(lesson.detail.chapterTitle)"
+        }
+        return app.isLoadingLesson ? "" : "Your Go learning journey"
     }
 }
 
@@ -298,6 +323,7 @@ struct LessonActions: View {
 /// session's values and actions; until a session has loaded, it waits in place.
 struct ReviewScreen: View {
     let session: ReviewSession
+    @Environment(AppModel.self) private var app
 
     var body: some View {
         if session.isLoaded {
@@ -309,7 +335,8 @@ struct ReviewScreen: View {
                        onAnswer: { question, answer, right in
                            session.answer(question.ref, position: question.position, answer: answer, correct: right)
                        },
-                       onOpenLesson: { session.redo($0.ref) })
+                       onOpenLesson: { session.redo($0.ref) },
+                       onFinish: { app.showDashboard() })
                 // A new session (Review chosen again) starts the view over.
                 .id(ObjectIdentifier(session))
         } else {

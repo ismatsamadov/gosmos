@@ -78,6 +78,8 @@ struct ReviewView: View {
     /// A question was answered: the question, the answer picked, and whether it was right.
     let onAnswer: (Question, String, Bool) -> Void
     let onOpenLesson: (Lesson) -> Void
+    /// Nothing is left to review, and you leave it.
+    let onFinish: () -> Void
 
     /// The question picked or answered on screen; kept while its explanation shows, even if
     /// the caller drops it from the list.
@@ -89,11 +91,12 @@ struct ReviewView: View {
     @FocusState private var focused: Bool
 
     init(questions: [Question], lessons: [Lesson], onAnswer: @escaping (Question, String, Bool) -> Void,
-         onOpenLesson: @escaping (Lesson) -> Void) {
+         onOpenLesson: @escaping (Lesson) -> Void, onFinish: @escaping () -> Void) {
         self.questions = questions
         self.lessons = lessons
         self.onAnswer = onAnswer
         self.onOpenLesson = onOpenLesson
+        self.onFinish = onFinish
     }
 
     /// Questions not answered yet, in the order they are asked.
@@ -108,16 +111,23 @@ struct ReviewView: View {
     var body: some View {
         Group {
             if shown == nil && lessons.isEmpty {
-                ContentUnavailableView {
-                    Label {
-                        Text("Nothing Due").foregroundStyle(.primary)
-                    } icon: {
-                        Image(systemName: "checkmark.circle").foregroundStyle(.secondary)
-                    }
-                } description: {
-                    Text("Come back tomorrow.")
-                        .foregroundStyle(Theme.secondaryText)
+                VStack(spacing: 20) {
+                    MissionIcon(symbol: "checkmark.seal.fill", color: Theme.success, size: 72)
+                    Text(answered.isEmpty ? "You’re in a good orbit." : "A little stronger than before.")
+                        .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
+                        .multilineTextAlignment(.center)
+                    Text(answered.isEmpty ? "No reviews due. Keep exploring, or take a well-earned break."
+                         : "You practiced \(answered.count) question\(answered.count == 1 ? "" : "s"). That’s how knowledge sticks.")
+                        .font(.system(size: 14)).foregroundStyle(Theme.secondaryText)
+                        .multilineTextAlignment(.center)
+                    Button("Back to Mission Control", systemImage: "arrow.right", action: onFinish)
+                        .prominentGlassButton()
                 }
+                .padding(36)
+                .frame(maxWidth: 520)
+                .missionCard(tint: Theme.success, radius: 24)
+                .padding(32)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
@@ -143,19 +153,28 @@ struct ReviewView: View {
                 .scrollEdgeEffectStyle(.hard, for: .top)
             }
         }
+        .background(Theme.canvas)
     }
 
     // MARK: Heading
 
     private var heading: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Review")
-                .font(.system(size: Theme.headingSize(1), weight: .semibold))
-                .accessibilityAddTraits(.isHeader)
-            Text(summary)
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.secondaryText)
+        VStack(alignment: .leading, spacing: 20) {
+            MissionHeading(eyebrow: "KEEP IT IN ORBIT", title: "Make it stick.", subtitle: "A quick refresh today. More confidence tomorrow.", symbol: "arrow.trianglehead.2.clockwise.rotate.90", color: Theme.violet)
+            HStack {
+                Text(summary).font(.system(size: 13)).foregroundStyle(Theme.secondaryText)
+                Spacer()
+                if !questions.isEmpty {
+                    MissionPill(text: "\(answered.count) / \(questions.count) practiced", symbol: "checkmark", color: Theme.violet)
+                }
+            }
+            if !questions.isEmpty {
+                ProgressView(value: Double(answered.count), total: Double(questions.count)).tint(Theme.violet)
+                    .accessibilityLabel("Review session progress")
+            }
         }
+        .padding(22)
+        .missionCard(tint: Theme.violet)
     }
 
     private var summary: String {
@@ -181,14 +200,12 @@ struct ReviewView: View {
                     .accessibilityLabel(left == 1 ? "1 question left" : "\(left) questions left")
             }
             MarkdownBlocks(blocks: Readme.parse(question.text))
-            GlassEffectContainer(spacing: 8) {
-                VStack(spacing: 8) {
-                    ForEach(Array(question.answers.prefix(9).enumerated()), id: \.offset) { a, answer in
-                        QuizAnswerRow(number: a + 1, text: answer, isPicked: picked == a, isRight: answer == question.rightAnswer,
-                                      explanation: question.explanation(of: a), revealed: checked) {
-                            pick(a)
-                            focused = true
-                        }
+            VStack(spacing: 8) {
+                ForEach(Array(question.answers.prefix(9).enumerated()), id: \.offset) { a, answer in
+                    QuizAnswerRow(number: a + 1, text: answer, isPicked: picked == a, isRight: answer == question.rightAnswer,
+                                  explanation: question.explanation(of: a), revealed: checked, locked: checked) {
+                        pick(a)
+                        focused = true
                     }
                 }
             }
@@ -196,14 +213,17 @@ struct ReviewView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(focused ? AnyShapeStyle(.tint.opacity(0.6)) : AnyShapeStyle(.separator.opacity(0.5)), lineWidth: focused ? 1.5 : 0.5))
+        .missionCard(radius: 14)
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(focused ? Theme.accent.opacity(0.7) : .clear, lineWidth: 1.5)
+            .allowsHitTesting(false))
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
         .onKeyPress(characters: .decimalDigits) { press in
-            guard !checked, let n = Int(press.characters), n >= 1, n <= min(5, question.answers.count) else { return .ignored }
+            // A bare digit only: ⌘1 is Mission Control, and ⌥ or ⌃ with a digit picks nothing.
+            guard !checked, press.modifiers.isDisjoint(with: [.command, .control, .option]),
+                  let n = Int(press.characters), n >= 1, n <= min(5, question.answers.count) else { return .ignored }
             pick(n - 1)
             return .handled
         }
@@ -279,7 +299,7 @@ struct ReviewView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .frame(minHeight: 44)
-                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .missionCard(radius: 14)
                 }
             }
         }

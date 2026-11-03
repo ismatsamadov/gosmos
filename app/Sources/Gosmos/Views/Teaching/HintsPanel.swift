@@ -75,7 +75,7 @@ struct HintsPanel: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .missionCard(tint: Theme.gold, radius: 14)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Hints, \(revealed) of \(hints.count) shown")
         }
@@ -99,7 +99,7 @@ private struct HintsTitleStyle: LabelStyle {
         HStack(spacing: 6) {
             configuration.icon
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.gold)
             configuration.title
                 .font(.system(size: 13, weight: .semibold))
         }
