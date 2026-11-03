@@ -64,7 +64,7 @@ struct SolutionCompareView: View {
             MissionIcon(symbol: "doc.text.magnifyingglass", color: Theme.violet)
             VStack(alignment: .leading, spacing: 2) {
                 Text("A different way to get there.")
-                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .font(.system(size: 19, weight: .semibold))
                     .accessibilityAddTraits(.isHeader)
                 Text("Compare it with your code. Nothing here goes into the editor.")
                     .font(.system(size: 12))

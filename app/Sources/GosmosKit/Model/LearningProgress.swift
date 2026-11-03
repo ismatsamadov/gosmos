@@ -32,21 +32,32 @@ public struct LearningProgress: Sendable {
     public init(libraries: [Library], done: [String: Set<String>]) {
         var lessons: Set<LessonRef> = [], code: Set<LessonRef> = [], quizzes: Set<LessonRef> = []
         var chapters: Set<String> = [], courses: Set<String> = []
+        // One pass over every lesson, counting required ones as it goes: a chapter or a course is
+        // complete when it has required lessons and all of them are done.
         for library in libraries {
             let finished = done[library.id] ?? []
             for course in library.catalog.courses {
-                for lesson in course.lessons where finished.contains(lesson.id) {
-                    let ref = LessonRef(library: library.id, lesson: lesson.id)
-                    lessons.insert(ref)
-                    if lesson.type == .choice { quizzes.insert(ref) } else { code.insert(ref) }
-                }
+                var courseRequired = 0, courseRequiredDone = 0
                 for chapter in course.chapters {
-                    let required = chapter.lessons.filter(\.required)
-                    if !required.isEmpty && required.allSatisfy({ finished.contains($0.id) }) {
+                    var required = 0, requiredDone = 0
+                    for lesson in chapter.lessons {
+                        let isFinished = finished.contains(lesson.id)
+                        if lesson.required {
+                            required += 1
+                            if isFinished { requiredDone += 1 }
+                        }
+                        guard isFinished else { continue }
+                        let ref = LessonRef(library: library.id, lesson: lesson.id)
+                        lessons.insert(ref)
+                        if lesson.type == .choice { quizzes.insert(ref) } else { code.insert(ref) }
+                    }
+                    if required > 0 && requiredDone == required {
                         chapters.insert(library.id + "/" + chapter.id)
                     }
+                    courseRequired += required
+                    courseRequiredDone += requiredDone
                 }
-                if !course.requiredLessons.isEmpty && course.requiredLessons.allSatisfy({ finished.contains($0.id) }) {
+                if courseRequired > 0 && courseRequiredDone == courseRequired {
                     courses.insert(library.id + "/" + course.id)
                 }
             }

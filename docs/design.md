@@ -35,9 +35,10 @@ never uses the network: every lesson, code or quiz, is checked on the Mac.
 ## Platform
 
 - macOS 27 or later, the current release, so the app is Liquid Glass throughout. The standard containers get it
-  from the system: the split view's sidebar, the unified toolbar, sheets, menus and the
-  inspector. Glass belongs to actions and system chrome; reading, editor, console and quiz
-  content use quiet solid surfaces. There is no hand-made blur, gradient or shadow.
+  from the system: the unified toolbar, sheets and menus. Glass belongs to actions and system
+  chrome; the sidebar and the inspector are filled with the app's own solid colors, and
+  reading, editor, console and quiz content use quiet solid surfaces. There is no hand-made
+  blur, gradient or shadow.
 - Light, dark, Increase Contrast and Reduce Motion all look right.
 - Text uses semantic labels and contrast-aware colors. Go Blue, #00ADD8 in dark mode and
   Go Teal #00758D in light mode, is the primary accent. Gold identifies XP and achievements;
@@ -181,8 +182,8 @@ FAQ, How to Write Go Code, and every package of the standard library, for the Go
 ## States
 
 - Use `ContentUnavailableView` when no library is open (with Open Library…), a library is
-  refused (naming the problems), nothing is selected, a search finds nothing, or Go can't run
-  (saying why, with a button to Settings).
+  refused (naming the problems), a search finds nothing, or Go can't run (saying why, with a
+  button to Settings). With nothing else on screen, the window shows Mission Control.
 - Errors appear as an inline banner or an alert with a clear action. They are never silent.
 - Long work shows progress in place, never a frozen window. A spinner shows only once a wait
   has lasted a moment (0.4 s), so a quick load never flashes one; the page or lesson on

@@ -6,6 +6,7 @@ import SwiftUI
 struct CodeLessonView: View {
     let lesson: LessonModel
     let session: CodeSession
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         // The minimums fit the narrowest lesson pane: a 1100 pt window with the inspector open.
@@ -15,12 +16,12 @@ struct CodeLessonView: View {
             PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.70, minFirst: 180, minSecond: 140) {
                 EditorPane(session: session)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.border))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
                     .padding(10)
             } second: {
                 ConsolePane(session: session, comesBackForReview: lesson.comesBackForReview)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.border))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
                     .padding(10)
             }
         }
@@ -433,9 +434,7 @@ struct ConsoleBody: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("A space to experiment.")
                     .font(.system(size: 13, weight: .medium))
-                Text(session.tests
-                     ? "Run tries a few test cases. Submit checks them all and completes the lesson."
-                     : "Run your code to see what happens. Submit when you’re ready to finish the lesson.")
+                Text(idleHint)
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -447,6 +446,17 @@ struct ConsoleBody: View {
                 .padding(.top, 3)
             }
             .padding(.vertical, 10)
+        }
+    }
+
+    /// What Run and Submit do, with the condition: only a Submit that passes finishes the
+    /// lesson, and in a redo the first Submit grades the review instead.
+    private var idleHint: String {
+        switch (session.tests, session.isReview) {
+        case (true, false): "Run tries a few test cases. Submit runs them all and completes the lesson when they pass."
+        case (true, true): "Run tries a few test cases. Submit runs them all, and the first Submit grades the review."
+        case (false, false): "Run your code to see what happens. Submit compares its output with the expected output and completes the lesson when they match."
+        case (false, true): "Run your code to see what happens. Submit compares its output with the expected output, and the first Submit grades the review."
         }
     }
 }

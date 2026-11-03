@@ -23,12 +23,7 @@ struct SidebarView: View {
                 ScrollViewReader { proxy in
                     List(selection: app.sidebarSelection) {
                         Section("Workspace") {
-                            HStack(spacing: 7) {
-                                Image(systemName: "square.grid.2x2.fill")
-                                    .foregroundStyle(Theme.accent).frame(width: 18)
-                                Text("Mission Control")
-                            }
-                                .frame(minHeight: 30)
+                            MissionControlRow()
                                 .tag(SidebarItem.dashboard)
                             ReviewRow()
                                 .tag(SidebarItem.review)
@@ -82,6 +77,25 @@ extension AppModel {
                     }
                 }
             })
+    }
+}
+
+/// Mission Control: the dashboard the app opens to.
+struct MissionControlRow: View {
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "square.grid.2x2.fill")
+                // Selected in a focused list, the row is white on the accent, where the accent
+                // symbol would sink; it takes the row's own color there.
+                .foregroundStyle(prominence == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(Theme.accent))
+                .frame(width: 18)
+            Text("Mission Control")
+            Spacer(minLength: 4)
+        }
+        .frame(minHeight: 30)
+        .accessibilityElement(children: .combine)
     }
 }
 

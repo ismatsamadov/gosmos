@@ -44,12 +44,14 @@ struct DashboardView: View {
     }
 
     private var hero: some View {
-        ViewThatFits(in: .horizontal) {
+        // Worked out once: both layouts below show the same lesson.
+        let next = app.recommendedLesson.flatMap { ref in app.summary(ref).map { (ref: ref, lesson: $0) } }
+        return ViewThatFits(in: .horizontal) {
             HStack(spacing: 16) {
-                heroContent.frame(minWidth: 290, maxWidth: .infinity, alignment: .leading)
+                heroContent(next).frame(minWidth: 290, maxWidth: .infinity, alignment: .leading)
                 OrbitEmblem(color: Theme.orbit).scaleEffect(0.64).frame(width: 200, height: 156)
             }
-            heroContent
+            heroContent(next)
         }
         .padding(24).frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.ink, in: RoundedRectangle(cornerRadius: 18))
@@ -61,14 +63,14 @@ struct DashboardView: View {
         .environment(\.colorScheme, .dark)
     }
 
-    private var heroContent: some View {
+    private func heroContent(_ next: (ref: LessonRef, lesson: LessonSummary)?) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 7) {
                 Circle().fill(Theme.orbit).frame(width: 5, height: 5)
                 Text(progress.completedLessons == 0 ? "YOUR FIRST SMALL STEP" : "UP NEXT ON YOUR JOURNEY")
                     .font(.system(size: 9, weight: .semibold)).tracking(1.6).foregroundStyle(Theme.orbit)
             }
-            if let ref = app.recommendedLesson, let lesson = app.summary(ref) {
+            if case let (ref, lesson)? = next {
                 VStack(alignment: .leading, spacing: 9) {
                     Text(lesson.title).font(.system(size: 30, weight: .semibold)).tracking(-0.7)
                         .foregroundStyle(.white).fixedSize(horizontal: false, vertical: true)
@@ -92,11 +94,14 @@ struct DashboardView: View {
                 }
                 .padding(.top, 3)
             } else {
-                Text(app.shelf.isEmpty ? "Make room for a new idea." : "Look how far you’ve come.")
+                // No lesson to recommend: every lesson is done, or no library on the shelf has a
+                // lesson to read (none opened, or none that can be read).
+                let noLessons = app.shelf.allSatisfy { $0.catalog.lessonCount == 0 }
+                Text(noLessons ? "Make room for a new idea." : "Look how far you’ve come.")
                     .font(.system(size: 30, weight: .semibold)).tracking(-0.7).foregroundStyle(.white)
-                Text(app.shelf.isEmpty ? "Open a library and find your first lesson." : "Keep your knowledge fresh with a little practice.")
+                Text(noLessons ? "Open a library and find your first lesson." : "Keep your knowledge fresh with a little practice.")
                     .font(.system(size: 13)).foregroundStyle(Theme.onInk)
-                if app.shelf.isEmpty {
+                if noLessons {
                     Button("Open a Library…", systemImage: "plus") { app.chooseLibrary() }
                         .prominentGlassButton().disabled(app.isAddingLibrary)
                 } else {
@@ -122,29 +127,34 @@ struct DashboardView: View {
         HStack(spacing: 10) {
             Label(lesson.type.label, systemImage: lesson.type.symbol)
             Text("·")
-            Label("100 XP", systemImage: "bolt.fill")
+            Label("\(LearningProgress.lessonXP) XP", systemImage: "bolt.fill")
         }
         .font(.system(size: 11)).foregroundStyle(Theme.onInk).fixedSize()
     }
 
     private var stats: some View {
-        ViewThatFits(in: .horizontal) {
+        // Each cell is made once, then laid out in a row, or in a grid when the row doesn't fit.
+        let progress = self.progress
+        let xp = stat("Total experience", value: progress.xp.formatted(), suffix: "XP", symbol: "bolt", color: Theme.gold)
+        let lessons = stat("Lessons complete", value: "\(progress.completedLessons)", suffix: "lessons", symbol: "checkmark.circle", color: Theme.accent)
+        let rank = stat("Current rank", value: progress.rank, suffix: "Level \(progress.level)", symbol: "sparkles", color: Theme.violet)
+        return ViewThatFits(in: .horizontal) {
             HStack(spacing: 0) {
-                stat("Total experience", value: progress.xp.formatted(), suffix: "XP", symbol: "bolt", color: Theme.gold)
+                xp
                 statDivider
-                stat("Lessons complete", value: "\(progress.completedLessons)", suffix: "lessons", symbol: "checkmark.circle", color: Theme.accent)
+                lessons
                 statDivider
-                stat("Current rank", value: progress.rank, suffix: "Level \(progress.level)", symbol: "sparkles", color: Theme.violet)
+                rank
                 statDivider
                 reviewStat
             }
             Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 20) {
                 GridRow {
-                    stat("Total experience", value: progress.xp.formatted(), suffix: "XP", symbol: "bolt", color: Theme.gold)
-                    stat("Lessons complete", value: "\(progress.completedLessons)", suffix: "lessons", symbol: "checkmark.circle", color: Theme.accent)
+                    xp
+                    lessons
                 }
                 GridRow {
-                    stat("Current rank", value: progress.rank, suffix: "Level \(progress.level)", symbol: "sparkles", color: Theme.violet)
+                    rank
                     reviewStat
                 }
             }
@@ -255,22 +265,24 @@ private struct CourseMissionCard: View {
     var featured = false
     @Environment(AppModel.self) private var app
 
-    private var next: LessonSummary? {
-        course.lessons.first { !app.isDone(LessonRef(library: library, lesson: $0.id)) } ?? course.lessons.first
-    }
-
-    /// Keep the path near the next lesson, with context from the preceding chapter.
-    private var visibleChapters: [Chapter] {
-        let current = course.chapters.firstIndex { chapter in
-            chapter.lessons.contains { !app.isDone(LessonRef(library: library, lesson: $0.id)) }
-        } ?? max(0, course.chapters.count - 1)
-        let start = min(max(0, current - 1), max(0, course.chapters.count - 3))
-        return Array(course.chapters.dropFirst(start).prefix(3))
+    /// Keep the path near the next lesson, with context from the preceding chapter; the last
+    /// chapters once every lesson is done.
+    private func visibleChapters(around upNext: LessonSummary?) -> [Chapter] {
+        let chapters = course.chapters
+        let current = upNext.flatMap { next in chapters.firstIndex { $0.lessons.contains { $0.id == next.id } } }
+            ?? max(0, chapters.count - 1)
+        let start = min(max(0, current - 1), max(0, chapters.count - 3))
+        return Array(chapters.dropFirst(start).prefix(3))
     }
 
     var body: some View {
         let progress = app.progress(of: course, in: library)
         let complete = progress.total > 0 && progress.done == progress.total
+        // Worked out once for the card and its rows: the next lesson not done (nil once every
+        // lesson is), and what the course action opens.
+        let upNext = app.firstUnfinished(course.lessons, in: library)
+        let next = upNext ?? course.lessons.first
+        let chapters = featured ? visibleChapters(around: upNext) : []
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top, spacing: 12) {
@@ -296,12 +308,12 @@ private struct CourseMissionCard: View {
                 }
             }
             .padding(20)
-            if featured && !visibleChapters.isEmpty {
+            if !chapters.isEmpty {
                 Rectangle().fill(Theme.border).frame(height: 1)
                 VStack(spacing: 0) {
-                    ForEach(visibleChapters) { chapter in
-                        chapterRow(chapter)
-                        if chapter.id != visibleChapters.last?.id {
+                    ForEach(chapters) { chapter in
+                        chapterRow(chapter, upNext: upNext)
+                        if chapter.id != chapters.last?.id {
                             Rectangle().fill(Theme.border.opacity(0.6)).frame(height: 1).padding(.leading, 42)
                         }
                     }
@@ -312,7 +324,9 @@ private struct CourseMissionCard: View {
                 if let next { app.open(LessonRef(library: library, lesson: next.id)) }
             } label: {
                 HStack {
-                    Text(complete ? "Revisit course" : progress.done == 0 ? "Begin course" : "Continue course")
+                    // "Revisit" only when nothing is left: with its required lessons done, a
+                    // course can still have an optional lesson to open next.
+                    Text(upNext == nil ? "Revisit course" : progress.done == 0 ? "Begin course" : "Continue course")
                     Spacer()
                     Image(systemName: "arrow.right")
                 }
@@ -326,12 +340,13 @@ private struct CourseMissionCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    private func chapterRow(_ chapter: Chapter) -> some View {
+    private func chapterRow(_ chapter: Chapter, upNext: LessonSummary?) -> some View {
         let done = app.doneCount(chapter, in: library)
         let complete = !chapter.lessons.isEmpty && done == chapter.lessons.count
-        let current = chapter.lessons.contains { $0.id == next?.id }
+        // The chapter of the next lesson; none once the whole course is done.
+        let current = upNext.map { next in chapter.lessons.contains { $0.id == next.id } } ?? false
         let index = (course.chapters.firstIndex { $0.id == chapter.id } ?? 0) + 1
-        let target = chapter.lessons.first { !app.isDone(LessonRef(library: library, lesson: $0.id)) } ?? chapter.lessons.first
+        let target = app.firstUnfinished(chapter.lessons, in: library) ?? chapter.lessons.first
         return Button {
             if let target { app.open(LessonRef(library: library, lesson: target.id)) }
         } label: {
@@ -357,7 +372,9 @@ private struct CourseMissionCard: View {
             .padding(.vertical, 13).contentShape(Rectangle())
         }
         .buttonStyle(MissionRowButtonStyle()).disabled(target == nil)
-        .accessibilityLabel("Chapter \(index), \(chapter.title), \(done) of \(chapter.lessons.count) lessons complete. Open chapter.")
+        // What the row shows, the Next up pill included; the button opens a lesson of the chapter.
+        .accessibilityLabel("Chapter \(index), \(chapter.title)\(current ? ", next up" : ""), \(done) of \(chapter.lessons.count) lessons complete")
+        .accessibilityHint(target.map { "Opens \($0.title)" } ?? "")
     }
 }
 

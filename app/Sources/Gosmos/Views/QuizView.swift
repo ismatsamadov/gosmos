@@ -44,24 +44,25 @@ struct QuestionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Question \(index + 1)").font(.system(size: 12, weight: .semibold))
-                Spacer()
-                Text("\(index + 1) / \(session.quiz.questions.count)")
-                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.secondaryText)
+            // A quiz of one question needs no number.
+            if session.quiz.questions.count > 1 {
+                HStack {
+                    Text("Question \(index + 1)").font(.system(size: 12, weight: .semibold))
+                    Spacer()
+                    Text("\(index + 1) / \(session.quiz.questions.count)")
+                        .font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.secondaryText)
+                }
             }
             MarkdownBlocks(blocks: blocks)
             // Empty until the question is graded: the reasons would give the answer away.
             let explanations = session.explanations(for: index)
-            GlassEffectContainer(spacing: 8) {
-                VStack(spacing: 8) {
-                    ForEach(Array(question.answers.enumerated()), id: \.offset) { a, answer in
-                        QuizAnswerRow(number: a + 1, text: answer, isPicked: session.picks[index] == a, isRight: question.isCorrect(answer),
-                                      explanation: explanations.indices.contains(a) ? explanations[a] : nil,
-                                      revealed: session.verdicts[index] != nil) {
-                            session.pick(a, for: index)
-                            focused = true
-                        }
+            VStack(spacing: 8) {
+                ForEach(Array(question.answers.enumerated()), id: \.offset) { a, answer in
+                    QuizAnswerRow(number: a + 1, text: answer, isPicked: session.picks[index] == a, isRight: question.isCorrect(answer),
+                                  explanation: explanations.indices.contains(a) ? explanations[a] : nil,
+                                  revealed: session.verdicts[index] != nil, locked: session.verdicts[index] == true) {
+                        session.pick(a, for: index)
+                        focused = true
                     }
                 }
             }
@@ -82,7 +83,9 @@ struct QuestionCard: View {
         .focused($focused)
         .onChange(of: focused) { _, isFocused in if isFocused { session.focusedQuestion = index } }
         .onKeyPress(characters: .decimalDigits) { press in
-            guard let n = Int(press.characters), (1...5).contains(n) else { return .ignored }
+            // A bare digit only: ⌘1 is Mission Control, and ⌥ or ⌃ with a digit picks nothing.
+            guard press.modifiers.isDisjoint(with: [.command, .control, .option]),
+                  let n = Int(press.characters), (1...5).contains(n) else { return .ignored }
             session.pick(n - 1, for: index)
             return .handled
         }

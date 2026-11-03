@@ -30,7 +30,7 @@ struct DocsList: View {
             HStack(spacing: 9) {
                 MissionIcon(symbol: "text.book.closed", color: Theme.violet, size: 30)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Field guide").font(.system(size: 14, weight: .bold, design: .rounded))
+                    Text("Field guide").font(.system(size: 14, weight: .semibold))
                     Text("GO DOCUMENTATION").font(.system(size: 8, weight: .bold)).tracking(1.2)
                         .foregroundStyle(Theme.secondaryText)
                 }
@@ -449,7 +449,7 @@ struct DocRowView: View {
                     .foregroundStyle(Theme.violet)
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(title)
-                        .font(.system(size: Theme.headingSize(1), weight: .bold, design: .rounded))
+                        .font(.system(size: Theme.headingSize(1), weight: .semibold))
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     if deprecated { DeprecatedTag() }

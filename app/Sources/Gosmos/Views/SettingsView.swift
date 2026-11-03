@@ -32,7 +32,7 @@ struct GeneralSettings: View {
             Section("Your journey") {
                 LabeledContent("Explorer rank", value: "Level \(app.learningProgress.level) · \(app.learningProgress.rank)")
                 LabeledContent("Experience", value: "\(app.learningProgress.xp.formatted()) XP")
-                Text("Every completed lesson contributes 100 XP. Your saved progress powers your rank and badges, including lessons you already finished.")
+                Text("Every completed lesson contributes \(LearningProgress.lessonXP) XP. Your saved progress powers your rank and badges, including lessons you already finished.")
                     .font(.caption).foregroundStyle(Theme.secondaryText)
             }
             Section {
@@ -56,7 +56,8 @@ struct GeneralSettings: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(library.title)
-                            Text(library.error?.title ?? "\(library.catalog.lessonCount) lessons, \(app.done[library.id]?.count ?? 0) done")
+                            // Done counts only lessons the library still has, as XP above does.
+                            Text(library.error?.title ?? "\(library.catalog.lessonCount) lessons, \((app.done[library.id] ?? []).filter { library.catalog.summary($0) != nil }.count) done")
                                 .font(.caption)
                                 .foregroundStyle(Theme.secondaryText)
                         }

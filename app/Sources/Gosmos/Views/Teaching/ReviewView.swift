@@ -6,7 +6,6 @@ import SwiftUI
 /// scores, nothing about what you missed. Keys 1 to 5 pick an answer, Return checks it, and
 /// Return again moves on.
 struct ReviewView: View {
-    @Environment(AppModel.self) private var app
     /// A quiz question due for review.
     struct Question: Identifiable, Hashable, Sendable {
         let ref: LessonRef
@@ -79,6 +78,8 @@ struct ReviewView: View {
     /// A question was answered: the question, the answer picked, and whether it was right.
     let onAnswer: (Question, String, Bool) -> Void
     let onOpenLesson: (Lesson) -> Void
+    /// Nothing is left to review, and you leave it.
+    let onFinish: () -> Void
 
     /// The question picked or answered on screen; kept while its explanation shows, even if
     /// the caller drops it from the list.
@@ -90,11 +91,12 @@ struct ReviewView: View {
     @FocusState private var focused: Bool
 
     init(questions: [Question], lessons: [Lesson], onAnswer: @escaping (Question, String, Bool) -> Void,
-         onOpenLesson: @escaping (Lesson) -> Void) {
+         onOpenLesson: @escaping (Lesson) -> Void, onFinish: @escaping () -> Void) {
         self.questions = questions
         self.lessons = lessons
         self.onAnswer = onAnswer
         self.onOpenLesson = onOpenLesson
+        self.onFinish = onFinish
     }
 
     /// Questions not answered yet, in the order they are asked.
@@ -118,7 +120,7 @@ struct ReviewView: View {
                          : "You practiced \(answered.count) question\(answered.count == 1 ? "" : "s"). That’s how knowledge sticks.")
                         .font(.system(size: 14)).foregroundStyle(Theme.secondaryText)
                         .multilineTextAlignment(.center)
-                    Button("Back to Mission Control", systemImage: "arrow.right") { app.showDashboard() }
+                    Button("Back to Mission Control", systemImage: "arrow.right", action: onFinish)
                         .prominentGlassButton()
                 }
                 .padding(36)
@@ -198,14 +200,12 @@ struct ReviewView: View {
                     .accessibilityLabel(left == 1 ? "1 question left" : "\(left) questions left")
             }
             MarkdownBlocks(blocks: Readme.parse(question.text))
-            GlassEffectContainer(spacing: 8) {
-                VStack(spacing: 8) {
-                    ForEach(Array(question.answers.prefix(9).enumerated()), id: \.offset) { a, answer in
-                        QuizAnswerRow(number: a + 1, text: answer, isPicked: picked == a, isRight: answer == question.rightAnswer,
-                                      explanation: question.explanation(of: a), revealed: checked) {
-                            pick(a)
-                            focused = true
-                        }
+            VStack(spacing: 8) {
+                ForEach(Array(question.answers.prefix(9).enumerated()), id: \.offset) { a, answer in
+                    QuizAnswerRow(number: a + 1, text: answer, isPicked: picked == a, isRight: answer == question.rightAnswer,
+                                  explanation: question.explanation(of: a), revealed: checked, locked: checked) {
+                        pick(a)
+                        focused = true
                     }
                 }
             }
@@ -221,7 +221,9 @@ struct ReviewView: View {
         .focusEffectDisabled()
         .focused($focused)
         .onKeyPress(characters: .decimalDigits) { press in
-            guard !checked, let n = Int(press.characters), n >= 1, n <= min(5, question.answers.count) else { return .ignored }
+            // A bare digit only: ⌘1 is Mission Control, and ⌥ or ⌃ with a digit picks nothing.
+            guard !checked, press.modifiers.isDisjoint(with: [.command, .control, .option]),
+                  let n = Int(press.characters), n >= 1, n <= min(5, question.answers.count) else { return .ignored }
             pick(n - 1)
             return .handled
         }

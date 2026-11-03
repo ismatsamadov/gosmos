@@ -18,7 +18,8 @@ struct ReadmeColumn<Footer: View>: View {
                 VStack(alignment: .leading, spacing: 0) {
                     LessonHeader(lesson: lesson)
                         .padding(.bottom, 24)
-                    if lesson.justPassed {
+                    // Not once the lesson is marked not done again: its XP is gone then.
+                    if lesson.justPassed && (lesson.isReview || lesson.isDone) {
                         MissionCompletePanel(lesson: lesson)
                             .padding(.bottom, 24)
                     }
@@ -114,7 +115,7 @@ struct LessonHeader: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 if !lesson.isReview {
-                    Label("100 XP", systemImage: "bolt.fill")
+                    Label("\(LearningProgress.lessonXP) XP", systemImage: "bolt.fill")
                         .font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.gold)
                         .fixedSize()
                 }
@@ -135,9 +136,12 @@ struct LessonHeader: View {
                     .accessibilityHidden(!done)
             }
             HStack(spacing: 10) {
-                MissionPill(text: lesson.isReview ? "Practice" : lesson.isDone ? "Completed" : detail.type.label,
-                            symbol: lesson.isDone ? "checkmark" : detail.type.symbol,
-                            color: lesson.isDone ? Theme.success : Theme.accent)
+                // The type always shows. A done lesson adds that it is completed; a redo is
+                // practice, whatever the lesson's own done mark says.
+                let completed = !lesson.isReview && lesson.isDone
+                MissionPill(text: lesson.isReview ? "\(detail.type.label) · Practice" : completed ? "\(detail.type.label) · Completed" : detail.type.label,
+                            symbol: completed ? "checkmark" : detail.type.symbol,
+                            color: completed ? Theme.success : Theme.accent)
                 if !detail.topics.isEmpty {
                     Text(detail.topics.prefix(2).joined(separator: " · "))
                         .font(.system(size: 11)).foregroundStyle(Theme.secondaryText).lineLimit(2)
@@ -175,13 +179,18 @@ struct MissionCompletePanel: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
+        // A redo graded by a Submit that failed can pass later, as practice; the review still
+        // brings it back, so the panel doesn't say the knowledge held.
+        let practiced = lesson.isReview && lesson.code?.reviewPassed == false
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 MissionIcon(symbol: lesson.isReview ? "sparkles" : "checkmark.seal.fill", color: Theme.success)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(lesson.isReview ? "Skills refreshed." : "Mission accomplished!")
+                    Text(!lesson.isReview ? "Mission accomplished!" : practiced ? "Solved." : "Skills refreshed.")
                         .font(.system(size: 17, weight: .semibold))
-                    Text(lesson.isReview ? "That knowledge is getting stronger." : "100 XP in your journey. Keep exploring.")
+                    // True on a first pass and on a pass of a lesson already done, which adds no XP.
+                    Text(!lesson.isReview ? "This lesson’s \(LearningProgress.lessonXP) XP is part of your journey. Keep exploring."
+                         : practiced ? "It comes back for review in a day, to make it stick." : "That knowledge is getting stronger.")
                         .font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
                 }
             }

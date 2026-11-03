@@ -60,10 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await app.start()
             if let size = UserDefaults.standard.string(forKey: "GosmosWindowSize") {
-                let parts = size.split(separator: "x").compactMap { Double($0) }
-                if parts.count == 2, parts.allSatisfy(\.isFinite),
+                // Exactly "<width>x<height>", two finite numbers; anything else is ignored.
+                let parts = size.split(separator: "x", omittingEmptySubsequences: false).map { Double($0) }
+                if parts.count == 2, let width = parts[0], let height = parts[1], width.isFinite, height.isFinite,
                    let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-                    window.setContentSize(NSSize(width: max(1100, parts[0]), height: max(700, parts[1])))
+                    // The window's frame is autosaved; this run saves none, so a size for a
+                    // layout check never becomes the size of the next launch.
+                    _ = window.setFrameAutosaveName("")
+                    window.setContentSize(NSSize(width: max(1100, width), height: max(700, height)))
                 }
             }
         }

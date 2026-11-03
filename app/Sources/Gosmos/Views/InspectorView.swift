@@ -35,11 +35,13 @@ struct InspectorContent: View {
         Form {
             Section {
                 HStack(spacing: 12) {
-                    MissionIcon(symbol: lesson.isDone ? "checkmark.seal.fill" : "bolt.fill", color: lesson.isDone ? Theme.success : Theme.gold, size: 34)
+                    // A redo is practice, whatever the lesson's own done mark; violet marks review.
+                    MissionIcon(symbol: lesson.isReview ? "arrow.trianglehead.2.clockwise.rotate.90" : lesson.isDone ? "checkmark.seal.fill" : "bolt.fill",
+                                color: lesson.isReview ? Theme.violet : lesson.isDone ? Theme.success : Theme.gold, size: 34)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(lesson.isReview ? "Practice mission" : lesson.isDone ? "Mission complete" : "Your next small win")
                             .font(.system(size: 12, weight: .semibold))
-                        Text(lesson.isReview ? "Strengthen what you know" : "100 XP · \(detail.type.label)")
+                        Text(lesson.isReview ? "Strengthen what you know" : "\(LearningProgress.lessonXP) XP · \(detail.type.label)")
                             .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                     }
                 }

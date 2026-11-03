@@ -34,7 +34,7 @@ struct RootView: View {
             VStack(spacing: 20) {
                 OrbitEmblem()
                 Text("A little Go. A long way.")
-                    .font(.system(size: 25, weight: .bold, design: .rounded))
+                    .font(.system(size: 25, weight: .semibold))
                 ProgressView("Preparing your learning space…")
                     .controlSize(.small)
                     .foregroundStyle(Theme.secondaryText)
@@ -162,9 +162,7 @@ struct DetailView: View {
     var body: some View {
         @Bindable var app = app
         Group {
-            if app.showsDashboard {
-                DashboardView()
-            } else if app.showsDocumentation, let docs = app.docs {
+            if app.showsDocumentation, let docs = app.docs {
                 DocsBrowser(docs: docs)
             } else if app.showsReview {
                 if let review = app.review {
@@ -178,6 +176,8 @@ struct DetailView: View {
             } else if app.isLoadingLesson {
                 ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                // Mission Control, and what shows when nothing else is on screen (a lesson that
+                // could not open, say): one branch, so the view keeps its identity and title.
                 DashboardView()
             }
         }
@@ -185,9 +185,8 @@ struct DetailView: View {
         .frame(minWidth: minWidth)
         .background(Theme.canvas)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
-        .navigationTitle(app.showsDashboard ? "Mission Control" : app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
-        // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
-        .navigationSubtitle(app.showsDashboard ? "Your Go learning journey" : app.showsDocumentation ? (app.docs?.page == nil ? "" : "Go Documentation") : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        .navigationTitle(title)
+        .navigationSubtitle(subtitle)
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)
@@ -197,6 +196,24 @@ struct DetailView: View {
         } message: {
             Text("Your code for this lesson is replaced by the lesson's starter code.")
         }
+    }
+
+    /// The window's title, for what the body shows, in the same order.
+    private var title: String {
+        if app.showsDocumentation { return app.docs?.title ?? "Go Documentation" }
+        if app.showsReview { return "Review" }
+        if let lesson = app.lesson { return lesson.detail.title }
+        return app.isLoadingLesson ? "Gosmos" : "Mission Control"
+    }
+
+    private var subtitle: String {
+        // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
+        if app.showsDocumentation { return app.docs?.page == nil ? "" : "Go Documentation" }
+        if app.showsReview { return "" }
+        if let lesson = app.lesson {
+            return (lesson.isReview ? "Redo for review · " : "") + "\(lesson.detail.courseTitle) › \(lesson.detail.chapterTitle)"
+        }
+        return app.isLoadingLesson ? "" : "Your Go learning journey"
     }
 }
 
@@ -306,6 +323,7 @@ struct LessonActions: View {
 /// session's values and actions; until a session has loaded, it waits in place.
 struct ReviewScreen: View {
     let session: ReviewSession
+    @Environment(AppModel.self) private var app
 
     var body: some View {
         if session.isLoaded {
@@ -317,7 +335,8 @@ struct ReviewScreen: View {
                        onAnswer: { question, answer, right in
                            session.answer(question.ref, position: question.position, answer: answer, correct: right)
                        },
-                       onOpenLesson: { session.redo($0.ref) })
+                       onOpenLesson: { session.redo($0.ref) },
+                       onFinish: { app.showDashboard() })
                 // A new session (Review chosen again) starts the view over.
                 .id(ObjectIdentifier(session))
         } else {

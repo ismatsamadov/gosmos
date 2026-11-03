@@ -25,9 +25,11 @@ enum Theme {
     static let note = Color(nsColor: dynamic(light: 0x0B5CBF, dark: 0x5AA9FF, name: "GoNote"))
     static let important = Color(nsColor: dynamic(light: 0x7E3BA6, dark: 0xD88DF7, name: "GoImportant"))
     /// Secondary text. The system's secondary label reads about 3.9:1 on white in light mode;
-    /// this one keeps 4.5:1 on window, panel and sidebar backgrounds. Symbols keep `.secondary`,
-    /// which is enough for them at 3:1.
-    static let secondaryText = Color(nsColor: dynamic(light: 0x606B78, dark: 0xA7B1BD, name: "GoSecondaryText"))
+    /// this one keeps 4.5:1 on window, panel and sidebar backgrounds, and on a `.quaternary`
+    /// capsule or a gray selection over them, as the neutral gray it replaced did: a cool gray
+    /// of the same lightness (#606B78 was lighter and fell to about 4:1 there). Symbols keep
+    /// `.secondary`, which is enough for them at 3:1.
+    static let secondaryText = Color(nsColor: dynamic(light: 0x56606C, dark: 0xA7B1BD, name: "GoSecondaryText"))
     /// Words a search matched, in the sidebar's results. On the sidebar's gray Go Teal reads
     /// only 4.6:1, so light mode deepens it (6.3:1); dark mode keeps Go Blue.
     static let searchMark = Color(nsColor: dynamic(light: 0x005E70, dark: 0x00ADD8, name: "GoSearchMark"))
@@ -37,6 +39,11 @@ enum Theme {
     static let inset = Color(nsColor: dynamic(light: 0xEEF2F5, dark: 0x181D24, name: "MissionInset"))
     static let sidebar = Color(nsColor: dynamic(light: 0xEEF1F4, dark: 0x1A1F26, name: "MissionSidebar"))
     static let border = Color(nsColor: dynamic(light: 0xDFE5EB, dark: 0x333C48, name: "MissionBorder"))
+    /// The outline of a card, an answer or a pane: the fine border, or with Increase Contrast one
+    /// that reads against the canvas (the border alone measures about 1.2:1 there).
+    static func outline(_ contrast: ColorSchemeContrast) -> Color {
+        contrast == .increased ? secondaryText : border
+    }
     /// The welcome panel has one deliberately dark surface in either appearance.
     static let ink = Color(red: 23 / 255, green: 43 / 255, blue: 54 / 255)
     static let onInk = Color(red: 182 / 255, green: 204 / 255, blue: 212 / 255)

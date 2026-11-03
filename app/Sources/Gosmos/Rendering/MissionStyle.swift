@@ -2,10 +2,23 @@ import SwiftUI
 
 extension View {
     func missionCard(tint: Color? = nil, radius: CGFloat = 14) -> some View {
-        background(Theme.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+        modifier(MissionCard(tint: tint, radius: radius))
+    }
+}
+
+/// A solid surface with a fine outline. The surface is close to the canvas behind it, so with
+/// Increase Contrast the outline is what sets the card apart, and it deepens.
+private struct MissionCard: ViewModifier {
+    let tint: Color?
+    let radius: CGFloat
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        content
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(tint?.opacity(0.3) ?? Theme.border, lineWidth: 1)
+                    .strokeBorder(contrast == .increased ? (tint ?? Theme.outline(contrast)) : (tint?.opacity(0.3) ?? Theme.border), lineWidth: 1)
                     .allowsHitTesting(false)
             }
     }
@@ -94,7 +107,7 @@ struct OrbitEmblem: View {
             Ellipse().stroke(color.opacity(0.5), lineWidth: 1)
                 .frame(width: 238, height: 88).rotationEffect(.degrees(-32))
             Circle().fill(color).frame(width: 9, height: 9).offset(x: 93, y: -58)
-            Circle().fill(Color(red: 0.94, green: 0.76, blue: 0.43)).frame(width: 6, height: 6).offset(x: -86, y: 67)
+            Circle().fill(Theme.gold).frame(width: 6, height: 6).offset(x: -86, y: 67)
             Image(systemName: "plus").font(.system(size: 10, weight: .light))
                 .foregroundStyle(color.opacity(0.6)).offset(x: -88, y: -70)
             Text("GO / EXPLORE")
@@ -122,8 +135,12 @@ struct MissionProgress: View {
         }
         .frame(height: height)
         .accessibilityElement(children: .ignore)
-        .accessibilityValue("\(Int(min(1, max(0, fraction)) * 100)) percent")
+        .accessibilityValue("\(percent) percent")
     }
+
+    /// Whole percent, rounded down as the labels beside a track count it (`done * 100 / total`):
+    /// 29 of 50 is 0.58, and 0.58 * 100 is just under 58 in binary.
+    private var percent: Int { Int(min(1, max(0, fraction)) * 100 + 1e-9) }
 }
 
 struct GosmosMark: View {
@@ -141,22 +158,28 @@ struct GosmosMark: View {
 }
 
 /// Gentle pointer feedback for content rows without moving their labels or focus targets.
+/// `feedback` false keeps a row still where a click changes nothing, such as a graded answer,
+/// without dimming it as disabling would.
 struct MissionRowButtonStyle: ButtonStyle {
+    var feedback = true
+
     func makeBody(configuration: Configuration) -> some View {
-        MissionRowButton(configuration: configuration)
+        MissionRowButton(configuration: configuration, feedback: feedback)
     }
 }
 
 private struct MissionRowButton: View {
     let configuration: ButtonStyleConfiguration
+    let feedback: Bool
     @ViewState private var hovering = false
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
+        let active = isEnabled && feedback
         configuration.label
             .overlay {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Theme.accent.opacity(isEnabled && configuration.isPressed ? 0.10 : isEnabled && hovering ? 0.05 : 0))
+                    .fill(Theme.accent.opacity(active && configuration.isPressed ? 0.10 : active && hovering ? 0.05 : 0))
                     .allowsHitTesting(false)
             }
             .opacity(isEnabled ? 1 : 0.45)
