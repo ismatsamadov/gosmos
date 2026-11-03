@@ -83,10 +83,11 @@ struct LocalPreferences {
     }
 }
 
-/// A place Back and Forward return to: Mission Control, a lesson, or a place in the Go
-/// documentation.
+/// A place Back and Forward return to: Mission Control, the field guide, a lesson, or a place
+/// in the Go documentation.
 enum Place: Hashable {
     case dashboard
+    case fieldGuide
     case lesson(LessonRef)
     case doc(DocLink)
 }
@@ -131,14 +132,17 @@ struct ShelfLibrary: Identifiable {
     let isBuiltIn: Bool
     var database: AppDatabase?
     var catalog: Catalog = .empty
+    /// The stories of its courses, by course uuid.
+    var stories: [String: CourseStory] = [:]
     var error: AppDatabaseError?
 }
 
-/// What the sidebar can select: Mission Control, the review, the Go documentation, a lesson, or
-/// a place in the documentation that search found.
+/// What the sidebar can select: Mission Control, the review, the field guide, the Go
+/// documentation, a lesson, or a place in the documentation that search found.
 enum SidebarItem: Hashable {
     case dashboard
     case review
+    case fieldGuide
     case documentation
     case lesson(LessonRef)
     case doc(DocLink)
@@ -195,12 +199,29 @@ final class AppModel {
     @ObservationIgnored private var docsActive = false
     /// Mission Control is the place on screen, or about to be, for the history.
     @ObservationIgnored private var dashboardActive = false
+    /// The field guide is the place on screen, for the history.
+    @ObservationIgnored private var fieldGuideActive = false
+    /// The opening on screen, over the whole window: the course it opens, and its page.
+    private(set) var opening: Opening?
+    /// The name on your badge, the one the team calls you; empty until you give one.
+    private(set) var badgeName = ""
+    /// The openings you have been through, as "<library>/<course>".
+    private(set) var seenOpenings: Set<String> = []
+    /// The field guide's term shown over the lesson on screen, after a click on its link.
+    var shownTerm: CourseStory.Term?
+    /// The term the field guide brings into view when it opens.
+    private(set) var fieldGuideFocus: String?
+    /// Lessons' story beats, the first paragraph of each readme, for the teaser after a pass.
+    @ObservationIgnored private var beats: [LessonRef: [MDInline]] = [:]
     /// The lesson that is the place on screen, or about to be while it loads, for the history;
     /// nil for Mission Control, the documentation, the review and a redo.
     @ObservationIgnored private var lessonTarget: LessonRef?
 
     /// The review is on screen: selected, with no lesson still leaving.
     var showsReview: Bool { selection == .review && lesson == nil }
+
+    /// The field guide is on screen: selected, with no lesson still leaving.
+    var showsFieldGuide: Bool { selection == .fieldGuide && lesson == nil }
 
     private func updateLearningProgress() {
         learningProgress = LearningProgress(libraries: shelf.map { .init(id: $0.id, catalog: $0.catalog) }, done: done)
@@ -322,6 +343,8 @@ final class AppModel {
             done = try await learner.done()
             editorFontSize = Double(try await learner.setting("editor_font_size") ?? "") ?? 13
             showLineNumbers = (try await learner.setting("editor_line_numbers")) != "0"
+            badgeName = try await learner.setting(AppModel.badgeNameKey) ?? ""
+            seenOpenings = Set((try await learner.setting(AppModel.openingsSeenKey) ?? "").split(separator: "\n").map(String.init))
             resumeLesson = try await learner.lastOpened()
         } catch {
             report(error)
@@ -329,11 +352,15 @@ final class AppModel {
         observeDone(learner)
         // Mission Control is the place on screen before the window can take a click, so nothing
         // chosen while the launch finishes is undone; a scripted run opens its lesson below.
-        let scripted = preferences.defaults.string(forKey: LaunchArguments.openLesson) != nil
-            || preferences.defaults.string(forKey: LaunchArguments.action) != nil
+        let action = preferences.defaults.string(forKey: LaunchArguments.action)
+        // The story's launch actions show a screen of their own, with Mission Control behind it.
+        let storyAction = action.flatMap { $0 == "field-guide" || $0 == "opening" || $0.hasPrefix("opening:") ? $0 : nil }
+        let scripted = storyAction == nil && (preferences.defaults.string(forKey: LaunchArguments.openLesson) != nil || action != nil)
         if !scripted {
             selection = .dashboard
             dashboardActive = true
+            // A new learner meets the story before anything else.
+            if storyAction == nil { self.opening = openingAtLaunch }
         }
         phase = .ready
         let texts = readmeTexts, databases = shelf.compactMap(\.database)
@@ -343,6 +370,7 @@ final class AppModel {
             }
         }
         await refreshDueCount()
+        if let storyAction { performStoryAction(storyAction) }
         guard scripted else {
             finishLaunch()
             return
@@ -400,7 +428,8 @@ final class AppModel {
             do {
                 let db = try AppDatabase(url: url, immutable: builtIn)
                 let catalog = try await db.catalog()
-                return ShelfLibrary(id: db.info.uuid, title: db.info.title, url: url, isBuiltIn: builtIn, database: db, catalog: catalog)
+                let stories = try await db.stories()
+                return ShelfLibrary(id: db.info.uuid, title: db.info.title, url: url, isBuiltIn: builtIn, database: db, catalog: catalog, stories: stories)
             } catch let e as AppDatabaseError {
                 return ShelfLibrary(id: url.path, title: url.deletingPathExtension().lastPathComponent, url: url, isBuiltIn: builtIn, error: e)
             } catch {
@@ -521,6 +550,7 @@ final class AppModel {
         let current = docsActive ? nil : lessonTarget
         if remember && ref != current { history.visit(from: visited) }
         dashboardActive = false
+        fieldGuideActive = false
         docsActive = false
         lessonTarget = ref
         if selection != .lesson(ref) { selection = .lesson(ref) }
@@ -542,6 +572,7 @@ final class AppModel {
         guard let learner, let db = library(ref.library)?.database, summary(ref) != nil else { return }
         selection = nil
         dashboardActive = false
+        fieldGuideActive = false
         review = nil
         docsActive = false
         lessonTarget = nil
@@ -553,6 +584,7 @@ final class AppModel {
     /// meanwhile keeps it; the review and a redo are not in it.
     private var visited: Place? {
         if dashboardActive { return .dashboard }
+        if fieldGuideActive { return .fieldGuide }
         if docsActive { return docs?.location.map(Place.doc) }
         return lessonTarget.map(Place.lesson)
     }
@@ -649,6 +681,8 @@ final class AppModel {
             }
         case "review": showReview()
         case "redo-submit": model.submit()
+        case _ where action.hasPrefix("term:"):
+            shownTerm = story(for: model.ref)?.term(String(action.dropFirst(5)))
         case "answer":
             // The first question right, the others wrong: both outcomes on screen.
             guard let quiz = model.quiz else { return }
@@ -700,6 +734,7 @@ final class AppModel {
     private func go(to place: Place) {
         switch place {
         case .dashboard: showDashboard(remember: false)
+        case .fieldGuide: showFieldGuide(remember: false)
         case .lesson(let ref): open(ref, remember: false)
         case .doc(let link): openDocumentation(link, remember: false)
         }
@@ -758,6 +793,7 @@ final class AppModel {
         }
         if remember { history.visit(from: visited) }
         dashboardActive = true
+        fieldGuideActive = false
         docsActive = false
         lessonTarget = nil
         selection = .dashboard
@@ -772,6 +808,195 @@ final class AppModel {
         }
     }
 
+    // MARK: Story
+
+    /// The opening on screen.
+    struct Opening: Equatable {
+        let library: String
+        let course: String
+        var page: Int
+    }
+
+    /// The learner database's settings for the story: the name on your badge, and the openings
+    /// you have been through, one "<library>/<course>" a line.
+    static let badgeNameKey = "badge_name"
+    static let openingsSeenKey = "openings_seen"
+
+    func story(of course: String, in library: String) -> CourseStory? { self.library(library)?.stories[course] }
+
+    /// The story of the course a lesson is in.
+    func story(for ref: LessonRef) -> CourseStory? {
+        library(ref.library)?.catalog.course(of: ref.lesson).flatMap { story(of: $0.id, in: ref.library) }
+    }
+
+    /// A chapter's part in its course's story.
+    func chapterStory(_ chapter: Chapter, in library: String) -> CourseStory.ChapterStory? {
+        story(of: chapter.courseID, in: library)?.chapters[chapter.id]
+    }
+
+    /// Whether the field guide has a word to show: a course on the shelf has terms.
+    var hasFieldGuide: Bool { shelf.contains { $0.stories.values.contains { !$0.terms.isEmpty } } }
+
+    /// A chapter whose required lessons are all done, as the chapter milestone counts it.
+    func isComplete(_ chapter: Chapter, in library: String) -> Bool {
+        let required = chapter.lessons.filter(\.required)
+        return !required.isEmpty && required.allSatisfy { isDone(LessonRef(library: library, lesson: $0.id)) }
+    }
+
+    /// Whether `ref` is the one required lesson of its chapter not done yet, so passing it
+    /// finishes the chapter.
+    func isLastToDo(_ ref: LessonRef) -> Bool {
+        guard let chapter = library(ref.library)?.catalog.chapter(of: ref.lesson) else { return false }
+        let required = chapter.lessons.filter(\.required)
+        return required.contains { $0.id == ref.lesson }
+            && required.allSatisfy { $0.id == ref.lesson || isDone(LessonRef(library: ref.library, lesson: $0.id)) }
+    }
+
+    /// The opening a new learner sees at launch: the first course with an opening not seen yet,
+    /// and no lesson of it done.
+    private var openingAtLaunch: Opening? {
+        for library in shelf {
+            for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true {
+                guard !seenOpenings.contains(library.id + "/" + course.id),
+                      !course.lessons.contains(where: { isDone(LessonRef(library: library.id, lesson: $0.id)) }) else { continue }
+                return Opening(library: library.id, course: course.id, page: 0)
+            }
+        }
+        return nil
+    }
+
+    /// Begins or continues a course: its opening the first time, else its next lesson.
+    func begin(_ course: Course, in library: String) {
+        if story(of: course.id, in: library)?.hasOpening == true, !seenOpenings.contains(library + "/" + course.id) {
+            showOpening(course.id, in: library)
+        } else if let next = firstUnfinished(course.lessons, in: library) ?? course.lessons.first {
+            open(LessonRef(library: library, lesson: next.id))
+        }
+    }
+
+    /// The opening View › Replay the Opening shows: that of the course you are in, else the first
+    /// on the shelf.
+    var openingToReplay: (library: String, course: String)? {
+        if let ref = recommendedLesson ?? resumeLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
+           story(of: course.id, in: ref.library)?.hasOpening == true {
+            return (ref.library, course.id)
+        }
+        for library in shelf {
+            for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true { return (library.id, course.id) }
+        }
+        return nil
+    }
+
+    /// Shows the opening again; a lesson on screen is saved and left first, as when Mission
+    /// Control opens.
+    func replayOpening() {
+        guard let o = openingToReplay else { return }
+        showDashboard()
+        showOpening(o.course, in: o.library)
+    }
+
+    /// Shows a course's opening, from its first page or `page`.
+    func showOpening(_ course: String, in library: String, page: Int = 0) {
+        guard let pages = story(of: course, in: library)?.pages, !pages.isEmpty else { return }
+        shownTerm = nil
+        opening = Opening(library: library, course: course, page: min(max(0, page), pages.count - 1))
+    }
+
+    /// The opening's next page; after its last one, the course.
+    func advanceOpening() {
+        guard let o = opening, let pages = story(of: o.course, in: o.library)?.pages else { return }
+        if o.page + 1 < pages.count { opening?.page = o.page + 1 } else { finishOpening() }
+    }
+
+    /// The opening's page before the one on screen.
+    func openingPageBack() {
+        if let o = opening, o.page > 0 { opening?.page = o.page - 1 }
+    }
+
+    /// Ends the opening, read or skipped, and opens the course where you are in it: its next
+    /// unfinished lesson, or Mission Control once every lesson is done.
+    func finishOpening() {
+        guard let o = opening else { return }
+        opening = nil
+        markSeen(o)
+        guard let course = library(o.library)?.catalog.courses.first(where: { $0.id == o.course }) else { return }
+        if let next = firstUnfinished(course.lessons, in: o.library) {
+            open(LessonRef(library: o.library, lesson: next.id))
+        } else {
+            showDashboard()
+        }
+    }
+
+    private func markSeen(_ o: Opening) {
+        guard seenOpenings.insert(o.library + "/" + o.course).inserted, let learner else { return }
+        let value = seenOpenings.sorted().joined(separator: "\n")
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.setSetting(AppModel.openingsSeenKey, value) } catch { self?.report(error) }
+        }
+    }
+
+    /// Puts a name on your badge; an empty one takes it off.
+    func setBadgeName(_ name: String) {
+        let name = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
+        guard name != badgeName else { return }
+        badgeName = name
+        guard let learner else { return }
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.setSetting(AppModel.badgeNameKey, name.isEmpty ? nil : name) } catch { self?.report(error) }
+        }
+    }
+
+    /// Shows the field guide, with `term` in view; `remember` adds the place on screen to the
+    /// back history. A lesson on screen is saved and left, as when another opens.
+    func showFieldGuide(focus term: String? = nil, remember: Bool = true) {
+        shownTerm = nil
+        fieldGuideFocus = term
+        guard !fieldGuideActive else {
+            if selection != .fieldGuide { selection = .fieldGuide }
+            return
+        }
+        if remember { history.visit(from: visited) }
+        dashboardActive = false
+        fieldGuideActive = true
+        docsActive = false
+        lessonTarget = nil
+        selection = .fieldGuide
+        isLoadingLesson = false
+        loadTask?.cancel()
+        let previous = lesson
+        loadTask = Task { [weak self] in
+            await previous?.leave()
+            guard let self, !Task.isCancelled else { return }
+            self.lesson = nil
+            self.review = nil
+        }
+    }
+
+    /// A lesson's story beat, the first paragraph of its readme, for the teaser after a pass.
+    func beat(of ref: LessonRef) async -> [MDInline]? {
+        if let beat = beats[ref] { return beat }
+        guard let db = library(ref.library)?.database,
+              let row = try? await db.readmes([ref.lesson]).first else { return nil }
+        guard case .paragraph(let inlines)? = Readme.parse(row.readme, droppingTitle: row.title).first else { return nil }
+        beats[ref] = inlines
+        return inlines
+    }
+
+    /// The story's launch actions: `opening` or `opening:<page>` shows the first opening on the
+    /// shelf, and `field-guide` the field guide.
+    private func performStoryAction(_ action: String) {
+        if action == "field-guide" {
+            showFieldGuide(remember: false)
+            return
+        }
+        for library in shelf {
+            for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true {
+                showOpening(course.id, in: library.id, page: Int(action.dropFirst("opening:".count)) ?? 0)
+                return
+            }
+        }
+    }
+
     // MARK: Review
 
     /// Shows the review: due quiz questions, interleaved across lessons, and lessons to redo.
@@ -781,6 +1006,7 @@ final class AppModel {
         guard let learner else { return }
         if let ref = visited { history.visit(from: ref) }
         dashboardActive = false
+        fieldGuideActive = false
         docsActive = false
         lessonTarget = nil
         selection = .review
@@ -841,6 +1067,7 @@ final class AppModel {
         let target = link ?? docs.location
         if remember, let place = visited, place != target.map(Place.doc) { history.visit(from: place) }
         dashboardActive = false
+        fieldGuideActive = false
         docsActive = true
         lessonTarget = nil
         if selection != item { selection = item }
@@ -861,9 +1088,13 @@ final class AppModel {
     func follow(_ url: URL) -> Bool {
         let library = lesson?.detail.library
         let catalog = library.flatMap { self.library($0)?.catalog }
-        switch LinkTarget(destination: url.absoluteString, isLesson: { catalog?.summary($0) != nil }) {
+        let story = lesson.flatMap { story(for: $0.detail.ref) }
+        switch LinkTarget(destination: url.absoluteString, isLesson: { catalog?.summary($0) != nil }, isTerm: { story?.term($0) != nil }) {
         case .doc(let link)?:
             openDocumentation(link)
+            return true
+        case .term(let name)?:
+            shownTerm = story?.term(name)
             return true
         case .lesson(let id)?:
             if let library { open(LessonRef(library: library, lesson: id)) }

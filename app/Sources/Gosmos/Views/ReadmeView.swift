@@ -23,10 +23,16 @@ struct ReadmeColumn<Footer: View>: View {
                         MissionCompletePanel(lesson: lesson)
                             .padding(.bottom, 24)
                     }
+                    // The chapter's briefing opens its first lesson; a redo is practice, not the story.
+                    if !lesson.isReview, let briefing {
+                        BriefingCard(chapter: briefing.number, title: briefing.title, text: briefing.text)
+                            .padding(.bottom, 24)
+                    }
                     // A readme that is only its title shows no reading block. Its inline code that
-                    // names the standard library links to the documentation.
+                    // names the standard library links to the documentation, and the first use of
+                    // each word of the course's world to the field guide.
                     if !lesson.parsed.readme.isEmpty {
-                        MarkdownBlocks(blocks: DocLinker.link(lesson.parsed.readme, names: app.docNames))
+                        MarkdownBlocks(blocks: TermLinker.link(DocLinker.link(lesson.parsed.readme, names: app.docNames), terms: story?.terms ?? []))
                     }
                     if !lesson.hints.hints.isEmpty {
                         HintsPanel(state: lesson.hints, lockedReason: lockedReason) { lesson.revealHint() }
@@ -55,8 +61,29 @@ struct ReadmeColumn<Footer: View>: View {
         }
         .textSelection(.enabled)
         .background(Theme.surface)
-        // Links to lessons of this library act here too; the window follows them (AppModel.follow).
-        .environment(\.linkPolicy, LinkPolicy(catalog: app.library(lesson.detail.library)?.catalog ?? .empty))
+        .overlay(alignment: .bottom) {
+            if let term = app.shownTerm {
+                TermCard(term: term)
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: app.shownTerm)
+        // Another lesson leaves the term of this one behind.
+        .onDisappear { app.shownTerm = nil }
+        // Links to lessons of this library act here too, and to the terms of its course's field
+        // guide; the window follows them (AppModel.follow).
+        .environment(\.linkPolicy, LinkPolicy(catalog: app.library(lesson.detail.library)?.catalog ?? .empty,
+                                              terms: Set(story?.terms.map(\.term) ?? [])))
+    }
+
+    private var story: CourseStory? { app.story(for: lesson.detail.ref) }
+
+    /// The briefing of the lesson's chapter, when it is the chapter's first lesson.
+    private var briefing: (number: Int, title: String, text: String)? {
+        let ref = lesson.detail.ref
+        guard let catalog = app.library(ref.library)?.catalog, let loc = catalog.location(of: ref.lesson), loc.lesson == 0 else { return nil }
+        let chapter = catalog.courses[loc.course].chapters[loc.chapter]
+        return app.chapterStory(chapter, in: ref.library).map { (loc.chapter + 1, chapter.title, $0.briefing) }
     }
 
     /// Why the last hint waits: for a failed Submit.
@@ -177,12 +204,31 @@ struct LessonHeader: View {
 struct MissionCompletePanel: View {
     let lesson: LessonModel
     @Environment(AppModel.self) private var app
+    /// The next lesson's story beat, the teaser.
+    @ViewState private var beat: [MDInline]?
 
     var body: some View {
+        if !lesson.isReview, lesson.finishedChapter, let debrief {
+            ChapterCompletePanel(number: debrief.number, title: debrief.title, text: debrief.text, hasNext: app.nextLesson != nil)
+        } else {
+            lessonPanel
+        }
+    }
+
+    /// The debrief of the chapter this pass finished.
+    private var debrief: (number: Int, title: String, text: String)? {
+        let ref = lesson.detail.ref
+        guard let catalog = app.library(ref.library)?.catalog, let loc = catalog.location(of: ref.lesson) else { return nil }
+        let chapter = catalog.courses[loc.course].chapters[loc.chapter]
+        return app.chapterStory(chapter, in: ref.library).map { (loc.chapter + 1, chapter.title, $0.debrief) }
+    }
+
+    private var lessonPanel: some View {
         // A redo graded by a Submit that failed can pass later, as practice; the review still
         // brings it back, so the panel doesn't say the knowledge held.
         let practiced = lesson.isReview && lesson.code?.reviewPassed == false
-        VStack(alignment: .leading, spacing: 14) {
+        let next = lesson.isReview ? nil : app.nextLesson
+        return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 MissionIcon(symbol: lesson.isReview ? "sparkles" : "checkmark.seal.fill", color: Theme.success)
                 VStack(alignment: .leading, spacing: 4) {
@@ -194,10 +240,22 @@ struct MissionCompletePanel: View {
                         .font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
                 }
             }
+            // What happens next, in the next lesson's own first line.
+            if let next, let beat, story != nil {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("UP NEXT · \(next.title.uppercased())")
+                        .font(.system(size: 9, weight: .semibold)).tracking(1.2).foregroundStyle(Theme.secondaryText)
+                    Text(Inline.attributed(beat, size: 13))
+                        .foregroundStyle(.primary)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 2)
+            }
             if lesson.isReview {
                 Button("Back to Review", systemImage: "arrow.right") { app.showReview() }
                     .prominentGlassButton()
-            } else if app.nextLesson != nil {
+            } else if next != nil {
                 Button("Next mission", systemImage: "arrow.right") { app.openNext() }
                     .prominentGlassButton()
             } else {
@@ -208,6 +266,82 @@ struct MissionCompletePanel: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .missionCard(tint: Theme.success)
+        .accessibilityElement(children: .contain)
+        .task(id: next?.id) {
+            guard let next else { return }
+            beat = await app.beat(of: LessonRef(library: lesson.detail.library, lesson: next.id))
+        }
+    }
+
+    private var story: CourseStory? { app.story(for: lesson.detail.ref) }
+}
+
+/// A chapter's briefing, above its first lesson: what is happening this week, and why the
+/// chapter's lessons matter to the team.
+struct BriefingCard: View {
+    let chapter: Int
+    let title: String
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: "dot.radiowaves.left.and.right").font(.system(size: 10, weight: .semibold))
+                Text("BRIEFING · CHAPTER \(chapter) · \(title.uppercased())")
+                    .font(.system(size: 9.5, weight: .semibold)).tracking(1.3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(Theme.orbit)
+            StoryText(text: text, size: 14, color: .white, spacing: 8)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.ink, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .environment(\.colorScheme, .dark)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Briefing for chapter \(chapter), \(title). \(text)")
+    }
+}
+
+/// The pass that finished a chapter: its patch, its debrief, and the way on.
+struct ChapterCompletePanel: View {
+    let number: Int
+    let title: String
+    let text: String
+    let hasNext: Bool
+    @Environment(AppModel.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ViewState private var shown = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 20) {
+            PatchView(number: number, earned: true, size: 76)
+                .scaleEffect(shown || reduceMotion ? 1 : 0.6)
+                .rotationEffect(.degrees(shown || reduceMotion ? 0 : -24))
+                .animation(reduceMotion ? nil : .spring(duration: 0.6, bounce: 0.45), value: shown)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("CHAPTER \(number) COMPLETE · PATCH EARNED")
+                    .font(.system(size: 9.5, weight: .semibold)).tracking(1.3).foregroundStyle(Theme.gold)
+                Text(title).font(.system(size: 20, weight: .semibold)).foregroundStyle(.white)
+                StoryText(text: text, size: 14, color: Theme.onInk, spacing: 8)
+                HStack(spacing: 12) {
+                    if hasNext {
+                        Button("Next chapter", systemImage: "arrow.right") { app.openNext() }
+                            .prominentGlassButton()
+                    }
+                    Button("See your badge", systemImage: "person.text.rectangle") { app.showDashboard() }
+                        .secondaryGlassButton()
+                }
+                .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.ink, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.gold.opacity(0.35)).allowsHitTesting(false) }
+        .environment(\.colorScheme, .dark)
+        .onAppear { shown = true }
         .accessibilityElement(children: .contain)
     }
 }
@@ -281,11 +415,13 @@ struct BlockView: View {
 struct LinkPolicy: Sendable {
     /// The library whose lessons links may open.
     var catalog: Catalog = .empty
+    /// The terms of the course's field guide, whose meanings links may show.
+    var terms: Set<String> = []
 
     /// The URL a link to `destination` carries, or nil when it does nothing: the app's own
     /// (LinkTarget.url), never the web address a link to a lesson gave.
     func url(_ destination: String) -> URL? {
-        LinkTarget(destination: destination, isLesson: { catalog.summary($0) != nil }).flatMap { URL(string: $0.url) }
+        LinkTarget(destination: destination, isLesson: { catalog.summary($0) != nil }, isTerm: { terms.contains($0) }).flatMap { URL(string: $0.url) }
     }
 }
 
@@ -314,7 +450,11 @@ enum Inline {
                     a.font = font
                     if raised { a.baselineOffset = (size * 0.38).rounded() }
                     if strike { a.strikethroughStyle = .single }
-                    if let link { a.link = link }
+                    if let link {
+                        a.link = link
+                        // A word of the field guide: dotted, so it reads as a word to look up.
+                        if link.scheme == LinkTarget.termScheme { a.underlineStyle = Text.LineStyle(pattern: .dot) }
+                    }
                     out += a
                 case .code(let s):
                     // A subtle capsule: a narrow no-break space on each side inside a faint

@@ -25,6 +25,9 @@ final class LessonModel {
     var justPassed = false
     /// Set when a pass put the lesson in review, due tomorrow.
     private(set) var comesBackForReview = false
+    /// Set when the last pass finished the lesson's chapter: it was the one required lesson of
+    /// the chapter still to do, so the completion panel shows the chapter's debrief.
+    private(set) var finishedChapter = false
     /// Bumped to bring the part below the readme (the quiz) into view.
     private(set) var footerRequests = 0
     /// Which hints show, and whether the next may.
@@ -178,6 +181,7 @@ final class LessonModel {
         justPassed = true
         guard !isReview else { return }
         if scheduled { comesBackForReview = true }
+        finishedChapter = !isDone && (app?.isLastToDo(ref) ?? false)
         app?.setDone(ref, true)
     }
 

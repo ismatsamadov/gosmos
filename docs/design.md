@@ -13,9 +13,11 @@ never uses the network: every lesson, code or quiz, is checked on the Mac.
   show required-lesson progress and open the next unfinished lesson in that course. View ›
   Mission Control (⌘1) returns here.
 - The dashboard leads with the next lesson's title, course, chapter and type on an ink-colored
-  panel. A single summary strip shows XP, completed lessons, rank and reviews; the review
-  summary opens Review. Below, the learning path sits beside compact achievement badges and
-  a documentation shortcut. Narrow panes stack the two columns.
+  panel; in a course with a story, the panel leads with the briefing of the chapter the lesson
+  is in, then the next assignment. A single summary strip shows XP, completed lessons, rank
+  and reviews; the review summary opens Review. Below, the learning path sits beside the
+  learner's badge, compact achievement badges, and shortcuts to the Field Guide and the Go
+  Documentation. Narrow panes stack the two columns.
 - With a single course, its card shows three chapters near the next unfinished lesson.
   Each chapter opens its next unfinished lesson; completed chapters can be revisited. The
   course action always opens the next lesson in that course. An Add Library action sits
@@ -34,6 +36,40 @@ never uses the network: every lesson, code or quiz, is checked on the Mac.
 - Motivation comes from visible progress, achievable milestones, and encouragement. There
   are no streak penalties, competitive leaderboards, or timers.
 
+## The story
+
+A course with a story (`docs/storytelling.md`; the library's story tables) is told around its
+lessons. A course without one looks as it always did.
+
+- **The opening** takes the whole window, sidebar and toolbar too: at a new learner's first
+  launch, from Start Learning or Begin Course while it hasn't been seen, and from View ›
+  Replay the Opening or the badge card. Its pages sit on a night sky drawn with native shapes:
+  stars, the curve of the Earth with a thin line of atmosphere, and a satellite on a dashed
+  orbit that moves on a little with each page. With Reduce Motion the stars stop twinkling and
+  the satellite only moves between pages. A page has its eyebrow in monospaced capitals, a
+  42 pt semibold title, its text at 17 pt, its cards two to a row, page dots, and its action
+  as the prominent glass button (Return). Back returns a page; Skip Intro (Esc) ends the
+  opening. The last page's action, and Skip Intro, open the course's next unfinished lesson.
+- **The badge page** has a field for the name the team calls you, and the badge beside it,
+  tilted a little and made as you type: the page's eyebrow at its head, your initials in a
+  circle, the name, the first card's title under it (the role), and the other cards as its
+  lines. The badge keeps its paper and ink colors in either appearance, as the welcome panel
+  does. The name lives in the learner database; the badge card on Mission Control changes it.
+- **Mission Control** greets you by the first word of the badge's name. The badge card shows
+  the name, the role and the badge's lines, and a mission patch for every chapter of the
+  course: a round, stitched patch with the chapter's number and a star, in the chapter's color
+  once its required lessons are done, an outline until then. Six patch colors take turns; each
+  keeps the dark number above 4.5:1.
+- **A chapter's first lesson** shows the chapter's briefing above the readme, on the ink panel.
+- **A pass** shows the next lesson's first line, its story beat, under the completion message.
+  **The pass that finishes a chapter** shows its patch, which springs into place (still with
+  Reduce Motion), the chapter's debrief, Next Chapter and See Your Badge.
+- **The Field Guide** (`binoculars`, ⌘2) lists every term of the shelf's courses with its
+  meaning, a section per course when there are several, and a field that narrows the list.
+  In a readme, the first use of each linked term is in the tint with a dotted underline; a
+  click shows a card at the foot of the readme with the meaning and Open the Field Guide, which
+  opens the guide with the term in view. Esc closes the card.
+
 ## Platform
 
 - macOS 27 or later, the current release, so the app is Liquid Glass throughout. The standard containers get it
@@ -44,10 +80,11 @@ never uses the network: every lesson, code or quiz, is checked on the Mac.
 - Light, dark, Increase Contrast and Reduce Motion all look right.
 - Text uses semantic labels and contrast-aware colors. Go Blue, #00ADD8 in dark mode and
   Go Teal #00758D in light mode, is the primary accent. Gold identifies XP and achievements;
-  violet identifies rank, review and the documentation field guide. A pale gray canvas in
+  violet identifies rank, review, the Field Guide and the documentation. A pale gray canvas in
   light mode and charcoal canvas in dark mode, solid surfaces and fine borders define cards.
-  The dashboard's welcome panel stays dark teal in either appearance. Headings use semibold
-  system type with restrained spacing; rounded type is reserved for the wordmark.
+  The dashboard's welcome panel, the briefing and the opening's night sky stay dark in either
+  appearance. Headings use semibold system type with restrained spacing; rounded type is
+  reserved for the wordmark, the badge and the patches' numbers.
 - Icons are SF Symbols with hierarchical rendering. State changes use symbol effects:
   `.bounce` on success, `.replace` between Run and Stop.
 
@@ -69,8 +106,9 @@ never uses the network: every lesson, code or quiz, is checked on the Mac.
 
 ## Sidebar
 
-- Gosmos branding, then Mission Control, Review and Go Documentation (`text.book.closed`),
-  then the libraries; a compact rank and progress card sits at the bottom. The sidebar's
+- Gosmos branding, then Mission Control, Review, Field Guide (`binoculars`, when a course on
+  the shelf has terms) and Go Documentation (`text.book.closed`), then the libraries; a
+  compact rank and progress card sits at the bottom. The sidebar's
   background is consistent from the wordmark through its list and footer.
 - One section per course, with its title and a progress ring for finished lessons out of
   required ones. Guided projects sit under their own heading.

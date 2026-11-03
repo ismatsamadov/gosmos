@@ -33,7 +33,8 @@ struct DashboardView: View {
 
     private var heading: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text("A little Go. A long way.")
+            // The name on your badge, first word, once you gave one.
+            Text(app.badgeName.isEmpty ? "A little Go. A long way." : "\(greeting), \(app.badgeName.split(whereSeparator: \.isWhitespace).first.map(String.init) ?? app.badgeName).")
                 .font(.system(size: 28, weight: .semibold)).tracking(-0.9)
                 .accessibilityAddTraits(.isHeader)
             Text(progress.completedLessons == 0
@@ -63,7 +64,64 @@ struct DashboardView: View {
         .environment(\.colorScheme, .dark)
     }
 
-    private func heroContent(_ next: (ref: LessonRef, lesson: LessonSummary)?) -> some View {
+    private var greeting: String {
+        switch Calendar.current.component(.hour, from: Date()) {
+        case 5..<12: "Good morning"
+        case 12..<18: "Good afternoon"
+        default: "Good evening"
+        }
+    }
+
+    /// The briefing of the chapter `ref` is in, with where the chapter sits in its course.
+    private func briefing(for ref: LessonRef) -> (number: Int, count: Int, title: String, text: String)? {
+        guard let catalog = app.library(ref.library)?.catalog, let loc = catalog.location(of: ref.lesson) else { return nil }
+        let course = catalog.courses[loc.course], chapter = course.chapters[loc.chapter]
+        return app.chapterStory(chapter, in: ref.library).map { (loc.chapter + 1, course.chapters.count, chapter.title, $0.briefing) }
+    }
+
+    @ViewBuilder private func heroContent(_ next: (ref: LessonRef, lesson: LessonSummary)?) -> some View {
+        if case let (ref, lesson)? = next, let briefing = briefing(for: ref) {
+            storyHero(ref, lesson, briefing)
+        } else {
+            plainHero(next)
+        }
+    }
+
+    /// The story first: this week's briefing, then the assignment that comes next.
+    private func storyHero(_ ref: LessonRef, _ lesson: LessonSummary, _ briefing: (number: Int, count: Int, title: String, text: String)) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 7) {
+                Circle().fill(Theme.orbit).frame(width: 5, height: 5)
+                Text("CHAPTER \(briefing.number) OF \(briefing.count) · \(briefing.title.uppercased())")
+                    .font(.system(size: 9, weight: .semibold)).tracking(1.6).foregroundStyle(Theme.orbit)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            StoryText(text: briefing.text, size: 17, color: .white, spacing: 8)
+                .frame(maxWidth: 600, alignment: .leading)
+                .accessibilityLabel("This week: \(briefing.text)")
+            Rectangle().fill(Theme.orbit.opacity(0.18)).frame(height: 1).frame(maxWidth: 600)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(progress.completedLessons == 0 ? "YOUR FIRST ASSIGNMENT" : "NEXT ASSIGNMENT")
+                    .font(.system(size: 9, weight: .semibold)).tracking(1.6).foregroundStyle(Theme.onInk)
+                Text(lesson.title).font(.system(size: 24, weight: .semibold)).tracking(-0.5)
+                    .foregroundStyle(.white).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) {
+                    continueButton(ref)
+                    lessonFacts(lesson)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    lessonFacts(lesson)
+                    continueButton(ref)
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private func plainHero(_ next: (ref: LessonRef, lesson: LessonSummary)?) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 7) {
                 Circle().fill(Theme.orbit).frame(width: 5, height: 5)
@@ -113,7 +171,14 @@ struct DashboardView: View {
     }
 
     private func continueButton(_ ref: LessonRef) -> some View {
-        Button { app.open(ref) } label: {
+        Button {
+            // A course not begun yet begins with its opening, the first time.
+            if let course = app.library(ref.library)?.catalog.course(of: ref.lesson), app.progress(of: course, in: ref.library).done == 0 {
+                app.begin(course, in: ref.library)
+            } else {
+                app.open(ref)
+            }
+        } label: {
             HStack(spacing: 16) {
                 Text(progress.completedLessons == 0 ? "Start learning" : "Continue learning")
                 Image(systemName: "arrow.right")
@@ -225,6 +290,10 @@ struct DashboardView: View {
 
     private var supportingCards: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if let o = app.openingToReplay, let story = app.story(of: o.course, in: o.library), let badge = story.badge,
+               let course = app.library(o.library)?.catalog.courses.first(where: { $0.id == o.course }) {
+                BadgeCard(page: badge, course: course, library: o.library)
+            }
             HStack {
                 Text("Milestones").font(.system(size: 16, weight: .semibold)).accessibilityAddTraits(.isHeader)
                 Spacer()
@@ -239,13 +308,30 @@ struct DashboardView: View {
                 }
             }
             .padding(18).missionCard()
+            if app.hasFieldGuide {
+                Button { app.showFieldGuide() } label: {
+                    HStack(spacing: 12) {
+                        MissionIcon(symbol: "binoculars", color: Theme.violet, size: 34)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Field Guide").font(.system(size: 11, weight: .semibold))
+                            Text("The words of the job, in plain words").font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "arrow.right").font(.system(size: 10)).foregroundStyle(Theme.violet)
+                    }
+                    .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                    .missionCard().contentShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(MissionRowButtonStyle())
+                .help("Open the Field Guide (⌘2)")
+            }
             if app.docs != nil {
                 Button { app.openDocumentation() } label: {
                     HStack(spacing: 12) {
                         MissionIcon(symbol: "text.book.closed", color: Theme.violet, size: 34)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("A little help along the way").font(.system(size: 11, weight: .semibold))
-                            Text("Explore the Go field guide").font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
+                            Text("Go Documentation").font(.system(size: 11, weight: .semibold))
+                            Text("Every package and article, offline").font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "arrow.up.right").font(.system(size: 10)).foregroundStyle(Theme.violet)
@@ -290,6 +376,14 @@ private struct CourseMissionCard: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(course.title).font(.system(size: 18, weight: .semibold)).tracking(-0.4)
                             .fixedSize(horizontal: false, vertical: true)
+                        if featured && !course.shortDescription.isEmpty {
+                            // A modest ideal width, so a long sentence wraps rather than pushing the
+                            // column beside the path below it.
+                            Text(course.shortDescription)
+                                .font(.system(size: 12)).foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(idealWidth: 300, maxWidth: .infinity, alignment: .leading)
+                        }
                         Text("\(course.chapters.count) chapters  ·  \(course.lessons.count) lessons")
                             .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                     }
@@ -321,7 +415,11 @@ private struct CourseMissionCard: View {
                 .padding(.horizontal, 20).padding(.vertical, 4)
             }
             Button {
-                if let next { app.open(LessonRef(library: library, lesson: next.id)) }
+                if progress.done == 0 && upNext != nil {
+                    app.begin(course, in: library)
+                } else if let next {
+                    app.open(LessonRef(library: library, lesson: next.id))
+                }
             } label: {
                 HStack {
                     // "Revisit" only when nothing is left: with its required lessons done, a
@@ -447,5 +545,98 @@ struct SidebarProgress: View {
         }
         .buttonStyle(.plain).padding(12).background(Theme.sidebar)
         .accessibilityLabel("Level \(progress.level), \(progress.rank), \(progress.xp) XP. Open Mission Control.")
+    }
+}
+
+/// Your badge on Mission Control: the name the team calls you, your role and the badge's lines,
+/// and a patch for every chapter of the course, earned or still to come.
+private struct BadgeCard: View {
+    let page: CourseStory.Page
+    let course: Course
+    let library: String
+    @Environment(AppModel.self) private var app
+    @ViewState private var editing = false
+    @ViewState private var draft = ""
+
+    var body: some View {
+        let earned = course.chapters.filter { app.isComplete($0, in: library) }.count
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle().fill(Theme.accent.opacity(0.12))
+                    if app.badgeName.isEmpty {
+                        Image(systemName: "person.fill").font(.system(size: 16)).foregroundStyle(Theme.accent)
+                    } else {
+                        Text(initials(app.badgeName)).font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(Theme.accent)
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(app.badgeName.isEmpty ? "Add your name" : app.badgeName).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                    Text([page.eyebrow.map { $0.capitalized }, page.cards.first?.title].compactMap { $0 }.joined(separator: " · "))
+                        .font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Button {
+                    draft = app.badgeName
+                    editing = true
+                } label: { Image(systemName: "pencil").font(.system(size: 11)) }
+                    .buttonStyle(.plain).foregroundStyle(Theme.accent).frame(width: 24, height: 24)
+                    .help("Change the name on your badge")
+                    .accessibilityLabel("Change the name on your badge")
+                    .popover(isPresented: $editing, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("The name on your badge").font(.system(size: 12, weight: .semibold))
+                            TextField("Your name", text: $draft).textFieldStyle(.roundedBorder).frame(width: 220)
+                                .onSubmit { save() }
+                            HStack {
+                                Spacer()
+                                Button("Cancel") { editing = false }.keyboardShortcut(.cancelAction)
+                                Button("Save") { save() }.keyboardShortcut(.defaultAction)
+                            }
+                        }
+                        .padding(14)
+                    }
+            }
+            if page.cards.count > 1 {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(page.cards.dropFirst()) { card in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(card.label.uppercased()).font(.system(size: 8.5, weight: .semibold)).tracking(1)
+                                .foregroundStyle(Theme.secondaryText).frame(width: 62, alignment: .leading)
+                            Text(card.title).font(.system(size: 11)).lineLimit(1)
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Mission patches").font(.system(size: 11, weight: .semibold))
+                    Spacer()
+                    Text("\(earned) / \(course.chapters.count)").font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .foregroundStyle(Theme.secondaryText)
+                }
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 6), spacing: 8) {
+                    ForEach(Array(course.chapters.enumerated()), id: \.element.id) { i, chapter in
+                        PatchView(number: i + 1, earned: app.isComplete(chapter, in: library), size: 30)
+                            .help("Chapter \(i + 1): \(chapter.title)")
+                    }
+                }
+            }
+            Button { app.replayOpening() } label: {
+                Label("Replay the opening", systemImage: "play.circle")
+            }
+            .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.accent)
+        }
+        .padding(18).missionCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Your badge: \(app.badgeName.isEmpty ? "no name yet" : app.badgeName), \(earned) of \(course.chapters.count) mission patches")
+    }
+
+    private func save() {
+        app.setBadgeName(draft)
+        editing = false
     }
 }

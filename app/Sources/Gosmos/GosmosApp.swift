@@ -219,7 +219,12 @@ struct GosmosCommands: Commands {
         CommandGroup(after: .sidebar) {
             Button("Mission Control") { app.showDashboard() }
                 .keyboardShortcut("1", modifiers: .command)
-                .disabled(app.learner == nil)
+                .disabled(app.learner == nil || app.opening != nil)
+            Button("Field Guide") { app.showFieldGuide() }
+                .keyboardShortcut("2", modifiers: .command)
+                .disabled(app.learner == nil || app.opening != nil || !app.hasFieldGuide)
+            Button("Replay the Opening") { app.replayOpening() }
+                .disabled(app.learner == nil || app.opening != nil || app.openingToReplay == nil)
             Divider()
             Button("Show Inspector") { app.showInspector.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])

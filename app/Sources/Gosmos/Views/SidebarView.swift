@@ -27,6 +27,10 @@ struct SidebarView: View {
                                 .tag(SidebarItem.dashboard)
                             ReviewRow()
                                 .tag(SidebarItem.review)
+                            if app.hasFieldGuide {
+                                FieldGuideRow()
+                                    .tag(SidebarItem.fieldGuide)
+                            }
                             if app.docs != nil {
                                 DocumentationRow()
                                     .tag(SidebarItem.documentation)
@@ -71,6 +75,7 @@ extension AppModel {
                     switch item {
                     case .dashboard: self.showDashboard()
                     case .review: self.showReview()
+                    case .fieldGuide: self.showFieldGuide()
                     case .documentation: self.openDocumentation()
                     case .lesson(let ref): self.open(ref)
                     case .doc(let link): self.openDocumentation(link, selecting: item)
@@ -116,6 +121,22 @@ struct ReviewRow: View {
         .frame(minHeight: 24)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(app.dueCount == 0 ? "Review, nothing due" : "Review, \(app.dueCount) due")
+    }
+}
+
+/// The field guide: the words of the courses' worlds, in plain words.
+struct FieldGuideRow: View {
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "binoculars")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text("Field Guide")
+            Spacer(minLength: 4)
+        }
+        .frame(minHeight: 24)
+        .accessibilityElement(children: .combine)
     }
 }
 
