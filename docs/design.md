@@ -7,9 +7,11 @@ never uses the network: every lesson, code or quiz, is checked on the Mac.
 
 ## Mission Control and rewards
 
-- The app opens to Mission Control. Continue Learning resumes an unfinished lesson or picks
-  the first unfinished one. Course cards show required-lesson progress and open the next
-  unfinished lesson in that course. View › Mission Control (⌘1) returns here.
+- The app opens to Mission Control. Continue Learning resumes the lesson you opened last while
+  it is unfinished; once it is done, the next unfinished lesson after it in its course (one
+  skipped earlier when nothing after it is left), else the first unfinished one. Course cards
+  show required-lesson progress and open the next unfinished lesson in that course. View ›
+  Mission Control (⌘1) returns here.
 - The dashboard leads with the next lesson's title, course, chapter and type on an ink-colored
   panel. A single summary strip shows XP, completed lessons, rank and reviews; the review
   summary opens Review. Below, the learning path sits beside compact achievement badges and

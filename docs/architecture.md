@@ -168,7 +168,7 @@ covered by Swift Testing tests.
   - Database writes happen in transactions, and `PRAGMA quick_check` runs on open.
   - Every outside process can be cancelled and has a timeout.
   - The window is restored on relaunch, and it opens to Mission Control, which offers the
-    lesson you opened last while it is unfinished.
+    lesson you opened last while it is unfinished, then the next unfinished one in its course.
 
 ## The built-in Go
 
