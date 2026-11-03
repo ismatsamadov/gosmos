@@ -22,17 +22,28 @@ struct SidebarView: View {
             } else {
                 ScrollViewReader { proxy in
                     List(selection: app.sidebarSelection) {
-                        ReviewRow()
-                            .tag(SidebarItem.review)
-                        if app.docs != nil {
-                            DocumentationRow()
-                                .tag(SidebarItem.documentation)
+                        Section("Workspace") {
+                            HStack(spacing: 7) {
+                                Image(systemName: "square.grid.2x2.fill")
+                                    .foregroundStyle(Theme.accent).frame(width: 18)
+                                Text("Mission Control")
+                            }
+                                .frame(minHeight: 30)
+                                .tag(SidebarItem.dashboard)
+                            ReviewRow()
+                                .tag(SidebarItem.review)
+                            if app.docs != nil {
+                                DocumentationRow()
+                                    .tag(SidebarItem.documentation)
+                            }
                         }
                         ForEach(app.shelf) { library in
                             LibrarySection(library: library)
                         }
                     }
                     .listStyle(.sidebar)
+                    .scrollContentBackground(.hidden)
+                    .background(Theme.sidebar)
                     .task(id: app.lesson?.detail.ref) {
                         // Bring the lesson on screen into view once its chapter has opened.
                         guard let ref = app.lesson?.detail.ref else { return }
@@ -42,6 +53,9 @@ struct SidebarView: View {
                 }
             }
         }
+        .background(Theme.sidebar)
+        .safeAreaInset(edge: .top, spacing: 0) { SidebarBrand() }
+        .safeAreaInset(edge: .bottom, spacing: 0) { SidebarProgress() }
     }
 }
 
@@ -60,6 +74,7 @@ extension AppModel {
                 Task { @MainActor in
                     guard self.selection == item else { return }
                     switch item {
+                    case .dashboard: self.showDashboard()
                     case .review: self.showReview()
                     case .documentation: self.openDocumentation()
                     case .lesson(let ref): self.open(ref)
@@ -170,7 +185,7 @@ struct CourseGroup: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary)
                 }
-                Text(course.title).lineLimit(1).layoutPriority(1)
+                Text(course.title).fontWeight(.semibold).lineLimit(2).layoutPriority(1)
                 Spacer(minLength: 6)
                 ProgressRing(done: progress.done, total: progress.total)
             }
@@ -270,7 +285,7 @@ struct LessonRow: View {
                 .opacity(done ? 1 : 0)
                 .symbolEffect(.bounce, value: done)
         }
-        .frame(minHeight: 24)
+        .frame(minHeight: 30)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(lesson.title), \(lesson.type.label)\(done ? ", done" : "")\(lesson.required ? "" : ", optional")")
     }

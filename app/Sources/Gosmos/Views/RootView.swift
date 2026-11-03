@@ -31,9 +31,16 @@ struct RootView: View {
     @ViewBuilder private var content: some View {
         switch app.phase {
         case .starting:
-            ProgressView("Opening your lessons…")
-                .controlSize(.large)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 20) {
+                OrbitEmblem()
+                Text("A little Go. A long way.")
+                    .font(.system(size: 25, weight: .bold, design: .rounded))
+                ProgressView("Preparing your learning space…")
+                    .controlSize(.small)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.canvas)
         case .failed(let error):
             UnavailableView(error: error)
         case .ready:
@@ -155,7 +162,9 @@ struct DetailView: View {
     var body: some View {
         @Bindable var app = app
         Group {
-            if app.showsDocumentation, let docs = app.docs {
+            if app.showsDashboard {
+                DashboardView()
+            } else if app.showsDocumentation, let docs = app.docs {
                 DocsBrowser(docs: docs)
             } else if app.showsReview {
                 if let review = app.review {
@@ -169,17 +178,16 @@ struct DetailView: View {
             } else if app.isLoadingLesson {
                 ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ContentUnavailableView("No Lesson Selected", systemImage: "book.closed",
-                                       description: Text(app.shelf.isEmpty ? "Add a library with File › Open Library… to start."
-                                                                           : "Choose a lesson in the sidebar, or search for one.").foregroundStyle(Theme.secondaryText))
+                DashboardView()
             }
         }
         // Sidebar 260 + lesson 600 + inspector 240 fit the 1100 pt minimum window.
         .frame(minWidth: minWidth)
+        .background(Theme.canvas)
         .safeAreaInset(edge: .top, spacing: 0) { ErrorBanner() }
-        .navigationTitle(app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
+        .navigationTitle(app.showsDashboard ? "Mission Control" : app.showsDocumentation ? app.docs?.title ?? "Go Documentation" : app.showsReview ? "Review" : app.lesson?.detail.title ?? "Gosmos")
         // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
-        .navigationSubtitle(app.showsDocumentation ? (app.docs?.page == nil ? "" : "Go Documentation") : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
+        .navigationSubtitle(app.showsDashboard ? "Your Go learning journey" : app.showsDocumentation ? (app.docs?.page == nil ? "" : "Go Documentation") : app.showsReview ? "" : app.lesson.map { ($0.isReview ? "Redo for review · " : "") + "\($0.detail.courseTitle) › \($0.detail.chapterTitle)" } ?? "")
         .inspector(isPresented: $app.showInspector) {
             InspectorView()
                 .inspectorColumnWidth(min: 240, ideal: 240, max: 380)

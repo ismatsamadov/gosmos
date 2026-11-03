@@ -8,6 +8,22 @@ struct QuizLessonView: View {
     var body: some View {
         ReadmeColumn(lesson: lesson) {
             VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Check your understanding")
+                            .font(.system(size: 16, weight: .semibold))
+                            .accessibilityAddTraits(.isHeader)
+                        Spacer()
+                        Text("\(session.picks.count) of \(session.quiz.questions.count) answered")
+                            .font(.system(size: 11, weight: .medium).monospacedDigit())
+                            .foregroundStyle(Theme.accent)
+                    }
+                    MissionProgress(fraction: Double(session.picks.count) / Double(max(1, session.quiz.questions.count)))
+                        .accessibilityLabel("Questions answered")
+                    Text("Take your time. Use keys 1–5 to choose an answer, then ⌘↩ to submit.")
+                        .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
+                }
+                .padding(.bottom, 4)
                 ForEach(Array(session.quiz.questions.enumerated()), id: \.offset) { i, question in
                     QuestionCard(session: session, index: i, question: question,
                                  blocks: lesson.parsed.questions.indices.contains(i) ? lesson.parsed.questions[i] : [])
@@ -28,10 +44,11 @@ struct QuestionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if session.quiz.questions.count > 1 {
-                Text("Question \(index + 1) of \(session.quiz.questions.count)")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.secondaryText)
+            HStack {
+                Text("Question \(index + 1)").font(.system(size: 12, weight: .semibold))
+                Spacer()
+                Text("\(index + 1) / \(session.quiz.questions.count)")
+                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.secondaryText)
             }
             MarkdownBlocks(blocks: blocks)
             // Empty until the question is graded: the reasons would give the answer away.
@@ -56,8 +73,10 @@ struct QuestionCard: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(focused ? AnyShapeStyle(.tint.opacity(0.6)) : AnyShapeStyle(.separator.opacity(0.5)), lineWidth: focused ? 1.5 : 0.5))
+        .missionCard(radius: 14)
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(focused ? Theme.accent.opacity(0.7) : .clear, lineWidth: 1.5)
+            .allowsHitTesting(false))
         .focusable()
         .focusEffectDisabled()
         .focused($focused)

@@ -17,7 +17,11 @@ struct ReadmeColumn<Footer: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     LessonHeader(lesson: lesson)
-                        .padding(.bottom, 18)
+                        .padding(.bottom, 24)
+                    if lesson.justPassed {
+                        MissionCompletePanel(lesson: lesson)
+                            .padding(.bottom, 24)
+                    }
                     // A readme that is only its title shows no reading block. Its inline code that
                     // names the standard library links to the documentation.
                     if !lesson.parsed.readme.isEmpty {
@@ -49,6 +53,7 @@ struct ReadmeColumn<Footer: View>: View {
             }
         }
         .textSelection(.enabled)
+        .background(Theme.surface)
         // Links to lessons of this library act here too; the window follows them (AppModel.follow).
         .environment(\.linkPolicy, LinkPolicy(catalog: app.library(lesson.detail.library)?.catalog ?? .empty))
     }
@@ -83,7 +88,7 @@ struct SolutionRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .missionCard(radius: 14)
         .accessibilityElement(children: .contain)
     }
 
@@ -94,25 +99,32 @@ struct SolutionRow: View {
     }
 }
 
-/// Eyebrow, title and done mark.
+/// A compact, open heading keeps the lesson itself above the fold.
 struct LessonHeader: View {
     let lesson: LessonModel
     @Environment(AppModel.self) private var app
 
     var body: some View {
         let detail = lesson.detail
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: detail.type.symbol)
-                    .symbolRenderingMode(.hierarchical)
+        VStack(alignment: .leading, spacing: 15) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(eyebrow)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                if !lesson.isReview {
+                    Label("100 XP", systemImage: "bolt.fill")
+                        .font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.gold)
+                        .fixedSize()
+                }
             }
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(Theme.secondaryText)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(detail.title)
                     .font(.system(size: Theme.headingSize(1), weight: .semibold))
+                    .tracking(-0.7)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
                 let done = app.isDone(detail.ref)
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 20))
@@ -122,18 +134,72 @@ struct LessonHeader: View {
                     .accessibilityLabel("Done")
                     .accessibilityHidden(!done)
             }
+            HStack(spacing: 10) {
+                MissionPill(text: lesson.isReview ? "Practice" : lesson.isDone ? "Completed" : detail.type.label,
+                            symbol: lesson.isDone ? "checkmark" : detail.type.symbol,
+                            color: lesson.isDone ? Theme.success : Theme.accent)
+                if !detail.topics.isEmpty {
+                    Text(detail.topics.prefix(2).joined(separator: " · "))
+                        .font(.system(size: 11)).foregroundStyle(Theme.secondaryText).lineLimit(2)
+                }
+            }
+            if let chapter = app.library(detail.library)?.catalog.chapter(of: detail.id) {
+                let done = app.doneCount(chapter, in: detail.library)
+                VStack(alignment: .leading, spacing: 8) {
+                    MissionProgress(fraction: Double(done) / Double(max(1, chapter.lessons.count)), height: 3)
+                        .accessibilityLabel("Chapter progress")
+                    Text("\(done) of \(chapter.lessons.count) lessons complete in this chapter")
+                        .font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
+                }
+                .padding(.top, 3)
+            }
         }
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var eyebrow: String {
         let detail = lesson.detail
-        var parts = [lesson.isReview ? "Redo for review" : detail.type.label]
+        var parts = lesson.isReview ? ["Redo for review"] : [String]()
         if let catalog = app.library(detail.library)?.catalog, let loc = catalog.location(of: detail.id) {
             let chapter = catalog.courses[loc.course].chapters[loc.chapter]
             parts.append("Chapter \(loc.chapter + 1) · Lesson \(loc.lesson + 1) of \(chapter.lessons.count)")
         }
         if !detail.summary.required { parts.append("Optional") }
         return parts.joined(separator: "  ·  ")
+    }
+}
+
+struct MissionCompletePanel: View {
+    let lesson: LessonModel
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                MissionIcon(symbol: lesson.isReview ? "sparkles" : "checkmark.seal.fill", color: Theme.success)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(lesson.isReview ? "Skills refreshed." : "Mission accomplished!")
+                        .font(.system(size: 17, weight: .semibold))
+                    Text(lesson.isReview ? "That knowledge is getting stronger." : "100 XP in your journey. Keep exploring.")
+                        .font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
+                }
+            }
+            if lesson.isReview {
+                Button("Back to Review", systemImage: "arrow.right") { app.showReview() }
+                    .prominentGlassButton()
+            } else if app.nextLesson != nil {
+                Button("Next mission", systemImage: "arrow.right") { app.openNext() }
+                    .prominentGlassButton()
+            } else {
+                Button("Explore your progress", systemImage: "square.grid.2x2") { app.showDashboard() }
+                    .prominentGlassButton()
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .missionCard(tint: Theme.success)
+        .accessibilityElement(children: .contain)
     }
 }
 

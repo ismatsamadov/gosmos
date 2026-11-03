@@ -6,6 +6,7 @@ import SwiftUI
 /// scores, nothing about what you missed. Keys 1 to 5 pick an answer, Return checks it, and
 /// Return again moves on.
 struct ReviewView: View {
+    @Environment(AppModel.self) private var app
     /// A quiz question due for review.
     struct Question: Identifiable, Hashable, Sendable {
         let ref: LessonRef
@@ -108,16 +109,23 @@ struct ReviewView: View {
     var body: some View {
         Group {
             if shown == nil && lessons.isEmpty {
-                ContentUnavailableView {
-                    Label {
-                        Text("Nothing Due").foregroundStyle(.primary)
-                    } icon: {
-                        Image(systemName: "checkmark.circle").foregroundStyle(.secondary)
-                    }
-                } description: {
-                    Text("Come back tomorrow.")
-                        .foregroundStyle(Theme.secondaryText)
+                VStack(spacing: 20) {
+                    MissionIcon(symbol: "checkmark.seal.fill", color: Theme.success, size: 72)
+                    Text(answered.isEmpty ? "You’re in a good orbit." : "A little stronger than before.")
+                        .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
+                        .multilineTextAlignment(.center)
+                    Text(answered.isEmpty ? "No reviews due. Keep exploring, or take a well-earned break."
+                         : "You practiced \(answered.count) question\(answered.count == 1 ? "" : "s"). That’s how knowledge sticks.")
+                        .font(.system(size: 14)).foregroundStyle(Theme.secondaryText)
+                        .multilineTextAlignment(.center)
+                    Button("Back to Mission Control", systemImage: "arrow.right") { app.showDashboard() }
+                        .prominentGlassButton()
                 }
+                .padding(36)
+                .frame(maxWidth: 520)
+                .missionCard(tint: Theme.success, radius: 24)
+                .padding(32)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
@@ -143,19 +151,28 @@ struct ReviewView: View {
                 .scrollEdgeEffectStyle(.hard, for: .top)
             }
         }
+        .background(Theme.canvas)
     }
 
     // MARK: Heading
 
     private var heading: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Review")
-                .font(.system(size: Theme.headingSize(1), weight: .semibold))
-                .accessibilityAddTraits(.isHeader)
-            Text(summary)
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.secondaryText)
+        VStack(alignment: .leading, spacing: 20) {
+            MissionHeading(eyebrow: "KEEP IT IN ORBIT", title: "Make it stick.", subtitle: "A quick refresh today. More confidence tomorrow.", symbol: "arrow.trianglehead.2.clockwise.rotate.90", color: Theme.violet)
+            HStack {
+                Text(summary).font(.system(size: 13)).foregroundStyle(Theme.secondaryText)
+                Spacer()
+                if !questions.isEmpty {
+                    MissionPill(text: "\(answered.count) / \(questions.count) practiced", symbol: "checkmark", color: Theme.violet)
+                }
+            }
+            if !questions.isEmpty {
+                ProgressView(value: Double(answered.count), total: Double(questions.count)).tint(Theme.violet)
+                    .accessibilityLabel("Review session progress")
+            }
         }
+        .padding(22)
+        .missionCard(tint: Theme.violet)
     }
 
     private var summary: String {
@@ -196,9 +213,10 @@ struct ReviewView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(focused ? AnyShapeStyle(.tint.opacity(0.6)) : AnyShapeStyle(.separator.opacity(0.5)), lineWidth: focused ? 1.5 : 0.5))
+        .missionCard(radius: 14)
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(focused ? Theme.accent.opacity(0.7) : .clear, lineWidth: 1.5)
+            .allowsHitTesting(false))
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -279,7 +297,7 @@ struct ReviewView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .frame(minHeight: 44)
-                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .missionCard(radius: 14)
                 }
             }
         }

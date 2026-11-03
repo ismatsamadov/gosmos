@@ -49,7 +49,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
-        Task { await app.start() }
+        // Launch-only overrides for repeatable visual checks. They never change preferences.
+        if let appearance = UserDefaults.standard.string(forKey: "GosmosAppearance") {
+            switch appearance {
+            case "light": NSApp.appearance = NSAppearance(named: .aqua)
+            case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+            default: break
+            }
+        }
+        Task {
+            await app.start()
+            if let size = UserDefaults.standard.string(forKey: "GosmosWindowSize") {
+                let parts = size.split(separator: "x").compactMap { Double($0) }
+                if parts.count == 2, parts.allSatisfy(\.isFinite),
+                   let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+                    window.setContentSize(NSSize(width: max(1100, parts[0]), height: max(700, parts[1])))
+                }
+            }
+        }
     }
 
     /// The copy of this app, by bundle id, that this launch gives way to: one launched before it.
@@ -188,6 +205,10 @@ struct GosmosCommands: Commands {
                 .disabled(!app.canShowQuickHelp)
         }
         CommandGroup(after: .sidebar) {
+            Button("Mission Control") { app.showDashboard() }
+                .keyboardShortcut("1", modifiers: .command)
+                .disabled(app.learner == nil)
+            Divider()
             Button("Show Inspector") { app.showInspector.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])
             Divider()

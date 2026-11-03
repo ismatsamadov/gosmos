@@ -28,6 +28,12 @@ libraries you added with File > Open Library… (⌘O) or in Settings > General.
 shown, a library passes the format's checks, the same as `go run ./cmd/library check <file>`;
 a file that fails is refused with the problems the checks found.
 
+Mission Control is the starting screen: continue your next lesson, browse course progress,
+and see your explorer rank and achievement badges. Each completed lesson contributes 100 XP,
+with a new level every five lessons. Rewards come from the same saved progress as the
+sidebar, so earlier completions count and resubmitting never earns duplicate XP. ⌘1 returns
+to Mission Control from any lesson or documentation page.
+
 ## Test
 
 ```sh
@@ -72,6 +78,7 @@ opens and can be read and edited, but the console says Gosmos runs Go lessons.
 | ⌘↩ | Submit |
 | ⌘. | Stop |
 | ⌘O | Open a library |
+| ⌘1 | Mission Control |
 | ⌘] / ⌘[ | Next / previous lesson |
 | ⌥⌘← / ⌥⌘→ | Back / forward through the lessons and documentation pages you visited |
 | 1 to 5 | Pick a quiz answer |
@@ -108,7 +115,9 @@ open -n build/Gosmos.app --args -GosmosDataFolder /tmp/gosmos-shots -GosmosOpenL
 ```
 
 `-GosmosDataFolder <folder>` keeps the learner database, the lesson folders and Go's caches
-there instead of your own. `-GosmosOpenLesson` takes `<library uuid>/<lesson uuid>`, or a lesson uuid alone. The
+there instead of your own. `-GosmosAppearance light` or `dark` selects an appearance for that
+run, and `-GosmosWindowSize 1100x700` sizes the main window for a layout check. Neither is saved.
+`-GosmosOpenLesson` takes `<library uuid>/<lesson uuid>`, or a lesson uuid alone. The
 action is one of `run`, `submit`, `answer` (answers a quiz), `footer` (scrolls to the
 part below the readme), `hints` (shows every hint that may show), `solution` (shows the
 solution), `format` (formats the file in the editor with gofmt), `comment` (comments out the

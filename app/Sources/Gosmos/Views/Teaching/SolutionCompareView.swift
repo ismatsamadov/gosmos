@@ -56,14 +56,15 @@ struct SolutionCompareView: View {
             }
         }
         .frame(minWidth: 760, idealWidth: 1040, maxWidth: .infinity, minHeight: 480, idealHeight: 700, maxHeight: .infinity)
-        .background(.background)
+        .background(Theme.canvas)
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
+            MissionIcon(symbol: "doc.text.magnifyingglass", color: Theme.violet)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Solution")
-                    .font(.system(size: 17, weight: .semibold))
+                Text("A different way to get there.")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
                     .accessibilityAddTraits(.isHeader)
                 Text("Compare it with your code. Nothing here goes into the editor.")
                     .font(.system(size: 12))
@@ -111,7 +112,7 @@ private struct SolutionNote: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .missionCard(tint: Theme.violet, radius: 12)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Why the solution works: \(Readme.plainText(Readme.parseInline(text)))")
     }

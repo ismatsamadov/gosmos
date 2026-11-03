@@ -1,19 +1,50 @@
 # Design
 
-Gosmos should look and feel like an app Apple would ship: native controls, Liquid Glass,
-calm typography, and every action on the keyboard. Nothing in it looks like a web page, and
-it never uses the network: every lesson, code or quiz, is checked on the Mac.
+Gosmos is a native learning space with a quiet space-explorer identity: native controls,
+Liquid Glass actions, clear system typography, and every action on the keyboard. The rounded
+wordmark and a small native orbit illustration give it an identity without crowding the work. It
+never uses the network: every lesson, code or quiz, is checked on the Mac.
+
+## Mission Control and rewards
+
+- The app opens to Mission Control. Continue Learning resumes an unfinished lesson or picks
+  the first unfinished one. Course cards show required-lesson progress and open the next
+  unfinished lesson in that course. View › Mission Control (⌘1) returns here.
+- The dashboard leads with the next lesson's title, course, chapter and type on an ink-colored
+  panel. A single summary strip shows XP, completed lessons, rank and reviews; the review
+  summary opens Review. Below, the learning path sits beside compact achievement badges and
+  a documentation shortcut. Narrow panes stack the two columns.
+- With a single course, its card shows three chapters near the next unfinished lesson.
+  Each chapter opens its next unfinished lesson; completed chapters can be revisited. The
+  course action always opens the next lesson in that course. An Add Library action sits
+  beside the learning-path heading.
+- Each completed lesson contributes 100 XP; every 500 XP advances a level. Ranks begin at
+  Cadet, then Explorer, Navigator, Pilot, Commander, and Captain; levels keep advancing.
+- Six badges recognize a first lesson, coding, a quiz, five lessons, a chapter, and 25
+  lessons. A chapter badge requires all of its required lessons, with at least one required
+  lesson. Optional lessons earn XP too.
+- XP, rank and badges are computed from saved completions in the open libraries. Existing
+  progress counts immediately. Reopening or resubmitting a lesson never adds duplicate XP;
+  marking it not done removes its contribution. No new database or reward ledger is needed.
+- The sidebar keeps rank, XP and the next level visible. Lessons show chapter progress and
+  their XP value, and a pass shows a completion panel with a next-mission action. A review
+  shows session progress and encouragement, without awarding repeat completion XP.
+- Motivation comes from visible progress, achievable milestones, and encouragement. There
+  are no streak penalties, competitive leaderboards, or timers.
 
 ## Platform
 
 - macOS 27 or later, the current release, so the app is Liquid Glass throughout. The standard containers get it
   from the system: the split view's sidebar, the unified toolbar, sheets, menus and the
-  inspector. Custom surfaces use `glassEffect` inside a `GlassEffectContainer`: the run
-  status bar and quiz answers. There is no hand-made blur, gradient or shadow.
+  inspector. Glass belongs to actions and system chrome; reading, editor, console and quiz
+  content use quiet solid surfaces. There is no hand-made blur, gradient or shadow.
 - Light, dark, Increase Contrast and Reduce Motion all look right.
-- Colors are semantic: `.primary`, `.secondary`, `.tint` and system backgrounds. The one
-  accent is Go Blue, #00ADD8 in dark mode and Go Teal #00758D in light mode for contrast,
-  set as the asset's AccentColor.
+- Text uses semantic labels and contrast-aware colors. Go Blue, #00ADD8 in dark mode and
+  Go Teal #00758D in light mode, is the primary accent. Gold identifies XP and achievements;
+  violet identifies rank, review and the documentation field guide. A pale gray canvas in
+  light mode and charcoal canvas in dark mode, solid surfaces and fine borders define cards.
+  The dashboard's welcome panel stays dark teal in either appearance. Headings use semibold
+  system type with restrained spacing; rounded type is reserved for the wordmark.
 - Icons are SF Symbols with hierarchical rendering. State changes use symbol effects:
   `.bounce` on success, `.replace` between Run and Stop.
 
@@ -35,7 +66,9 @@ it never uses the network: every lesson, code or quiz, is checked on the Mac.
 
 ## Sidebar
 
-- Review, then Go Documentation (`text.book.closed`), then the libraries.
+- Gosmos branding, then Mission Control, Review and Go Documentation (`text.book.closed`),
+  then the libraries; a compact rank and progress card sits at the bottom. The sidebar's
+  background is consistent from the wordmark through its list and footer.
 - One section per course, with its title and a progress ring for finished lessons out of
   required ones. Guided projects sit under their own heading.
 - Chapters are disclosure groups; the current one is open.
@@ -71,6 +104,8 @@ it never uses the network: every lesson, code or quiz, is checked on the Mac.
 ## Lessons
 
 - **Code**:
+  - A compact, open lesson heading shows chapter position, title, type, XP and chapter
+    progress. It shares the reading surface instead of taking a separate card.
   - Readme on the left. On the right, the editor above the console.
   - The editor is SF Mono 13 pt (size in Settings), with a quiet line-number gutter, a
     current-line highlight, tabs four wide, highlighting and the find bar.
@@ -87,7 +122,7 @@ it never uses the network: every lesson, code or quiz, is checked on the Mac.
     renamed ones too. Editor › Show Documentation (⌃⌘?, Xcode's Quick Help keys) does the
     same for the name at the insertion point. A name outside the standard library gets the
     system beep.
-  - The console opens with a glass status bar: state symbol, duration, passed or failed.
+  - The console opens with a compact status bar: state symbol, duration, passed or failed.
     The output below it is monospaced, and the first failing test is expanded.
   - "Reset to Starter Code" asks first.
   - Under the readme, hints show one at a time and stay shown; the last opens after a Submit
@@ -97,7 +132,8 @@ it never uses the network: every lesson, code or quiz, is checked on the Mac.
     is compared in the background, with a small spinner meanwhile.
 - **Quiz**:
   - Each question is a card, and its answers are large selectable rows. Keys 1 to 5 pick an
-    answer.
+    answer. Number keys, radio marks, a tinted selection and a fine outline make each state
+    clear. The answered count and a slim progress track sit above the questions.
   - After Submit the right answer turns green with a checkmark. A wrong pick turns red, and
     the right one is shown. Under every answer, a line says why it is right or wrong.
   - Success gives a light trackpad haptic (NSHapticFeedbackManager) and the done mark
@@ -107,7 +143,8 @@ it never uses the network: every lesson, code or quiz, is checked on the Mac.
 - **Review**: the sidebar's Review entry has a badge with the number of items due. Due quiz
   questions come one at a time, lessons taking turns, then the lessons to redo, each with
   its reason. A redo starts from the starter code in a folder of its own and isn't kept.
-  Calm on purpose: no streaks, no counts of misses, no reminders.
+  The session shows how many questions were practiced and a progress bar, with a reassuring
+  completion state. No streaks, counts of misses, or reminders.
 
 ## Documentation
 

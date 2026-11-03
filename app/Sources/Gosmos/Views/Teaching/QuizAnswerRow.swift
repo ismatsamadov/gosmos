@@ -45,10 +45,10 @@ struct QuizAnswerRow: View {
         Button(action: action) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("\(number)")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(TeachingStyle.digitOnFill)
-                    .frame(width: 20, height: 20)
-                    .background(.quaternary, in: Circle())
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(mark == .idle ? TeachingStyle.digitOnFill : tint)
+                    .frame(width: 26, height: 26)
+                    .background(mark == .idle ? Theme.secondaryText.opacity(0.08) : tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
                 VStack(alignment: .leading, spacing: 7) {
                     Text(Inline.attributed(Readme.parseInline(text), size: 14))
                         .multilineTextAlignment(.leading)
@@ -61,8 +61,7 @@ struct QuizAnswerRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: symbol)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-                    .opacity(mark == .idle ? 0 : 1)
+                    .foregroundStyle(mark == .idle ? Theme.secondaryText.opacity(0.55) : tint)
                     .contentTransition(.symbolEffect(.replace))
             }
             .padding(.horizontal, 14)
@@ -70,8 +69,13 @@ struct QuizAnswerRow: View {
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .glassEffect(glass, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .buttonStyle(MissionRowButtonStyle())
+        .background(mark == .idle ? Theme.inset.opacity(0.65) : tint.opacity(0.07),
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10).strokeBorder(mark == .idle ? Theme.border : tint.opacity(0.6), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
         .accessibilityLabel("Answer \(number): \(Readme.plainText(Readme.parseInline(text)))")
         .accessibilityValue(accessibilityState)
         .accessibilityHint("Press \(number) to pick it")
@@ -79,7 +83,8 @@ struct QuizAnswerRow: View {
 
     private var symbol: String {
         switch mark {
-        case .idle, .picked: "circle.inset.filled"
+        case .idle: "circle"
+        case .picked: "circle.inset.filled"
         case .right: "checkmark.circle.fill"
         case .wrong: "xmark.circle.fill"
         }
@@ -90,15 +95,6 @@ struct QuizAnswerRow: View {
         case .idle, .picked: Theme.accent
         case .right: Theme.success
         case .wrong: Theme.failure
-        }
-    }
-
-    private var glass: Glass {
-        switch mark {
-        case .idle: .regular.interactive()
-        case .picked: .regular.tint(Theme.accent.opacity(0.25)).interactive()
-        case .right: .regular.tint(.green.opacity(0.3))
-        case .wrong: .regular.tint(.red.opacity(0.3))
         }
     }
 

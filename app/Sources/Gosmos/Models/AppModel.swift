@@ -85,6 +85,7 @@ struct LocalPreferences {
 
 /// A place Back and Forward return to: a lesson, or a place in the Go documentation.
 enum Place: Hashable {
+    case dashboard
     case lesson(LessonRef)
     case doc(DocLink)
 }
@@ -128,6 +129,7 @@ struct ShelfLibrary: Identifiable {
 /// What the sidebar can select: the review, the Go documentation, a lesson, or a place in the
 /// documentation that search found.
 enum SidebarItem: Hashable {
+    case dashboard
     case review
     case documentation
     case lesson(LessonRef)
@@ -154,6 +156,7 @@ final class AppModel {
     /// Finished lessons, by library.
     private(set) var done: [String: Set<String>] = [:]
     private(set) var lesson: LessonModel?
+    private(set) var resumeLesson: LessonRef?
     private(set) var isLoadingLesson = false
     var selection: SidebarItem?
     /// Open chapters and guided projects, as "<library>/<chapter or course>".
@@ -179,12 +182,29 @@ final class AppModel {
     private(set) var docSearchResults: [DocSearchHit] = []
     /// The documentation is the place on screen, or about to be, for the history.
     @ObservationIgnored private var docsActive = false
+    @ObservationIgnored private var dashboardActive = false
     /// The lesson that is the place on screen, or about to be while it loads, for the history;
     /// nil for the review and a redo.
     @ObservationIgnored private var lessonTarget: LessonRef?
 
     /// The review is on screen: selected, with no lesson still leaving.
     var showsReview: Bool { selection == .review && lesson == nil }
+    var showsDashboard: Bool { selection == .dashboard && lesson == nil }
+
+    var learningProgress: LearningProgress {
+        LearningProgress(libraries: shelf.map { .init(id: $0.id, catalog: $0.catalog) }, done: done)
+    }
+
+    /// Resume an unfinished lesson, or pick the first unfinished mission across libraries.
+    var recommendedLesson: LessonRef? {
+        if let resumeLesson, summary(resumeLesson) != nil, !isDone(resumeLesson) { return resumeLesson }
+        for library in shelf {
+            if let lesson = library.catalog.courses.flatMap(\.lessons).first(where: { !isDone(LessonRef(library: library.id, lesson: $0.id)) }) {
+                return LessonRef(library: library.id, lesson: lesson.id)
+            }
+        }
+        return nil
+    }
 
     /// The documentation is on screen: selected, with no lesson still leaving.
     var showsDocumentation: Bool {
@@ -292,6 +312,14 @@ final class AppModel {
             }
         }
         await refreshDueCount()
+        resumeLesson = try? await learner.lastOpened()
+        if preferences.defaults.string(forKey: LaunchArguments.openLesson) == nil,
+           preferences.defaults.string(forKey: LaunchArguments.action) == nil {
+            selection = .dashboard
+            dashboardActive = true
+            finishLaunch()
+            return
+        }
         if let ref = await launchLesson(learner) {
             // The "redo" launch actions open the lesson as its redo for review.
             if preferences.defaults.string(forKey: LaunchArguments.action)?.hasPrefix("redo") == true {
@@ -465,6 +493,8 @@ final class AppModel {
         // documentation is the place, even with a lesson still leaving for it.
         let current = docsActive ? nil : lessonTarget
         if remember && ref != current { history.visit(from: visited) }
+        resumeLesson = ref
+        dashboardActive = false
         docsActive = false
         lessonTarget = ref
         if selection != .lesson(ref) { selection = .lesson(ref) }
@@ -485,6 +515,7 @@ final class AppModel {
     func redo(_ ref: LessonRef) {
         guard let learner, let db = library(ref.library)?.database, summary(ref) != nil else { return }
         selection = nil
+        dashboardActive = false
         review = nil
         docsActive = false
         lessonTarget = nil
@@ -495,6 +526,7 @@ final class AppModel {
     /// or the lesson, also while it still loads, so Back or Forward meanwhile keeps it; a redo is
     /// not in it.
     private var visited: Place? {
+        if dashboardActive { return .dashboard }
         if docsActive { return docs?.location.map(Place.doc) }
         return lessonTarget.map(Place.lesson)
     }
@@ -639,6 +671,7 @@ final class AppModel {
 
     private func go(to place: Place) {
         switch place {
+        case .dashboard: showDashboard(remember: false)
         case .lesson(let ref): open(ref, remember: false)
         case .doc(let link): openDocumentation(link, remember: false)
         }
@@ -680,12 +713,31 @@ final class AppModel {
 
     // MARK: Review
 
+    func showDashboard(remember: Bool = true) {
+        guard !dashboardActive else { return }
+        if remember { history.visit(from: visited) }
+        dashboardActive = true
+        docsActive = false
+        lessonTarget = nil
+        selection = .dashboard
+        isLoadingLesson = false
+        loadTask?.cancel()
+        let previous = lesson
+        loadTask = Task { [weak self] in
+            await previous?.leave()
+            guard let self, !Task.isCancelled else { return }
+            self.lesson = nil
+            self.review = nil
+        }
+    }
+
     /// Shows the review: due quiz questions, interleaved across lessons, and lessons to redo.
     /// The lesson on screen stays until it is saved, as when another lesson opens, so a code
     /// conflict can still be asked about; Back returns to it.
     func showReview() {
         guard let learner else { return }
         if let ref = visited { history.visit(from: ref) }
+        dashboardActive = false
         docsActive = false
         lessonTarget = nil
         selection = .review
@@ -745,6 +797,7 @@ final class AppModel {
         guard let docs else { return }
         let target = link ?? docs.location
         if remember, let place = visited, place != target.map(Place.doc) { history.visit(from: place) }
+        dashboardActive = false
         docsActive = true
         lessonTarget = nil
         if selection != item { selection = item }

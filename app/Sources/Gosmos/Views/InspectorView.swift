@@ -9,7 +9,19 @@ struct InspectorView: View {
         if let lesson = app.lesson {
             InspectorContent(lesson: lesson)
         } else {
-            ContentUnavailableView("No Lesson", systemImage: "info.circle", description: Text("Open a lesson to see its note and facts."))
+            VStack(spacing: 16) {
+                MissionIcon(symbol: "sparkles", color: Theme.violet, size: 52)
+                Text("Your journey")
+                    .font(.system(size: 21, weight: .semibold))
+                Text("Level \(app.learningProgress.level) · \(app.learningProgress.rank)")
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.violet)
+                Text("Open a lesson to keep notes, explore its topics, and plan your next small win.")
+                    .font(.system(size: 13)).foregroundStyle(Theme.secondaryText)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.canvas)
         }
     }
 }
@@ -21,6 +33,18 @@ struct InspectorContent: View {
     var body: some View {
         let detail = lesson.detail
         Form {
+            Section {
+                HStack(spacing: 12) {
+                    MissionIcon(symbol: lesson.isDone ? "checkmark.seal.fill" : "bolt.fill", color: lesson.isDone ? Theme.success : Theme.gold, size: 34)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(lesson.isReview ? "Practice mission" : lesson.isDone ? "Mission complete" : "Your next small win")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(lesson.isReview ? "Strengthen what you know" : "100 XP · \(detail.type.label)")
+                            .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                .padding(.vertical, 6)
+            }
             Section("Note") {
                 if lesson.isReview {
                     // A redo is done without help, the note included; nothing typed here could be kept.
@@ -51,6 +75,8 @@ struct InspectorContent: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(Theme.canvas)
     }
 }
 

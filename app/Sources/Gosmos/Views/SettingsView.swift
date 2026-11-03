@@ -13,8 +13,9 @@ struct SettingsView: View {
             Tab("Editor", systemImage: "character.cursor.ibeam", value: "editor") { EditorSettings() }
             Tab("Go", systemImage: "chevron.left.forwardslash.chevron.right", value: "go") { GoSettings() }
         }
-        .frame(width: 560)
+        .frame(width: 610, height: 640)
         .scenePadding()
+        .background(Theme.canvas)
     }
 }
 
@@ -24,6 +25,16 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
+            Section {
+                MissionHeading(eyebrow: "MAKE YOURSELF AT HOME", title: "Your learning space.", subtitle: "Your courses, your progress, your pace.", symbol: "slider.horizontal.3")
+                    .padding(.vertical, 8)
+            }
+            Section("Your journey") {
+                LabeledContent("Explorer rank", value: "Level \(app.learningProgress.level) · \(app.learningProgress.rank)")
+                LabeledContent("Experience", value: "\(app.learningProgress.xp.formatted()) XP")
+                Text("Every completed lesson contributes 100 XP. Your saved progress powers your rank and badges, including lessons you already finished.")
+                    .font(.caption).foregroundStyle(Theme.secondaryText)
+            }
             Section {
                 LabeledContent("The language and the standard library") {
                     Button("Acknowledgements…") { showsAcknowledgements = true }
@@ -60,6 +71,7 @@ struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .sheet(isPresented: $showsAcknowledgements) { AcknowledgementsSheet(reference: app.docs?.reference) }
     }
 }
@@ -70,6 +82,10 @@ struct EditorSettings: View {
 
     var body: some View {
         Form {
+            Section {
+                MissionHeading(eyebrow: "BUILT FOR YOUR FLOW", title: "Room to create.", subtitle: "Make the editor feel like yours.", symbol: "character.cursor.ibeam", color: Theme.violet)
+                    .padding(.vertical, 8)
+            }
             Section("Editor") {
                 LabeledContent("Font size") {
                     Stepper(value: Binding(get: { app.editorFontSize }, set: { app.setEditorFontSize($0) }), in: 9...28, step: 1) {
@@ -90,6 +106,7 @@ struct EditorSettings: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 }
 
@@ -98,6 +115,10 @@ struct GoSettings: View {
 
     var body: some View {
         Form {
+            Section {
+                MissionHeading(eyebrow: "READY FOR LIFTOFF", title: "Your engine for Go.", subtitle: "Everything you need to build, run, and explore.", symbol: "terminal", color: Theme.accent)
+                    .padding(.vertical, 8)
+            }
             Section {
                 if let t = app.toolchain {
                     if let name = t.name {
@@ -141,5 +162,6 @@ struct GoSettings: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 }
