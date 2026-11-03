@@ -1,9 +1,12 @@
-// Package authoring reads and writes lesson packages, the folders writers author lessons in,
-// and maps them to and from a library's rows. Layout is the specification writers follow.
+// Package authoring reads and writes the folders writers author in, lesson packages and story
+// packages, and maps them to and from a library's rows. A lesson package holds one lesson
+// (Layout is its specification), and a story package the story a course is told in
+// (StoryLayout).
 //
-// A package has exactly one way to be written for a given lesson, so importing it and
-// exporting it again gives back the same bytes. Read refuses anything that is not written that
-// way, and its error shows the text it expects.
+// A package has exactly one way to be written for a given lesson or story, so importing it and
+// exporting it again gives back the same bytes. Read and ReadStory refuse anything that is not
+// written that way: Read's error shows the text it expects, and ReadStory's names the file and
+// the line.
 package authoring
 
 import (
@@ -625,10 +628,18 @@ func (p Package) checkMedia() error {
 		}
 	}
 	for _, where := range sortedKeys(texts) {
-		if _, st := media.Strip(texts[where]); st.Total() > 0 {
-			return fmt.Errorf("%s holds %d pictures, %d videos, %d links to videos and %d widgets; the app shows none of them, so leave them out",
-				where, st.Images, st.Videos, st.Links, st.Widgets)
+		if err := mediaError(where, texts[where]); err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+// mediaError refuses pictures, videos and widgets in a text the app shows, which where names.
+func mediaError(where, text string) error {
+	if _, st := media.Strip(text); st.Total() > 0 {
+		return fmt.Errorf("%s holds %d pictures, %d videos, %d links to videos and %d widgets; the app shows none of them, so leave them out",
+			where, st.Images, st.Videos, st.Links, st.Widgets)
 	}
 	return nil
 }

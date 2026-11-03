@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-// A lesson and its content, read from the per-type tables of format 8, in position order.
+// A lesson and its content, read from the per-type tables of format 9, in position order.
 // The app never writes a library.
 
 extension AppDatabase {

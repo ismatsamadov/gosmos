@@ -37,7 +37,8 @@ const usage = `usage:
       title (else its first course's, else the file's name), and the learner's data in it
       moves to the learner database, made from learner.sql if it does not exist; a library
       that holds such data needs --learner. Format 8 has code, tests and quiz lessons only: a
-      library with command-line, GitHub or interview lessons is refused
+      library with command-line, GitHub or interview lessons is refused. Format 9 adds the
+      tables of a course's story, empty
   library verify <file> [--course <slug>] [--teaching]
       run every code lesson with the Go toolchain: it must pass with its solution and fail
       with its starter. With --teaching, every code lesson must also have 2 or 3 hints and a

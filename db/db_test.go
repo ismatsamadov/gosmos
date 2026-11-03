@@ -51,10 +51,10 @@ func TestCreate(t *testing.T) {
 	}{
 		{`PRAGMA journal_mode`, "delete"},
 		{`PRAGMA foreign_keys`, "1"},
-		{`PRAGMA user_version`, "8"},
+		{`PRAGMA user_version`, "9"},
 		{`PRAGMA application_id`, "1196641619"},
 		{`SELECT group_concat(name, ' ') FROM (SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'lesson_search%' ORDER BY name)`,
-			"chapter code_lesson course lesson lesson_hint lesson_topic library_info quiz_answer quiz_lesson quiz_question solution_file starter_file"},
+			"chapter chapter_story code_lesson course lesson lesson_hint lesson_topic library_info quiz_answer quiz_lesson quiz_question solution_file starter_file story_card story_page story_term"},
 		{`SELECT count(*) FROM sqlite_schema WHERE type = 'trigger'`, "3"},
 		{`SELECT uuid || ' ' || title || ' ' || version FROM library_info`, testInfo.UUID + " Learn Passes 1"},
 	} {
@@ -66,7 +66,7 @@ func TestCreate(t *testing.T) {
 			t.Errorf("%s = %s, want %s", tc.query, got, tc.want)
 		}
 	}
-	if Version != 8 || ApplicationID != 1196641619 || LearnerVersion != 2 || LearnerApplicationID != 1196641612 {
+	if Version != 9 || ApplicationID != 1196641619 || LearnerVersion != 2 || LearnerApplicationID != 1196641612 {
 		t.Errorf("Version, ApplicationID, LearnerVersion, LearnerApplicationID = %d, %d, %d, %d; want what the schemas set",
 			Version, ApplicationID, LearnerVersion, LearnerApplicationID)
 	}
@@ -136,9 +136,10 @@ func TestOpen(t *testing.T) {
 	}{
 		{name: "a database it made", ok: true},
 		{name: "one left in WAL mode", setup: []string{`PRAGMA journal_mode = WAL`}, ok: true},
-		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 8; library migrate brings it up to date"},
-		{name: "a library of format 7", setup: []string{`PRAGMA user_version = 7`}, err: "the library is of format 7, older than 8; library migrate brings it up to date"},
-		{name: "a newer format", setup: []string{`PRAGMA user_version = 9`}, err: "newer than this program's 8"},
+		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 9; library migrate brings it up to date"},
+		{name: "a library of format 7", setup: []string{`PRAGMA user_version = 7`}, err: "the library is of format 7, older than 9; library migrate brings it up to date"},
+		{name: "a library of format 8", setup: []string{`PRAGMA user_version = 8`}, err: "the library is of format 8, older than 9; library migrate brings it up to date"},
+		{name: "a newer format", setup: []string{`PRAGMA user_version = 10`}, err: "newer than this program's 9"},
 		{name: "not a Gosmos file", setup: []string{`PRAGMA application_id = 42`}, err: "not a Gosmos library (application_id 42)"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -269,17 +270,17 @@ func TestValidate(t *testing.T) {
 		{
 			name:  "a library of format 6",
 			stmts: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`},
-			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 8; library migrate brings it up to date"},
+			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; library migrate brings it up to date"},
 		},
 		{
 			name:  "an older format",
-			stmts: []string{`PRAGMA user_version = 7`},
-			want:  []string{"user_version is 7, not 8: the library is of an older format; library migrate brings it up to date"},
+			stmts: []string{`PRAGMA user_version = 8`},
+			want:  []string{"user_version is 8, not 9: the library is of an older format; library migrate brings it up to date"},
 		},
 		{
 			name:  "a newer format",
-			stmts: []string{`PRAGMA user_version = 9`},
-			want:  []string{"user_version is 9, not 8: the library is of a newer format than this program knows"},
+			stmts: []string{`PRAGMA user_version = 10`},
+			want:  []string{"user_version is 10, not 9: the library is of a newer format than this program knows"},
 		},
 		{
 			name:  "no library_info row",
@@ -318,7 +319,7 @@ func TestValidate(t *testing.T) {
 			// it pass.
 			name:  "a lesson of a type format 8 removed",
 			stmts: []string{`PRAGMA ignore_check_constraints = ON`, lesson("l1", "type_cli", 0)},
-			want:  []string{"lesson l1 (type_cli) is of a type format 8 does not have"},
+			want:  []string{"lesson l1 (type_cli) is of a type format 9 does not have"},
 		},
 		{
 			name:  "a quiz question without a right answer",
@@ -337,6 +338,26 @@ func TestValidate(t *testing.T) {
 				`INSERT INTO solution_file VALUES ('l1', 'sum.go', 'package main // solved'), ('l1', 'sum_test.go', 'package main'), ('l1', 'extra.go', 'package main')`},
 			want: []string{"solution_file extra.go of lesson l1 solves no editable starter file",
 				"solution_file sum_test.go of lesson l1 solves no editable starter file"},
+		},
+		{
+			name: "a whole story",
+			stmts: []string{
+				`INSERT INTO story_page VALUES ('c1', 0, 'badge', 'APOGEE', 'Your Badge', 'Everyone on the team wears one.', 'Print my badge')`,
+				`INSERT INTO story_card VALUES ('c1', 0, 0, 'Role', 'Ground Software Engineer', NULL, NULL)`,
+				`INSERT INTO chapter_story VALUES ('ch1', 'Day one: the first pass.', 'The pass came and went.')`,
+				`INSERT INTO story_term VALUES ('c1', 'pass', 'One flyover of one satellite above one dish.', 0)`,
+			},
+		},
+		{
+			// The story's keys are the schema's: Validate needs no checks of its own for them.
+			name:  "a card of a page that is not there",
+			stmts: []string{`PRAGMA foreign_keys = OFF`, `INSERT INTO story_card VALUES ('c1', 3, 0, 'Role', 'Ground Software Engineer', NULL, NULL)`},
+			want:  []string{"foreign key: story_card row 1 points at a missing story_page row"},
+		},
+		{
+			name:  "the story of a chapter that is not there",
+			stmts: []string{`PRAGMA foreign_keys = OFF`, `INSERT INTO chapter_story VALUES ('ch9', 'Day nine.', 'Done.')`},
+			want:  []string{"foreign key: chapter_story row 1 points at a missing chapter row"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

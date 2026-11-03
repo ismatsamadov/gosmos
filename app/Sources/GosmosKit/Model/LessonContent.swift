@@ -1,7 +1,7 @@
 import Foundation
 
 // What each kind of lesson holds besides its readme, as read from the per-type tables of
-// db/schema.sql (format 8). Lists keep the tables' position order. Every kind is checked on
+// db/schema.sql (format 9). Lists keep the tables' position order. Every kind is checked on
 // this Mac alone: code by running it with your Go, a quiz by its answers.
 
 /// A lesson's content: one case per lesson type, built from that type's tables.

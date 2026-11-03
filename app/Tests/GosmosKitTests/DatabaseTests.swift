@@ -3,7 +3,7 @@ import GRDB
 import Testing
 @testable import GosmosKit
 
-/// A course library, as the app reads it: read-only, from the tables of format 8.
+/// A course library, as the app reads it: read-only, from the tables of format 9.
 @Suite struct DatabaseTests {
     @Test func opensAnyFileNameAndKnowsItsLibrary() async throws {
         let (db, dir) = try Fixtures.database()

@@ -309,6 +309,149 @@ func TestAuthorRefuses(t *testing.T) {
 	}
 }
 
+func storyExample() string {
+	return filepath.Join("..", "..", "internal", "authoring", "testdata", "story")
+}
+
+// storyWith copies the example story package and sets a file of it: to content, or, for "",
+// leaves it out.
+func storyWith(t *testing.T, name, content string) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "story")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(storyExample())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		b, err := os.ReadFile(filepath.Join(storyExample(), e.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, e.Name()), b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	target := filepath.Join(dir, name)
+	if content == "" {
+		os.Remove(target)
+	} else if err := os.WriteFile(target, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+// A course's story goes into the library whole and comes back out byte for byte. Importing it
+// again, or its export, writes nothing; a changed file updates the story, and a folder with none
+// of the files clears it.
+func TestStory(t *testing.T) {
+	path := library(t)
+	if out := mustAuthor(t, "story", path, "--course", "learn-launches", storyExample()); out != "story learn-launches: added (2 pages, 4 cards, 1 chapter and 4 terms)\n" {
+		t.Errorf("story: %q", out)
+	}
+	for query, want := range map[string]int{
+		`SELECT count(*) FROM story_page`: 2,
+		`SELECT count(*) FROM story_page WHERE position = 1 AND kind = 'badge' AND eyebrow = 'APOGEE'`: 1,
+		`SELECT count(*) FROM story_card`:                                                                                          4,
+		`SELECT count(*) FROM story_card WHERE subtitle IS NULL AND body IS NULL`:                                                  2,
+		`SELECT count(*) FROM chapter_story WHERE chapter_uuid = '` + authoring.ChapterUUID("learn-launches", "1-countdown") + `'`: 1,
+		`SELECT count(*) FROM story_term`:                                                                                          4,
+		`SELECT count(*) FROM story_term WHERE linked = 0 AND term = 'pad'`:                                                        1,
+	} {
+		if n := count(t, path, query); n != want {
+			t.Errorf("%s = %d, want %d", query, n, want)
+		}
+	}
+
+	before, _ := os.ReadFile(path)
+	if out := mustAuthor(t, "story", path, "--course", "learn-launches", storyExample()); out != "story learn-launches: unchanged (2 pages, 4 cards, 1 chapter and 4 terms)\n" {
+		t.Errorf("a second import: %q", out)
+	}
+	out := filepath.Join(t.TempDir(), "story")
+	if msg := mustAuthor(t, "export", path, "--course", "learn-launches", "--story", out); msg != "exported the story of learn-launches to "+out+" (2 pages, 4 cards, 1 chapter and 4 terms)\n" {
+		t.Errorf("export --story: %q", msg)
+	}
+	sameTree(t, out, storyExample())
+	if msg := mustAuthor(t, "story", path, out, "--course", "learn-launches"); !strings.Contains(msg, "unchanged") {
+		t.Errorf("re-import of the export: %q", msg)
+	}
+	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
+		t.Error("importing the same story again changed the library")
+	}
+	if code, _, errOut := author(t, "export", path, "--course", "learn-launches", "--story", out); code != 1 || !strings.Contains(errOut, "is not empty") {
+		t.Errorf("export --story into a folder with files: %d %q", code, errOut)
+	}
+
+	terms := "# go/no-go\n\nThe poll before a launch: each console says go, or calls a hold.\n\n# T-minus\n\nThe time left before liftoff.\n"
+	if out := mustAuthor(t, "story", path, "--course", "learn-launches", storyWith(t, "terms.md", terms)); out != "story learn-launches: updated terms.md (2 pages, 4 cards, 1 chapter and 2 terms)\n" {
+		t.Errorf("a story with other terms: %q", out)
+	}
+	if out := mustAuthor(t, "story", path, "--course", "learn-launches", storyWith(t, "opening.md", "")); out != "story learn-launches: updated opening.md, terms.md (1 chapter and 4 terms)\n" {
+		t.Errorf("a story without its opening: %q", out)
+	}
+	if out := mustAuthor(t, "story", path, "--course", "learn-launches", t.TempDir()); out != "story learn-launches: cleared (it had 1 chapter and 4 terms)\n" {
+		t.Errorf("an empty story folder: %q", out)
+	}
+	if n := count(t, path, `SELECT (SELECT count(*) FROM story_page) + (SELECT count(*) FROM story_card) + (SELECT count(*) FROM chapter_story) + (SELECT count(*) FROM story_term)`); n != 0 {
+		t.Errorf("%d story rows are left after clearing the story", n)
+	}
+	none := filepath.Join(t.TempDir(), "none")
+	if msg := mustAuthor(t, "export", path, "--course", "learn-launches", "--story", none); msg != "exported the story of learn-launches to "+none+" (no story)\n" {
+		t.Errorf("export --story of no story: %q", msg)
+	}
+	if entries, err := os.ReadDir(none); err != nil || len(entries) != 0 {
+		t.Errorf("the export of no story holds %v, %v; want an empty folder", entries, err)
+	}
+	if out := mustAuthor(t, "story", path, "--course", "learn-launches", none); out != "story learn-launches: unchanged (no story)\n" {
+		t.Errorf("re-import of no story: %q", out)
+	}
+	if problems, err := db.Validate(context.Background(), open(t, path)); err != nil || len(problems) > 0 {
+		t.Error(problems, err)
+	}
+}
+
+func TestStoryRefuses(t *testing.T) {
+	path := library(t)
+	mustAuthor(t, "chapter", path, "--course", "learn-launches", "--slug", "2-orbit", "--title", "Orbit", "--description", "Around and around.")
+	mustAuthor(t, "story", path, "--course", "learn-launches", storyExample())
+	story := "\n\n## Briefing\n\nThe countdown starts.\n\n## Debrief\n\nIt ended well.\n"
+	unknown := storyWith(t, "chapters.md", "# 9-landing"+story)
+	disordered := storyWith(t, "chapters.md", "# 2-orbit"+story+"\n# 1-countdown"+story)
+	broken := storyWith(t, "terms.md", "# pad\n\nlinked: yes\n\nThe concrete a rocket stands on.\n")
+	stray := storyWith(t, "notes.md", "to do\n")
+	before, _ := os.ReadFile(path)
+
+	for _, tc := range []struct {
+		name string
+		args []string
+		code int
+		want string
+	}{
+		{"a chapter the course does not have", []string{"story", path, "--course", "learn-launches", unknown}, 1, "chapters.md line 1: course learn-launches has no chapter 9-landing; add it with author chapter, or leave its story out"},
+		{"chapters out of the course's order", []string{"story", path, "--course", "learn-launches", disordered}, 1, "chapters.md line 11: chapter 1-countdown comes after 2-orbit, but the course has it before"},
+		{"a broken package", []string{"story", path, "--course", "learn-launches", broken}, 1, `package ` + broken + `: terms.md line 3: "linked: yes" is not "linked: no"`},
+		{"a stray file", []string{"story", path, "--course", "learn-launches", stray}, 1, "notes.md does not belong in a story package"},
+		{"a missing folder", []string{"story", path, "--course", "learn-launches", filepath.Join(t.TempDir(), "nowhere")}, 1, "no such file or directory"},
+		{"an unknown course", []string{"story", path, "--course", "learn-landings", storyExample()}, 1, "the library has no course learn-landings"},
+		{"no course flag", []string{"story", path, storyExample()}, 2, "--course is required"},
+		{"too many arguments", []string{"story", path, "--course", "learn-launches", storyExample(), "extra"}, 2, "want 2 arguments"},
+		{"the story of one chapter", []string{"export", path, "--course", "learn-launches", "--chapter", "1-countdown", "--story", filepath.Join(t.TempDir(), "out")}, 2, "--chapter and --story do not go together"},
+		{"the story of an unknown course", []string{"export", path, "--course", "learn-landings", "--story", filepath.Join(t.TempDir(), "out")}, 1, "the library has no course learn-landings"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			code, _, errOut := author(t, tc.args...)
+			if code != tc.code || !strings.Contains(errOut, tc.want) {
+				t.Errorf("exit %d, stderr %q; want %d and %q", code, errOut, tc.code, tc.want)
+			}
+		})
+	}
+	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
+		t.Error("a refused command changed the library")
+	}
+}
+
 // A write that would leave the library failing its checks is not made.
 func TestAuthorChecksTheLibrary(t *testing.T) {
 	path := library(t)
@@ -330,6 +473,13 @@ func TestAuthorChecksTheLibrary(t *testing.T) {
 	if n := count(t, path, `SELECT count(*) FROM lesson`); n != 0 {
 		t.Error("the refused import left a lesson behind")
 	}
+	code, _, errOut = author(t, "story", path, "--course", "learn-launches", storyExample())
+	if code != 1 || !strings.Contains(errOut, "nothing was written") || !strings.Contains(errOut, "foreign key: lesson_hint") {
+		t.Errorf("a story imported into a library that fails its checks: %d %q", code, errOut)
+	}
+	if n := count(t, path, `SELECT (SELECT count(*) FROM story_page) + (SELECT count(*) FROM story_term)`); n != 0 {
+		t.Error("the refused import left a story behind")
+	}
 }
 
 func TestHelp(t *testing.T) {
@@ -337,5 +487,10 @@ func TestHelp(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "A lesson package is a folder:") || !strings.Contains(out, "author lesson <file>") ||
 		!strings.Contains(out, "hints.md holds 2 or 3 hints") || !strings.Contains(out, "solution_note.md says why") || !strings.Contains(out, `two spaces, "> ", then the`) {
 		t.Errorf("help: %d %q", code, out[:min(len(out), 200)])
+	}
+	if !strings.Contains(out, "author story <file> --course S <story folder>") || !strings.Contains(out, "[--chapter S | --story]") ||
+		!strings.Contains(out, "A story package is a folder") || !strings.Contains(out, "opening.md holds one or more pages") ||
+		!strings.Contains(out, "chapters.md holds the briefing") || !strings.Contains(out, "terms.md holds the field guide's terms") {
+		t.Errorf("help does not describe the story package: %q", out[max(0, len(out)-300):])
 	}
 }

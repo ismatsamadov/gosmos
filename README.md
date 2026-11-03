@@ -39,11 +39,11 @@ never runs git and syncs nothing.
 |---|---|
 | `courses/` | The course libraries built into the app |
 | `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, read offline: the standard library's docs and examples, the spec, the memory model, Effective Go, the FAQ and How to Write Go Code; `make reference` remakes it, `docs/reference-format.md` says how |
-| `db/schema.sql` | A library's tables, constraints and conventions (format 8) |
+| `db/schema.sql` | A library's tables, constraints and conventions (format 9) |
 | `db/learner.sql` | The learner database's tables |
 | `db/` | The Go package that creates, opens, checks and migrates libraries; `db/history/` keeps the schema of every older format |
 | `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify` |
-| `cmd/author/`, `internal/` | Go tool: writes lessons into a library from lesson packages, and exports them back |
+| `cmd/author/`, `internal/` | Go tool: writes lessons, and a course's story, into a library from packages, and exports them back |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |
 | `docs/library-format.md` | The library format: what any library must hold, and what the app checks |
 | `docs/architecture.md` | How the pieces fit together, and why |

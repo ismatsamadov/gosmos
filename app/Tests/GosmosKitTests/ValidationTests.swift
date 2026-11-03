@@ -34,12 +34,12 @@ import Testing
     @Test func header() throws {
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 7") }
             == ["application_id is 7, not 1196641619: the file is not a Gosmos library"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 7") }
-            == ["user_version is 7, not 8: the library is of an older format; migrating brings it up to date"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 9") }
-            == ["user_version is 9, not 8: the library is of a newer format than this program knows"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 8") }
+            == ["user_version is 8, not 9: the library is of an older format; migrating brings it up to date"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 10") }
+            == ["user_version is 10, not 9: the library is of a newer format than this program knows"])
         // An older file is to be migrated with the tool; the app never migrates.
-        let older = try open { try $0.execute(sql: "PRAGMA user_version = 7") }.error
+        let older = try open { try $0.execute(sql: "PRAGMA user_version = 8") }.error
         #expect(older?.recoverySuggestion?.contains("go run ./cmd/library migrate") == true)
     }
 
@@ -107,7 +107,7 @@ import Testing
         } == [
             "foreign key: quiz_lesson row 3 points at a missing lesson row",
             "lesson \(Fixtures.optionalLesson) (type_cli) has 1 quiz_lesson rows, want 0",
-            "lesson \(Fixtures.optionalLesson) (type_cli) is of a type format 8 does not have",
+            "lesson \(Fixtures.optionalLesson) (type_cli) is of a type format 9 does not have",
         ])
     }
 

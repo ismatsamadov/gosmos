@@ -10,7 +10,7 @@ and the library format (`docs/library-format.md`); where they say more, they win
   mirror another course's lessons.
 - **Hands-on.** About five lessons in six are code: `code`, graded by what the program
   prints, or `code_tests`, graded by `go test`. The rest are short quizzes. There is nothing
-  else: library format 8 has only these three lesson types.
+  else: library format 9 has only these three lesson types.
 - **Offline.** Standard library only, for the built-in Go (1.27.3). No lesson needs the
   network, a server, GitHub or anything outside the app. No pictures, videos, embeds or links
   that leave the app.
@@ -26,9 +26,11 @@ and the library format (`docs/library-format.md`); where they say more, they win
 | The first chapter written out in full | `docs/<series>/sample-chapter-1.md`, for a new series; a new Apogee course adds its own calibration chapter beside it |
 | The lessons themselves | the series' library: a new Apogee course goes into `courses/apogee.sqlite` beside Go Foundations; a new series gets `courses/<series>.sqlite` |
 | Lesson packages while writing | `$TMPDIR/<course slug>/packages/<chapter slug>/<lesson slug>/`, never committed |
+| The story package while writing | `$TMPDIR/<course slug>/story/`, holding `opening.md`, `chapters.md` and `terms.md`, never committed |
 
-The library is the only stored copy of a lesson. Once a package is imported it is deleted;
-`go run ./cmd/author export` writes lessons out again when one needs work.
+The library is the only stored copy of a lesson and of a course's story. Once a package is
+imported it is deleted; `go run ./cmd/author export` writes lessons out again when one needs
+work, and `export --story` the story.
 
 ## Steps
 
@@ -55,21 +57,29 @@ The library is the only stored copy of a lesson. Once a package is imported it i
    - each solution passes 30 runs in a row and under `-race`;
    - each starter fails, for the lesson's reason, within a second or two;
    - hints and quiz explanations hold up, and the style guide is kept.
-5. **Import.** Into a copy of the library: `author course`, then `author chapter` for each
+5. **Tell the story.** Write the course's story as `docs/storytelling.md` says, in a story
+   package in the format `go run ./cmd/author help` prints: `opening.md`, the pages the app
+   shows before the first lesson; `chapters.md`, a briefing and a debrief for each chapter;
+   and `terms.md`, the field guide, the world's words in plain language. It is imported with
+   the lessons, by `author story`.
+6. **Import.** Into a copy of the library: `author course`, then `author chapter` for each
    chapter (title, description and position from the syllabus), then `author lesson` for
-   every package. Run `go run ./cmd/library check` and
-   `go run ./cmd/library verify --teaching` on the copy, and copy it over the real file only
-   when both pass. Importing a lesson again replaces it in place and keeps its uuid, so
-   learners keep their progress.
-6. **See it.** Build the app (`make app`) and open representative lessons in a copy of it, in
+   every package, then `author story` for the story package. Run
+   `go run ./cmd/library check` and `go run ./cmd/library verify --teaching` on the copy,
+   and copy it over the real file only when both pass. Importing a lesson again replaces it
+   in place and keeps its uuid, so learners keep their progress; importing the story again
+   replaces the course's whole story.
+7. **See it.** Build the app (`make app`) and open representative lessons in a copy of it, in
    light and dark: a code lesson, a tests lesson with several files, a quiz after Submit,
-   hints, the solution sheet, a failed Submit, and each callout kind. Check every readme for
-   Markdown the app doesn't draw.
-7. **Ship.** `make test`, `make check` and `make verify` pass. The story bible, the syllabus
+   hints, the solution sheet, a failed Submit, and each callout kind; then the opening, a
+   chapter's briefing and debrief, and a readme's links into the field guide. Check every
+   readme for Markdown the app doesn't draw.
+8. **Ship.** `make test`, `make check` and `make verify` pass. The story bible, the syllabus
    and the library go into one branch and one pull request; merge it, then `make install`.
 
 ## Changing a lesson later
 
 Export its chapter with `author export`, edit the package, import it with `author lesson`,
-then run `check` and `verify --teaching` again. Never edit the database by hand: the tools
-keep its tables, keys and search index consistent.
+then run `check` and `verify --teaching` again. The story changes the same way:
+`author export --story` writes it out, and `author story` imports it again. Never edit the
+database by hand: the tools keep its tables, keys and search index consistent.

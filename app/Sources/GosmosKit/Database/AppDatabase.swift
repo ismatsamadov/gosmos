@@ -88,7 +88,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
 /// immutable, so SQLite does not even lock it. Everything of yours lives in the learner
 /// database instead.
 public final class AppDatabase: Sendable {
-    public static let schemaVersion = 8
+    public static let schemaVersion = 9
     /// 'GSMS'.
     public static let applicationID = 1_196_641_619
 

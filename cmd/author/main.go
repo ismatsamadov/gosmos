@@ -1,9 +1,10 @@
-// Command author writes original content into a Gosmos library: courses, chapters, and
-// lessons from lesson packages, the folders writers author in. It knows no content source; any
-// library in the format docs/library-format.md describes works.
+// Command author writes original content into a Gosmos library: courses, chapters, lessons
+// from lesson packages, and a course's story from its story package, the folders writers author
+// in. It knows no content source; any library in the format docs/library-format.md describes
+// works.
 //
 // Every write is checked before it is made and runs in one transaction, which commits only if
-// the library still passes its checks. Run "author help" for the package layout.
+// the library still passes its checks. Run "author help" for the packages' layouts.
 package main
 
 import (
@@ -32,13 +33,17 @@ const usage = `usage:
   author course <file> --slug S --title T --kind 'Course'|'Guided Project' --short S --description D [--position N]
   author chapter <file> --course S --slug S --title T --description D [--position N]
   author lesson <file> --course S --chapter S <package folder>
-  author export <file> --course S [--chapter S] <out folder>
+  author story <file> --course S <story folder>
+  author export <file> --course S [--chapter S | --story] <out folder>
   author help
 
 course and chapter add or update one by its slug; a position left out keeps the one it has,
 or puts a new one last. lesson imports one lesson package, replacing the lesson of the same
-course, chapter and slug in place, with its uuid. export writes a course's lessons, or one
-chapter's, as packages: <out>/<chapter>/<lesson>/, or <out>/<lesson>/ for one chapter.`
+course, chapter and slug in place, with its uuid. story imports a course's story package in
+place of the whole story the course had; a folder with none of its files clears it. export
+writes a course's lessons, or one chapter's, as packages: <out>/<chapter>/<lesson>/, or
+<out>/<lesson>/ for one chapter; with --story, it writes the course's story package into
+<out> instead.`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -55,10 +60,10 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 		return 2
 	}
 	commands := map[string]func(context.Context, []string, io.Writer) error{
-		"course": course, "chapter": chapter, "lesson": lesson, "export": export,
+		"course": course, "chapter": chapter, "lesson": lesson, "story": story, "export": export,
 	}
 	if args[0] == "help" {
-		fmt.Fprintf(out, "%s\n\n%s\n", usage, authoring.Layout)
+		fmt.Fprintf(out, "%s\n\n%s\n\n%s\n", usage, authoring.Layout, authoring.StoryLayout)
 		return 0
 	}
 	cmd, ok := commands[args[0]]
@@ -284,6 +289,24 @@ func chapterBySlug(q store.Querier, courseUUID, course, slug string) (string, er
 	return uuid, nil
 }
 
+// chapterSlugs returns the slugs of a course's chapters, in the course's order.
+func chapterSlugs(q store.Querier, courseUUID string) ([]string, error) {
+	rows, err := q.Query(`SELECT slug FROM chapter WHERE course_uuid = ? ORDER BY position`, courseUUID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var slugs []string
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			return nil, err
+		}
+		slugs = append(slugs, slug)
+	}
+	return slugs, rows.Err()
+}
+
 // ---- lesson ----
 
 func lesson(ctx context.Context, args []string, out io.Writer) error {
@@ -356,18 +379,74 @@ func lesson(ctx context.Context, args []string, out io.Writer) error {
 	})
 }
 
-// ---- export ----
+// ---- story ----
 
-func export(ctx context.Context, args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("export", flag.ContinueOnError)
+func story(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("story", flag.ContinueOnError)
 	courseSlug := fs.String("course", "", "")
-	chapterSlug := fs.String("chapter", "", "")
 	pos, err := parse(fs, args, 2)
 	if err != nil {
 		return err
 	}
 	if *courseSlug == "" {
 		return usageError{errors.New("--course is required")}
+	}
+	s, err := authoring.ReadStory(pos[1])
+	if err != nil {
+		return fmt.Errorf("package %s: %w", pos[1], err)
+	}
+	return write(ctx, pos[0], func(tx *sql.Tx) error {
+		courseUUID, err := courseBySlug(tx, *courseSlug)
+		if err != nil {
+			return err
+		}
+		chapters, err := chapterSlugs(tx, courseUUID)
+		if err != nil {
+			return err
+		}
+		if err := s.CheckChapters(*courseSlug, chapters); err != nil {
+			return fmt.Errorf("package %s: %w", pos[1], err)
+		}
+		cur, err := authoring.LoadStory(tx, courseUUID)
+		if err != nil {
+			return err
+		}
+		changed := cur.Changed(s)
+		if len(changed) == 0 {
+			fmt.Fprintf(out, "story %s: unchanged (%s)\n", *courseSlug, s.Summary())
+			return nil
+		}
+		if err := s.Put(tx, courseUUID); err != nil {
+			return err
+		}
+		switch {
+		case cur.Empty():
+			fmt.Fprintf(out, "story %s: added (%s)\n", *courseSlug, s.Summary())
+		case s.Empty():
+			fmt.Fprintf(out, "story %s: cleared (it had %s)\n", *courseSlug, cur.Summary())
+		default:
+			fmt.Fprintf(out, "story %s: updated %s (%s)\n", *courseSlug, strings.Join(changed, ", "), s.Summary())
+		}
+		return nil
+	})
+}
+
+// ---- export ----
+
+func export(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("export", flag.ContinueOnError)
+	courseSlug := fs.String("course", "", "")
+	chapterSlug := fs.String("chapter", "", "")
+	wantStory := fs.Bool("story", false, "")
+	pos, err := parse(fs, args, 2)
+	if err != nil {
+		return err
+	}
+	switch {
+	case *courseSlug == "":
+		return usageError{errors.New("--course is required")}
+	case *wantStory && *chapterSlug != "":
+		return usageError{errors.New("--chapter and --story do not go together: the story is the whole course's")}
 	}
 	file, outDir := pos[0], pos[1]
 	if entries, err := os.ReadDir(outDir); err == nil && len(entries) > 0 {
@@ -391,6 +470,17 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 	courseUUID, err := courseBySlug(d, *courseSlug)
 	if err != nil {
 		return err
+	}
+	if *wantStory {
+		s, err := authoring.LoadStory(d, courseUUID)
+		if err != nil {
+			return err
+		}
+		if err := s.Write(outDir); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "exported the story of %s to %s (%s)\n", *courseSlug, outDir, s.Summary())
+		return nil
 	}
 	query := `SELECT l.uuid, ch.slug FROM lesson l JOIN chapter ch ON ch.uuid = l.chapter_uuid WHERE ch.course_uuid = ?`
 	qargs := []any{courseUUID}
