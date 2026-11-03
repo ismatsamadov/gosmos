@@ -1,11 +1,11 @@
 -- A Gosmos course library: one SQLite file of read-only content, such as courses/apogee.sqlite
--- in this repository. It holds the catalog (courses, chapters, lessons) and everything a lesson
--- teaches with: its readme, hints, code, quizzes and reference solutions. No JSON or other data
--- files. A content producer, such as cmd/author, writes it; the app only reads it. Everything
--- that is yours (progress, attempts, notes, your code, settings) lives in the learner database
--- instead (learner.sql), which refers to a lesson by the library's uuid (library_info.uuid) and
--- the lesson's (lesson.uuid). The file uses the rollback journal (journal_mode DELETE, never
--- WAL), so it is whole whenever no write is under way.
+-- in this repository. It holds the catalog (courses, chapters, lessons), everything a lesson
+-- teaches with (its readme, hints, code, quizzes and reference solutions) and the story a course
+-- is told in. No JSON or other data files. A content producer, such as cmd/author, writes it;
+-- the app only reads it. Everything that is yours (progress, attempts, notes, your code,
+-- settings) lives in the learner database instead (learner.sql), which refers to a lesson by the
+-- library's uuid (library_info.uuid) and the lesson's (lesson.uuid). The file uses the rollback
+-- journal (journal_mode DELETE, never WAL), so it is whole whenever no write is under way.
 --
 -- Conventions:
 --   * Every table is STRICT, so a column only ever holds its declared type.
@@ -191,6 +191,63 @@ CREATE TABLE quiz_answer (
 CREATE UNIQUE INDEX quiz_answer_one_correct
   ON quiz_answer(lesson_uuid, question_position) WHERE is_correct = 1;
 
+------------------------------------------------------------------------------------------------
+-- The story: how a course opens, what each chapter is about in the course's world, and that
+-- world's words in plain language. All of it is optional: a course without a story opens at its
+-- first lesson, and its chapters and readmes show as they are. Its texts are short Markdown
+-- paragraphs, one blank line between them, of inline Markdown only (code spans, emphasis): no
+-- headings, lists, quotes, code blocks or pictures.
+------------------------------------------------------------------------------------------------
+
+-- The opening: a few short pages the app shows before the course's first lesson, once, and
+-- again whenever the learner asks. A 'badge' page also shows the learner's badge, headed by the
+-- page's eyebrow (the organization they work for) and made of its cards, with a field for the
+-- name the team calls them by; a 'text' page shows its cards, if it has any, below its text. The
+-- last page's action opens the course.
+CREATE TABLE story_page (
+  course_uuid TEXT NOT NULL REFERENCES course(uuid) ON DELETE CASCADE,
+  position    INTEGER NOT NULL CHECK (position >= 0),
+  kind        TEXT NOT NULL CHECK (kind IN ('text', 'badge')),
+  eyebrow     TEXT CHECK (eyebrow <> ''),            -- a short line above the title: a place, a day
+  title       TEXT NOT NULL CHECK (title <> ''),
+  body        TEXT NOT NULL CHECK (body <> ''),
+  action      TEXT NOT NULL CHECK (action <> ''),    -- the button that moves on, such as Meet the team
+  PRIMARY KEY (course_uuid, position)
+) STRICT;
+
+-- A page's cards, in order: the people and places of a text page, or the lines of a badge
+-- (label Role, title Ground Software Engineer).
+CREATE TABLE story_card (
+  course_uuid   TEXT NOT NULL,
+  page_position INTEGER NOT NULL,
+  position      INTEGER NOT NULL CHECK (position >= 0),
+  label         TEXT NOT NULL CHECK (label <> ''),   -- a short mark: initials, a station code, a line's name
+  title         TEXT NOT NULL CHECK (title <> ''),
+  subtitle      TEXT CHECK (subtitle <> ''),
+  body          TEXT CHECK (body <> ''),             -- one paragraph
+  PRIMARY KEY (course_uuid, page_position, position),
+  FOREIGN KEY (course_uuid, page_position) REFERENCES story_page(course_uuid, position) ON DELETE CASCADE
+) STRICT;
+
+-- A chapter's part in the story: the briefing that opens it, and the debrief the app shows
+-- once its required lessons are done.
+CREATE TABLE chapter_story (
+  chapter_uuid TEXT PRIMARY KEY REFERENCES chapter(uuid) ON DELETE CASCADE,
+  briefing     TEXT NOT NULL CHECK (briefing <> ''),
+  debrief      TEXT NOT NULL CHECK (debrief <> '')
+) STRICT;
+
+-- The course's field guide: the words of its world, each with its meaning in a sentence or two
+-- of plain language. The first time a readme uses a linked term, outside code, it links to the
+-- meaning; a term lessons also use as an everyday word, such as pass, is not linked.
+CREATE TABLE story_term (
+  course_uuid TEXT NOT NULL REFERENCES course(uuid) ON DELETE CASCADE,
+  term        TEXT NOT NULL CHECK (term <> ''),      -- as readmes write it: AOS, slant range
+  meaning     TEXT NOT NULL CHECK (meaning <> ''),   -- one paragraph
+  linked      INTEGER NOT NULL CHECK (linked IN (0, 1)),
+  PRIMARY KEY (course_uuid, term)
+) STRICT;
+
 -- 'GSMS' marks the file as a Gosmos course library; user_version is the format's version.
 PRAGMA application_id = 1196641619;
-PRAGMA user_version = 8;
+PRAGMA user_version = 9;

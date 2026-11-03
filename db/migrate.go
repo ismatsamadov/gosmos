@@ -15,6 +15,9 @@ package db
 // were only marked done by hand are gone: command-line lessons (shell commands, HTTP requests,
 // jq checks), GitHub checks and interviews. Migrate refuses a library that holds any of them
 // before it changes anything, so the steps before 8 only ever meet those types' tables empty.
+//
+// Format 9 adds the story a course is told in: its opening, each chapter's briefing and
+// debrief, and its field guide. The step from 8 to 9 only creates their tables, empty.
 
 import (
 	"context"
@@ -55,6 +58,7 @@ var steps = map[int]func(ctx context.Context, tx *sql.Tx) error{
 	4: migrate4to5,
 	5: migrate5to6,
 	7: migrate7to8,
+	8: migrate8to9,
 }
 
 // learnerTables are the tables of format 6 and older that hold the learner's data, in the order
@@ -163,8 +167,12 @@ type Migration struct {
 //
 // The step from 7 to 8 drops the tables of the lesson types format 8 removed and narrows
 // lesson.type to the three it keeps; every other row stays as it is, the library_info row
-// included, so the library keeps its uuid. The file is vacuumed last, so no copy of what went
-// stays in it.
+// included, so the library keeps its uuid. A migration that takes that step vacuums the file
+// last, so no copy of what went stays in it.
+//
+// The step from 8 to 9 creates the tables of a course's story (story_page, story_card,
+// chapter_story and story_term), empty. Nothing else changes: every row stays as it is, the
+// library_info row included.
 //
 // A library that holds lessons of the removed types is refused, and so is one that holds learner
 // data without opt.Learner, or whose learner database is not one of this program's, before
@@ -196,7 +204,7 @@ func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, e
 	case app == ApplicationID && m.From == Version:
 		m.Info, err = ReadInfo(ctx, d)
 		return m, err
-	case app == ApplicationID && m.From == 7:
+	case app == ApplicationID && m.From >= 7 && m.From < Version:
 	case app == LegacyApplicationID && m.From >= oldest && m.From <= 6:
 	case app == LegacyApplicationID && m.From < oldest:
 		return m, fmt.Errorf("%s is of format %d; library migrate takes format %d and later only", path, m.From, oldest)
@@ -213,21 +221,25 @@ func Migrate(ctx context.Context, path string, opt MigrateOptions) (Migration, e
 	} else if removed != "" {
 		return m, fmt.Errorf("%s holds lessons of types format 8 removed (%s): Gosmos is self-contained, with code, tests and quiz lessons only, which it checks on the Mac alone; nothing changed", path, removed)
 	}
-	if m.From == 7 {
+	if m.From >= 7 {
 		if m.Info, err = ReadInfo(ctx, d); err != nil {
 			return m, fmt.Errorf("%s: %w; nothing changed", path, err)
 		}
 	} else if m.Info, err = migrateTo7(ctx, d, path, opt, &m); err != nil {
 		return m, err
 	}
-	if err := migrate(ctx, d, 7, steps[7]); err != nil {
-		return m, err
+	for v := max(m.From, 7); v < Version; v++ {
+		if err := migrate(ctx, d, v, steps[v]); err != nil {
+			return m, err
+		}
 	}
-	// The pages of the tables that went are free now but may still hold their rows: VACUUM
-	// writes the file again without them. Lessons keep their ids (lesson.id is an INTEGER
-	// PRIMARY KEY).
-	if _, err := d.ExecContext(ctx, `VACUUM`); err != nil {
-		return m, fmt.Errorf("vacuuming %s: %w", path, err)
+	if m.From <= 7 {
+		// The pages of the tables that went are free now but may still hold their rows: VACUUM
+		// writes the file again without them. Lessons keep their ids (lesson.id is an INTEGER
+		// PRIMARY KEY).
+		if _, err := d.ExecContext(ctx, `VACUUM`); err != nil {
+			return m, fmt.Errorf("vacuuming %s: %w", path, err)
+		}
 	}
 	return m, nil
 }
@@ -374,6 +386,20 @@ func migrate7to8(ctx context.Context, tx *sql.Tx) error {
 	}
 	_, err = keptRows(ctx, tx, before)
 	return err
+}
+
+// storyTables are the tables of a course's story, which format 9 added.
+var storyTables = []string{"story_page", "story_card", "chapter_story", "story_term"}
+
+// migrate8to9 makes format 9: the tables of a course's story are new, and start empty. Every
+// other table stays as it is.
+func migrate8to9(ctx context.Context, tx *sql.Tx) error {
+	for _, t := range storyTables {
+		if err := createTable(ctx, tx, 9, t); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // keptRows counts the rows of every table after a step and checks that each table of before

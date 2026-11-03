@@ -2,7 +2,8 @@
 
 Every Gosmos course in the Apogee series follows this bible. It fixes the world (company,
 stations, satellites, people), the code the learner grows, and how lessons are written. When
-a lesson needs something this file doesn't have, add it here first, then use it.
+a lesson needs something this file doesn't have, add it here first, then use it. How the
+story is told, from the opening to the field guide, is `docs/storytelling.md`.
 
 Everything in this world is invented: the company, its customers, the people, the places and
 the satellites. Only the physics is real.
@@ -26,9 +27,16 @@ commands up, brings their data down and delivers it within minutes of loss of si
   a reason and a line in the log. New engineers' first program writes the message the ops
   room sends up to Pipit-1, which echoes it back on its beacon.
 
-**The learner** is the newest backend engineer, never named, always "you". Story time runs
-from Monday 1 March 2027 (day one) to the end of June 2027 (first solo on-call week). Each
-course chapter is roughly a week.
+**The learner** is the newest software engineer, never named in lessons, always "you". Their
+badge says Ground Software Engineer, No. 039 (38 people were there before them), based at
+Port Ellery headquarters, since Monday 1 March 2027; the app shows it with the name the learner
+gives. Story time runs from Monday 1 March 2027 (day one) to the end of June 2027 (first solo
+on-call week). Each course chapter is roughly a week.
+
+In plain words, for the opening and anywhere a newcomer reads first: Apogee is a small space
+company that keeps satellites in touch with the ground. Its five ground stations are big radio
+dishes; a satellite is in a dish's view for about ten minutes at a time, and that window is a
+pass.
 
 ## Ground stations
 
@@ -259,6 +267,25 @@ Wire formats, used the same way in every lesson:
 Limits ops uses everywhere: battery FULL from 8.2 V, OK from 7.2 V, LOW from 6.6 V, below
 that CRITICAL (safe mode follows); Cape Wren tracks with a warning from 50 km/h of wind and
 stows at 72 km/h; battery temperature limits −10 °C to 45 °C.
+
+## Seasons
+
+Each course of the series is a season of the learner's career at Apogee, and story time only
+moves forward. Each season's opening gives the learner a new role on their badge. The roadmap
+is jobloom/gosmos#18; how each season is told is `docs/storytelling.md`.
+
+| Season | Course | Story time | The season in a sentence | Issue |
+|---|---|---|---|---|
+| 1 | Go Foundations | Mar–Jun 2027 | From your first message to Pipit-1 to your first solo week on call | written; #7, #8 |
+| 2 · Tools of the Trade | Files, Data and the Command Line | Jul–Oct 2027 | The test van's trip up the Quebrada Añil, with no signal: gctl, from files alone | #9 |
+| Project | Build gctl | Oct 2027 | The night shift's interactive tool | #10 |
+| 3 · Open for Business | Web Services in Go | Nov 2027–Feb 2028 | Customers book passes through Apogee's own service, which you build | #11 |
+| Project | Build the Board | Feb 2028 | The Board on every screen in the building | #12 |
+| 4 · Down to the Wire | Networking from the Socket Up | Mar–Jun 2028 | Ystmark's new dish controllers, and a web server from nothing but a socket | #13 |
+| 5 · Keeping Secrets | Cryptography in Go | Jul–Oct 2028 | Cirrine's commands, readable by Cirrine alone, and Rotation Day | #14 |
+| 6 · On Call | Logging, Metrics and Profiling | Nov 2028–Feb 2029 | The 03:12 page from Lantern Atoll, and the slow leak behind it | #15 |
+| 7 · Scale | Go at Scale | Mar–Jun 2029 | Twenty stations, eighty satellites, and passplan's rewrite | #16 |
+| Capstone | Pass Day, Live | Jul 2029 | The whole ground segment, rehearsed for a week | #17 |
 
 ## Recurring situations
 

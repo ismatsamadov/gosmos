@@ -10,8 +10,12 @@ in the format described in `docs/library-format.md`. Any file in that format plu
 works the same way. The courses that ship with the app are the libraries in `courses/`;
 File › Open Library… opens any other.
 
-`courses/apogee.sqlite` holds the Apogee courses: original lessons set at an invented
-ground-station startup, planned in `docs/apogee/`. Everything in them is written for Gosmos.
+`courses/apogee.sqlite` holds the Apogee courses: original lessons set at Apogee, an
+invented small space company whose radio dishes talk to satellites, planned in
+`docs/apogee/`. They are told as a story (`docs/storytelling.md`): an opening that gives you
+your badge, a briefing and a debrief for every chapter, a mission patch for each one you
+finish, and a field guide that explains every word of that world in plain language. Everything
+in them is written for Gosmos. The path from here to production Go is jobloom/gosmos#18.
 
 ## Two databases
 
@@ -39,11 +43,11 @@ never runs git and syncs nothing.
 |---|---|
 | `courses/` | The course libraries built into the app |
 | `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, read offline: the standard library's docs and examples, the spec, the memory model, Effective Go, the FAQ and How to Write Go Code; `make reference` remakes it, `docs/reference-format.md` says how |
-| `db/schema.sql` | A library's tables, constraints and conventions (format 8) |
+| `db/schema.sql` | A library's tables, constraints and conventions (format 9) |
 | `db/learner.sql` | The learner database's tables |
 | `db/` | The Go package that creates, opens, checks and migrates libraries; `db/history/` keeps the schema of every older format |
 | `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify` |
-| `cmd/author/`, `internal/` | Go tool: writes lessons into a library from lesson packages, and exports them back |
+| `cmd/author/`, `internal/` | Go tool: writes lessons, and a course's story, into a library from packages, and exports them back |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |
 | `docs/library-format.md` | The library format: what any library must hold, and what the app checks |
 | `docs/architecture.md` | How the pieces fit together, and why |

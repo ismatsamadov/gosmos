@@ -59,12 +59,15 @@ public struct Course: Identifiable, Hashable, Sendable {
     public let title: String
     /// "Course" or "Guided Project".
     public let kind: String
+    /// What the course is, in a sentence.
+    public let shortDescription: String
     public var chapters: [Chapter]
 
-    public init(id: String, title: String, kind: String, chapters: [Chapter] = []) {
+    public init(id: String, title: String, kind: String, shortDescription: String = "", chapters: [Chapter] = []) {
         self.id = id
         self.title = title
         self.kind = kind
+        self.shortDescription = shortDescription
         self.chapters = chapters
     }
 

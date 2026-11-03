@@ -300,8 +300,8 @@ func sameSchema(t *testing.T, d *sql.DB) {
 	}
 }
 
-// migrated migrates the library at path and checks what every migration to format 8 must
-// leave: format 8's marks, the rows of every content table it does not change (changed names
+// migrated migrates the library at path and checks what every migration to format 9 must
+// leave: format 9's marks, the rows of every content table it does not change (changed names
 // those an older step changes), the library checks passed, the schema of a new library, and
 // neither learner tables nor those of the lesson types format 8 removed. From format 6 or
 // older, the library gets a new uuid and no teaching content yet. It returns what Migrate did
@@ -330,13 +330,13 @@ func migrated(t *testing.T, path string, opt MigrateOptions, changed ...string) 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { d.Close() })
-	if m.From != from || m.To != 8 || !reUUID.MatchString(m.Info.UUID) {
+	if m.From != from || m.To != 9 || !reUUID.MatchString(m.Info.UUID) {
 		t.Errorf("Migrate = %+v", m)
 	}
 	var app, version int
 	d.QueryRow(`SELECT (SELECT application_id FROM pragma_application_id), (SELECT user_version FROM pragma_user_version)`).Scan(&app, &version)
-	if app != 1196641619 || version != 8 {
-		t.Fatalf("application_id %d, user_version %d after migrating; want 1196641619 ('GSMS'), 8", app, version)
+	if app != 1196641619 || version != 9 {
+		t.Fatalf("application_id %d, user_version %d after migrating; want 1196641619 ('GSMS'), 9", app, version)
 	}
 	var added []string // tables the library did not have before
 	for _, table := range tableNames(t, d) {
@@ -591,9 +591,9 @@ func TestMigrateWithoutLearnerData(t *testing.T) {
 func TestMigrateRefuses(t *testing.T) {
 	text := filepath.Join(t.TempDir(), "notes.sqlite")
 	os.WriteFile(text, []byte("these are notes, not a database\n"), 0o644)
-	newer := v6File(t, "newer.sqlite", `PRAGMA application_id = 1196641619`, `PRAGMA user_version = 9`)
-	library8 := filepath.Join(t.TempDir(), "other.sqlite")
-	if d, err := Create(library8, testInfo); err != nil {
+	newer := v6File(t, "newer.sqlite", `PRAGMA application_id = 1196641619`, `PRAGMA user_version = 10`)
+	library9 := filepath.Join(t.TempDir(), "other.sqlite")
+	if d, err := Create(library9, testInfo); err != nil {
 		t.Fatal(err)
 	} else {
 		d.Close()
@@ -606,10 +606,10 @@ func TestMigrateRefuses(t *testing.T) {
 	}{
 		{"learner data without a learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), "",
 			"holds the learner's data (3 progress, 4 attempt, 1 note, 2 code_file and 2 setting rows); give a learner database to move it into (--learner <file>): nothing changed"},
-		{"a library as the learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), library8,
+		{"a library as the learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), library9,
 			"is not a Gosmos learner database (application_id 1196641619, not 1196641612): nothing changed"},
 		{"a text file as the learner database", v6File(t, "orbits.sqlite", append(v6Content, v6Learner...)...), text, "nothing changed"},
-		{"a newer format", newer, "", "the library is of format 9, newer than this program's 8"},
+		{"a newer format", newer, "", "the library is of format 10, newer than this program's 9"},
 		{"a format 7 library without its library_info row", v7File(t, "nameless.sqlite", v7Content[1:]...), "", "the library has no library_info row; nothing changed"},
 		{"an older format than any migration takes", v6File(t, "v2.sqlite", `PRAGMA user_version = 2`), "", "is of format 2; library migrate takes format 3 and later only"},
 		{"not a library", v6File(t, "other.sqlite", `PRAGMA application_id = 42`), "", "not a Gosmos library (application_id 42)"},
@@ -638,7 +638,7 @@ func TestMigrateRefuses(t *testing.T) {
 
 // An interrupted migration runs again safely: the learner database committed first keeps the
 // library row and its rows, the rerun finds them by the file's location and copies nothing
-// twice, and once the library is of format 8 a rerun does nothing at all.
+// twice, and once the library is of format 9 a rerun does nothing at all.
 func TestMigrateRunsAgain(t *testing.T) {
 	// A row whose foreign key points nowhere makes the library's step fail after the learner
 	// database has committed, as a crash between the two would leave things.
@@ -680,22 +680,22 @@ func TestMigrateRunsAgain(t *testing.T) {
 		t.Errorf("the rerun changed the learner's rows:\n%v\nwant\n%v", again, copied)
 	}
 
-	// Once the library is of format 8, migrating it again changes nothing.
+	// Once the library is of format 9, migrating it again changes nothing.
 	lib, _ := os.ReadFile(path)
 	learned, _ := os.ReadFile(learner)
 	m, err = Migrate(context.Background(), path, MigrateOptions{Learner: learner})
-	if err != nil || m.From != 8 || m.Info.UUID != first {
-		t.Errorf("migrating a library of format 8: %+v, %v", m, err)
+	if err != nil || m.From != 9 || m.Info.UUID != first {
+		t.Errorf("migrating a library of format 9: %+v, %v", m, err)
 	}
 	if a, _ := os.ReadFile(path); !bytes.Equal(a, lib) {
-		t.Error("migrating a library of format 8 changed it")
+		t.Error("migrating a library of format 9 changed it")
 	}
 	if a, _ := os.ReadFile(learner); !bytes.Equal(a, learned) {
-		t.Error("migrating a library of format 8 changed the learner database")
+		t.Error("migrating a library of format 9 changed the learner database")
 	}
 }
 
-// Formats 3, 4 and 5 go to 8 one step at a time, each in its own transaction. The learner's rows
+// Formats 3, 4 and 5 go to 9 one step at a time, each in its own transaction. The learner's rows
 // move into the learner database, but for the project folders and server addresses, which only
 // command-line lessons used.
 func TestMigrateFrom3(t *testing.T) {
@@ -759,7 +759,7 @@ func TestMigrateFrom5(t *testing.T) {
 	}
 }
 
-// Format 7 goes to 8 keeping every row of the lesson types format 8 keeps, its teaching content
+// Format 7 goes to 9 keeping every row of the lesson types format 8 keeps, its teaching content
 // and its library_info row, so the learner's progress, filed under its uuid, stays its own. The
 // tables of the removed types go, and lesson.type takes no other type again.
 func TestMigrateFrom7(t *testing.T) {
@@ -796,6 +796,79 @@ func TestMigrateFrom7(t *testing.T) {
 	}
 	if n := count(t, d, `SELECT freelist_count FROM pragma_freelist_count`); n != 0 {
 		t.Errorf("%d free pages after migrating: the file was not vacuumed", n)
+	}
+}
+
+// v8File makes a library of format 8 from the statements given. The rows of v7Content are rows
+// of format 8 too: format 8 only took away what the lesson types it removed used.
+func v8File(t *testing.T, name string, stmts ...string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	raw(t, path, append([]string{schemaOfFormat(t, 8)}, stmts...)...)
+	return path
+}
+
+// Format 8 goes to 9 with every row as it was, its library_info row included, and the tables of
+// a course's story new and empty. Their keys and checks hold from the start, and migrating the
+// library again changes nothing.
+func TestMigrateFrom8(t *testing.T) {
+	path := v8File(t, "orbits.sqlite", v7Content...)
+	before := filepath.Join(t.TempDir(), "before.sqlite")
+	b, _ := os.ReadFile(path)
+	os.WriteFile(before, b, 0o644)
+	m, d := migrated(t, path, MigrateOptions{Learner: filepath.Join(t.TempDir(), "unused.sqlite"), Title: "Ignored"})
+	if m.From != 8 || m.Info != v7Info || m.Learner != "" || m.Created || len(m.Moved) != 0 || len(m.Dropped) != 0 {
+		t.Errorf("Migrate = %+v, want the library's own library_info and no learner data", m)
+	}
+	old, err := sql.Open("sqlite", before)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer old.Close()
+	if got, want := dump(t, d, nil), dump(t, old, nil); got != want {
+		t.Errorf("rows changed:\nbefore\n%s\nafter\n%s", want, got)
+	}
+	for _, table := range storyTables {
+		if n := count(t, d, `SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = ?`, table); n != 1 {
+			t.Errorf("%s is not there", table)
+		} else if n := count(t, d, `SELECT count(*) FROM `+table); n != 0 {
+			t.Errorf("%s holds %d rows, want none", table, n)
+		}
+	}
+	var id, found int
+	d.QueryRow(`SELECT id FROM lesson WHERE uuid = 'burn'`).Scan(&id)
+	if err := d.QueryRow(`SELECT rowid FROM lesson_search WHERE lesson_search MATCH 'burn'`).Scan(&found); err != nil || found != id || id != 23 {
+		t.Errorf("the search index finds row %d (%v) for the lesson with id %d, want 23", found, err, id)
+	}
+	for _, tc := range []struct {
+		stmt string
+		ok   bool
+	}{
+		{`INSERT INTO story_page VALUES ('c1', 0, 'badge', 'APOGEE', 'Your Badge', 'Everyone on the console wears one.', 'Print my badge')`, true},
+		{`INSERT INTO story_page VALUES ('c1', 1, 'video', NULL, 'The Launch', 'A film of the launch.', 'Play it')`, false},
+		{`INSERT INTO story_page VALUES ('c1', 1, 'text', '', 'Meet the Team', 'Four people run the console.', 'Meet them')`, false},
+		{`INSERT INTO story_card VALUES ('c1', 0, 0, 'Role', 'Flight Software Engineer', NULL, NULL)`, true},
+		{`INSERT INTO story_card VALUES ('c1', 5, 0, 'Role', 'A card of no page', NULL, NULL)`, false},
+		{`INSERT INTO chapter_story VALUES ('ch1', 'The countdown starts today.', 'The window opened on time.')`, true},
+		{`INSERT INTO chapter_story VALUES ('no-such-chapter', 'Lift off.', 'In orbit.')`, false},
+		{`INSERT INTO story_term VALUES ('c1', 'burn', 'Firing the engine for a set time.', 1)`, true},
+		{`INSERT INTO story_term VALUES ('c1', 'burn', 'Firing the engine again.', 1)`, false},
+		{`INSERT INTO story_term VALUES ('c1', 'scrub', 'Calling off a launch.', 2)`, false},
+	} {
+		if _, err := d.Exec(tc.stmt); (err == nil) != tc.ok {
+			t.Errorf("%s: err = %v, want ok = %v", tc.stmt, err, tc.ok)
+		}
+	}
+	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
+		t.Errorf("format 9's new rows: %v %v", p, err)
+	}
+
+	lib, _ := os.ReadFile(path)
+	if m, err := Migrate(context.Background(), path, MigrateOptions{}); err != nil || m.From != 9 || m.Info != v7Info {
+		t.Errorf("migrating a library of format 9: %+v, %v", m, err)
+	}
+	if a, _ := os.ReadFile(path); !bytes.Equal(a, lib) {
+		t.Error("migrating a library of format 9 changed it")
 	}
 }
 
@@ -900,7 +973,7 @@ func TestCreateLearner(t *testing.T) {
 }
 
 func TestFormatSchemas(t *testing.T) {
-	for v := 3; v <= 8; v++ {
+	for v := 3; v <= 9; v++ {
 		s, err := formatSchema(v)
 		if err != nil || !regexp.MustCompile(fmt.Sprintf(`(?m)^PRAGMA user_version = %d;`, v)).MatchString(s) {
 			t.Errorf("formatSchema(%d) does not set user_version %d: %v", v, v, err)
@@ -915,7 +988,8 @@ func TestTableDefinition(t *testing.T) {
 	for _, tc := range []struct {
 		format int
 		table  string
-	}{{4, "cli_lesson"}, {4, "project"}, {4, "server_address"}, {5, "interview_lesson"}, {6, "solution_file"}, {7, "library_info"}, {7, "lesson_hint"}, {7, "code_lesson"}, {8, "lesson"}} {
+	}{{4, "cli_lesson"}, {4, "project"}, {4, "server_address"}, {5, "interview_lesson"}, {6, "solution_file"}, {7, "library_info"}, {7, "lesson_hint"}, {7, "code_lesson"}, {8, "lesson"},
+		{9, "story_page"}, {9, "story_card"}, {9, "chapter_story"}, {9, "story_term"}} {
 		def, err := tableDefinition(tc.format, tc.table)
 		if err != nil || !strings.HasPrefix(def, "CREATE TABLE "+tc.table+" (") || !strings.HasSuffix(strings.TrimSpace(def), "STRICT") {
 			t.Errorf("tableDefinition(%d, %s) = %q, %v", tc.format, tc.table, def, err)
@@ -926,5 +1000,8 @@ func TestTableDefinition(t *testing.T) {
 	}
 	if _, err := tableDefinition(8, "cli_lesson"); err == nil {
 		t.Error("format 8 has no cli_lesson table")
+	}
+	if _, err := tableDefinition(8, "story_page"); err == nil {
+		t.Error("format 8 has no story_page table")
 	}
 }

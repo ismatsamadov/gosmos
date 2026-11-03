@@ -28,8 +28,15 @@ libraries you added with File > Open Library… (⌘O) or in Settings > General.
 shown, a library passes the format's checks, the same as `go run ./cmd/library check <file>`;
 a file that fails is refused with the problems the checks found.
 
+A course can come with a story (`../docs/storytelling.md`). A new learner's first launch then
+opens to the course's opening, a few pages over the whole window that end in its first lesson,
+with a badge that carries the name you type; View > Replay the Opening shows it again. Each
+chapter's briefing leads its first lesson and Mission Control, its debrief and mission patch
+greet the pass that finishes it, and the Field Guide (⌘2) explains every word of the course's
+world, linked from the first time a readme uses it.
+
 Mission Control is the starting screen: continue your next lesson, browse course progress,
-and see your explorer rank and achievement badges. Each completed lesson contributes 100 XP,
+and see your explorer rank, achievement badges and badge with its mission patches. Each completed lesson contributes 100 XP,
 with a new level every five lessons. Rewards come from the same saved progress as the
 sidebar, so earlier completions count and resubmitting never earns duplicate XP. ⌘1 returns
 to Mission Control from any lesson or documentation page.
@@ -79,6 +86,7 @@ opens and can be read and edited, but the console says Gosmos runs Go lessons.
 | ⌘. | Stop |
 | ⌘O | Open a library |
 | ⌘1 | Mission Control |
+| ⌘2 | Field Guide |
 | ⌘] / ⌘[ | Next / previous lesson |
 | ⌥⌘← / ⌥⌘→ | Back / forward through the lessons and documentation pages you visited |
 | 1 to 5 | Pick a quiz answer |
@@ -117,6 +125,10 @@ open -n build/Gosmos.app --args -GosmosDataFolder /tmp/gosmos-shots -GosmosOpenL
 `-GosmosDataFolder <folder>` keeps the learner database, the lesson folders and Go's caches
 there instead of your own. `-GosmosAppearance light` or `dark` selects an appearance for that
 run, and `-GosmosWindowSize 1100x700` sizes the main window for a layout check. Neither is saved.
+`-GosmosSnapshot <file.png>` draws the window into `<file.png>` once the launch and its action
+have settled (`-GosmosSnapshotDelay <seconds>`, 3 unless given), then quits: the app draws its
+own window, so it needs no permission to record the screen, though the picture leaves out Liquid
+Glass and the sidebar's list.
 `-GosmosOpenLesson` takes `<library uuid>/<lesson uuid>`, or a lesson uuid alone. The
 action is one of `run`, `submit`, `answer` (answers a quiz), `footer` (scrolls to the
 part below the readme), `hints` (shows every hint that may show), `solution` (shows the
@@ -125,5 +137,8 @@ editor's first line, or uncomments it), `review` (shows the review), `redo-submi
 lesson as a redo for review and submits it), `settings` (opens Settings), `search:<text>`
 (types a search), `doc:<link>` (opens the Go documentation at a link such as
 `godoc:fmt.Println` or `godoc-article:spec`, or at `acknowledgements`), `doc-search:<text>`
-(types a search in the documentation browser) or `quick-help:<text>` (shows Quick Help for
-the first `<text>` in the editor's file).
+(types a search in the documentation browser), `quick-help:<text>` (shows Quick Help for
+the first `<text>` in the editor's file) or `term:<term>` (shows a term of the field guide over
+the readme). Three actions need no lesson and show Mission Control beneath: `opening` and
+`opening:<page>` (the first course's opening, at its first page or page `<page>`, counted from
+0) and `field-guide` (the Field Guide).

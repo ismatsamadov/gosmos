@@ -44,7 +44,14 @@ struct RootView: View {
         case .failed(let error):
             UnavailableView(error: error)
         case .ready:
-            MainView()
+            if let opening = app.opening {
+                // The story's opening takes the whole window, the sidebar and toolbar too.
+                OpeningView(opening: opening)
+                    .toolbar(.hidden, for: .windowToolbar)
+                    .transition(.opacity)
+            } else {
+                MainView()
+            }
         }
     }
 }
@@ -164,6 +171,8 @@ struct DetailView: View {
         Group {
             if app.showsDocumentation, let docs = app.docs {
                 DocsBrowser(docs: docs)
+            } else if app.showsFieldGuide {
+                FieldGuideView()
             } else if app.showsReview {
                 if let review = app.review {
                     ReviewScreen(session: review)
@@ -201,6 +210,7 @@ struct DetailView: View {
     /// The window's title, for what the body shows, in the same order.
     private var title: String {
         if app.showsDocumentation { return app.docs?.title ?? "Go Documentation" }
+        if app.showsFieldGuide { return "Field Guide" }
         if app.showsReview { return "Review" }
         if let lesson = app.lesson { return lesson.detail.title }
         return app.isLoadingLesson ? "Gosmos" : "Mission Control"
@@ -209,7 +219,7 @@ struct DetailView: View {
     private var subtitle: String {
         // With no page open the title already says Go Documentation, so the subtitle doesn't repeat it.
         if app.showsDocumentation { return app.docs?.page == nil ? "" : "Go Documentation" }
-        if app.showsReview { return "" }
+        if app.showsFieldGuide || app.showsReview { return "" }
         if let lesson = app.lesson {
             return (lesson.isReview ? "Redo for review · " : "") + "\(lesson.detail.courseTitle) › \(lesson.detail.chapterTitle)"
         }
@@ -264,7 +274,7 @@ struct LessonToolbar: ToolbarContent {
     @Environment(AppModel.self) private var app
 
     var body: some ToolbarContent {
-        if app.phase == .ready {
+        if app.phase == .ready && app.opening == nil {
             ToolbarItemGroup(placement: .navigation) {
                 Button { app.goBack() } label: { Label("Back", systemImage: "chevron.backward") }
                     .disabled(!app.canGoBack)

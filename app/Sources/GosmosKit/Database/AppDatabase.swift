@@ -88,7 +88,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
 /// immutable, so SQLite does not even lock it. Everything of yours lives in the learner
 /// database instead.
 public final class AppDatabase: Sendable {
-    public static let schemaVersion = 8
+    public static let schemaVersion = 9
     /// 'GSMS'.
     public static let applicationID = 1_196_641_619
 
@@ -291,6 +291,11 @@ public final class AppDatabase: Sendable {
         return try await dbQueue.read { db in try AppDatabase.fetchSearch(db, text, limit: limit, library: library) }
     }
 
+    /// The stories of the library's courses, by course uuid; a course without one is left out.
+    public func stories() async throws -> [String: CourseStory] {
+        try await dbQueue.read { db in try AppDatabase.fetchStories(db) }
+    }
+
     /// Lessons' titles and readmes, for search excerpts.
     public func readmes(_ ids: [String]? = nil) async throws -> [(id: String, title: String, readme: String)] {
         try await dbQueue.read { db in
@@ -309,8 +314,8 @@ public final class AppDatabase: Sendable {
     // MARK: Queries shared by the async methods and the tests
 
     static func fetchCatalog(_ db: Database) throws -> Catalog {
-        var courses = try Row.fetchAll(db, sql: "SELECT uuid, title, kind FROM course ORDER BY position").map {
-            Course(id: $0["uuid"], title: $0["title"], kind: $0["kind"])
+        var courses = try Row.fetchAll(db, sql: "SELECT uuid, title, kind, short_description FROM course ORDER BY position").map {
+            Course(id: $0["uuid"], title: $0["title"], kind: $0["kind"], shortDescription: $0["short_description"])
         }
         var lessonsByChapter: [String: [LessonSummary]] = [:]
         for row in try Row.fetchAll(db, sql: "SELECT uuid, chapter_uuid, title, type, required FROM lesson ORDER BY chapter_uuid, position") {
@@ -326,6 +331,38 @@ public final class AppDatabase: Sendable {
         }
         for i in courses.indices { courses[i].chapters = chaptersByCourse[courses[i].id] ?? [] }
         return Catalog(courses: courses)
+    }
+
+    static func fetchStories(_ db: Database) throws -> [String: CourseStory] {
+        var stories: [String: CourseStory] = [:]
+        func story(_ course: String) -> CourseStory { stories[course] ?? CourseStory(courseID: course) }
+        var cards: [String: [CourseStory.Card]] = [:] // by "<course>/<page position>"
+        for row in try Row.fetchAll(db, sql: "SELECT course_uuid, page_position, position, label, title, subtitle, body FROM story_card ORDER BY course_uuid, page_position, position") {
+            let key = "\(row["course_uuid"] as String)/\(row["page_position"] as Int)"
+            cards[key, default: []].append(CourseStory.Card(position: row["position"], label: row["label"], title: row["title"],
+                                                            subtitle: row["subtitle"], body: row["body"]))
+        }
+        for row in try Row.fetchAll(db, sql: "SELECT course_uuid, position, kind, eyebrow, title, body, action FROM story_page ORDER BY course_uuid, position") {
+            let course: String = row["course_uuid"], position: Int = row["position"]
+            guard let kind = CourseStory.PageKind(rawValue: row["kind"]) else { continue }
+            var s = story(course)
+            s.pages.append(CourseStory.Page(position: position, kind: kind, eyebrow: row["eyebrow"], title: row["title"], body: row["body"],
+                                            action: row["action"], cards: cards["\(course)/\(position)"] ?? []))
+            stories[course] = s
+        }
+        for row in try Row.fetchAll(db, sql: "SELECT ch.course_uuid, s.chapter_uuid, s.briefing, s.debrief FROM chapter_story s JOIN chapter ch ON ch.uuid = s.chapter_uuid") {
+            let course: String = row["course_uuid"]
+            var s = story(course)
+            s.chapters[row["chapter_uuid"]] = CourseStory.ChapterStory(briefing: row["briefing"], debrief: row["debrief"])
+            stories[course] = s
+        }
+        for row in try Row.fetchAll(db, sql: "SELECT course_uuid, term, meaning, linked FROM story_term ORDER BY course_uuid, lower(term), term") {
+            let course: String = row["course_uuid"]
+            var s = story(course)
+            s.terms.append(CourseStory.Term(term: row["term"], meaning: row["meaning"], linked: row["linked"] as Int != 0))
+            stories[course] = s
+        }
+        return stories
     }
 
     static func fetchSearch(_ db: Database, _ text: String, limit: Int, library: String) throws -> [SearchHit] {

@@ -59,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task {
             await app.start()
+            if let path = UserDefaults.standard.string(forKey: "GosmosSnapshot") { snapshot(to: path) }
             if let size = UserDefaults.standard.string(forKey: "GosmosWindowSize") {
                 // Exactly "<width>x<height>", two finite numbers; anything else is ignored.
                 let parts = size.split(separator: "x", omittingEmptySubsequences: false).map { Double($0) }
@@ -72,6 +73,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     window.setContentSize(NSSize(width: max(1100, width), height: max(700, height)))
                 }
             }
+        }
+    }
+
+    /// `-GosmosSnapshot <file>`, for a scripted run's screenshot: once the launch and its action
+    /// have settled, the window as drawn goes to `file` as a PNG and the app quits. The app draws
+    /// its own window, so no permission to record the screen is needed.
+    private func snapshot(to path: String) {
+        Task {
+            try? await Task.sleep(for: .seconds(Double(UserDefaults.standard.string(forKey: "GosmosSnapshotDelay") ?? "") ?? 3))
+            if let view = NSApp.windows.first(where: { $0.canBecomeMain })?.contentView?.superview,
+               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                do {
+                    try rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+                } catch {
+                    Log.app.error("Snapshot: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+            NSApp.terminate(nil)
         }
     }
 
@@ -219,7 +239,12 @@ struct GosmosCommands: Commands {
         CommandGroup(after: .sidebar) {
             Button("Mission Control") { app.showDashboard() }
                 .keyboardShortcut("1", modifiers: .command)
-                .disabled(app.learner == nil)
+                .disabled(app.learner == nil || app.opening != nil)
+            Button("Field Guide") { app.showFieldGuide() }
+                .keyboardShortcut("2", modifiers: .command)
+                .disabled(app.learner == nil || app.opening != nil || !app.hasFieldGuide)
+            Button("Replay the Opening") { app.replayOpening() }
+                .disabled(app.learner == nil || app.opening != nil || app.openingToReplay == nil)
             Divider()
             Button("Show Inspector") { app.showInspector.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])

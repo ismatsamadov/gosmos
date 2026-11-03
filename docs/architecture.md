@@ -59,8 +59,9 @@ covered by Swift Testing tests.
 
 - **AppDatabase**: a library, through one read-only GRDB `DatabaseQueue` (a
   `DatabasePool` would need WAL). It validates the file on open and serves typed reads: the
-  catalog, full-text search, and a lesson's content as one enum case per lesson type built
-  from its tables.
+  catalog, its courses' stories (`CourseStory`: the opening's pages and cards, each chapter's
+  briefing and debrief, the field guide's terms), full-text search, and a lesson's content as
+  one enum case per lesson type built from its tables.
 - **LearnerDatabase**: the learner database, through one GRDB `DatabaseQueue`. It does every
   write: progress, attempts, notes, code, hints and solutions looked at, review. The UI
   follows your progress through `ValueObservation`. A write nothing else waits for, such as
@@ -68,6 +69,9 @@ covered by Swift Testing tests.
   for a lesson's saves. A new database is made aside and moved in whole; a draft that a
   crash left beside it goes at a later launch.
 - **Teaching**: the rules, as pure values and functions.
+- **Readme links**: `DocLinker` links inline code that names the standard library, and
+  `TermLinker` the first use of each linked term of the course's field guide; `LinkTarget`
+  says what any link does.
   - Hints show one at a time and stay shown; the last waits for a failed Submit.
   - The reference solution is there whenever you want it. Looking before you pass is
     recorded, and the lesson then comes back for review, as it does after a pass that took
@@ -119,20 +123,26 @@ covered by Swift Testing tests.
 **Gosmos** is the SwiftUI app.
 
 - `@main` App with a single main window. It is a `NavigationSplitView`: the sidebar holds
-  Mission Control, Review, Go Documentation, then courses, chapters and lessons with done
-  marks and search, and the detail shows Mission Control (where the app opens), the lesson
-  in a view made for its type, the review, or the documentation browser. XP, rank and badges
-  (`LearningProgress`) are worked out from the finished lessons, never stored.
+  Mission Control, Review, Field Guide, Go Documentation, then courses, chapters and lessons
+  with done marks and search, and the detail shows Mission Control (where the app opens), the
+  lesson in a view made for its type, the review, the field guide, or the documentation
+  browser. XP, rank, badges and mission patches (`LearningProgress`, `AppModel.isComplete`)
+  are worked out from the finished lessons, never stored.
+- A course's opening (`OpeningView`) takes the whole window in place of the split view while
+  `AppModel.opening` is set: at a new learner's first launch, from Begin Course while it hasn't
+  been seen, and from View › Replay the Opening. The name on the badge and the openings seen
+  are settings in the learner database (`badge_name`, `openings_seen`).
 - A Settings scene, and menu commands: Run ⌘R, Submit ⌘↩, Next ⌘], Previous ⌘[, Mission
-  Control ⌘1, and the Editor menu: Format Code ⇧⌥F, Toggle Comment ⌘/, Indent ⌥⌘], Outdent
+  Control ⌘1, Field Guide ⌘2, Replay the Opening, and the Editor menu: Format Code ⇧⌥F, Toggle Comment ⌘/, Indent ⌥⌘], Outdent
   ⌥⌘[ and Show Documentation ⌃⌘?.
 - The documentation browser (`DocsModel`, `DocsBrowser`): a list and its own search beside
   the page, which is a lazy stack of rows (header, doc blocks, index lines, declarations,
   sections), so only what is in view is made; a place scrolls to its declaration or section.
   The last eight pages stay parsed. Back and Forward keep one history of places: Mission
-  Control, lessons and documentation pages, and leaving a lesson for the documentation saves
-  it as switching lessons does. Every link in the window goes through `AppModel.follow`, which
-  opens the documentation or a lesson and does nothing with any other address.
+  Control, the field guide, lessons and documentation pages, and leaving a lesson for the
+  documentation saves it as switching lessons does. Every link in the window goes through
+  `AppModel.follow`, which opens the documentation or a lesson, shows a term's meaning, and
+  does nothing with any other address.
 - Quick Help: the editor reports an Option-click's offset, the app resolves the identifier
   there, and an `NSPopover` beside it shows the summary.
 - State lives in `@Observable @MainActor` models that get their services through the
@@ -168,7 +178,8 @@ covered by Swift Testing tests.
   - Database writes happen in transactions, and `PRAGMA quick_check` runs on open.
   - Every outside process can be cancelled and has a timeout.
   - The window is restored on relaunch, and it opens to Mission Control, which offers the
-    lesson you opened last while it is unfinished, then the next unfinished one in its course.
+    lesson you opened last while it is unfinished, then the next unfinished one in its course;
+    a new learner's first launch opens to the first course's opening instead.
 
 ## The built-in Go
 
