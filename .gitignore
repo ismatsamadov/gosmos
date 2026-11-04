@@ -8,4 +8,8 @@ build/
 *.sqlite-wal
 *.sqlite-shm
 
+# Personal study data and drafts belong to the local app, never the repository.
+learner.sqlite*
+.learner.sqlite.*
+
 .DS_Store

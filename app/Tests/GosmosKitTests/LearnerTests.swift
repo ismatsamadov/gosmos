@@ -7,6 +7,25 @@ import Testing
 /// is newer, brought up to date when older, and holding everything of yours by library and
 /// lesson.
 @Suite struct LearnerTests {
+    @Test func aNewLearnerStartsWithoutPersonalState() throws {
+        let dir = try Fixtures.tempDir("fresh-learner")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("learner.sqlite")
+        let learner = try LearnerDatabase(url: url, schema: Fixtures.learnerSchemaURL)
+        try learner.close()
+
+        let queue = try DatabaseQueue(path: url.path)
+        defer { try? queue.close() }
+        try queue.read { db in
+            let tables = try String.fetchAll(db, sql: "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+            for table in tables {
+                let identifier = "\"" + table.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+                let count = try Int.fetchOne(db, sql: "SELECT count(*) FROM \(identifier)")
+                #expect(count == 0, "A fresh learner's \(table) table must be empty")
+            }
+        }
+    }
+
     func header(_ url: URL) throws -> (id: Int, version: Int, tables: [String]) {
         let queue = try DatabaseQueue(path: url.path, configuration: { var c = Configuration(); c.readonly = true; return c }())
         defer { try? queue.close() }
