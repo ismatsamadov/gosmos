@@ -204,10 +204,10 @@ the end the sheet computes itself.
 #### 2.5 Whole Orbits and Leftovers
 `whole-orbits` · code · difficulty 2
 - **Objective:** Use integer division `/` and the remainder operator `%`.
-- **Scenario:** Ingrid asks how many full orbits Pipit-1 makes in a day, and what's left.
-- **Exercise:** The starter has `minutesPerDay := 1440` and `periodMin := 95` and prints
+- **Scenario:** Ingrid asks how many full orbits Thistle makes in a day, and what's left.
+- **Exercise:** The starter has `minutesPerDay := 1440` and `periodMin := 93` and prints
   zeros; you compute both numbers.
-- **Check:** `Full orbits: 15` / `Minutes left: 15`.
+- **Check:** `Full orbits: 15` / `Minutes left: 45`.
 
 #### 2.6 Floats Meet Ints
 `floats-meet-ints` · code_tests · difficulty 3
@@ -314,7 +314,7 @@ Friday morning it lines up.
 #### 3.7 The Board
 `the-board` · code · difficulty 4
 - **Objective:** Combine widths, decimals and zero padding in one table.
-- **Scenario:** Friday, 08:00: the Board must be readable before Furrowlight arrives.
+- **Scenario:** Friday, 03:40 UTC: the Board must be readable before Furrowlight arrives at nine.
 - **Exercise:** The starter holds four passes in variables and prints them with `Println`;
   you print the header with `"%-20s %-8s %-6s %6s  %s\n"` and each row with
   `"%-20s %-8s %02d:%02d  %6.1f  %s\n"`.
@@ -1135,8 +1135,8 @@ and `errors.Is`, wrapping with `%w`, custom error types with `errors.AsType`, `d
 cleanup, and `errors.Join`.
 
 **Story arc.** Thistle starts sending garbage: temperatures of 900 °C and frames that arrive
-twice. The telemetry service drops the bad ones without a word, and nobody notices for a
-week. Ingrid's new rule: every failure gets a name, a reason and a line in the log. You
+twice. The telemetry service stores the bad readings without a word, so the students cannot
+trust their plots. Ingrid's new rule: every failure gets a name, a reason and a line in the log. You
 learn Go's error values one step at a time, and finish with a validator that says exactly
 what is wrong with a frame.
 
@@ -1440,7 +1440,7 @@ re-executed run's output.
 `fixtures-in-testdata` · code_tests · difficulty 6
 - **Objective:** Load test inputs from `testdata/`, stopping with `t.Fatalf` if they can't
   be read.
-- **Scenario:** Last week's real Thistle frames become fixtures for the parser.
+- **Scenario:** Recorded Thistle frames become fixed inputs for the parser's tests.
 - **Exercise:** `testdata/thistle-0511.tlm` is a read-only starter file;
   `loadFixture(t testing.TB, name string) []string` returns `nil`; you read the file with
   `os.ReadFile`, call `t.Fatalf` on error and return its non-empty lines.
@@ -1451,13 +1451,13 @@ re-executed run's output.
 `guard-the-uplink` · code_tests · difficulty 7
 - **Objective:** Combine a case table, subtests and a helper into a full test of one
   function.
-- **Scenario:** Mirela's sign-off: your checks for `verify` must catch all five planted bugs.
+- **Scenario:** Mirela's sign-off: your checks for `verify` must catch all six planted bugs.
 - **Exercise:** `checkVerify(t *testing.T, verify func(cmd, sigHex string, key []byte) bool)`
   is empty; you write cases as subtests: valid, changed command, changed signature, wrong
   key, empty signature.
-- **Check:** `TestRealCodePasses`; `TestChecksCatchMutants` with five mutants: always true,
+- **Check:** `TestRealCodePasses`; `TestChecksCatchMutants` with six mutants: always true,
   accepts an empty signature, compares only the first 8 hex digits, ignores the key, ignores
-  the command.
+  the command, refuses even a validly signed command.
 
 ---
 
