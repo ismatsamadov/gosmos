@@ -1,3 +1,4 @@
+import AppKit
 import GosmosKit
 import SwiftUI
 
@@ -20,35 +21,45 @@ struct OpeningView: View {
             if pages.indices.contains(opening.page) {
                 page(pages[opening.page], count: pages.count)
                     .id(opening.page)
-                    .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity.combined(with: .offset(y: 14)), removal: .opacity))
+                    // A native text field must leave with its page, rather than stay alive as
+                    // an outgoing animated view while the next page is already on screen.
+                    .transaction { transaction in
+                        transaction.animation = nil
+                        transaction.disablesAnimations = true
+                    }
             }
         }
         .overlay(alignment: .topTrailing) {
-            Button("Skip Intro") { app.finishOpening() }
+            Button("Skip Intro") { leavePage { app.finishOpening() } }
                 .secondaryGlassButton()
                 .keyboardShortcut(.cancelAction)
                 .help("Skip the opening and start the course (Esc)")
                 .padding(.top, 18).padding(.trailing, 22)
         }
-        .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: opening.page)
         .environment(\.colorScheme, .dark)
         .onAppear { name = app.badgeName }
     }
 
     private func page(_ page: CourseStory.Page, count: Int) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 56) {
-                text(page, count: count).frame(width: 470, alignment: .leading)
-                side(page).frame(maxWidth: 520)
-            }
-            .padding(.horizontal, 64)
+        GeometryReader { geometry in
+            let wide = geometry.size.width >= 1000
+            let layout = wide
+                ? AnyLayout(HStackLayout(alignment: .center, spacing: 56))
+                : AnyLayout(VStackLayout(alignment: .leading, spacing: 32))
             ScrollView {
-                VStack(alignment: .leading, spacing: 32) {
+                // One set of controls in either layout. ViewThatFits created two name
+                // fields bound to the same focus state, including an off-screen one.
+                layout {
                     text(page, count: count)
+                        .frame(width: wide ? 470 : nil, alignment: .leading)
                     side(page)
+                        .frame(maxWidth: wide ? 520 : .infinity)
                 }
-                .padding(.horizontal, 48).padding(.vertical, 64)
-                .frame(maxWidth: 640, alignment: .leading)
+                .padding(.horizontal, wide ? 64 : 40)
+                .padding(.top, 74)
+                .padding(.bottom, 40)
+                .frame(maxWidth: 1180)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -76,11 +87,13 @@ struct OpeningView: View {
                     .frame(maxWidth: 340)
                     .focused($nameFocused)
                     // Return is the page's button, the default action, as anywhere on the page.
+                    .onSubmit { leavePage { app.advanceOpening() } }
+                    .onExitCommand { leavePage { app.finishOpening() } }
                     .onAppear { nameFocused = true }
                     .accessibilityLabel("The name on your badge")
             }
             HStack(spacing: 14) {
-                Button { moveOn(page) } label: {
+                Button { leavePage { app.advanceOpening() } } label: {
                     HStack(spacing: 14) {
                         Text(page.action)
                         Image(systemName: "arrow.right")
@@ -90,7 +103,7 @@ struct OpeningView: View {
                 .prominentGlassButton()
                 .keyboardShortcut(.defaultAction)
                 if opening.page > 0 {
-                    Button { app.openingPageBack() } label: { Label("Back", systemImage: "chevron.backward") }
+                    Button { leavePage { app.openingPageBack() } } label: { Label("Back", systemImage: "chevron.backward") }
                         .buttonStyle(.plain).foregroundStyle(Theme.onInk)
                         .help("The page before")
                 }
@@ -106,18 +119,19 @@ struct OpeningView: View {
                 .rotationEffect(.degrees(reduceMotion ? 0 : -2.5))
                 .frame(maxWidth: .infinity)
         } else if !page.cards.isEmpty {
-            // Scrolls in a window too short for all of a page's cards.
-            ViewThatFits(in: .vertical) {
-                StoryCardGrid(cards: page.cards)
-                ScrollView { StoryCardGrid(cards: page.cards).padding(.vertical, 60) }
-                    .scrollIndicators(.never)
-            }
+            StoryCardGrid(cards: page.cards)
         }
     }
 
-    private func moveOn(_ page: CourseStory.Page) {
-        if page.kind == .badge { app.setBadgeName(name) }
-        app.advanceOpening()
+    /// Commit editing before removing the field. Back and Skip keep the name too.
+    private func leavePage(_ action: () -> Void) {
+        nameFocused = false
+        NSApp.keyWindow?.makeFirstResponder(nil)
+        let pages = app.story(of: opening.course, in: opening.library)?.pages ?? []
+        if pages.indices.contains(opening.page), pages[opening.page].kind == .badge {
+            app.setBadgeName(name)
+        }
+        action()
     }
 }
 
