@@ -33,21 +33,22 @@ numbers, times and extra test cases. `go run ./cmd/author export` writes them ou
 | 4 | Orbit Math | `orbit-math` | functions, multiple returns, math, durations | 9 | 4 | 4 | 1 |
 | 5 | Go or No-Go | `go-or-no-go` | if, else, logical operators, switch | 8 | 3 | 4 | 1 |
 | 6 | Counting Down to AOS | `counting-down-to-aos` | loops, break, continue | 8 | 4 | 3 | 1 |
-| 7 | Modeling the Network | `modeling-the-network` | structs, time.Time, embedding | 7 | 3 | 3 | 1 |
-| 8 | The Day's Schedule | `the-days-schedule` | slices, sorting, variadic functions | 10 | 4 | 4 | 2 |
-| 9 | Who's Who in the Fleet | `whos-who-in-the-fleet` | maps, sets | 8 | 3 | 4 | 1 |
-| 10 | Changing Things in Place | `changing-things-in-place` | pointers, methods, iota, Stringer | 9 | 4 | 3 | 2 |
-| 11 | Every Radio Speaks | `every-radio-speaks` | interfaces, io.Writer, type switches, assertions | 8 | 3 | 4 | 1 |
-| 12 | When the Frame Is Wrong | `when-the-frame-is-wrong` | errors, wrapping, custom errors, defer | 10 | 2 | 6 | 2 |
-| 13 | Reading the Raw Feed | `reading-the-raw-feed` | strings, strconv, runes, bytes, HMAC | 8 | 2 | 5 | 1 |
-| 14 | Trust, but Verify | `trust-but-verify` | testing basics | 8 | 0 | 7 | 1 |
-| 15 | Splitting groundctl | `splitting-groundctl` | packages, modules | 7 | 4 | 1 | 2 |
-| 16 | One Helper, Every Type | `one-helper-every-type` | generics | 7 | 1 | 5 | 1 |
-| 17 | All Stations at Once | `all-stations-at-once` | goroutines, channels, select | 10 | 4 | 4 | 2 |
-| 18 | Locks and Deadlines | `locks-and-deadlines` | mutexes, context | 9 | 1 | 6 | 2 |
-| | **Total** | | | **150** | **58** | **67** | **25** |
+| 7 | Rules You Can Hand Around | `rules-you-can-hand-around` | function values, literals, closures, loop variables, rules | 8 | 2 | 5 | 1 |
+| 8 | Modeling the Network | `modeling-the-network` | structs, time.Time, embedding | 7 | 3 | 3 | 1 |
+| 9 | The Day's Schedule | `the-days-schedule` | slices, sorting, variadic functions | 10 | 4 | 4 | 2 |
+| 10 | Who's Who in the Fleet | `whos-who-in-the-fleet` | maps, sets | 8 | 3 | 4 | 1 |
+| 11 | Changing Things in Place | `changing-things-in-place` | pointers, methods, iota, Stringer, method values | 10 | 4 | 4 | 2 |
+| 12 | Every Radio Speaks | `every-radio-speaks` | interfaces, io.Writer, type switches, assertions | 8 | 3 | 4 | 1 |
+| 13 | When the Frame Is Wrong | `when-the-frame-is-wrong` | errors, wrapping, custom errors, defer, panic, recover | 13 | 2 | 9 | 2 |
+| 14 | Reading the Raw Feed | `reading-the-raw-feed` | strings, strconv, runes, bytes, HMAC, arrays, array keys | 10 | 2 | 7 | 1 |
+| 15 | Trust, but Verify | `trust-but-verify` | testing basics | 8 | 0 | 7 | 1 |
+| 16 | Splitting groundctl | `splitting-groundctl` | packages, modules | 7 | 4 | 1 | 2 |
+| 17 | One Helper, Every Type | `one-helper-every-type` | generics | 7 | 1 | 5 | 1 |
+| 18 | All Stations at Once | `all-stations-at-once` | goroutines, channels, select | 10 | 4 | 4 | 2 |
+| 19 | Locks and Deadlines | `locks-and-deadlines` | mutexes, context | 9 | 1 | 6 | 2 |
+| | **Total** | | | **164** | **60** | **78** | **26** |
 
-Mix: 38.7% code, 44.7% code_tests, 16.7% quizzes (83.3% hands-on). Every quiz is a quick
+Mix: 36.6% code, 47.6% code_tests, 15.9% quizzes (84.1% hands-on). Every quiz is a quick
 check of one to three questions that comes right after the idea it checks.
 
 ## How to read a lesson entry
@@ -602,7 +603,77 @@ Lessons 6.3 to 6.8 use given functions for their data, so they need no slices ye
 
 ---
 
-## Chapter 7 · Modeling the Network
+## Chapter 7 · Rules You Can Hand Around
+
+`rules-you-can-hand-around` · 8 lessons: 2 code, 5 code_tests, 1 quiz
+
+Function types, assignment and calls, function parameters and literals, closures with private
+state, function factories, per-iteration loop variables, and ordered lists of rules.
+
+**Story arc.** The week after Pipit-3’s launch, Ingrid’s go/no-go poll has become one long
+chain of customer exceptions. You give each customer a rule the checklist can keep, count
+its calls, retain each station’s minimum and finish by asking every rule before calling GO.
+Method values follow later, after receivers in chapter 11.
+
+#### 7.1 A Rule in a Variable
+`a-rule-in-a-variable` · code · difficulty 3
+- **Objective:** Assign a named function to a variable and call it through that variable.
+- **Scenario:** Ingrid needs Furrowlight’s minimum-elevation rule on the checklist.
+- **Exercise:** Replace two placeholder booleans with calls through `rule`.
+- **Check:** 15 degrees → false; 20 degrees → true.
+
+#### 7.2 Handing Over a Rule
+`handing-over-a-rule` · code_tests · difficulty 3
+- **Objective:** Accept and invoke a function parameter.
+- **Scenario:** Nkem wants callers to choose the customer’s rule.
+- **Exercise:** Implement `checkPass` by invoking the supplied rule.
+- **Check:** Different caller rules, boundary angles, the original argument and exactly one invocation.
+
+#### 7.3 A Rule Written in Place
+`a-rule-written-in-place` · code · difficulty 3
+- **Objective:** Write a function literal with typed parameters and a result.
+- **Scenario:** A one-use rule belongs beside Furrowlight’s checklist entry.
+- **Exercise:** Complete the function literal assigned to `rule`.
+- **Check:** 19 degrees → false; 20 and 45 → true.
+
+#### 7.4 Quick Check: Functions as Values
+`quick-check-function-values` · quiz · difficulty 3
+- **Objective:** Distinguish a function value, its result and a nil function variable.
+- **Scenario:** Ingrid reviews which checklist lines keep a rule and which call it.
+- **Exercise:** Answer three questions about a saved function.
+- **Check:** The type is `func(float64) bool`; parentheses call it; assign before calling a nil function.
+
+#### 7.5 The Rule That Counts
+`the-rule-that-counts` · code_tests · difficulty 4
+- **Objective:** Capture mutable local state in a returned closure.
+- **Scenario:** Each customer’s checklist needs its own count.
+- **Exercise:** Complete `makeCounter`, with its count outside the returned function.
+- **Check:** Repeated calls count upward; interleaved independent counters retain separate state.
+
+#### 7.6 A Rule Factory
+`a-rule-factory` · code_tests · difficulty 4
+- **Objective:** Return a function that captures a factory parameter.
+- **Scenario:** Furrowlight needs 20 degrees and Cirrine 30.
+- **Exercise:** Complete `minElevation` without shared state.
+- **Check:** Both thresholds include equality; constructing a second rule leaves the first unchanged.
+
+#### 7.7 One Rule per Station
+`one-rule-per-station` · code_tests · difficulty 4
+- **Objective:** Retain closures over per-iteration variables declared with `:=`.
+- **Scenario:** Three test stations must retain their own minimum angles.
+- **Exercise:** Complete the literal inside the supplied loop.
+- **Check:** Retained rules keep minima 1, 2 and 3 after the loop ends, under Go 1.22 and later.
+
+#### 7.8 The Whole Poll
+`the-whole-poll` · code_tests · difficulty 4
+- **Objective:** Call a slice of function values in order, stopping at a refusal.
+- **Scenario:** Ingrid needs every customer’s rule asked before GO.
+- **Exercise:** Complete the supplied `poll` loop over `[]Rule`; the slice syntax is explained here and developed in the schedule chapter.
+- **Check:** Original argument forwarded; order retained; no calls after refusal; all-true and empty lists accept.
+
+---
+
+## Chapter 8 · Modeling the Network
 
 `modeling-the-network` · 7 lessons: 3 code, 3 code_tests, 1 quiz
 
@@ -614,7 +685,7 @@ twice and Cape Wren's mask is wrong. Nkem asks you to model the network in code 
 define `Station`, `Satellite` with its `Orbit`, and `Pass`: the types every later chapter
 builds on.
 
-#### 7.1 A Station Type
+#### 8.1 A Station Type
 `a-station-type` · code · difficulty 3
 - **Objective:** Define a struct type and create a value with named fields.
 - **Scenario:** Port Ellery's facts become one value instead of four loose variables.
@@ -622,7 +693,7 @@ builds on.
   `Name`, `LatDeg` and `MaskDeg`, build Port Ellery and print it with `%+v`.
 - **Check:** `{Code:PEL Name:Port Ellery LatDeg:46.9 MaskDeg:5}`.
 
-#### 7.2 Structs as Parameters
+#### 8.2 Structs as Parameters
 `structs-as-parameters` · code_tests · difficulty 3
 - **Objective:** Pass a struct to a function and read its fields.
 - **Scenario:** The Board prints each station as one tidy line.
@@ -631,7 +702,7 @@ builds on.
 - **Check:** Port Ellery → `PEL Port Ellery (46.9 N, mask 5.0)`; Salar Quieto →
   `SQT Salar Quieto (23.4 S, mask 3.0)`; Lantern Atoll → `LAN Lantern Atoll (1.8 S, mask 8.0)`.
 
-#### 7.3 An Orbit Inside a Satellite
+#### 8.3 An Orbit Inside a Satellite
 `an-orbit-inside` · code_tests · difficulty 4
 - **Objective:** Nest one struct inside another and reach through with dots.
 - **Scenario:** A satellite's orbit is a little record of its own.
@@ -640,7 +711,7 @@ builds on.
 - **Check:** Pipit-1 (97.5°) true; Brine-3 (53°) false; Thistle (51.6°) false; 80 and 100
   true.
 
-#### 7.4 Copies, Not References
+#### 8.4 Copies, Not References
 `copies-not-references` · code · difficulty 4
 - **Objective:** See that assigning a struct copies it.
 - **Scenario:** You try a 12° mask for Cape Wren on a draft, without touching the live record.
@@ -648,7 +719,7 @@ builds on.
   `draft.MaskDeg = 12`.
 - **Check:** `live mask: 5` / `draft mask: 12`.
 
-#### 7.5 Quick Check: Structs
+#### 8.5 Quick Check: Structs
 `quick-check-structs` · quiz · difficulty 3
 - **Objective:** Check struct zero values, copies and literals.
 - **Scenario:** Nkem's check before your types go into review.
@@ -656,7 +727,7 @@ builds on.
 - **Check:** A struct's zero value has every field at its zero value; after `b := a` and
   `b.MaskDeg = 9`, `a.MaskDeg` is unchanged; `Station{Code: "PEL"}` sets only `Code`.
 
-#### 7.6 The Pass Type
+#### 8.6 The Pass Type
 `the-pass-type` · code_tests · difficulty 4
 - **Objective:** Keep `time.Time` values in a struct and subtract them.
 - **Scenario:** A pass is a satellite, a station, an AOS and an LOS; the rest follows.
@@ -665,7 +736,7 @@ builds on.
 - **Check:** 04:12:00 to 04:21:12 → 9m12s; AOS equal to LOS → 0; 23:58 to 00:07 the next
   day → 9m.
 
-#### 7.7 Shared Equipment
+#### 8.7 Shared Equipment
 `shared-equipment` · code · difficulty 5
 - **Objective:** Embed one struct in another to reuse its fields.
 - **Scenario:** Stations and the mobile test van share the same `Dish` record.
@@ -676,7 +747,7 @@ builds on.
 
 ---
 
-## Chapter 8 · The Day's Schedule
+## Chapter 9 · The Day's Schedule
 
 `the-days-schedule` · 10 lessons: 4 code, 4 code_tests, 2 quizzes
 
@@ -688,7 +759,7 @@ day. The schedule becomes a slice: you list it, loop over it, grow it, cut it an
 Along the way, editing a draft moves a Furrow pass on the live Board without anyone touching
 it, and in the last lesson you catch two passes booked on the same dish at Ystmark.
 
-#### 8.1 A List of Stations
+#### 9.1 A List of Stations
 `a-list-of-stations` · code · difficulty 3
 - **Objective:** Create a slice literal, index it and take its length.
 - **Scenario:** The five station codes belong in one list, not five variables.
@@ -696,14 +767,14 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
   `codes := []string{...}` and print the first, the last and the count.
 - **Check:** `First: YST` / `Last: CWR` / `Count: 5`.
 
-#### 8.2 Every Pass in the Log
+#### 9.2 Every Pass in the Log
 `every-pass-in-the-log` · code · difficulty 3
 - **Objective:** Loop over a slice with `for i, v := range`.
 - **Scenario:** The pass log numbers each pass from 1.
 - **Exercise:** The starter prints only the first pass ID; you range over the slice.
 - **Check:** `1 pipit-1/PEL/04182` / `2 furrow-a/SQT/11873` / `3 thistle/LAN/02218`.
 
-#### 8.3 A Growing Schedule
+#### 9.3 A Growing Schedule
 `a-growing-schedule` · code · difficulty 3
 - **Objective:** Grow a slice with `append` and keep its result.
 - **Scenario:** Predictions arrive one by one, and the schedule grows.
@@ -711,7 +782,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
   `passes = append(passes, id)`.
 - **Check:** `passes: 3` / `last: thistle/LAN/02218`.
 
-#### 8.4 Quick Check: Slices
+#### 9.4 Quick Check: Slices
 `quick-check-slices` · quiz · difficulty 3
 - **Objective:** Check length, indexing and append.
 - **Scenario:** Nkem's three questions before you touch the scheduler.
@@ -719,7 +790,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
 - **Check:** `len([]int{4, 8})` is 2; `s[5]` on a slice of length 3 panics at run time;
   `s = append(s, x)` needs the assignment because `append` returns the grown slice.
 
-#### 8.5 Cutting the Timeline
+#### 9.5 Cutting the Timeline
 `cutting-the-timeline` · code_tests · difficulty 4
 - **Objective:** Take part of a slice with `s[a:b]`.
 - **Scenario:** The Board shows the next three passes; the alert panel the last two readings.
@@ -728,7 +799,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
 - **Check:** `nextN` of five IDs with 3 → the first three, with 9 → all five; `lastN` of
   `[7.9 7.8 7.7]` with 2 → `[7.8 7.7]`, with 0 → empty.
 
-#### 8.6 The Pass That Moved Itself
+#### 9.6 The Pass That Moved Itself
 `the-pass-that-moved` · code · difficulty 5
 - **Objective:** See that slices can share one array, and copy with `slices.Clone`.
 - **Scenario:** Editing a draft of the schedule moved a Furrow pass on the live Board.
@@ -736,7 +807,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
   `live` too; you build the draft with `slices.Clone(live[:2])`.
 - **Check:** `live: [04:12 05:03 06:47]` / `draft: [04:12 05:30]`.
 
-#### 8.7 Quick Check: Sharing
+#### 9.7 Quick Check: Sharing
 `quick-check-sharing` · quiz · difficulty 4
 - **Objective:** Predict which changes show through a shared array.
 - **Scenario:** Ingrid asks how the Board's pass moved.
@@ -744,7 +815,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
 - **Check:** After `b := a[:2]` and `b[0] = "X"`, `a[0]` is `"X"`; after
   `c := slices.Clone(a)` and `c[0] = "Y"`, `a[0]` is unchanged.
 
-#### 8.8 Sorting the Day
+#### 9.8 Sorting the Day
 `sorting-the-day` · code_tests · difficulty 5
 - **Objective:** Sort a slice of structs with `slices.SortFunc` and a comparison function.
 - **Scenario:** Predictions arrive in any order; the Board needs them by AOS.
@@ -753,7 +824,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
 - **Check:** Four passes come out in AOS order; two with the same AOS come out `LAN` before
   `YST`.
 
-#### 8.9 Any Number of Readings
+#### 9.9 Any Number of Readings
 `any-number-of-readings` · code_tests · difficulty 4
 - **Objective:** Write a variadic function and pass a slice to it with `...`.
 - **Scenario:** The temperature panel averages three readings one day, three hundred the next.
@@ -762,7 +833,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
 - **Check:** `average() == 0`; `average(7.9) == 7.9`; `average(1, 2, 3, 4) == 2.5`;
   `average(temps...)` with three values.
 
-#### 8.10 Double-Booked at Ystmark
+#### 9.10 Double-Booked at Ystmark
 `double-booked` · code_tests · difficulty 6
 - **Objective:** Compare every pair in a slice with nested index loops.
 - **Scenario:** Two passes tonight need Ystmark's dish at the same time.
@@ -775,7 +846,7 @@ it, and in the last lesson you catch two passes booked on the same dish at Ystma
 
 ---
 
-## Chapter 9 · Who's Who in the Fleet
+## Chapter 10 · Who's Who in the Fleet
 
 `whos-who-in-the-fleet` · 8 lessons: 3 code, 4 code_tests, 1 quiz
 
@@ -788,14 +859,14 @@ You rebuild it as maps: satellites by ID, frame counts per satellite, the set of
 numbers already seen. The chapter ends with the chunk map that tells Furrowlight exactly
 which pieces of an image never came down.
 
-#### 9.1 The Fleet Registry
+#### 10.1 The Fleet Registry
 `the-fleet-registry` · code · difficulty 3
 - **Objective:** Create a map literal, add a key and look values up.
 - **Scenario:** Ops wants each satellite's operator by ID.
 - **Exercise:** The starter's map lacks Thistle; you add it and print three lookups.
 - **Check:** `pipit-1: Apogee` / `furrow-b: Furrowlight` / `thistle: Kessick Polytechnic`.
 
-#### 9.2 Is It in the Registry?
+#### 10.2 Is It in the Registry?
 `is-it-in-the-registry` · code_tests · difficulty 4
 - **Objective:** Tell a missing key from a zero value with the comma-ok form.
 - **Scenario:** Asking for Brine-2 must say "unknown satellite", not print an empty operator.
@@ -804,7 +875,7 @@ which pieces of an image never came down.
 - **Check:** `pipit-1` → `Apogee`; `brine-2` → `unknown satellite`; `pipit-3`, present with
   an empty operator → `""`.
 
-#### 9.3 Counting Frames
+#### 10.3 Counting Frames
 `counting-frames` · code · difficulty 4
 - **Objective:** Count with `m[key]++`, starting from a missing key's zero value.
 - **Scenario:** The hourly report shows how many frames each satellite sent.
@@ -812,7 +883,7 @@ which pieces of an image never came down.
   `main` prints the map, which `fmt` shows in key order.
 - **Check:** `map[brine-3:1 pipit-1:3 thistle:2]`.
 
-#### 9.4 Quick Check: Maps
+#### 10.4 Quick Check: Maps
 `quick-check-maps` · quiz · difficulty 3
 - **Objective:** Check how maps behave at their edges.
 - **Scenario:** Nkem's quick check before the registry ships.
@@ -820,14 +891,14 @@ which pieces of an image never came down.
 - **Check:** Reading a missing key gives the value type's zero value; `range` over a map has
   no fixed order; writing to a nil map panics.
 
-#### 9.5 Removing Brine-2
+#### 10.5 Removing Brine-2
 `removing-brine-2` · code · difficulty 3
 - **Objective:** Remove a key with `delete`.
 - **Scenario:** Brine-2 never left its deployer; it must leave the registry.
 - **Exercise:** The starter's registry of nine still lists `brine-2`; you delete it.
 - **Check:** `satellites: 8` / `brine-2 listed: false`.
 
-#### 9.6 A Report in Stable Order
+#### 10.6 A Report in Stable Order
 `a-stable-report` · code_tests · difficulty 5
 - **Objective:** Visit a map's keys in sorted order.
 - **Scenario:** The hourly report jumps around, because map order changes from run to run.
@@ -836,7 +907,7 @@ which pieces of an image never came down.
 - **Check:** `{thistle: 2, pipit-1: 3, brine-3: 1}` → `["brine-3: 1", "pipit-1: 3",
   "thistle: 2"]`; an empty map → empty.
 
-#### 9.7 Seen Before
+#### 10.7 Seen Before
 `seen-before` · code_tests · difficulty 5
 - **Objective:** Use a map as a set.
 - **Scenario:** Thistle's frames sometimes arrive twice, once through each of two stations.
@@ -845,7 +916,7 @@ which pieces of an image never came down.
 - **Check:** `[4182 4183 4182 4184 4183]` → `[4182 4183 4184]`; empty → empty; no
   duplicates → unchanged.
 
-#### 9.8 The Missing Chunks
+#### 10.8 The Missing Chunks
 `the-missing-chunks` · code_tests · difficulty 6
 - **Objective:** Combine a map with a counting loop to find what's absent.
 - **Scenario:** A Furrow-A image came down in numbered chunks; Furrowlight wants the missing
@@ -857,9 +928,9 @@ which pieces of an image never came down.
 
 ---
 
-## Chapter 10 · Changing Things in Place
+## Chapter 11 · Changing Things in Place
 
-`changing-things-in-place` · 9 lessons: 4 code, 3 code_tests, 2 quizzes
+`changing-things-in-place` · 10 lessons: 4 code, 4 code_tests, 2 quizzes
 
 Pointers and methods: addresses and dereferencing, `nil`, value and pointer receivers,
 named types with `iota`, and the `String` method.
@@ -870,7 +941,7 @@ copy. Pointers explain why. Then Nkem shows you how to give types behavior of th
 Pass that knows its length, a Station that stows itself, a severity that prints as a word.
 The chapter ends with the storm itself, hour by hour.
 
-#### 10.1 The Stow That Didn't
+#### 11.1 The Stow That Didn't
 `the-stow-that-didnt` · code · difficulty 4
 - **Objective:** Pass a pointer so a function can change the caller's value.
 - **Scenario:** `stow(yst)` ran before the storm, but Ystmark still shows as tracking.
@@ -878,7 +949,7 @@ The chapter ends with the storm itself, hour by hour.
   `stow(&yst)`.
 - **Check:** `YST stowed: true`.
 
-#### 10.2 Quick Check: Pointers
+#### 11.2 Quick Check: Pointers
 `quick-check-pointers` · quiz · difficulty 4
 - **Objective:** Check `&`, `*` and `nil`.
 - **Scenario:** Sunniva's three questions, one word each in her reply.
@@ -886,7 +957,7 @@ The chapter ends with the storm itself, hour by hour.
 - **Check:** `&x` is the address of `x`; `*p = 5` changes the variable `p` points to; a
   pointer's zero value is `nil`.
 
-#### 10.3 Nobody Home
+#### 11.3 Nobody Home
 `nobody-home` · code_tests · difficulty 5
 - **Objective:** Return a pointer, or `nil` when there is nothing to point to.
 - **Scenario:** Looking up `XYZ` must say there's no such station, not invent an empty one.
@@ -895,7 +966,7 @@ The chapter ends with the storm itself, hour by hour.
 - **Check:** `find(..., "SQT")` points into the slice, so setting `Stowed` through it shows
   in the slice; `find(..., "XYZ")` is `nil`.
 
-#### 10.4 A Pass Knows Its Length
+#### 11.4 A Pass Knows Its Length
 `a-pass-knows-its-length` · code · difficulty 4
 - **Objective:** Declare a method with a value receiver.
 - **Scenario:** Everyone writes `p.LOS.Sub(p.AOS)`; Nkem wants `p.Duration()`.
@@ -904,7 +975,7 @@ The chapter ends with the storm itself, hour by hour.
 - **Check:** `pipit-1@PEL 9m12s` / `furrow-a@SQT 11m4s` / `thistle@LAN 6m30s`. The starter
   fails with `p.Duration undefined`.
 
-#### 10.5 Stow Yourself
+#### 11.5 Stow Yourself
 `stow-yourself` · code_tests · difficulty 5
 - **Objective:** Use a pointer receiver for a method that changes its value.
 - **Scenario:** Sunniva wants `st.Stow("wind 81 km/h")` to record why a dish is parked.
@@ -913,7 +984,14 @@ The chapter ends with the storm itself, hour by hour.
 - **Check:** After `Stow("wind 81 km/h")`: `Stowed` true, `StowReason` set; after `Unstow()`:
   false and `""`.
 
-#### 10.6 Quick Check: Receivers
+#### 11.6 A Method Kept for Later
+`a-method-kept-for-later` · code_tests · difficulty 5
+- **Objective:** Bind a pointer receiver in a method value for a later call.
+- **Scenario:** Sunniva’s checklist needs to keep the stow action while she checks heaters.
+- **Exercise:** Return `s.Stow` from `stowAction`.
+- **Check:** No change at binding time; later calls update the right station and reason independently.
+
+#### 11.7 Quick Check: Receivers
 `quick-check-receivers` · quiz · difficulty 4
 - **Objective:** Check when a method needs a pointer receiver.
 - **Scenario:** Nkem's review comment comes as two questions.
@@ -921,7 +999,7 @@ The chapter ends with the storm itself, hour by hour.
 - **Check:** A method that changes its struct needs a pointer receiver; `st.Stow(...)` on a
   variable works without `&`, because Go takes the address for you.
 
-#### 10.7 Severity Levels
+#### 11.8 Severity Levels
 `severity-levels` · code_tests · difficulty 5
 - **Objective:** Declare a named type with a block of `iota` constants.
 - **Scenario:** The pager ranks alerts Info, Warning and Critical, and must pick the worst.
@@ -930,7 +1008,7 @@ The chapter ends with the storm itself, hour by hour.
 - **Check:** `Info < Warning < Critical`; `worst(Info, Critical) == Critical`;
   `worst(Warning, Info) == Warning`.
 
-#### 10.8 A Word, Not a Number
+#### 11.9 A Word, Not a Number
 `a-word-not-a-number` · code · difficulty 5
 - **Objective:** Add a `String` method so `fmt` prints a type as text.
 - **Scenario:** Pages say "severity 2", and the on-call engineer has to look it up.
@@ -938,7 +1016,7 @@ The chapter ends with the storm itself, hour by hour.
   `func (s Severity) String() string`.
 - **Check:** `INFO` / `WARNING` / `CRITICAL`.
 
-#### 10.9 Storm at Ystmark
+#### 11.10 Storm at Ystmark
 `storm-at-ystmark` · code · difficulty 6
 - **Objective:** Call pointer methods on the elements of a slice, not on copies.
 - **Scenario:** Hour by hour the wind rises and falls at Ystmark, and your code stows and
@@ -958,7 +1036,7 @@ The chapter ends with the storm itself, hour by hour.
 
 ---
 
-## Chapter 11 · Every Radio Speaks
+## Chapter 12 · Every Radio Speaks
 
 `every-radio-speaks` · 8 lessons: 3 code, 4 code_tests, 1 quiz
 
@@ -970,7 +1048,7 @@ housekeeping and commands, X-band for the big imagery dumps. Every new radio has
 another copy of the pass code. Tomás wants one pass routine for any radio, and Mirela wants
 anomaly rules she can add without touching the pager. Interfaces give them both.
 
-#### 11.1 One Pass Routine
+#### 12.1 One Pass Routine
 `one-pass-routine` · code_tests · difficulty 5
 - **Objective:** Declare an interface and accept it as a parameter.
 - **Scenario:** The downlink-time estimate exists three times, once per radio.
@@ -980,7 +1058,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 - **Check:** X-band (150 Mbps), 9000 MB → 480 s; S-band (4 Mbps), 30 MB → 60 s; UHF
   (0.0096 Mbps), 0.0072 MB → 6 s.
 
-#### 11.2 No implements Keyword
+#### 12.2 No implements Keyword
 `no-implements-keyword` · code · difficulty 5
 - **Objective:** Satisfy an interface just by having its methods.
 - **Scenario:** Salar Quieto's new Ka-band test radio must plug into the routine unchanged.
@@ -989,7 +1067,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 - **Check:** `Ka-band: 9000 MB in 240 s`. The starter fails with
   `KaBandRadio does not implement Radio (missing method RateMbps)`.
 
-#### 11.3 Quick Check: Interfaces
+#### 12.3 Quick Check: Interfaces
 `quick-check-interfaces` · quiz · difficulty 4
 - **Objective:** Check what satisfying an interface means.
 - **Scenario:** Tomás asks three questions while the Ka-band radio warms up.
@@ -997,7 +1075,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 - **Check:** A type satisfies an interface by having its methods, with no declaration; one
   interface variable can hold different types over time; every type satisfies `any`.
 
-#### 11.4 Satellites That Introduce Themselves
+#### 12.4 Satellites That Introduce Themselves
 `satellites-introduce-themselves` · code · difficulty 4
 - **Objective:** Implement `fmt.Stringer`, the interface `fmt` looks for.
 - **Scenario:** Logs print satellites as `{pipit-1 Pipit-1 {525 97.5}}`; ops wants
@@ -1006,7 +1084,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
   `func (s Satellite) String() string`.
 - **Check:** `Pipit-1 (525 km)` / `Thistle (415 km)` / `Cirrine-1 (600 km)`.
 
-#### 11.5 Write Anywhere
+#### 12.5 Write Anywhere
 `write-anywhere` · code_tests · difficulty 5
 - **Objective:** Accept an `io.Writer` so output can go anywhere.
 - **Scenario:** The Board must draw on the Fishbowl's screen and, in tests, into a string.
@@ -1015,7 +1093,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 - **Check:** Given a `strings.Builder`, the result is exactly `NEXT PASSES\n` followed by one
   ID per line; with no IDs, just the header.
 
-#### 11.6 Which Payload Is This?
+#### 12.6 Which Payload Is This?
 `which-payload` · code · difficulty 5
 - **Objective:** Branch on a value's concrete type with a type switch.
 - **Scenario:** Downlinked items are images, housekeeping frames or file chunks, and each
@@ -1025,7 +1103,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 - **Check:** `main.Image -> imagery` / `main.Housekeeping -> telemetry` /
   `main.Chunk -> reassembly` / `string -> quarantine`.
 
-#### 11.7 Can It Track?
+#### 12.7 Can It Track?
 `can-it-track` · code_tests · difficulty 6
 - **Objective:** Check for an optional method with a type assertion's comma-ok form.
 - **Scenario:** Some radios correct Doppler on their own; the routine must pre-compensate
@@ -1035,7 +1113,7 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
   `DopplerTracker`.
 - **Check:** S-band (tracks) → false; UHF (doesn't) → true; X-band (tracks) → false.
 
-#### 11.8 Anomaly Rules
+#### 12.8 Anomaly Rules
 `anomaly-rules` · code_tests · difficulty 6
 - **Objective:** Keep different types in one slice through an interface.
 - **Scenario:** Mirela wants to add anomaly rules without editing the pager.
@@ -1048,9 +1126,9 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 
 ---
 
-## Chapter 12 · When the Frame Is Wrong
+## Chapter 13 · When the Frame Is Wrong
 
-`when-the-frame-is-wrong` · 10 lessons: 2 code, 6 code_tests, 2 quizzes
+`when-the-frame-is-wrong` · 13 lessons: 2 code, 9 code_tests, 2 quizzes
 
 Errors: returning and checking `error` values, messages with `fmt.Errorf`, sentinel errors
 and `errors.Is`, wrapping with `%w`, custom error types with `errors.AsType`, `defer` for
@@ -1062,7 +1140,7 @@ week. Ingrid's new rule: every failure gets a name, a reason and a line in the l
 learn Go's error values one step at a time, and finish with a validator that says exactly
 what is wrong with a frame.
 
-#### 12.1 Errors Are Values
+#### 13.1 Errors Are Values
 `errors-are-values` · code_tests · difficulty 4
 - **Objective:** Return an error, or `nil` when all is well.
 - **Scenario:** A battery reading under 6.6 V must be reported, not stored quietly.
@@ -1070,7 +1148,7 @@ what is wrong with a frame.
   `errors.New("battery too low")` under 6.6 V.
 - **Check:** 7.4 → nil; 6.6 → nil; 6.2 → an error reading `battery too low`.
 
-#### 12.2 Check It Right Away
+#### 13.2 Check It Right Away
 `check-it-right-away` · code · difficulty 4
 - **Objective:** Handle an error with `if err != nil` right after the call.
 - **Scenario:** The ingest loop stores every reading, even the rejected ones.
@@ -1079,7 +1157,7 @@ what is wrong with a frame.
 - **Check:** `7.91: stored` / `6.20: rejected: battery too low` / `7.40: stored` /
   `stored 2 of 3`.
 
-#### 12.3 Say What Went Wrong
+#### 13.3 Say What Went Wrong
 `say-what-went-wrong` · code_tests · difficulty 5
 - **Objective:** Put values into an error message with `fmt.Errorf`.
 - **Scenario:** "battery too low" doesn't say which satellite, or how low.
@@ -1088,7 +1166,7 @@ what is wrong with a frame.
 - **Check:** `("thistle", 6.2)` → `thistle: battery 6.20 V below 6.60 V`;
   `("pipit-1", 7.9)` → nil.
 
-#### 12.4 Quick Check: Errors
+#### 13.4 Quick Check: Errors
 `quick-check-errors` · quiz · difficulty 4
 - **Objective:** Check what an error is and how messages are written.
 - **Scenario:** Ingrid's quick check before the new log goes live.
@@ -1096,7 +1174,7 @@ what is wrong with a frame.
 - **Check:** `error` is an interface with one method, `Error() string`; a `nil` error means
   success; Go style is `battery too low`: lowercase, no final period.
 
-#### 12.5 Known Failures
+#### 13.5 Known Failures
 `known-failures` · code_tests · difficulty 5
 - **Objective:** Declare a sentinel error and recognize it with `errors.Is`.
 - **Scenario:** Duplicate frames are normal; the pager must ignore them and page on anything
@@ -1108,7 +1186,7 @@ what is wrong with a frame.
   `shouldPage(ErrDuplicate)` false; `shouldPage(errors.New("bad crc"))` true;
   `shouldPage(nil)` false.
 
-#### 12.6 Wrap It, Keep It
+#### 13.6 Wrap It, Keep It
 `wrap-it-keep-it` · code_tests · difficulty 5
 - **Objective:** Add context with `%w` and keep the original error recognizable.
 - **Scenario:** The log wants `thistle seq 4182: duplicate frame`, and the pager must still
@@ -1118,7 +1196,7 @@ what is wrong with a frame.
 - **Check:** The message is `thistle seq 4182: duplicate frame`;
   `errors.Is(err, ErrDuplicate)` is true.
 
-#### 12.7 An Error with Fields
+#### 13.7 An Error with Fields
 `an-error-with-fields` · code_tests · difficulty 6
 - **Objective:** Define an error type with fields and extract it with `errors.AsType`.
 - **Scenario:** The pager wants the field and the value that broke the limit, not a sentence.
@@ -1130,7 +1208,7 @@ what is wrong with a frame.
   `pagerDetail` of it wrapped with `%w` → `temp_c=51.0 outside [-10.0, 45.0]`;
   `pagerDetail` of another error → `""`.
 
-#### 12.8 Quick Check: Is or As?
+#### 13.8 Quick Check: Is or As?
 `quick-check-is-or-as` · quiz · difficulty 5
 - **Objective:** Choose between `errors.Is` and `errors.AsType`.
 - **Scenario:** Mirela asks which tool the pager should use, and when.
@@ -1138,7 +1216,7 @@ what is wrong with a frame.
 - **Check:** To recognize `ErrDuplicate` inside a wrapped error, `errors.Is`; to get a
   `*LimitError`'s fields, `errors.AsType`.
 
-#### 12.9 Close the Session, Always
+#### 13.9 Close the Session, Always
 `close-the-session` · code · difficulty 5
 - **Objective:** Use `defer` to run cleanup however a function returns.
 - **Scenario:** A pass session left open after an error blocked the dish for the next pass.
@@ -1147,7 +1225,28 @@ what is wrong with a frame.
 - **Check:** `open YST` / `pass ok` / `close YST` / `open CWR` /
   `pass failed: wind 81 km/h` / `close CWR`.
 
-#### 12.10 The Frame Validator
+#### 13.10 A Programmer's Mistake
+`a-programmers-mistake` · code_tests · difficulty 5
+- **Objective:** Use a panic for an invalid internal invariant, and distinguish it from input errors.
+- **Scenario:** Nkem finds a decoder configured to hold zero readings.
+- **Exercise:** Guard `requireLimit` with the specified panic message.
+- **Check:** Zero and negative limits panic; positive limits return normally.
+
+#### 13.11 Recover at the Boundary
+`recover-at-the-boundary` · code_tests · difficulty 6
+- **Objective:** Recover directly in a deferred function at a job boundary.
+- **Scenario:** One broken decoder must not stop the whole reading service.
+- **Exercise:** Set a named error result from the panic value in `runDecoder`.
+- **Check:** Successful zero/nonzero readings survive; string and error panics become errors; deferred cleanup runs.
+
+#### 13.12 Do Not Hide the Bug
+`do-not-hide-the-bug` · code_tests · difficulty 6
+- **Objective:** Handle a known panic type and re-panic unexpected values unchanged.
+- **Scenario:** Mirela asks whether the boundary understands the failure it caught.
+- **Exercise:** Recognize `decoderFault`; convert its reason to an error and re-panic everything else.
+- **Check:** Known faults become errors; success survives; unexpected strings, integers and pointers retain their original values.
+
+#### 13.13 The Frame Validator
 `the-frame-validator` · code_tests · difficulty 7
 - **Objective:** Return every problem at once with `errors.Join`.
 - **Scenario:** One of Thistle's frames is both a duplicate and too hot, and the log should
@@ -1160,9 +1259,9 @@ what is wrong with a frame.
 
 ---
 
-## Chapter 13 · Reading the Raw Feed
+## Chapter 14 · Reading the Raw Feed
 
-`reading-the-raw-feed` · 8 lessons: 2 code, 5 code_tests, 1 quiz
+`reading-the-raw-feed` · 10 lessons: 2 code, 7 code_tests, 1 quiz
 
 Strings, bytes and runes: splitting and cutting lines, parsing numbers with `strconv`,
 UTF-8 and rune counts, iterating over runes, hex and big-endian bytes, and HMAC signatures.
@@ -1172,7 +1271,7 @@ place names arrive from Salar Quieto's console in UTF-8 that the Board mangles. 
 them all apart. Then you build the most careful bytes Apogee sends: a signed command for
 Pipit-2, which Mirela reviews line by line.
 
-#### 13.1 Taking a Line Apart
+#### 14.1 Taking a Line Apart
 `taking-a-line-apart` · code · difficulty 4
 - **Objective:** Split a line into fields with `strings.Fields`.
 - **Scenario:** A telemetry line is satellite, sequence and time, then `key=value` pairs, and
@@ -1181,7 +1280,7 @@ Pipit-2, which Mirela reviews line by line.
   field; you use `strings.Fields`.
 - **Check:** `fields: 6` / `satellite: thistle` / `seq: 4182`.
 
-#### 13.2 Key Equals Value
+#### 14.2 Key Equals Value
 `key-equals-value` · code_tests · difficulty 5
 - **Objective:** Split a string once with `strings.Cut`.
 - **Scenario:** `batt_v=7.91` has to become a key and a value.
@@ -1190,7 +1289,7 @@ Pipit-2, which Mirela reviews line by line.
 - **Check:** `batt_v` → `"7.91", true`; `mode` → `"NOMINAL", true`; a missing key →
   `"", false`; `note=a=b` → `"a=b"`.
 
-#### 13.3 Text to Numbers
+#### 14.3 Text to Numbers
 `text-to-numbers` · code_tests · difficulty 5
 - **Objective:** Parse a number with `strconv.ParseFloat` and handle its error.
 - **Scenario:** A frame said `batt_v=7.9l`, with a letter l, and the parser stored 0 V.
@@ -1199,7 +1298,7 @@ Pipit-2, which Mirela reviews line by line.
 - **Check:** `batt_v=7.91` → 7.91, nil; `batt_v=7.9l` → an error containing `batt_v`; no
   `batt_v` field → an error.
 
-#### 13.4 Bytes Are Not Letters
+#### 14.4 Bytes Are Not Letters
 `bytes-are-not-letters` · code · difficulty 5
 - **Objective:** Count characters with `utf8.RuneCountInString`, not `len`.
 - **Scenario:** The Board cuts "Quebrada Añil", the road to Salar Quieto, a letter short,
@@ -1207,7 +1306,7 @@ Pipit-2, which Mirela reviews line by line.
 - **Exercise:** The starter prints `len` of three names; you print their rune counts.
 - **Check:** `Ystmark: 7` / `Quebrada Añil: 13` / `Tomás: 5` (the starter prints 7, 14, 6).
 
-#### 13.5 Walking Runes
+#### 14.5 Walking Runes
 `walking-runes` · code_tests · difficulty 5
 - **Objective:** Loop over a string's runes with `for range`.
 - **Scenario:** Radio call signs accept only A to Z, digits and hyphens.
@@ -1216,7 +1315,7 @@ Pipit-2, which Mirela reviews line by line.
 - **Check:** `Salar Quieto` → `SALAR-QUIETO`; `Añil` → `A_IL`; `Pipit-3` → `PIPIT-3`;
   `""` → `""`.
 
-#### 13.6 Quick Check: Text
+#### 14.6 Quick Check: Text
 `quick-check-text` · quiz · difficulty 4
 - **Objective:** Check bytes, runes and string immutability.
 - **Scenario:** Paz asks three questions in a voice memo from 3,840 m.
@@ -1224,7 +1323,21 @@ Pipit-2, which Mirela reviews line by line.
 - **Check:** `len("°C")` is 3; `s[0]` is a byte; `s[0] = 'x'` doesn't compile, because
   strings can't be changed.
 
-#### 13.7 Raw Beacon Bytes
+#### 14.7 Twelve Bytes Every Time
+`twelve-bytes-every-time` · code_tests · difficulty 5
+- **Objective:** Use fixed-size array types, copies and equality.
+- **Scenario:** Paz needs Pipit’s twelve-byte beacon represented without losing its original version.
+- **Exercise:** Complete `sameBeacon` and `withVersion` on `[12]byte` values.
+- **Check:** Each differing byte makes arrays unequal; only the copy’s version changes; the caller stays unchanged.
+
+#### 14.8 A Beacon as a Key
+`a-beacon-as-a-key` · code_tests · difficulty 6
+- **Objective:** Use comparable arrays as map keys and slice an array through a pointer.
+- **Scenario:** Paz needs repeated beacons recognized and reading bytes passed without a copy.
+- **Exercise:** Complete `firstSeen` with an initialized map, then return bytes 3 through 7 from `readingBytes`.
+- **Check:** New/repeated/changed keys behave independently; stored keys keep their values; returned slices share the original array.
+
+#### 14.9 Raw Beacon Bytes
 `raw-beacon-bytes` · code_tests · difficulty 6
 - **Objective:** Decode hex into bytes and read big-endian numbers with `encoding/binary`.
 - **Scenario:** Pipit beacons come down as 12 raw bytes; ops needs the sequence number and
@@ -1235,7 +1348,7 @@ Pipit-2, which Mirela reviews line by line.
 - **Check:** A valid beacon (format in `story.md`) → 4182 and 7910 mV; bad hex → error;
   8 bytes → error; wrong sync bytes → error.
 
-#### 13.8 Signing the Uplink
+#### 14.10 Signing the Uplink
 `signing-the-uplink` · code_tests · difficulty 7
 - **Objective:** Sign and verify bytes with HMAC-SHA256, comparing with `hmac.Equal`.
 - **Scenario:** Mirela won't let a command reach Pipit-2 unless it carries a signature only
@@ -1249,7 +1362,7 @@ Pipit-2, which Mirela reviews line by line.
 
 ---
 
-## Chapter 14 · Trust, but Verify
+## Chapter 15 · Trust, but Verify
 
 `trust-but-verify` · 8 lessons: 7 code_tests, 1 quiz
 
@@ -1269,7 +1382,7 @@ pass, and runs each mutant in a re-executed test binary
 must fail. Subtest names and helper line numbers are checked the same way, from a
 re-executed run's output.
 
-#### 14.1 Cases Are Data
+#### 15.1 Cases Are Data
 `cases-are-data` · code_tests · difficulty 5
 - **Objective:** Write test cases as a table of inputs and expected results.
 - **Scenario:** Mirela asks for cases for `canonical()`, which lays a command out for signing.
@@ -1278,7 +1391,7 @@ re-executed run's output.
 - **Check:** `TestEnoughCases`: three or more, names unique and non-empty;
   `TestCasesHold`: every case passes against `canonical`.
 
-#### 14.2 Catch the Mutants
+#### 15.2 Catch the Mutants
 `catch-the-mutants` · code_tests · difficulty 6
 - **Objective:** Pick cases that would catch real bugs, boundaries first.
 - **Scenario:** Mirela plants three broken copies of `accept(seq, last uint64) bool`, the
@@ -1288,7 +1401,7 @@ re-executed run's output.
   `seq >= last` (accepts a replay), `seq > last+1` (rejects the next command) and
   `seq != last` (accepts an old command) fails at least one case.
 
-#### 14.3 Your First Check
+#### 15.3 Your First Check
 `your-first-check` · code_tests · difficulty 5
 - **Objective:** Report a failure with `t.Errorf` from your own checking code.
 - **Scenario:** Now Mirela wants the checking code written by you as well.
@@ -1297,7 +1410,7 @@ re-executed run's output.
 - **Check:** `TestRealCodePasses` (with `batteryBand`); `TestChecksCatchMutants` (two
   mutants, each must fail in a re-executed run).
 
-#### 14.4 Quick Check: Errorf or Fatalf
+#### 15.4 Quick Check: Errorf or Fatalf
 `quick-check-errorf-or-fatalf` · quiz · difficulty 4
 - **Objective:** Check when a test stops.
 - **Scenario:** Mirela's two questions after your first review.
@@ -1305,7 +1418,7 @@ re-executed run's output.
 - **Check:** After `t.Errorf` the test keeps running; `t.Fatalf` fits when later checks make
   no sense, such as after a parse error.
 
-#### 14.5 One Subtest per Case
+#### 15.5 One Subtest per Case
 `one-subtest-per-case` · code_tests · difficulty 6
 - **Objective:** Run each case as a named subtest with `t.Run`.
 - **Scenario:** When one of twenty cases fails, the log should name it.
@@ -1314,7 +1427,7 @@ re-executed run's output.
 - **Check:** `TestSubtestsNamed` (a re-executed `-test.v` run lists
   `TestWind/calm-30` and the other names); `TestChecksCatchMutants`.
 
-#### 14.6 Helpers That Point at the Caller
+#### 15.6 Helpers That Point at the Caller
 `helpers-point-at-the-caller` · code_tests · difficulty 6
 - **Objective:** Mark a helper with `t.Helper` so failures point at the line that called it.
 - **Scenario:** Every failure in the Doppler tests points at the same line inside the helper.
@@ -1323,7 +1436,7 @@ re-executed run's output.
 - **Check:** `TestHelperPointsAtCaller`: a re-executed probe that fails on purpose reports
   `main_test.go:<line>`, not `checks.go`; `TestAssertNear` passes within the tolerance.
 
-#### 14.7 Fixtures in testdata
+#### 15.7 Fixtures in testdata
 `fixtures-in-testdata` · code_tests · difficulty 6
 - **Objective:** Load test inputs from `testdata/`, stopping with `t.Fatalf` if they can't
   be read.
@@ -1334,7 +1447,7 @@ re-executed run's output.
 - **Check:** `TestLoadsFixture` gets the file's 12 lines; `TestMissingFixtureIsFatal`: a
   re-executed probe asking for a missing file fails with your message.
 
-#### 14.8 Guard the Uplink
+#### 15.8 Guard the Uplink
 `guard-the-uplink` · code_tests · difficulty 7
 - **Objective:** Combine a case table, subtests and a helper into a full test of one
   function.
@@ -1348,7 +1461,7 @@ re-executed run's output.
 
 ---
 
-## Chapter 15 · Splitting groundctl
+## Chapter 16 · Splitting groundctl
 
 `splitting-groundctl` · 7 lessons: 4 code, 1 code_tests, 2 quizzes
 
@@ -1363,7 +1476,7 @@ telemetry and alert import each other.
 Every lesson here ships `go.mod` (`module apogee/groundctl`, listed in `readonly.txt`) and
 packages in subfolders, with tests, when there are any, in the root `main_test.go`.
 
-#### 15.1 The Module Line
+#### 16.1 The Module Line
 `the-module-line` · code · difficulty 5
 - **Objective:** Import a package from your own module by its path.
 - **Scenario:** The orbit math has moved into its own folder, `orbit/`.
@@ -1371,7 +1484,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
   `import "apogee/groundctl/orbit"`.
 - **Check:** `Pipit-1 period: 94.99 min`. The starter fails with `undefined: orbit`.
 
-#### 15.2 Capital Letters Export
+#### 16.2 Capital Letters Export
 `capital-letters-export` · code · difficulty 5
 - **Objective:** Export a name by capitalizing it, and keep helpers unexported.
 - **Scenario:** `main` can't call `orbit.periodMinutes`: outside its package, a lowercase
@@ -1381,7 +1494,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
 - **Check:** `Thistle period: 92.72 min`. The starter fails with
   `undefined: orbit.periodMinutes`.
 
-#### 15.3 Quick Check: Packages
+#### 16.3 Quick Check: Packages
 `quick-check-packages` · quiz · difficulty 4
 - **Objective:** Check import paths, folders and exported names.
 - **Scenario:** Nkem's whiteboard quiz.
@@ -1389,7 +1502,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
 - **Check:** A package's import path is the module path plus its folder; one folder holds
   one package; other packages can use only names that start with a capital letter.
 
-#### 15.4 A Small API
+#### 16.4 A Small API
 `a-small-api` · code_tests · difficulty 6
 - **Objective:** Export exactly what other packages need: a type and a function.
 - **Scenario:** The telemetry parser moves to `telemetry/`, and other teams will call it.
@@ -1399,7 +1512,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
 - **Check:** `TestParse` (a good line gives `SatID`, `Seq`, `BattV`); `TestParseError` (a bad
   line gives an error). The starter fails with `undefined: telemetry.Parse`.
 
-#### 15.5 internal Means Internal
+#### 16.5 internal Means Internal
 `internal-means-internal` · code · difficulty 6
 - **Objective:** Keep a package private to its parent with an `internal` folder.
 - **Scenario:** The signing keys must be reachable only through `uplink`, never directly.
@@ -1408,7 +1521,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
 - **Check:** `signing with key k-2027-03`. The starter fails with
   `use of internal package apogee/groundctl/uplink/internal/keys not allowed`.
 
-#### 15.6 Breaking the Cycle
+#### 16.6 Breaking the Cycle
 `breaking-the-cycle` · code · difficulty 6
 - **Objective:** Fix an import cycle by moving a shared type into its own package.
 - **Scenario:** `alert` imports `telemetry` for frames, `telemetry` imports `alert` for
@@ -1417,7 +1530,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
   there and point both packages at it.
 - **Check:** `thistle 4182: WARNING`. The starter fails with `import cycle not allowed`.
 
-#### 15.7 Quick Check: Modules
+#### 16.7 Quick Check: Modules
 `quick-check-modules` · quiz · difficulty 5
 - **Objective:** Check what `go.mod` and `go.sum` record.
 - **Scenario:** Nkem's last question before groundctl's first tagged release.
@@ -1427,7 +1540,7 @@ packages in subfolders, with tests, when there are any, in the root `main_test.g
 
 ---
 
-## Chapter 16 · One Helper, Every Type
+## Chapter 17 · One Helper, Every Type
 
 `one-helper-every-type` · 7 lessons: 1 code, 5 code_tests, 1 quiz
 
@@ -1438,7 +1551,7 @@ generic types with methods, `comparable`, and the generic helpers in `slices`.
 last-N, for passes, frames and chunks. Nkem asks for one of each. Generics let you write a
 helper once for every type, and a ring buffer that keeps the last readings of anything.
 
-#### 16.1 One Filter for Everything
+#### 17.1 One Filter for Everything
 `one-filter` · code_tests · difficulty 6
 - **Objective:** Write a function with a type parameter.
 - **Scenario:** `filterPasses` and `filterFrames` are the same eight lines, twice.
@@ -1446,7 +1559,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
 - **Check:** passes above 10° → 2 of 3; even numbers of 1 to 6 → `[2 4 6]`; nothing kept →
   empty.
 
-#### 16.2 The Highest Reading
+#### 17.2 The Highest Reading
 `the-highest-reading` · code_tests · difficulty 6
 - **Objective:** Constrain a type parameter with `cmp.Ordered`.
 - **Scenario:** Highest elevation, highest temperature, last station code: one helper.
@@ -1455,7 +1568,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
 - **Check:** `[3 9 4]` → 9, true; `[61.4 23 44.2]` → 61.4; `["YST" "CWR" "SQT"]` → `"YST"`;
   empty → 0, false.
 
-#### 16.3 Quick Check: Generics
+#### 17.3 Quick Check: Generics
 `quick-check-generics` · quiz · difficulty 5
 - **Objective:** Check constraints and type inference.
 - **Scenario:** Nkem's two questions before generics reach the scheduler.
@@ -1463,7 +1576,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
 - **Check:** `Max[T any]` can't use `>`, because `any` allows no ordering; `Filter(passes, f)`
   needs no type argument, because Go infers it.
 
-#### 16.4 The Standard Toolbox
+#### 17.4 The Standard Toolbox
 `the-standard-toolbox` · code · difficulty 5
 - **Objective:** Use the generic helpers the standard library already has.
 - **Scenario:** Nkem's rule: before writing a helper, look in `slices` and `maps`.
@@ -1471,7 +1584,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
   with `slices.Contains`, `slices.Index` and `slices.Max`.
 - **Check:** `has SQT: true` / `index of LAN: 3` / `highest mask: 8`.
 
-#### 16.5 Units with ~
+#### 17.5 Units with ~
 `units-with-tilde` · code_tests · difficulty 7
 - **Objective:** Write a constraint with `~` so named types fit it.
 - **Scenario:** `Clamp` works for `float64` but rejects `Volts` and `Kilometers`.
@@ -1481,7 +1594,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
   `Clamp(7.5, 6.6, 8.4) == 7.5`. The starter fails with
   `Volts does not satisfy Real (possibly missing ~ for float64 in Real)`.
 
-#### 16.6 A Ring of Readings
+#### 17.6 A Ring of Readings
 `a-ring-of-readings` · code_tests · difficulty 7
 - **Objective:** Define a generic type with methods.
 - **Scenario:** The alert panel keeps the last N of anything: voltages, frames, pass IDs.
@@ -1490,7 +1603,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
 - **Check:** capacity 3, push 1 to 5 → `Items()` is `[3 4 5]`; push 1, 2 → `[1 2]`; works for
   strings.
 
-#### 16.7 A Set of Anything
+#### 17.7 A Set of Anything
 `a-set-of-anything` · code_tests · difficulty 6
 - **Objective:** Build a generic type on a map with the `comparable` constraint.
 - **Scenario:** Which stations heard both Thistle and Pipit-1 tonight?
@@ -1501,7 +1614,7 @@ helper once for every type, and a ring buffer that keeps the last readings of an
 
 ---
 
-## Chapter 17 · All Stations at Once
+## Chapter 18 · All Stations at Once
 
 `all-stations-at-once` · 10 lessons: 4 code, 4 code_tests, 2 quizzes
 
@@ -1518,7 +1631,7 @@ stations at once.
 Programs here print in a fixed order however goroutines are scheduled: results go into a
 slice by index or a map, and are printed after the work ends.
 
-#### 17.1 Five Stations, One Moment
+#### 18.1 Five Stations, One Moment
 `five-stations-one-moment` · code · difficulty 6
 - **Objective:** Start goroutines with `go` and wait for them with `sync.WaitGroup`.
 - **Scenario:** Polling five stations one after another takes five times too long.
@@ -1528,7 +1641,7 @@ slice by index or a map, and are printed after the work ends.
 - **Check:** `YST: 3 frames` / `PEL: 2 frames` / `SQT: 4 frames` / `LAN: 2 frames` /
   `CWR: 5 frames`.
 
-#### 17.2 A Channel for Frames
+#### 18.2 A Channel for Frames
 `a-channel-for-frames` · code · difficulty 6
 - **Objective:** Send and receive values on a channel.
 - **Scenario:** The Ystmark poller hands frames to the archiver through a channel.
@@ -1536,7 +1649,7 @@ slice by index or a map, and are printed after the work ends.
   all three.
 - **Check:** `archived 4182` / `archived 4183` / `archived 4184`.
 
-#### 17.3 Quick Check: Who Blocks?
+#### 18.3 Quick Check: Who Blocks?
 `quick-check-who-blocks` · quiz · difficulty 6
 - **Objective:** Check when sends and receives wait.
 - **Scenario:** Nkem sketches three channels on the whiteboard.
@@ -1545,7 +1658,7 @@ slice by index or a map, and are printed after the work ends.
   channel with room doesn't wait; receiving from a closed, empty channel returns the zero
   value at once.
 
-#### 17.4 The Last Frame
+#### 18.4 The Last Frame
 `the-last-frame` · code · difficulty 6
 - **Objective:** Close a channel when done, and `range` over it.
 - **Scenario:** The archiver has to know when Ystmark's pass is over.
@@ -1553,7 +1666,7 @@ slice by index or a map, and are printed after the work ends.
   and the program dies with a deadlock; you close it after the last send.
 - **Check:** `archived 4182` … `archived 4185` / `pass over: 4 frames`.
 
-#### 17.5 Many Feeds, One Stream
+#### 18.5 Many Feeds, One Stream
 `many-feeds-one-stream` · code_tests · difficulty 7
 - **Objective:** Merge several channels into one, closing it after every input is done.
 - **Scenario:** Four stations hear Thistle at once; the archive wants one stream.
@@ -1562,7 +1675,7 @@ slice by index or a map, and are printed after the work ends.
 - **Check:** feeds of 2, 3 and 0 values → all five values (compared sorted); the output
   closes (the test gives up after 1 s).
 
-#### 17.6 Checking Chunks in Parallel
+#### 18.6 Checking Chunks in Parallel
 `checking-chunks-in-parallel` · code_tests · difficulty 7
 - **Objective:** Share work among a fixed number of goroutines reading one channel.
 - **Scenario:** A Furrow-A image has 2,000 chunks, and checking their CRCs one by one misses
@@ -1571,7 +1684,7 @@ slice by index or a map, and are printed after the work ends.
   `false`; you send indexes to `workers` goroutines that write results by index.
 - **Check:** 2,000 chunks with 3 corrupted → exactly those 3 false, with 1 worker and with 8.
 
-#### 17.7 Whichever Comes First
+#### 18.7 Whichever Comes First
 `whichever-comes-first` · code_tests · difficulty 7
 - **Objective:** Wait on several channels at once with `select`.
 - **Scenario:** Thistle may be heard first at Lantern Atoll or at Cape Wren.
@@ -1579,7 +1692,7 @@ slice by index or a map, and are printed after the work ends.
   `select` on both.
 - **Check:** only `cwr` has a beacon → it's returned; only `lan` → it's returned.
 
-#### 17.8 Give Up at LOS
+#### 18.8 Give Up at LOS
 `give-up-at-los` · code_tests · difficulty 7
 - **Objective:** Add a timeout to `select` with `time.After`.
 - **Scenario:** If no acknowledgment arrives before LOS, the uplink must stop waiting.
@@ -1588,7 +1701,7 @@ slice by index or a map, and are printed after the work ends.
 - **Check:** an ack already waiting → returned with nil; no ack and a 20 ms limit →
   `ErrNoAck` within 1 s.
 
-#### 17.9 Quick Check: Deadlocks
+#### 18.9 Quick Check: Deadlocks
 `quick-check-deadlocks` · quiz · difficulty 6
 - **Objective:** Spot a deadlock and a misuse of `close`.
 - **Scenario:** Two snippets from last night's incident review.
@@ -1596,7 +1709,7 @@ slice by index or a map, and are printed after the work ends.
 - **Check:** The program that sends on an unbuffered channel in `main` with no receiver
   deadlocks; closing an already closed channel panics.
 
-#### 17.10 Thistle's Last Pass
+#### 18.10 Thistle's Last Pass
 `thistles-last-pass` · code · difficulty 8
 - **Objective:** Combine goroutines, a merged channel and a map to collect beacons.
 - **Scenario:** Thistle's final pass before re-entry: four stations listen, and Professor
@@ -1614,7 +1727,7 @@ slice by index or a map, and are printed after the work ends.
 
 ---
 
-## Chapter 18 · Locks and Deadlines
+## Chapter 19 · Locks and Deadlines
 
 `locks-and-deadlines` · 9 lessons: 1 code, 6 code_tests, 2 quizzes
 
@@ -1627,7 +1740,7 @@ load, a downlink keeps writing after LOS, and a stuck uplink holds a dish for an
 fix the cache with a mutex, put a deadline on every pass with `context`, and end the week
 running a whole pass day, concurrent and cancellable, through a storm at Ystmark.
 
-#### 18.1 Lost Updates
+#### 19.1 Lost Updates
 `lost-updates` · code_tests · difficulty 7
 - **Objective:** Protect shared data with `sync.Mutex`.
 - **Scenario:** The frame counter undercounts when all five feeds update it at once.
@@ -1636,7 +1749,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** 50 goroutines × 200 `Add`s over 5 satellites → exactly 2,000 each; `Get` of an
   unknown ID → 0.
 
-#### 18.2 Many Readers, One Writer
+#### 19.2 Many Readers, One Writer
 `many-readers-one-writer` · code_tests · difficulty 7
 - **Objective:** Use `sync.RWMutex`, and hand out copies, not your internal map.
 - **Scenario:** Every service reads station status, only the poller writes, and someone
@@ -1646,7 +1759,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** changing a snapshot leaves the cache unchanged; concurrent `Set`s and
   `Snapshot`s end in the right final state.
 
-#### 18.3 Quick Check: Locks
+#### 19.3 Quick Check: Locks
 `quick-check-locks` · quiz · difficulty 6
 - **Objective:** Check how mutexes are used safely.
 - **Scenario:** Mirela's two questions during your on-call handover.
@@ -1654,7 +1767,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** A zero-value `sync.Mutex` is ready to use; `defer mu.Unlock()` right after
   `Lock` unlocks on every return path.
 
-#### 18.4 Cancel at LOS
+#### 19.4 Cancel at LOS
 `cancel-at-los` · code_tests · difficulty 7
 - **Objective:** Stop work when a context is cancelled.
 - **Scenario:** A downlink kept writing after LOS and filled the archive with noise.
@@ -1663,7 +1776,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** a closed channel of 3 chunks → 3, nil; an already cancelled context and an
   open, empty channel → 0, `context.Canceled`.
 
-#### 18.5 Every Pass Has a Deadline
+#### 19.5 Every Pass Has a Deadline
 `every-pass-has-a-deadline` · code_tests · difficulty 7
 - **Objective:** Make a context that ends at a deadline with `context.WithDeadline`.
 - **Scenario:** A pass ends at LOS whether the code is finished or not.
@@ -1672,7 +1785,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** `Deadline()` equals LOS; with LOS in the past, `Err()` is
   `context.DeadlineExceeded`.
 
-#### 18.6 Pass It Down
+#### 19.6 Pass It Down
 `pass-it-down` · code · difficulty 7
 - **Objective:** Pass `ctx` as the first parameter through every call.
 - **Scenario:** The stuck uplink ignored its deadline because one function in the chain
@@ -1682,7 +1795,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** `uplink pipit-2 118: context deadline exceeded` (transmitting takes 1 s; the
   deadline is 30 ms).
 
-#### 18.7 Quick Check: Context
+#### 19.7 Quick Check: Context
 `quick-check-context` · quiz · difficulty 6
 - **Objective:** Check the conventions around `context`.
 - **Scenario:** Nkem's three questions before you take the pager alone.
@@ -1691,7 +1804,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
   context ends on its own, to release it; pass a context to each call instead of storing it
   in a struct.
 
-#### 18.8 First Failure Cancels the Rest
+#### 19.8 First Failure Cancels the Rest
 `first-failure-cancels` · code_tests · difficulty 8
 - **Objective:** Cancel sibling goroutines when one fails, and return the first error.
 - **Scenario:** If Ystmark's pre-pass check fails, the other stations' checks for that pass
@@ -1702,7 +1815,7 @@ running a whole pass day, concurrent and cancellable, through a storm at Ystmark
 - **Check:** all succeed → nil; one fails at once while the others wait on `ctx.Done()` →
   that error, with every check returned.
 
-#### 18.9 Pass Day
+#### 19.9 Pass Day
 `pass-day` · code_tests · difficulty 9
 - **Objective:** Combine goroutines, a mutex, deadlines and errors in one small service.
 - **Scenario:** Friday, your last on-call shift: a full day of passes through a storm at

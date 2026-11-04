@@ -30,8 +30,11 @@ commands up, brings their data down and delivers it within minutes of loss of si
 **The learner** is the newest software engineer, never named in lessons, always "you". Their
 badge says Ground Software Engineer, No. 039 (38 people were there before them), based at
 Port Ellery headquarters, since Monday 1 March 2027; the app shows it with the name the learner
-gives. Story time runs from Monday 1 March 2027 (day one) to the end of June 2027 (first solo
-on-call week). Each course chapter is roughly a week.
+gives. Story time runs from Monday 1 March 2027 (day one) to Friday 9 July 2027 (first solo
+on-call week), nineteen weeks. Each course chapter is roughly a week. Pipit-3 still launches
+on 5 April, in chapter 6. The following week, chapter 7 turns the go/no-go poll's rules into
+values the team can hand around. Chapters 8 to 19 run from 19 April to 9 July. Season 2
+starts later in July, after the first solo on-call week.
 
 In plain words, for the opening and anywhere a newcomer reads first: Apogee is a small space
 company that keeps satellites in touch with the ground. Its five ground stations are big radio
@@ -79,7 +82,7 @@ Latitude is positive north, longitude positive east.
 | `furrow-a` | Furrow-A | Furrowlight | 510 km, 97.4° (SSO) | X-band 8150 MHz, 150 Mbps; S-band control | 16U multispectral crop imager; big files, demanding customer |
 | `furrow-b` | Furrow-B | Furrowlight | 510 km, 97.4° (SSO) | as Furrow-A | Same plane as Furrow-A, half an orbit behind |
 | `brine-3` | Brine-3 | Brinewatch | 480 km, 53.0° | S-band 2230 MHz, 1 Mbps | 6U ship-tracking receiver. Never rises over Ystmark (its orbit doesn't reach far enough north). Brine-1 was lost at launch; Brine-2 never left its deployer |
-| `thistle` | Thistle | Kessick Polytechnic | 415 km, 51.6°, decaying | UHF beacon 435.900 MHz, 1200 bps | 2U student cubesat with a radiation counter. Like Brine-3, never rises over Ystmark. Sends garbage frames from chapter 12; re-enters in chapter 17 |
+| `thistle` | Thistle | Kessick Polytechnic | 415 km, 51.6°, decaying | UHF beacon 435.900 MHz, 1200 bps | 2U student cubesat with a radiation counter. Like Brine-3, never rises over Ystmark. Sends garbage frames from chapter 13; re-enters in chapter 18 |
 | `cirrine-1` | Cirrine-1 | Cirrine Atmospherics | 600 km, 97.8° (SSO) | S-band 2280 MHz, 10 Mbps | 12U weather sounder (GNSS radio occultation); the customer that almost got a replayed command |
 
 Useful numbers (with Earth radius 6371 km and μ = 398600.4418 km³/s²):
@@ -138,7 +141,7 @@ manager, writes subject lines in capitals).
 
 The learner's code grows into **groundctl**, the Go module behind Apogee's ground segment.
 Early lessons are one `package main` file; the types below appear in the chapter that
-teaches what they need, and chapter 15 splits them into packages.
+teaches what they need, and chapter 16 splits them into packages.
 
 - **Module:** `apogee/groundctl`. It has no dot in its first element on purpose: the app
   treats such imports as local and never runs `go mod tidy` for them.
@@ -276,7 +279,7 @@ is jobloom/gosmos#18; how each season is told is `docs/storytelling.md`.
 
 | Season | Course | Story time | The season in a sentence | Issue |
 |---|---|---|---|---|
-| 1 | Go Foundations | Mar–Jun 2027 | From your first message to Pipit-1 to your first solo week on call | written; #7, #8 |
+| 1 | Go Foundations | Mar–Jul 2027 | From your first message to Pipit-1 to your first solo week on call | written; #7, #8 |
 | 2 · Tools of the Trade | Files, Data and the Command Line | Jul–Oct 2027 | The test van's trip up the Quebrada Añil, with no signal: gctl, from files alone | #9 |
 | Project | Build gctl | Oct 2027 | The night shift's interactive tool | #10 |
 | 3 · Open for Business | Web Services in Go | Nov 2027–Feb 2028 | Customers book passes through Apogee's own service, which you build | #11 |
@@ -291,14 +294,14 @@ is jobloom/gosmos#18; how each season is told is `docs/storytelling.md`.
 
 | Situation | What happens | Chapters |
 |---|---|---|
-| Pass prep | Pre-pass checklist, go/no-go poll, a countdown to AOS | 1, 5, 6 |
-| The Board | Making the ops room's screen readable and right | 3, 8, 11 |
+| Pass prep | Pre-pass checklist, go/no-go poll, a countdown to AOS, reusable poll rules | 1, 5, 6, 7 |
+| The Board | Making the ops room's screen readable and right | 3, 9, 12 |
 | Launch week | Pipit-3's first acquisition: a Doppler hunt for a faint beacon | 6 |
-| Weather | Ystmark storms and Cape Wren wind stow dishes; passes move | 5, 10, 18 |
-| Thistle's decline | Garbage frames, duplicates, then a last pass before re-entry | 12, 13, 17 |
-| Furrowlight escalations | Missing chunks, data volumes, a pass that moved | 2, 8, 9, 17 |
-| Uplink security | Mirela's reviews, signatures, replays, mutants in the tests | 13, 14, 15 |
-| On call | A page at 03:00, a stuck uplink, a cache gone wrong | 18 |
+| Weather | Ystmark storms and Cape Wren wind stow dishes; passes move | 5, 11, 19 |
+| Thistle's decline | Garbage frames, duplicates, then a last pass before re-entry | 13, 14, 18 |
+| Furrowlight escalations | Missing chunks, data volumes, a pass that moved | 2, 9, 10, 18 |
+| Uplink security | Mirela's reviews, signatures, replays, mutants in the tests | 14, 15, 16 |
+| On call | A page at 03:00, a stuck uplink, a cache gone wrong | 19 |
 
 ## Glossary
 
@@ -495,7 +498,7 @@ Template:
   "Statements". Quizzes are "Quick Check: <topic>".
 - **Files:** `main.go`, `main_test.go`; other files named for what they hold
   (`station.go`, `checks.go`); package folders are one lowercase word.
-- **Topics** (front matter), from this list, alphabetical in each lesson: bytes, channels,
+- **Topics** (front matter), from this list, alphabetical in each lesson: arrays, bytes, channels,
   comments, compiler-errors, conditionals, constants, context, conversions, defer, errors,
   formatting, functions, generics, goroutines, interfaces, loops, maps, methods, modules,
   multiple-returns, mutexes, packages, pointers, printing, programs, runes, select, slices,
