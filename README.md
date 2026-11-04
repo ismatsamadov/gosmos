@@ -62,3 +62,18 @@ never runs git and syncs nothing.
   works offline; you install nothing, and it never needs the internet.
 - To build it: the Xcode Command Line Tools (`xcode-select --install`) and Go 1.27 or later.
   `make app` builds the Go it runs with into the app; `GO_ROOT=<folder>` picks another Go.
+
+## License
+
+Gosmos is free for individual learners' private, noncommercial study under the
+[Gosmos Personal Learning License](LICENSE). You may build and run it, complete its courses,
+and make private changes for your own learning. Commercial use, organizational deployment,
+teaching others, redistribution, and publishing modified versions require a separate written
+license from Ismat Samadov. Learning skills for a future job is allowed, and your independently
+authored work remains yours.
+
+These terms cover Gosmos's original code and content. Third-party components and the Go
+reference retain their own licenses; see [the reference credits](docs/reference-format.md#credit).
+The full terms are in [LICENSE](LICENSE), also included in built apps at
+`Contents/Resources/LICENSE`. This is a restricted personal learning license, not an open source
+license.

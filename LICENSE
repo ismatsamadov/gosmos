@@ -1,0 +1,106 @@
+Gosmos Personal Learning License 1.0
+
+Copyright (c) 2026 Ismat Samadov. All rights reserved except as expressly
+granted below.
+
+1. Scope
+
+Ismat Samadov (the "Licensor") offers this license for the original Gosmos
+software, source code, documentation, artwork, course content, stories, and
+course databases in which the Licensor owns copyright (the "Materials").
+Third-party materials are excluded and remain under their own licenses, as
+described in section 6.
+
+2. Personal learning permission
+
+Subject to these terms, the Licensor grants you a worldwide, royalty-free,
+nonexclusive, nontransferable, nonsublicensable license only if you are an
+individual acting for yourself, solely for your own private, noncommercial
+learning and practice.
+
+For that purpose only, you may download, copy, inspect, build, install, and
+run the Materials on devices you control, read and complete the courses,
+keep private backups, and make and run private modifications for your own
+study. Keep this license and the applicable copyright and attribution
+notices with your copies.
+
+Being employed, attending a school, or learning skills for a future job does
+not by itself disqualify your personal study. Using the Materials to perform
+paid work or acting on behalf of an employer or institution is not personal
+study under this license.
+
+3. Restrictions
+
+Except for the independent rights described in section 6, this license does
+not permit you to:
+
+- Use the Materials for commercial purposes, paid work, business operations,
+  or as part of a product or service supplied to others.
+- Use or deploy the Materials on behalf of a company, school, university,
+  nonprofit, government body, or other organization, including for employee
+  training, classroom provision, tutoring, or operating a course, whether
+  paid or unpaid. Individual students may still use them for their own
+  personal study under section 2.
+- Publish, share, redistribute, sell, rent, lend, sublicense, or otherwise
+  provide copies of the Materials or modified versions to others, including
+  through mirrors, app stores, packages, or learning platforms.
+- Host the Materials or modified versions for other people to access or use,
+  including as a network service.
+- Reuse or adapt the Materials to create or supply another application,
+  course, content collection, or service, except for private modifications
+  used solely for your own study under section 2.
+- Remove or obscure copyright, attribution, or license notices.
+
+These restrictions apply to the Materials in whole or in part, in source,
+compiled, database, exported, or any other form. Any use outside section 2
+requires a separate written license from the Licensor before that use.
+
+4. Your own work and knowledge
+
+The Licensor claims no ownership of code, notes, exercise solutions, or
+course libraries that you independently author. This license does not
+restrict that independent work or your use of the knowledge, skills, ideas,
+and techniques you learn, including in a future job or commercial project.
+This does not grant permission to copy, publish, or commercially reuse
+protected Gosmos code or content, or adaptations of it.
+
+5. Reserved rights
+
+All rights not expressly granted are reserved. No trademark rights or
+permission to claim endorsement by Gosmos or the Licensor are granted.
+The Licensor may offer separate licenses for other uses. This license is a
+restricted personal learning license, not an open source license.
+
+6. Independent rights and third-party materials
+
+Third-party software, documentation, and other materials retain their own
+copyrights and licenses. In particular, the bundled Go toolchain and Go
+reference materials are governed by their applicable BSD-3-Clause and
+Creative Commons Attribution 4.0 licenses and notices; see the included Go
+license, reference acknowledgements, and docs/reference-format.md. The
+restrictions above do not apply to those materials or narrow rights granted
+by their licenses.
+
+This license does not restrict fair use, fair dealing, or other rights that
+cannot be excluded under applicable law. It does not override rights the
+Licensor separately grants under the terms of a hosting platform, such as
+viewing and forking a public repository within GitHub. A platform fork does
+not grant permission for additional uses of the Materials under this license.
+
+7. Termination
+
+The permissions in this license terminate automatically if you violate its
+terms. You must then stop using and delete copies of the Materials covered
+by this license that you possess or control, except copies you are legally
+required or independently entitled to retain. Reinstatement requires the
+Licensor's written permission. Termination does not affect the independent
+rights described in section 6, ownership, or the disclaimer below.
+
+8. Disclaimer
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE MATERIALS ARE PROVIDED
+"AS IS" AND "AS AVAILABLE", WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+TITLE, AND NONINFRINGEMENT. THE LICENSOR IS NOT LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE MATERIALS OR THEIR USE,
+WHETHER IN CONTRACT, TORT, OR OTHERWISE.

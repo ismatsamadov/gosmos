@@ -39,6 +39,9 @@ cp "$binary" "$new/Contents/MacOS/Gosmos"
 cp "$here/Resources/Info.plist" "$new/Contents/Info.plist"
 cp "$here/Resources/AppIcon.icns" "$new/Contents/Resources/AppIcon.icns"
 
+# Gosmos's license travels with the app; the Go toolchain keeps its own license below.
+cp "$repo/LICENSE" "$new/Contents/Resources/LICENSE"
+
 # The learner database's schema, from which the app makes ~/Library/Application Support/Gosmos/
 # learner.sqlite on first launch.
 cp "$repo/db/learner.sql" "$new/Contents/Resources/learner.sql"
