@@ -8,11 +8,16 @@ struct DocsBrowser: View {
     let docs: DocsModel
 
     var body: some View {
-        PersistentSplit(.horizontal, key: "DocsSplitList", defaultFraction: 0.3, minFirst: 200, minSecond: 380) {
-            DocsList(docs: docs)
-        } second: {
-            DocPageView(docs: docs)
-                .background(Theme.canvas)
+        GeometryReader { geometry in
+            let stacked = geometry.size.width < 580
+            PersistentSplit(stacked ? .vertical : .horizontal,
+                            key: stacked ? "DocsSplitStacked" : "DocsSplitList",
+                            defaultFraction: 0.3, minFirst: stacked ? 140 : 200, minSecond: stacked ? 240 : 380) {
+                DocsList(docs: docs)
+            } second: {
+                DocPageView(docs: docs)
+                    .background(Theme.canvas)
+            }
         }
     }
 }

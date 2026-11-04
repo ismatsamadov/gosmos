@@ -9,20 +9,25 @@ struct CodeLessonView: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        // The minimums fit the narrowest lesson pane: a 1100 pt window with the inspector open.
-        PersistentSplit(.horizontal, key: "CodeSplitReadme", defaultFraction: 0.46, minFirst: 260, minSecond: 320) {
-            ReadmeColumn(lesson: lesson) { EmptyView() }
-        } second: {
-            PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.70, minFirst: 180, minSecond: 140) {
-                EditorPane(session: session)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
-                    .padding(10)
+        GeometryReader { geometry in
+            let stacked = geometry.size.width < 580
+            PersistentSplit(stacked ? .vertical : .horizontal,
+                            key: stacked ? "CodeSplitStacked" : "CodeSplitReadme",
+                            defaultFraction: stacked ? 0.4 : 0.46,
+                            minFirst: stacked ? 160 : 260, minSecond: 320) {
+                ReadmeColumn(lesson: lesson) { EmptyView() }
             } second: {
-                ConsolePane(session: session, comesBackForReview: lesson.comesBackForReview)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
-                    .padding(10)
+                PersistentSplit(.vertical, key: "CodeSplitConsole", defaultFraction: 0.70, minFirst: 180, minSecond: 140) {
+                    EditorPane(session: session)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
+                        .padding(10)
+                } second: {
+                    ConsolePane(session: session, comesBackForReview: lesson.comesBackForReview)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.outline(contrast)))
+                        .padding(10)
+                }
             }
         }
         .background(Theme.canvas)
