@@ -41,6 +41,11 @@ with a new level every five lessons. Rewards come from the same saved progress a
 sidebar, so earlier completions count and resubmitting never earns duplicate XP. ⌘1 returns
 to Mission Control from any lesson or documentation page.
 
+Each course card shows required lessons completed and a rough estimate of study time left.
+The estimate uses 5 minutes per quiz, 15 per code lesson and 20 per code-with-tests lesson;
+it is a planning guide, not a measurement of time spent. Optional lessons do not count toward
+the course completion bar or its estimate.
+
 ## Test
 
 ```sh

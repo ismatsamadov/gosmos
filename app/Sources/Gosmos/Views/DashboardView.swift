@@ -363,6 +363,7 @@ private struct CourseMissionCard: View {
 
     var body: some View {
         let progress = app.progress(of: course, in: library)
+        let estimate = app.estimate(of: course, in: library)
         let complete = progress.total > 0 && progress.done == progress.total
         // Worked out once for the card and its rows: the next lesson not done (nil once every
         // lesson is), and what the course action opens.
@@ -399,6 +400,17 @@ private struct CourseMissionCard: View {
                     }
                     MissionProgress(fraction: Double(progress.done) / Double(max(1, progress.total)))
                         .accessibilityLabel("\(course.title) progress")
+                    HStack(spacing: 5) {
+                        Image(systemName: "clock")
+                        Text(estimate.description)
+                        Spacer()
+                        if estimate.remainingLessons > 0 {
+                            Text("\(estimate.remainingLessons) required left")
+                        }
+                    }
+                    .font(.system(size: 10)).foregroundStyle(Theme.secondaryText)
+                    .help("A rough estimate based on lesson type: 5 minutes per quiz, 15 per code lesson, and 20 per code lesson with tests. Your pace may vary.")
+                    .accessibilityElement(children: .combine)
                 }
             }
             .padding(20)
