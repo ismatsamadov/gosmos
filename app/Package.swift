@@ -42,6 +42,15 @@ let package = Package(
             ]
         ),
         .testTarget(
+            name: "GosmosAppTests",
+            dependencies: [
+                "Gosmos",
+                "GosmosKit",
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ],
+            swiftSettings: testSettings
+        ),
+        .testTarget(
             name: "GosmosKitTests",
             dependencies: [
                 "GosmosKit",

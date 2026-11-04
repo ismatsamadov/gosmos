@@ -179,8 +179,10 @@ lessons. A course without one looks as it always did.
     the right one is shown. Under every answer, a line says why it is right or wrong.
   - Success gives a light trackpad haptic (NSHapticFeedbackManager) and the done mark
     bounces.
-- After a pass, Next Lesson (⌘]) appears in the toolbar. A pass that schedules a review says
-  so in the console.
+- After a pass, Next Lesson (⌘]) appears in the toolbar, or Mission Control at the end of a
+  course, or Back to Review for a redo. A quiz's result offers the same way on. A pass that
+  schedules a review says so in the console. A chapter completed before its optional lessons
+  offers Continue Learning rather than claiming the next lesson starts another chapter.
 - **Review**: the sidebar's Review entry has a badge with the number of items due. Due quiz
   questions come one at a time, lessons taking turns, then the lessons to redo, each with
   its reason. A redo starts from the starter code in a folder of its own and isn't kept.

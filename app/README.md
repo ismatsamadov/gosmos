@@ -54,6 +54,10 @@ learner database. Some run a real `go build` / `go test` with the Go on PATH, an
 when there is none; `BuiltInGoTests` runs the Go in `build/Gosmos.app`, as on a Mac with no Go
 installed, and is skipped until `make app` has built it.
 
+`GosmosAppTests` exercises first launch, the badge, resuming, navigation, completion, review
+and saving through the app's models, with temporary resources and study data. The native
+editor's view tests and the opening's focus transitions also need a working desktop session.
+
 ## Where things are
 
 | What | Where |

@@ -326,7 +326,8 @@ struct ChapterCompletePanel: View {
                 StoryText(text: text, size: 14, color: Theme.onInk, spacing: 8)
                 HStack(spacing: 12) {
                     if hasNext {
-                        Button("Next chapter", systemImage: "arrow.right") { app.openNext() }
+                        // Required lessons can finish a chapter before its optional lessons.
+                        Button("Continue learning", systemImage: "arrow.right") { app.continueAfterLesson() }
                             .prominentGlassButton()
                     }
                     Button("See your badge", systemImage: "person.text.rectangle") { app.showDashboard() }
