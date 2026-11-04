@@ -3,7 +3,14 @@ build/
 .build/
 .swiftpm/
 
-# Course libraries in courses/ are committed; only SQLite's transient journal files are not
+# Only authored course and reference databases belong in the repository.
+*.sqlite
+*.sqlite3
+*.db
+!courses/*.sqlite
+!reference/*.sqlite
+
+# SQLite's transient files never belong in source control.
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
