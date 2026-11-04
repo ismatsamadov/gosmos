@@ -32,7 +32,7 @@ numbers, times and extra test cases. `go run ./cmd/author export` writes them ou
 | 3 | The Pass Board | `the-pass-board` | formatting with fmt | 7 | 5 | 1 | 1 |
 | 4 | Orbit Math | `orbit-math` | functions, multiple returns, math, durations | 9 | 4 | 4 | 1 |
 | 5 | Go or No-Go | `go-or-no-go` | if, else, logical operators, switch | 8 | 3 | 4 | 1 |
-| 6 | Counting Down to AOS | `counting-down-to-aos` | loops, break, continue | 8 | 4 | 3 | 1 |
+| 6 | The Countdown to Contact | `counting-down-to-aos` | loops, break, continue | 8 | 4 | 3 | 1 |
 | 7 | Rules You Can Hand Around | `rules-you-can-hand-around` | function values, literals, closures, loop variables, rules | 8 | 2 | 5 | 1 |
 | 8 | Modeling the Network | `modeling-the-network` | structs, time.Time, embedding | 7 | 3 | 3 | 1 |
 | 9 | The Day's Schedule | `the-days-schedule` | slices, sorting, variadic functions | 10 | 4 | 4 | 2 |
@@ -516,7 +516,7 @@ call for Furrow-A's evening pass over Salar Quieto.
 
 ---
 
-## Chapter 6 · Counting Down to AOS
+## Chapter 6 · The Countdown to Contact
 
 `counting-down-to-aos` · 8 lessons: 4 code, 3 code_tests, 1 quiz
 
