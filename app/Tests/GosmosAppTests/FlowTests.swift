@@ -154,6 +154,29 @@ import Testing
         await app.prepareToQuit()
     }
 
+    @Test func notesWaitForTheirSavedTextBeforeAllowingEdits() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        let learner = try #require(app.learner)
+        let ref = fixture.ref("first")
+        try await learner.saveNote(ref, body: "A note from an earlier session.")
+        let database = try #require(app.library(ref.library)?.database)
+        let detail = try #require(try await database.lesson(ref.lesson))
+        let parsed = await ReadmeCache().parsed(for: detail)
+        let lesson = LessonModel(detail: detail, parsed: parsed, saved: [:], learner: learner, review: false, app: app)
+        #expect(!lesson.canEditNote)
+        await lesson.loadNote()
+        #expect(lesson.canEditNote)
+        #expect(lesson.note == "A note from an earlier session.")
+        lesson.note = "A draft still being edited."
+        await lesson.loadNote()
+        #expect(lesson.note == "A draft still being edited.")
+        await lesson.leave()
+        #expect(try await learner.note(for: ref) == "A draft still being edited.")
+        await app.prepareToQuit()
+    }
 }
 
 @MainActor private struct FlowFixture {

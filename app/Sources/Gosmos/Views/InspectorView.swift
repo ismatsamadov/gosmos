@@ -58,9 +58,15 @@ struct InspectorContent: View {
                     NoteEditor(lesson: lesson, placeholder: "Write a note for this lesson…", fontSize: 13,
                                accessibilityLabel: "Note for this lesson")
                         .frame(minHeight: 160)
-                    Text("Saved as you type.")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondaryText)
+                    if let error = lesson.noteLoadError {
+                        Text("Your note could not load. \(error)")
+                            .font(.caption).foregroundStyle(Theme.failure)
+                        Button("Try Again") { Task { await lesson.loadNote() } }
+                    } else {
+                        Text(lesson.canEditNote ? "Saved as you type." : "Loading your note…")
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryText)
+                    }
                 }
             }
             Section("Lesson") {
@@ -182,10 +188,11 @@ struct NoteEditor: View {
 
     var body: some View {
         TextEditor(text: $lesson.note)
+            .disabled(!lesson.canEditNote)
             .font(.system(size: fontSize))
             .scrollContentBackground(.hidden)
             .overlay(alignment: .topLeading) {
-                if lesson.note.isEmpty {
+                if lesson.canEditNote && lesson.note.isEmpty {
                     Text(placeholder)
                         .font(.system(size: fontSize))
                         .foregroundStyle(Theme.secondaryText)

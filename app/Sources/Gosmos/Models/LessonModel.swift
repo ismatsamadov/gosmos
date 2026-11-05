@@ -17,6 +17,9 @@ final class LessonModel {
     private(set) var quiz: QuizSession?
     var note = "" { didSet { if noteLoaded && note != oldValue { scheduleNoteSave() } } }
     private var noteLoaded = false
+    private(set) var noteLoadError: String?
+    private var isLoadingNote = false
+    var canEditNote: Bool { noteLoaded && !isReview }
     /// The note as the database holds it, so an unchanged note is never written.
     @ObservationIgnored private var savedNote = ""
     private var noteTask: Task<Void, Never>?
@@ -63,22 +66,34 @@ final class LessonModel {
 
     /// Reads what this lesson needs from the learner database and the work folder.
     func load() async {
+        await loadNote()
         do {
-            if !isReview {
-                note = try await learner.note(for: ref) ?? ""
-                savedNote = note
-                noteLoaded = true
-            }
             if !hints.hints.isEmpty {
                 hints = HintState(hints: detail.hints, revealed: try await learner.revealedHints(ref),
                                   failedSubmits: try await learner.failedAttempts(ref, kind: submitKind))
             }
             if hasSolution { solutionWasViewed = try await learner.viewedSolution(ref) }
         } catch {
-            // Without the saved note, typing must not replace it: saving stays off.
             app?.report(error)
         }
         await code?.load()
+    }
+
+    /// Notes wait for their saved text before taking edits, just as code does. A failed read
+    /// leaves editing off and can be retried without reloading the code or replacing drafts.
+    func loadNote() async {
+        guard !isReview, !noteLoaded, !isLoadingNote else { return }
+        isLoadingNote = true
+        defer { isLoadingNote = false }
+        do {
+            note = try await learner.note(for: ref) ?? ""
+            savedNote = note
+            noteLoaded = true
+            noteLoadError = nil
+        } catch {
+            noteLoadError = error.localizedDescription
+            app?.report(error)
+        }
     }
 
     /// Saves pending edits; called before another lesson opens and when the app quits. A code
