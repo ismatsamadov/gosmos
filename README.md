@@ -28,6 +28,8 @@ in them is written for Gosmos. The path from here to production Go is jobloom/go
 - The **learner database**, `~/Library/Application Support/Gosmos/learner.sqlite`, holds
   everything that is yours: progress, every Run and Submit, notes, your code, the hints and
   solutions you looked at, and your review schedule. `db/learner.sql` explains each table.
+  Each user's learner database is created empty; no personal study data ships in the
+  repository or app.
 
 Nothing is kept as JSON or loose files. To build and run your code the app writes a lesson's
 files to a scratch folder and reads them back; the database is where they live. The app
