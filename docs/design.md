@@ -50,6 +50,10 @@ lessons. A course without one looks as it always did.
   42 pt semibold title, its text at 17 pt, its cards two to a row, page dots, and its action
   as the prominent glass button (Return). Back returns a page; Skip Intro (Esc) ends the
   opening. The last page's action, and Skip Intro, open the course's next unfinished lesson.
+- The opening has one live set of controls. Leaving its badge page commits the name and
+  clears keyboard focus before the field is removed, including Back and Skip. Its content
+  scrolls as a whole in a short window; only the sky animates across pages, so an outgoing
+  native field cannot remain over the next page.
 - **The badge page** has a field for the name the team calls you, and the badge beside it,
   tilted a little and made as you type: the page's eyebrow at its head, your initials in a
   circle, the name, the first card's title under it (the role), and the other cards as its
