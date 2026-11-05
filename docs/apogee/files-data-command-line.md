@@ -181,8 +181,8 @@ Scan text safely, handle long records, parse fields and preserve useful line con
 - **Exercise:** Implement countLines(r).
 - **Check:** Blank and final unterminated lines, empty input and scan errors.
 
-#### 3.2 Do Not Lose the Last Error
-`do-not-lose-the-last-error` · code_tests · difficulty 4
+#### 3.2 Keep the Last Error
+`keep-the-last-error` · code_tests · difficulty 4
 - **Objective:** Check Scanner.Err after iteration.
 - **Scenario:** A damaged recording ended halfway through a report.
 - **Exercise:** Implement collectLines(r), returning the scanning error.
@@ -526,8 +526,8 @@ Build testable commands with explicit arguments, streams and exit statuses.
 - **Exercise:** Implement run(args, stdin, stdout, stderr).
 - **Check:** Expected output and success code.
 
-#### 8.2 A Flag Set of Its Own
-`a-flag-set-of-its-own` · code_tests · difficulty 6
+#### 8.2 Its Own Flag Set
+`its-own-flag-set` · code_tests · difficulty 6
 - **Objective:** Parse flags with flag.NewFlagSet and ContinueOnError.
 - **Scenario:** The tool needs a station filter.
 - **Exercise:** Implement parseOptions(args, errors).
@@ -623,8 +623,8 @@ Embed fixed resources and work against fs.FS, including test-only in-memory file
 - **Exercise:** Implement listTemplates(fsys).
 - **Check:** Nested files, directory filtering and walk errors.
 
-#### 9.6 A Disk Made of Test Data
-`a-disk-made-of-test-data` · code_tests · difficulty 7
+#### 9.6 A Disk of Test Data
+`a-disk-of-test-data` · code_tests · difficulty 7
 - **Objective:** Build fixtures with fstest.MapFS.
 - **Scenario:** Mirela wants tests isolated from the real disk.
 - **Exercise:** Construct a MapFS for the supplied reader.
