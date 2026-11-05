@@ -271,6 +271,31 @@ Limits ops uses everywhere: battery FULL from 8.2 V, OK from 7.2 V, LOW from 6.6
 that CRITICAL (safe mode follows); Cape Wren tracks with a warning from 50 km/h of wind and
 stows at 72 km/h; battery temperature limits −10 °C to 45 °C.
 
+### Season 2: tools for the van
+
+After the first solo on-call week ends on 9 July 2027, the learner starts the next
+assignment on Monday 12 July. Their new badge says Ground Tools Engineer, still No. 039.
+Paz takes the test van up the Quebrada Añil to check and correct the pointing of Salar
+Quieto's dishes. Nkem reviews the tools before departure and as recordings return to
+headquarters. The trip and calibration work occupy July to October; no new people,
+places, satellites or customers are introduced for this season.
+
+The command-line program **gctl** belongs to `apogee/groundctl`. It reads the same station
+codes, satellite IDs, UTC timestamps and pass records as Season 1. Files contain schedules
+and reports, never live radio access: the exercises work offline with recorded inputs.
+Chapter 1 uses a plain-text schedule with one record per line; structured CSV and JSON
+formats are introduced in their own chapters. Day labels such as `2027-07-12` come from
+the program's own validated configuration, rather than arbitrary user-supplied paths.
+
+Reports live under `reports/daily/<day>.txt`. Whole-file replacement stages a private
+temporary sibling, checks write and close errors, then renames it into place; it promises
+complete contents for readers, not durability after loss of power. Filesystem tests use
+`t.TempDir`, and stream tests use in-memory readers and writers. No course test writes to
+a real user's files. A command's behavior is tested through
+`run(args []string, stdin io.Reader, stdout, stderr io.Writer) int`, never by reading the
+test process's own arguments or terminating it. Exit statuses are 0 for success, 1 for an
+operational failure and 2 for invalid usage; successful help returns 0.
+
 ## Seasons
 
 Each course of the series is a season of the learner's career at Apogee, and story time only
@@ -500,6 +525,6 @@ Template:
   (`station.go`, `checks.go`); package folders are one lowercase word.
 - **Topics** (front matter), from this list, alphabetical in each lesson: arrays, bytes, channels,
   comments, compiler-errors, conditionals, constants, context, conversions, defer, errors,
-  formatting, functions, generics, goroutines, interfaces, loops, maps, methods, modules,
+  files, formatting, functions, generics, goroutines, interfaces, loops, maps, methods, modules,
   multiple-returns, mutexes, packages, pointers, printing, programs, runes, select, slices,
-  sorting, statements, strings, structs, switch, testing, time, types, variables.
+  sorting, statements, streams, strings, structs, switch, testing, time, types, variables.
