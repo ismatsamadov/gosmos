@@ -182,6 +182,11 @@ import Testing
 @MainActor private struct FlowFixture {
     let directory: URL
     let resources: AppResources
+    /// The settings suite of every app made here. Each becomes a file in ~/Library/Preferences
+    /// once written, and a test run must leave nothing there.
+    private let suites = Suites()
+
+    @MainActor private final class Suites { var names: [String] = [] }
 
     init() throws {
         let repository = URL(fileURLWithPath: #filePath)
@@ -223,7 +228,9 @@ import Testing
     }
 
     func app() -> AppModel {
-        let defaults = UserDefaults(suiteName: "app.gosmos.flow.\(UUID().uuidString)")!
+        let name = "app.gosmos.flow.\(UUID().uuidString)"
+        suites.names.append(name)
+        let defaults = UserDefaults(suiteName: name)!
         defaults.register(defaults: [LocalPreferences.dataFolderKey: directory.appendingPathComponent("study").path])
         return AppModel(defaults: defaults, resources: resources)
     }
@@ -239,5 +246,14 @@ import Testing
         throw TimedOut()
     }
 
-    func remove() { try? FileManager.default.removeItem(at: directory) }
+    func remove() {
+        try? FileManager.default.removeItem(at: directory)
+        // Removing a domain leaves an empty plist behind, so flush it, then delete the file.
+        let preferences = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Preferences")
+        for name in suites.names {
+            UserDefaults.standard.removePersistentDomain(forName: name)
+            CFPreferencesAppSynchronize(name as CFString)
+            try? FileManager.default.removeItem(at: preferences.appendingPathComponent("\(name).plist"))
+        }
+    }
 }
