@@ -304,10 +304,18 @@ struct LessonActions: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        if lesson.justPassed, let next = app.nextLesson {
-            Button { app.openNext() } label: { Label("Next Lesson", systemImage: "arrow.right") }
+        if lesson.justPassed {
+            if let next = app.nextLesson {
+                Button { app.continueAfterLesson() } label: { Label("Next Lesson", systemImage: "arrow.right") }
+                    .labelStyle(.titleAndIcon)
+                    .help("Next lesson: \(next.title) (⌘])")
+            } else {
+                Button { app.continueAfterLesson() } label: {
+                    Label(lesson.isReview ? "Back to Review" : "Mission Control",
+                          systemImage: lesson.isReview ? "arrow.counterclockwise" : "square.grid.2x2")
+                }
                 .labelStyle(.titleAndIcon)
-                .help("Next lesson: \(next.title) (⌘])")
+            }
         }
         if lesson.canRun {
             Button {

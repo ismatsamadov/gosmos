@@ -83,6 +83,18 @@ struct LocalPreferences {
     }
 }
 
+/// The app's read-only resources. Flow tests supply their own tiny libraries and schema.
+struct AppResources {
+    let libraries: URL?
+    let learnerSchema: URL?
+    let reference: URL?
+
+    static var bundled: Self {
+        Self(libraries: BuiltInLibraries.folder, learnerSchema: LearnerDatabase.bundledSchema,
+             reference: ReferenceDatabase.bundledURL)
+    }
+}
+
 /// A place Back and Forward return to: Mission Control, the field guide, a lesson, or a place
 /// in the Go documentation.
 enum Place: Hashable {
@@ -286,6 +298,7 @@ final class AppModel {
 
     let preferences: LocalPreferences
     let workspace: Workspace
+    private let resources: AppResources
     private let readmes = ReadmeCache()
     /// Readmes as plain text, for search excerpts; made ahead of time for every library.
     private let readmeTexts = ReadmeTexts()
@@ -297,8 +310,9 @@ final class AppModel {
     private let signposter = OSSignposter(subsystem: Log.subsystem, category: .pointsOfInterest)
     private var launchInterval: OSSignpostIntervalState?
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, resources: AppResources = .bundled) {
         preferences = LocalPreferences(defaults: defaults)
+        self.resources = resources
         workspace = Workspace(root: preferences.dataFolder?.appendingPathComponent("work", isDirectory: true) ?? Workspace.defaultRoot)
     }
 
@@ -324,7 +338,7 @@ final class AppModel {
 
         let opened = ContinuousClock.now
         let url = preferences.dataFolder?.appendingPathComponent("learner.sqlite") ?? LearnerDatabase.defaultURL
-        let schema = LearnerDatabase.bundledSchema
+        let schema = resources.learnerSchema
         let opening = await Task.detached(priority: .userInitiated) { () -> Result<LearnerDatabase, LearnerDatabaseError> in
             Result { () throws(LearnerDatabaseError) in try LearnerDatabase(url: url, schema: schema) }
         }.value
@@ -391,7 +405,7 @@ final class AppModel {
     /// checked off the main actor. One that can't be read stays in the sidebar with why.
     private func loadShelf(_ learner: LearnerDatabase) async {
         var libraries: [ShelfLibrary] = []
-        for file in BuiltInLibraries.files(in: BuiltInLibraries.folder) {
+        for file in BuiltInLibraries.files(in: resources.libraries) {
             var entry = await AppModel.openLibrary(file, builtIn: true)
             if let info = entry.database?.info {
                 do {
@@ -752,6 +766,14 @@ final class AppModel {
     func openNext() { if let n = nextLesson, let library = lesson?.detail.library { open(LessonRef(library: library, lesson: n.id)) } }
     func openPrevious() { if let p = previousLesson, let library = lesson?.detail.library { open(LessonRef(library: library, lesson: p.id)) } }
 
+    /// A clear way on after a pass, including the course's last lesson and a review redo.
+    func continueAfterLesson() {
+        guard let lesson else { return }
+        if lesson.isReview { showReview() }
+        else if nextLesson != nil { openNext() }
+        else { showDashboard() }
+    }
+
     func isDone(_ ref: LessonRef) -> Bool { done[ref.library]?.contains(ref.lesson) ?? false }
 
     func setDone(_ ref: LessonRef, _ value: Bool) {
@@ -815,6 +837,8 @@ final class AppModel {
         let library: String
         let course: String
         var page: Int
+        /// Continue Learning returns here after an unseen opening, rather than restarting.
+        var destination: LessonRef? = nil
     }
 
     /// The learner database's settings for the story: the name on your badge, and the openings
@@ -874,6 +898,18 @@ final class AppModel {
         }
     }
 
+    /// Open the assignment Mission Control actually offers, even before the first pass.
+    func continueLearning(_ ref: LessonRef) {
+        guard let course = library(ref.library)?.catalog.course(of: ref.lesson) else { return }
+        if story(of: course.id, in: ref.library)?.hasOpening == true,
+           !seenOpenings.contains(ref.library + "/" + course.id) {
+            showOpening(course.id, in: ref.library)
+            opening?.destination = ref
+        } else {
+            open(ref)
+        }
+    }
+
     /// The opening View › Replay the Opening shows: that of the course you are in, else the first
     /// on the shelf.
     var openingToReplay: (library: String, course: String)? {
@@ -920,7 +956,9 @@ final class AppModel {
         opening = nil
         markSeen(o)
         guard let course = library(o.library)?.catalog.courses.first(where: { $0.id == o.course }) else { return }
-        if let next = firstUnfinished(course.lessons, in: o.library) {
+        if let destination = o.destination, summary(destination) != nil, !isDone(destination) {
+            open(destination)
+        } else if let next = firstUnfinished(course.lessons, in: o.library) {
             open(LessonRef(library: o.library, lesson: next.id))
         } else {
             showDashboard()
@@ -1040,7 +1078,7 @@ final class AppModel {
     /// standard library's names for links. Without it the app works as before, with no
     /// documentation.
     private func openDocumentationDatabase() {
-        guard let url = ReferenceDatabase.bundledURL else { return }
+        guard let url = resources.reference else { return }
         Task { [weak self] in
             let opened = await Task.detached(priority: .userInitiated) { () -> Result<(ReferenceDatabase, DocNames), any Error> in
                 Result {

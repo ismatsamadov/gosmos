@@ -117,9 +117,14 @@ struct QuizFooter: View {
                     .font(.system(size: 14, weight: .semibold))
                 Spacer()
                 if let next = app.nextLesson {
-                    Button("Next: \(next.title)", systemImage: "arrow.right") { app.openNext() }
+                    Button("Next: \(next.title)", systemImage: "arrow.right") { app.continueAfterLesson() }
                         .prominentGlassButton()
                         .lineLimit(1)
+                } else {
+                    Button(lesson.isReview ? "Back to Review" : "Back to Mission Control", systemImage: "arrow.right") {
+                        app.continueAfterLesson()
+                    }
+                    .prominentGlassButton()
                 }
             } else {
                 Text(wrong ? "Pick another answer where one is marked wrong, then submit again (⌘↩)."

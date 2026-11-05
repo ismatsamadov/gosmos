@@ -172,12 +172,7 @@ struct DashboardView: View {
 
     private func continueButton(_ ref: LessonRef) -> some View {
         Button {
-            // A course not begun yet begins with its opening, the first time.
-            if let course = app.library(ref.library)?.catalog.course(of: ref.lesson), app.progress(of: course, in: ref.library).done == 0 {
-                app.begin(course, in: ref.library)
-            } else {
-                app.open(ref)
-            }
+            app.continueLearning(ref)
         } label: {
             HStack(spacing: 16) {
                 Text(progress.completedLessons == 0 ? "Start learning" : "Continue learning")
