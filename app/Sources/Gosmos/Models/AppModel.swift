@@ -791,6 +791,10 @@ final class AppModel {
         return (required.filter { finished.contains($0.id) }.count, required.count)
     }
 
+    func estimate(of course: Course, in library: String) -> StudyEstimate {
+        StudyEstimate(lessons: course.lessons, completed: done[library] ?? [])
+    }
+
     func doneCount(_ chapter: Chapter, in library: String) -> Int {
         let finished = done[library] ?? []
         return chapter.lessons.filter { finished.contains($0.id) }.count
