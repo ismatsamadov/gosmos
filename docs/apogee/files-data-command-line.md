@@ -2,13 +2,16 @@
 
 **Authoring status:** Chapters 1–2 are implemented as 18 lessons. Chapter 1 has passed its
 calibration checks. Chapters 3–10 are planned below and have not been added to the library yet.
+For chapters 1–2, the lessons in `courses/apogee.sqlite` are the source of truth: writing and
+review changed details such as exercises and test cases.
 
 Season 2 of Apogee, July to October 2027. The van heads up the Quebrada Añil with no signal; Paz needs gctl to run a calibration day from files alone. The learner moves from one file to a tested command with explicit streams, configuration and embedded defaults.
 
 - **Title:** Files, Data and the Command Line
 - **Slug:** `files-data-command-line` · **Kind:** Course
-- **Short description:** Build offline tools for files, data and the command line on the road to Salar Quieto.
-- **Description:** The test van needs a schedule on a memory stick, recordings it can process without a connection and a tool the night shift can trust. With Paz in the van and Nkem reviewing the code, you build gctl from file helpers to a full calibration-day command. All exercises use the standard library, explicit clocks and isolated temporary files.
+- **Short description:** Build offline file and stream tools for the test van on the road to Salar Quieto.
+- **Description:** The test van needs a schedule on a memory stick and recordings it can process without a connection. With Paz in the van and Nkem reviewing the code, you build gctl's first helpers: whole files, paths, folders, permission bits and safe replacement, then readers and writers that copy, mirror, trace, limit and buffer a recording. Standard library only, with isolated files and explicit streams.
+- **As shipped:** the short description, the description and the story cover chapters 1–2 only. Each later chapter widens them when it ships; none of them promises a chapter before it is in the library.
 
 ## At a glance
 
@@ -66,7 +69,7 @@ Read and write whole files, build paths, create folders, inspect permissions and
 - **Objective:** Create nested folders with os.MkdirAll.
 - **Scenario:** The van has no reports folder on its first run.
 - **Exercise:** Implement prepareReports(root) for a nested reports/daily folder.
-- **Check:** New and existing directories succeed; a blocking file returns an error.
+- **Check:** New and existing directories succeed with no group or other permission bits; a blocking file returns an error.
 
 #### 1.6 Who Can Read It
 `who-can-read-it` · code_tests · difficulty 3
@@ -87,7 +90,7 @@ Read and write whole files, build paths, create folders, inspect permissions and
 - **Objective:** Write a sibling temporary file before renaming it into place.
 - **Scenario:** A failed save must not erase the last usable schedule.
 - **Exercise:** Implement replaceSchedule(path, data), closing before Rename and cleaning temporary files.
-- **Check:** Create, replace, failed rename, unchanged destination and no leaked temporary files.
+- **Check:** Create, replace, a reader opened before the replacement still reads the old file, failed rename, unchanged destination and no leaked temporary files.
 
 #### 1.9 The Stick Is Ready
 `the-stick-is-ready` · code_tests · difficulty 4

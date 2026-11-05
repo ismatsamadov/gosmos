@@ -7,7 +7,8 @@ This is the first chapter, authored and imported before the rest of Season 2. Th
 All seven code solutions passed 30 runs; all six test lessons also passed with `-race`.
 Library checking and teaching verification pass for the imported chapter. All nine lesson
 views were opened and inspected in both light and dark appearances with temporary learner
-data. Independent instructional review remains pending.
+data. An independent instructional review of chapters 1–2 followed on 5 November 2026;
+its fixes are in the library.
 
 - Filesystem lessons use tests and `t.TempDir`; only the path-construction lesson is checked by printed output.
 - Each helper does one operation and propagates its error. The final lesson composes the supplied folder and replacement helpers.
@@ -120,7 +121,7 @@ Building a path, creating its folders and inspecting a file are separate operati
 
 ## Your task
 
-Choose one answer per question. Use the operations from the preceding lessons: joining a path does no disk work, existing directories are acceptable, and permission bits are only part of a file's mode.
+Choose one answer per question. Each asks what one operation from the last three lessons does on its own: joining a path, creating folders or reading a file's permission bits.
 
 ### Replace It Whole
 
