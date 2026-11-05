@@ -23,4 +23,12 @@ import Testing
         #expect(many.description == "About 1 hr 20 min left")
         #expect(StudyEstimate(lessons: [], completed: []).minutes == 0)
     }
+
+    @Test func roundsLongEstimatesToWholeHours() {
+        // 31 and 32 lessons of 20 minutes: 10 hr 20 min and 10 hr 40 min.
+        #expect(StudyEstimate(lessons: Array(repeating: lessons[2], count: 31), completed: []).description == "About 10 hr left")
+        #expect(StudyEstimate(lessons: Array(repeating: lessons[2], count: 32), completed: []).description == "About 11 hr left")
+        // Just under ten hours keeps its minutes.
+        #expect(StudyEstimate(lessons: Array(repeating: lessons[1], count: 39), completed: []).description == "About 9 hr 45 min left")
+    }
 }

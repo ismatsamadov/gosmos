@@ -23,6 +23,8 @@ public struct StudyEstimate: Sendable {
     public var description: String {
         if minutes == 0 { return "No required lessons left" }
         if minutes < 60 { return "About \(minutes) min left" }
+        // From ten hours on, minutes would claim a precision a rough estimate doesn't have.
+        if minutes >= 600 { return "About \((minutes + 30) / 60) hr left" }
         let hours = minutes / 60, rest = minutes % 60
         if rest == 0 { return "About \(hours) hr left" }
         return "About \(hours) hr \(rest) min left"
