@@ -607,32 +607,32 @@ Lessons 6.3 to 6.8 use given functions for their data, so they need no slices ye
 
 `rules-you-can-hand-around` · 8 lessons: 2 code, 5 code_tests, 1 quiz
 
-Function types, assignment and calls, function parameters and literals, closures with private
-state, function factories, per-iteration loop variables, and ordered lists of rules.
+Functions as values: function types, function parameters and literals, closures and their
+state, returning functions, loop variables, and ordered lists of rules.
 
-**Story arc.** The week after Pipit-3’s launch, Ingrid’s go/no-go poll has become one long
+**Story arc.** The week after Pipit-3's launch, Ingrid's go/no-go poll has become one long
 chain of customer exceptions. You give each customer a rule the checklist can keep, count
-its calls, retain each station’s minimum and finish by asking every rule before calling GO.
+its calls, retain each station's minimum and finish by asking every rule before calling GO.
 Method values follow later, after receivers in chapter 11.
 
 #### 7.1 A Rule in a Variable
 `a-rule-in-a-variable` · code · difficulty 3
 - **Objective:** Assign a named function to a variable and call it through that variable.
-- **Scenario:** Ingrid needs Furrowlight’s minimum-elevation rule on the checklist.
+- **Scenario:** Ingrid needs Furrowlight's minimum-elevation rule on the checklist.
 - **Exercise:** Replace two placeholder booleans with calls through `rule`.
 - **Check:** 15 degrees → false; 20 degrees → true.
 
 #### 7.2 Handing Over a Rule
 `handing-over-a-rule` · code_tests · difficulty 3
 - **Objective:** Accept and invoke a function parameter.
-- **Scenario:** Nkem wants callers to choose the customer’s rule.
+- **Scenario:** Nkem wants callers to choose the customer's rule.
 - **Exercise:** Implement `checkPass` by invoking the supplied rule.
 - **Check:** Different caller rules, boundary angles, the original argument and exactly one invocation.
 
 #### 7.3 A Rule Written in Place
 `a-rule-written-in-place` · code · difficulty 3
 - **Objective:** Write a function literal with typed parameters and a result.
-- **Scenario:** A one-use rule belongs beside Furrowlight’s checklist entry.
+- **Scenario:** A one-use rule belongs beside Furrowlight's checklist entry.
 - **Exercise:** Complete the function literal assigned to `rule`.
 - **Check:** 19 degrees → false; 20 and 45 → true.
 
@@ -646,7 +646,7 @@ Method values follow later, after receivers in chapter 11.
 #### 7.5 The Rule That Counts
 `the-rule-that-counts` · code_tests · difficulty 4
 - **Objective:** Capture mutable local state in a returned closure.
-- **Scenario:** Each customer’s checklist needs its own count.
+- **Scenario:** Each customer's checklist needs its own count.
 - **Exercise:** Complete `makeCounter`, with its count outside the returned function.
 - **Check:** Repeated calls count upward; interleaved independent counters retain separate state.
 
@@ -667,7 +667,7 @@ Method values follow later, after receivers in chapter 11.
 #### 7.8 The Whole Poll
 `the-whole-poll` · code_tests · difficulty 4
 - **Objective:** Call a slice of function values in order, stopping at a refusal.
-- **Scenario:** Ingrid needs every customer’s rule asked before GO.
+- **Scenario:** Ingrid needs every customer's rule asked before GO.
 - **Exercise:** Complete the supplied `poll` loop over `[]Rule`; the slice syntax is explained here and developed in the schedule chapter.
 - **Check:** Original argument forwarded; order retained; no calls after refusal; all-true and empty lists accept.
 
@@ -933,7 +933,8 @@ which pieces of an image never came down.
 `changing-things-in-place` · 10 lessons: 4 code, 4 code_tests, 2 quizzes
 
 Pointers and methods: addresses and dereferencing, `nil`, value and pointer receivers,
-named types with `iota`, and the `String` method.
+named types with `iota`, and the `String` method. Includes method values that bind a
+receiver for a later call.
 
 **Story arc.** Sunniva radios from Ystmark: a storm is coming and both dishes must stow. Your
 stow function runs, and Ystmark still shows as tracking, because the function changed a
@@ -987,7 +988,7 @@ The chapter ends with the storm itself, hour by hour.
 #### 11.6 A Method Kept for Later
 `a-method-kept-for-later` · code_tests · difficulty 5
 - **Objective:** Bind a pointer receiver in a method value for a later call.
-- **Scenario:** Sunniva’s checklist needs to keep the stow action while she checks heaters.
+- **Scenario:** Sunniva's checklist needs to keep the stow action while she checks heaters.
 - **Exercise:** Return `s.Stow` from `stowAction`.
 - **Check:** No change at binding time; later calls update the right station and reason independently.
 
@@ -1132,7 +1133,8 @@ anomaly rules she can add without touching the pager. Interfaces give them both.
 
 Errors: returning and checking `error` values, messages with `fmt.Errorf`, sentinel errors
 and `errors.Is`, wrapping with `%w`, custom error types with `errors.AsType`, `defer` for
-cleanup, and `errors.Join`.
+cleanup, and `errors.Join`. Includes programmer-error panics, recovery at a decoder
+boundary, and re-panicking unknown failures.
 
 **Story arc.** Thistle starts sending garbage: temperatures of 900 °C and frames that arrive
 twice. The telemetry service stores the bad readings without a word, so the students cannot
@@ -1265,6 +1267,7 @@ what is wrong with a frame.
 
 Strings, bytes and runes: splitting and cutting lines, parsing numbers with `strconv`,
 UTF-8 and rune counts, iterating over runes, hex and big-endian bytes, and HMAC signatures.
+Includes fixed-size array values, equality, array map keys and slice views of arrays.
 
 **Story arc.** Thistle's frames come down as text lines, Pipit beacons as raw bytes, and
 place names arrive from Salar Quieto's console in UTF-8 that the Board mangles. You take
@@ -1326,14 +1329,17 @@ Pipit-2, which Mirela reviews line by line.
 #### 14.7 Twelve Bytes Every Time
 `twelve-bytes-every-time` · code_tests · difficulty 5
 - **Objective:** Use fixed-size array types, copies and equality.
-- **Scenario:** Paz needs Pipit’s twelve-byte beacon represented without losing its original version.
-- **Exercise:** Complete `sameBeacon` and `withVersion` on `[12]byte` values.
-- **Check:** Each differing byte makes arrays unequal; only the copy’s version changes; the caller stays unchanged.
+- **Scenario:** Paz needs the twelve-byte Pipit beacon in its type, and a recorded Pipit-1
+  beacon copied with Pipit-2's number for tests, leaving the recording as it was.
+- **Exercise:** Complete `sameBeacon` and `withSatellite` on `[12]byte` values.
+- **Check:** Each differing byte makes arrays unequal; only the copy's byte 2, the satellite
+  number, changes; the caller stays unchanged.
 
 #### 14.8 A Beacon as a Key
 `a-beacon-as-a-key` · code_tests · difficulty 6
 - **Objective:** Use comparable arrays as map keys and slice an array through a pointer.
-- **Scenario:** Paz needs repeated beacons recognized and reading bytes passed without a copy.
+- **Scenario:** Port Ellery's receiver passes on the same Pipit-1 beacon twice; repeats must
+  be recognized and reading bytes passed to the decoder without a copy.
 - **Exercise:** Complete `firstSeen` with an initialized map, then return bytes 3 through 7 from `readingBytes`.
 - **Check:** New/repeated/changed keys behave independently; stored keys keep their values; returned slices share the original array.
 
