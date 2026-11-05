@@ -97,6 +97,9 @@ lessons. A course without one looks as it always did.
 - One main window, at least 1100×700. It remembers its size, the sidebar width, every split
   and the last lesson. The sidebar starts 260 pt wide and the inspector 240, so with the
   lesson's 600 they fit the narrowest window.
+- Below 580 pt of detail width, the code/readme and documentation/list panes stack vertically.
+  Split sizes always fit the available space, and changing orientation keeps the editor's
+  identity, text and undo history. Each orientation keeps its own split position.
 - `NavigationSplitView` with the sidebar and the lesson. The toolbar:
   - back and forward through the lessons and documentation pages you visited;
   - the lesson's title, with course › chapter as the subtitle;

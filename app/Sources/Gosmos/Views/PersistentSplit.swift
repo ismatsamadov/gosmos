@@ -1,3 +1,4 @@
+import GosmosKit
 import SwiftUI
 
 /// Two panes with a draggable divider whose position is remembered in UserDefaults (a window
@@ -24,30 +25,27 @@ struct PersistentSplit<First: View, Second: View>: View {
     var body: some View {
         GeometryReader { geo in
             let total = axis == .horizontal ? geo.size.width : geo.size.height
-            let size = clamp(CGFloat(fraction) * total, total: total)
-            if axis == .horizontal {
-                HStack(spacing: 0) {
-                    first.frame(width: size)
-                    handle(total: total)
-                    second.frame(maxWidth: .infinity)
-                }
-            } else {
-                VStack(spacing: 0) {
-                    first.frame(height: size)
-                    handle(total: total)
-                    second.frame(maxHeight: .infinity)
-                }
+            let size = clamp(CGFloat(fraction) * max(0, total - 1), total: total)
+            let remaining = max(0, total - size - 1)
+            let layout = axis == .horizontal ? AnyLayout(HStackLayout(spacing: 0)) : AnyLayout(VStackLayout(spacing: 0))
+            // Resizing changes the layout without replacing the editor or its undo stack.
+            layout {
+                first.frame(width: axis == .horizontal ? size : nil, height: axis == .vertical ? size : nil)
+                handle(total: total, size: size)
+                second.frame(width: axis == .horizontal ? remaining : nil, height: axis == .vertical ? remaining : nil)
             }
         }
     }
 
     private func clamp(_ value: CGFloat, total: CGFloat) -> CGFloat {
-        let upper = max(minFirst, total - minSecond - 1)
-        return min(max(value, minFirst), upper)
+        CGFloat(SplitSizing.firstLength(total: Double(total), fraction: total > 1 ? Double(value / (total - 1)) : 0.5,
+                                       minFirst: Double(minFirst), minSecond: Double(minSecond)))
     }
 
-    private func handle(total: CGFloat) -> some View {
-        Rectangle()
+    private func handle(total: CGFloat, size: CGFloat) -> some View {
+        let available = max(0, total - 1)
+        let share = available > 0 ? Double(size / available) : 0
+        return Rectangle()
             .fill(Color(nsColor: .separatorColor))
             .frame(width: axis == .horizontal ? 1 : nil, height: axis == .vertical ? 1 : nil)
             .padding(axis == .horizontal ? .horizontal : .vertical, 3)
@@ -56,20 +54,20 @@ struct PersistentSplit<First: View, Second: View>: View {
             .pointerStyle(.frameResize(position: axis == .horizontal ? .trailing : .bottom))
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
                 .onChanged { drag in
-                    guard total > 0 else { return }
-                    let start = dragStart ?? fraction
+                    guard available > 0 else { return }
+                    let start = dragStart ?? share
                     if dragStart == nil { dragStart = start }
                     let delta = axis == .horizontal ? drag.translation.width : drag.translation.height
-                    fraction = Double(clamp(CGFloat(start) * total + delta, total: total) / total)
+                    fraction = Double(clamp(CGFloat(start) * available + delta, total: total) / available)
                 }
                 .onEnded { _ in dragStart = nil })
             .accessibilityElement()
             .accessibilityLabel("Divider")
-            .accessibilityValue("\(Int(fraction * 100)) percent")
+            .accessibilityValue("\(Int(share * 100)) percent")
             .accessibilityAdjustableAction { direction in
                 switch direction {
-                case .increment: fraction = min(0.85, fraction + 0.05)
-                case .decrement: fraction = max(0.15, fraction - 0.05)
+                case .increment: fraction = min(1, share + 0.05)
+                case .decrement: fraction = max(0, share - 0.05)
                 @unknown default: break
                 }
             }

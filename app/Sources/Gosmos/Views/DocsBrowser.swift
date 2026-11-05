@@ -8,11 +8,16 @@ struct DocsBrowser: View {
     let docs: DocsModel
 
     var body: some View {
-        PersistentSplit(.horizontal, key: "DocsSplitList", defaultFraction: 0.3, minFirst: 200, minSecond: 380) {
-            DocsList(docs: docs)
-        } second: {
-            DocPageView(docs: docs)
-                .background(Theme.canvas)
+        GeometryReader { geometry in
+            let stacked = geometry.size.width < 580
+            PersistentSplit(stacked ? .vertical : .horizontal,
+                            key: stacked ? "DocsSplitStacked" : "DocsSplitList",
+                            defaultFraction: 0.3, minFirst: stacked ? 140 : 200, minSecond: stacked ? 240 : 380) {
+                DocsList(docs: docs)
+            } second: {
+                DocPageView(docs: docs)
+                    .background(Theme.canvas)
+            }
         }
     }
 }
@@ -30,7 +35,7 @@ struct DocsList: View {
             HStack(spacing: 9) {
                 MissionIcon(symbol: "text.book.closed", color: Theme.violet, size: 30)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Field guide").font(.system(size: 14, weight: .semibold))
+                    Text("Go Reference").font(.system(size: 14, weight: .semibold))
                     Text("GO DOCUMENTATION").font(.system(size: 8, weight: .bold)).tracking(1.2)
                         .foregroundStyle(Theme.secondaryText)
                 }
@@ -300,7 +305,7 @@ private struct DocsWelcome: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                MissionHeading(eyebrow: "YOUR OFFLINE FIELD GUIDE", title: "Curiosity, meet clarity.", subtitle: "The language, the guides, and the Go standard library. A good answer is always within reach.", symbol: "text.book.closed", color: Theme.violet)
+                MissionHeading(eyebrow: "YOUR OFFLINE GO REFERENCE", title: "Curiosity, meet clarity.", subtitle: "The language, the guides, and the Go standard library. A good answer is always within reach.", symbol: "text.book.closed", color: Theme.violet)
                     .padding(24)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .missionCard(tint: Theme.violet, radius: 22)
@@ -319,7 +324,7 @@ private struct DocsWelcome: View {
                     }
                     .buttonStyle(.plain)
                 }
-                Label("Looking for a package or function? Search the field guide.", systemImage: "magnifyingglass")
+                Label("Looking for a package or function? Search Go Documentation.", systemImage: "magnifyingglass")
                     .font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
             }
             .padding(30)
