@@ -64,6 +64,7 @@ installed, and is skipped until `make app` has built it.
 | Go's caches | `~/Library/Caches/Gosmos/go-build` (builds), `go` (modules, GOPATH) and `telemetry` (set to off), disposable; nothing goes to `~/go` |
 | Go | `Contents/Resources/Go`, built into the app |
 | Go documentation | `Contents/Resources/Reference/go.sqlite`, built into the app and read only: the Go reference of `../reference/` |
+| Gosmos license | `Contents/Resources/LICENSE`, the [personal learning license](../LICENSE); third-party materials keep their own licenses |
 | Settings for this Mac | UserDefaults `app.gosmos.Gosmos`: another Go you chose, window layout, files left in conflict |
 
 Your code lives in the learner database. To run it, the app writes a lesson's files to its work
