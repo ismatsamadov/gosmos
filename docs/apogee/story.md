@@ -61,7 +61,7 @@ satellite; Ystmark has no UHF at all.
 - **Ystmark.** Polar night from November to February; radome heaters; arctic foxes chew
   cables, so the conduits are fox-proof. The fiber to the mainland fails in storms, and the
   station falls back to a slow satellite backhaul. Storms stow the dishes: like Cape Wren's,
-  they stow when the wind passes 72 km/h.
+  they stow when the wind reaches 72 km/h.
 - **Port Ellery.** Sea fog, gulls on the yagis, and the only station you can walk to. Every
   new piece of software runs here first, against a Pipit.
 - **Salar Quieto.** At 3,840 m, people walk slowly and dust gets everywhere. Its 3° mask is
@@ -73,7 +73,7 @@ satellite; Ystmark has no UHF at all.
   Diesel power, salt corrosion, a caretaker on site. A high horizon of palm trees gives it
   the network's highest mask.
 - **Cape Wren.** Nobody lives there; a contractor visits monthly. The dish stows itself when
-  the wind passes 72 km/h, and tracks with a warning from 50 km/h.
+  the wind reaches 72 km/h, and tracks with a warning from 50 km/h.
 - **The test van.** A mobile station based at Port Ellery, with one 1.2 m dish, S-band only.
   It carries the dish to sites for calibration.
 
