@@ -20,7 +20,7 @@ struct QuizLessonView: View {
                     }
                     MissionProgress(fraction: Double(session.picks.count) / Double(max(1, session.quiz.questions.count)))
                         .accessibilityLabel("Questions answered")
-                    Text("Take your time. Use keys 1–5 to choose an answer, then ⌘↩ to submit.")
+                    Text("Take your time. Use keys 1–\(session.answerKeys) to choose an answer, then ⌘↩ to submit.")
                         .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                 }
                 .padding(.bottom, 4)
@@ -128,7 +128,7 @@ struct QuizFooter: View {
                 }
             } else {
                 Text(wrong ? "Pick another answer where one is marked wrong, then submit again (⌘↩)."
-                           : session.canSubmit ? "Ready: submit your answers (⌘↩)." : "Pick an answer for each question (keys 1 to 5), then submit.")
+                           : session.canSubmit ? "Ready: submit your answers (⌘↩)." : "Pick an answer for each question (keys 1 to \(session.answerKeys)), then submit.")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.secondaryText)
                 Spacer()

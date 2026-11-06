@@ -22,6 +22,8 @@ final class QuizSession {
     }
 
     var quiz: Quiz { state.quiz }
+    /// The highest answer key that picks something: the most answers any question has, at most 5.
+    var answerKeys: Int { min(5, quiz.questions.map(\.answers.count).max() ?? 5) }
     var picks: [Int: Int] { state.picks }
     var verdicts: [Int: Bool] { state.verdicts }
     var allCorrect: Bool { state.allCorrect }

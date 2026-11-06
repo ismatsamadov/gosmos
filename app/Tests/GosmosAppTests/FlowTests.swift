@@ -84,6 +84,19 @@ import Testing
         await app.prepareToQuit()
     }
 
+    @Test func aQuizOffersOnlyTheKeysItsAnswersUse() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("quiz"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("quiz") && app.lesson?.quiz != nil }
+        // Its one question has two answers, so keys 3 to 5 pick nothing.
+        #expect(app.lesson?.quiz?.answerKeys == 2)
+        await app.prepareToQuit()
+    }
+
     @Test func aChapterPassStillAllowsItsOptionalLesson() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
