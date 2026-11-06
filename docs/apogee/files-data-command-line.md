@@ -1,17 +1,18 @@
 # Files, Data and the Command Line: syllabus
 
-**Authoring status:** Chapters 1–2 are implemented as 18 lessons. Chapter 1 has passed its
-calibration checks. Chapters 3–10 are planned below and have not been added to the library yet.
-For chapters 1–2, the lessons in `courses/apogee.sqlite` are the source of truth: writing and
-review changed details such as exercises and test cases.
+**Authoring status:** all ten chapters are implemented as 90 lessons. Chapter 1 passed its
+calibration checks before the rest was written; chapters 3–10 were written from this plan
+two chapters at a time and each pair independently reviewed. The lessons in
+`courses/apogee.sqlite` are the source of truth: writing and review changed details such as
+function signatures, exercises and test cases, and the larger changes are listed under
+"Changes in writing and review" at the end.
 
 Season 2 of Apogee, July to October 2027. The van heads up the Quebrada Añil with no signal; Paz needs gctl to run a calibration day from files alone. The learner moves from one file to a tested command with explicit streams, configuration and embedded defaults.
 
 - **Title:** Files, Data and the Command Line
 - **Slug:** `files-data-command-line` · **Kind:** Course
-- **Short description:** Build offline file and stream tools for the test van on the road to Salar Quieto.
-- **Description:** The test van needs a schedule on a memory stick and recordings it can process without a connection. With Paz in the van and Nkem reviewing the code, you build gctl's first helpers: whole files, paths, folders, permission bits and safe replacement, then readers and writers that copy, mirror, trace, limit and buffer a recording. Standard library only, with isolated files and explicit streams.
-- **As shipped:** the short description, the description and the story cover chapters 1–2 only. Each later chapter widens them when it ships; none of them promises a chapter before it is in the library.
+- **Short description:** Build gctl, the team's offline command-line tool, on the test van's climb to Salar Quieto.
+- **Description:** The test van climbs the Quebrada Añil to recalibrate Salar Quieto's dishes, with days at a time and no signal. With Paz in the van and Nkem reviewing the code, you build gctl from files alone: whole files, folders and safe saves; readers and writers; logs read line by line; bookings in JSON and spreadsheets in CSV, odd ones included; times that mean the same instant everywhere; one command with flags, subcommands and exit statuses; and a station table that travels inside the program. At the top of the road, a whole calibration day runs from gctl and files alone. Standard library only, with every test on isolated files and streams.
 
 ## At a glance
 
@@ -22,7 +23,7 @@ Season 2 of Apogee, July to October 2027. The van heads up the Quebrada Añil wi
 | 3 | Line by Line | `line-by-line` | Scan text safely, handle long records, parse fields and preserve useful line context. | 9 |
 | 4 | JSON In, JSON Out | `json-in-json-out` | Encode and decode structured data, choose field names and distinguish missing, null and empty values. | 9 |
 | 5 | Odd JSON | `odd-json` | Handle streamed values, strict input, variable payloads, exact numbers and custom JSON methods. | 9 |
-| 6 | Hollis’s Spreadsheets | `hollis-spreadsheets` | Read and write CSV with quoting, header validation and row-level diagnostics. | 9 |
+| 6 | Hollis's Spreadsheets | `hollis-spreadsheets` | Read and write CSV with quoting, header validation and row-level diagnostics. | 9 |
 | 7 | What Time Is It, Exactly? | `time-exactly` | Parse and format explicit layouts, offsets and durations without depending on the Mac’s zone files. | 9 |
 | 8 | Flags and Subcommands | `flags-and-subcommands` | Build testable commands with explicit arguments, streams and exit statuses. | 9 |
 | 9 | Files That Travel With the Program | `files-with-the-program` | Embed fixed resources and work against fs.FS, including test-only in-memory filesystems. | 9 |
@@ -375,7 +376,7 @@ Handle streamed values, strict input, variable payloads, exact numbers and custo
 - **Exercise:** Implement normalizeReport(r).
 - **Check:** Known versions, exact IDs and errors for unsupported versions.
 
-## Chapter 6 · Hollis’s Spreadsheets
+## Chapter 6 · Hollis's Spreadsheets
 
 `hollis-spreadsheets` · 9 lessons
 
@@ -719,3 +720,37 @@ Compose the season’s helpers into an offline calibration tool tested through c
 - **Scenario:** Paz reaches Salar Quieto and needs the whole day run from files.
 - **Exercise:** Complete runDay using the tested season helpers.
 - **Check:** A complete offline session, stable report, correct statuses and no real-user files touched.
+
+## Changes in writing and review
+
+Where the lessons as built differ from the entries above:
+
+- **3.1–3.3** The starter of 3.1 has the scanner and returns its error, so 3.1 is the loop and
+  3.2 is `Err`; 3.3's `scanRecords` returns a record count, and a sweep of exactly 256 KiB with
+  its newline still scans. A sweep is kept in its own file, not in the 200,000-line log.
+- **3.5, 3.7, 3.9** Errors read `3 columns instead of 4` and `line N: …`; 3.9 counts readings
+  per dish (`LG`, `CH`), not per station.
+- **4.1, 4.3, 4.6, 4.8** 4.1's Booking has no tags yet (ID, Station, AOS, LOS); 4.3's marshal
+  error is a time in year 20270; 4.6's kept `false` is a lesson-only `Confirmation`; 4.8 is
+  `decodeMaskUpdate(data, oldDeg)`, returning the mask after the update.
+- **5.5, 5.7, 5.9** The learner turns the payload into a `json.RawMessage` and refuses a
+  missing or `null` one; 5.7 is `readReportID` (a report ID above 2^53, not a frame
+  identifier); 5.9 accepts versions 1 and 2 and refuses version 3.
+- **6.3–6.6, 6.8, 6.9** The learner writes `columnIndex` behind a given `stationColumn`; the
+  6.4 quiz leaves writer errors to 6.7, which teaches them; 6.5's broken row lacks its LOS cell
+  and every bad line is reported with `errors.Join`; 6.6 uses a lesson-only pass sheet
+  `ID,STATION,ELEV,NOTE`; 6.8 also sets `Comment = '#'`; 6.9 writes `STATION,MISSED` then
+  `TOTAL`.
+- **7.3, 7.7–7.9** `networkTime` returns a string; `passDuration` takes the two timestamps as
+  text; 7.8's second question is about `In` with the van's fixed zone; `dayBookings` returns a
+  new sorted slice and no error.
+- **8.1–8.9** 8.1's `run` prints the station table; 8.3's help handling is a shared
+  `parseFlags(fs, args, stdout, stderr) (status int, ok bool)`; 8.5 dispatches inside `run`;
+  8.6 is `loadBookings(name, stdin)`; 8.7 is `report(lines, err, stdout, stderr) int`, which
+  never prints partial results; 8.9's learner writes `runStow`, the other commands given.
+- **9.6, 9.7, 9.9** The learner's `fstest.MapFS` is `fixtureFS()` in `fixtures.go`;
+  `templateFS` checks the folder with `fs.Stat` before `fs.Sub`; `loadResources` falls back to
+  the built-in `calibration.json` only when the stick has none.
+- **10.5, 10.7–10.9** `saveDay(path, report func(io.Writer) error)`; chapter 10's gctl has the
+  `day` command only, checked by golden sessions; 10.8's error paths are in `planDay`; 10.9 is
+  `runDay(dir, format, stdout)`.
