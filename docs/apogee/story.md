@@ -108,6 +108,9 @@ Customers, all invented: **Furrowlight** (crop imaging), **Brinewatch** (ship tr
 ## People
 
 Seven recurring characters. A story beat uses one of them, rarely two. First names in lessons.
+Lessons already fix their pronouns, so keep them: Nkem, Ingrid, Paz, Yusra and Mirela are
+"she", Tomás and Joss "he". Sunniva, Hollis and Professor Marr have none in a lesson yet:
+write around one, or add it here first.
 
 **Nkem Halloran**, staff backend engineer, your onboarding buddy and reviewer. Short, kind,
 exact. Asks one question at a time and likes smaller code.
