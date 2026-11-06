@@ -100,6 +100,25 @@ import Testing
         await app.prepareToQuit()
     }
 
+    @Test func aPassRecordedBeforeItIsMarkedStillFinishesTheChapter() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        let lesson = try #require(app.lesson)
+        let finishing = lesson.finishesChapter
+        // A code Submit records the pass before marking it, and the learner database reports
+        // the lesson done as soon as the record is written.
+        let learner = try #require(app.learner)
+        _ = try await learner.recordSubmit(lesson.ref, passed: true, output: "Hello", durationMs: 1, reviewable: true)
+        try await fixture.wait { app.isDone(lesson.ref) }
+        lesson.markPassed(review: false, finishing: finishing)
+        #expect(lesson.finishedChapter)
+        await app.prepareToQuit()
+    }
+
     @Test func aRedoReturnsToReviewWithoutAdvancingTheCourse() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
