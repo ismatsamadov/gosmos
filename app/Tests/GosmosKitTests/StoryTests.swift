@@ -107,6 +107,17 @@ import Testing
         #expect(TermLinker.link(Readme.parse(readme), terms: []) == Readme.parse(readme))
     }
 
+    /// A word that is a term of its own is never a shorter term with an ending, even once its
+    /// own term has been linked: the second "uplinkd" links to nothing, not to "uplink".
+    @Test func aTermWithAnEndingIsNotAnotherTerm() {
+        let terms = [CourseStory.Term(term: "uplink", meaning: "Ground to space."),
+                     CourseStory.Term(term: "uplinkd", meaning: "The service that sends commands up.")]
+        let readme = "uplinkd signs each command. Then uplinkd sends it up the uplink."
+        let found = Self.links(TermLinker.link(Readme.parse(readme), terms: terms))
+        #expect(found.map(\.0) == ["gosmos-term:uplinkd", "gosmos-term:uplink"])
+        #expect(found.map(\.1) == ["uplinkd", "uplink"])
+    }
+
     @Test func termsMatchWholeWordsOnly() {
         #expect(TermLinker.wholeWord("AOS", in: "CHAOS reigns") == nil)
         #expect(TermLinker.wholeWord("pass", in: "a password") == nil)
