@@ -191,14 +191,20 @@ final class LessonModel {
     var isBusy: Bool { code?.isRunning == true }
 
     /// The lesson passed: done (the learner database recorded it with the attempt), and the
-    /// Next Lesson button. A redo for review leaves the done mark alone.
-    func markPassed(review scheduled: Bool) {
+    /// Next Lesson button. A redo for review leaves the done mark alone. `finishing` is
+    /// `finishesChapter` as it was before the pass was recorded: the learner database reports
+    /// the lesson done as soon as the record is written, which can be before this runs.
+    func markPassed(review scheduled: Bool, finishing: Bool? = nil) {
         justPassed = true
         guard !isReview else { return }
         if scheduled { comesBackForReview = true }
-        finishedChapter = !isDone && (app?.isLastToDo(ref) ?? false)
+        finishedChapter = finishing ?? finishesChapter
         app?.setDone(ref, true)
     }
+
+    /// Whether passing now finishes the lesson's chapter: the lesson isn't done yet, and it is
+    /// the one required lesson of the chapter still to do.
+    var finishesChapter: Bool { !isDone && (app?.isLastToDo(ref) ?? false) }
 
     /// Whether the Editor menu's `command` can act now: on the file in the editor, with no
     /// sheet or question over it.
@@ -365,6 +371,8 @@ final class CodeSession {
             // The record is written to the end, even when this run's task is cancelled meanwhile
             // (another lesson opened), and quitting waits for it.
             let learner = self.learner, ref = lesson.ref, recorded = output, ms = result.durationMs
+            // Judged before the pass is recorded, which marks the lesson done.
+            let finishing = self.ownLesson?.finishesChapter ?? false
             var scheduled = false
             do {
                 if self.isReview {
@@ -393,7 +401,7 @@ final class CodeSession {
             // results) and leaves the lesson as it was.
             if submit && result.status == .passed {
                 self.passCount += 1
-                self.ownLesson?.markPassed(review: scheduled)
+                self.ownLesson?.markPassed(review: scheduled, finishing: finishing)
                 if scheduled { await app.refreshDueCount() }
             } else if submit {
                 self.ownLesson?.noteFailedSubmit()
