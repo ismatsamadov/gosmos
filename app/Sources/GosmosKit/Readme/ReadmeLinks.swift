@@ -102,14 +102,14 @@ public enum TermLinker {
     public static func link(_ blocks: [MDBlock], terms: [CourseStory.Term]) -> [MDBlock] {
         let names = terms.filter(\.linked).map(\.term).filter { !$0.isEmpty }.sorted { $0.count > $1.count }
         guard !names.isEmpty else { return blocks }
-        var state = State(names: names, all: Set(names.map { $0.lowercased() }))
+        var state = State(names: names, all: Set(terms.map { $0.term.lowercased() }))
         return blocks.map { state.link($0) }
     }
 
     struct State {
         /// The terms not linked yet, longest first.
         var names: [String]
-        /// Every linked term, lowercased, linked yet or not.
+        /// Every term of the guide, lowercased, linked or not.
         let all: Set<String>
 
         mutating func link(_ block: MDBlock) -> MDBlock {
