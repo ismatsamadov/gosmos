@@ -5292,8 +5292,6 @@ Arenas, a Calmaria guesthouse in Portugal); Quindle Island and Vorrel Island are
 checked. The satellites are numbered or lettered members of names already checked (Thistle,
 Cirrine, Brine, Furrow); "passplan 2" is the bible's own service with a number. No new people
 or customers.
-<<<<<<< HEAD
-
 ### The capstone: Pass Day, Live
 
 After take-over day, the learner starts the capstone on Monday 2 July 2029. Their new badge
@@ -5953,6 +5951,7 @@ call, page, the morning list, error budget, the Fishbowl, the Board.
 "the investors' week"; "pass line" as a term; the customer ID `kessick` and the receiver host
 names under `.example` (reserved, so only the company names matter, all already checked). The
 master `k-2029-07` follows Season 5's pattern. No new people, places, satellites or customers.
+
 ## Seasons
 
 Each course of the series is a season of the learner's career at Apogee, and story time only
