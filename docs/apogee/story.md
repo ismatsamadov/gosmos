@@ -1577,13 +1577,13 @@ orbit numbers continue Season 3's (Furrow-A 15.2 a day, Cirrine-1 14.92).
 |---|---|---|---|---|
 | 1 | Mon 6 Mar | the hut's bench, beside the crate | Sunniva: dishd must talk to the maker's simulator before Dish 1's old controller comes out on Monday 20 March | Ystmark hears a polar orbit on almost every revolution; a controller nobody can talk to is a dish nobody can use. By Friday 10 March dishd says hello: `YST-1 firmware 2.4, last command 0` |
 | 2 | Mon 13 Mar | the hut, through Sunniva's test line to Port Ellery over the backhaul | Nkem: dishd must read whole frames however the line splits or glues them. The manual's page one is wrong: the banner ends in CR LF | Over the slow line an answer arrives in pieces, or two arrive in one read. In Wednesday's test dishd lost the second, a STATUS in which the simulated Dish 1 had stowed itself in the wind, and nobody saw the stow |
-| 3 | Mon 27 Mar | Dish 1's radome and the hut (Dish 1's controller went in from 20 to 24 March) | Sunniva: Dish 1's first status frames, read as the manual's table says, put it at 382.15° in a 3,277 km/h wind. Tomás flies up on Tuesday 28 March to point it true | Friday 31 March, Cirrine-1's 07:31 pass (`cirrine-1/YST/13094`), Dish 1's first customer pass on the new controller |
-| 4 | Mon 10 Apr | the hut, the first spring storm | Ingrid: on Tuesday 11 April the fiber dropped at 03:10 and dishd waited forty minutes on a connection that was already dead | Dish 1 sat still through Cirrine-1's 03:25 pass (`cirrine-1/YST/13256`). Yusra: "TL;DR: Cirrine lost its 03:25 pass and asks what stops it happening again." |
+| 3 | Mon 27 Mar | Dish 1's radome and the hut (Dish 1's controller went in from 20 to 24 March) | Sunniva: Dish 1's first status frames, read as the manual's table says, put it at 382.15° in a 3,277 km/h wind. Tomás flies up on Tuesday 28 March to point it true | Friday 31 March, Cirrine-1's 07:02 pass (`cirrine-1/YST/13094`), Dish 1's first customer pass on the new controller |
+| 4 | Mon 10 Apr | the hut, the first spring storm | Ingrid: on Tuesday 11 April the fiber dropped at 03:10 and dishd waited forty minutes on a connection that was already dead | Dish 1 sat still through Cirrine-1's 03:43 pass (`cirrine-1/YST/13256`). Yusra: "TL;DR: Cirrine lost its 03:43 pass and asks what stops it happening again." |
 | 5 | Mon 24 Apr | the hut, midnight sun (Dish 2's controller went in from 17 to 21 April) | Sunniva: dishd must run both dishes at once and show them on a watch port to her terminal, Ingrid's screen and Tomás's laptop | One dish's trouble must not stop the other; Friday 28 April's deploy must leave nothing hanging |
-| 6 | Mon 8 May | the hut, after the big storm | Sunniva, Tuesday 9 May: "Link down 14 min. Dish 2 waiting on your code. Coffee low." | From 07:22 to 07:36 the island had no line at all. dishd gave up and never dialed again; Ingrid restarted it at 07:51, too late for Cirrine-1's 07:40 pass (`cirrine-1/YST/13676`). Tomás's 0.35° calibration jog had left dishd at 07:22:04, two seconds before the line went; the restarted dishd sent it again under a new number, so Dish 2 moved twice and was 0.70° off for Furrow-A's 10:52 pass (`furrow-a/YST/18218`), which came down at a sixteenth of its strength. Friday 12 May at 10:00 Sunniva pulls the line on purpose, in the middle of a jog |
-| 7 | Mon 22 May | the hut | Sunniva: on 9 May the fiber stayed down until 19:40; recordings had nowhere to wait but the recorder's small disk, which filled at 13:20 and lost Furrow-B's 13:21 pass. Hollis: "LOST FURROW-B 13:21. FIELD 7. WHY." She wants a station server in the hut that keeps every recording until headquarters collects it. Nkem: build it on the socket you know | The station server's first requests must be read exactly, and the crooked ones refused, never guessed at |
-| 8 | Mon 5 Jun | the hut | Hollis, through Yusra: Furrowlight's June campaign, about ten Furrow passes a day over Ystmark. The recorder streams each pass to the station server as it comes down, its CRC last. Mirela reviews the length rules on Wednesday | On Tuesday 6 June the recorder restarted in the middle of Furrow-A's 10:47 pass (`furrow-a/YST/18644`): a cut stream must never be kept as a whole recording |
-| 9 | Mon 19 Jun, then Tue 20 Jun | the hut; the Fishbowl on the Board | Ingrid and Yusra: headquarters' collector must hear of each recording at once and fetch it over one open line. On Tuesday 20 June the station server takes every pass from 06:00 | Furrow-A's 10:41 pass (`furrow-a/YST/18856`, LOS 10:51:20) is the first Furrowlight pass through it; its image must reach Furrowlight within a minute of LOS, as the booking service promises |
+| 6 | Mon 8 May | the hut, after the big storm | Sunniva, Tuesday 9 May: "Link down 14 min. Dish 2 waiting on your code. Coffee low." | From 07:22 to 07:36 the island had no line at all. dishd gave up and never dialed again; Ingrid restarted it at 07:51, too late for Cirrine-1's 07:28 pass (`cirrine-1/YST/13676`). Tomás's 0.35° calibration jog had left dishd at 07:22:04, two seconds before the line went; the restarted dishd sent it again under a new number, so Dish 2 moved twice and was 0.70° off for Furrow-A's 07:52 pass (`furrow-a/YST/18218`), which came down at a sixteenth of its strength. Friday 12 May at 10:00 Sunniva pulls the line on purpose, in the middle of a jog |
+| 7 | Mon 22 May | the hut | Sunniva: on 9 May the fiber stayed down until 19:40; recordings had nowhere to wait but the recorder's small disk, which filled at 13:20 and lost Furrow-B's 13:21 pass. Hollis: "LOST FURROW-B 13:21. FIELD 7. WHY." Sunniva wants a station server in the hut that keeps every recording until headquarters collects it. Nkem: build it on the socket you know | The station server's first requests must be read exactly, and the crooked ones refused, never guessed at |
+| 8 | Mon 5 Jun | the hut | Hollis, through Yusra: Furrowlight's June campaign, ten booked Furrow passes a day over Ystmark. The recorder streams each pass to the station server as it comes down, its CRC last. Mirela reviews the length rules on Wednesday | On Tuesday 6 June the recorder restarted in the middle of Furrow-A's 08:02 pass (`furrow-a/YST/18644`): a cut stream must never be kept as a whole recording |
+| 9 | Mon 19 Jun, then Tue 20 Jun | the hut; the Fishbowl on the Board | Ingrid and Yusra: headquarters' collector must hear of each recording at once and fetch it over one open line. On Tuesday 20 June the station server takes every pass from 06:00 | Furrow-A's 06:32 pass (`furrow-a/YST/18856`, LOS 06:40:35) is the first Furrowlight pass through it; its image must reach Furrowlight within a minute of LOS, as the booking service promises |
 
 The opening (Monday 6 March) shows Ystmark in one image (the sun back for three weeks, two
 radomes on a ridge, −18 °C), hands over the badge, introduces Sunniva (station chief), Nkem
@@ -1591,9 +1591,9 @@ radomes on a ridge, −18 °C), hands over the badge, introduces Sunniva (statio
 sends the learner to the simulator on the hut's bench: the old controllers come out on the 20th.
 
 The finale (chapter 9, Tuesday 20 June): Furrow-A's recording streams into the station server
-during the pass; the collector at Port Ellery hears of it on the feed at 10:51:21, has every
-byte and its CRC by 10:51:23, and Furrowlight's webhook from the booking service goes out at
-10:51:24. Ingrid watches the Board. Sunniva: "Midnight sun. Both dishes. Every byte. Coffee for
+during the pass; the collector at Port Ellery hears of it on the feed at 06:40:36, has every
+byte and its CRC by 06:40:38, and Furrowlight's webhook from the booking service goes out at
+06:40:39. Ingrid watches the Board. Sunniva: "Midnight sun. Both dishes. Every byte. Coffee for
 two." The debrief points at Season 5: Mirela notes that anyone who can listen on the island's
 line can read every byte on it, and Cirrine has asked that its commands be readable by Cirrine
 alone.
@@ -1780,7 +1780,7 @@ sent again under its own number, which the controller would refuse if it had run
 | dishd | writing one frame | 5 s | `os.ErrDeadlineExceeded`: the line is lost |
 | dishd | heartbeat | PING after 10 s without sending | keeps the controller's 30 s idle limit far away and finds a dead line within 15 s |
 | dishd | poll | QUERY each dish every second (chapter 5) | the watch port's lines |
-| dishd | reconnect | wait 1 s, doubling per failed attempt, at most 30 s, times a jitter in [0.5, 1.0) | starts again from 1 s after a successful HELLO |
+| dishd | reconnect | wait 1 s, doubling per failed dial in a row, at most 30 s, times a jitter in [0.5, 1.0); a handshake that fails as a lost line waits the same way, on its own count | a dial that works starts the dial count again; a WELCOME ends the handshake count |
 
 dishd's read deadline is an idle deadline, moved forward before every read, not one deadline
 for a whole frame: over the backhaul a frame may trickle in over seconds and is still alive.
@@ -2003,7 +2003,7 @@ type Link struct {
 	client   *Client
 	next     uint32 // the next command's seq
 	inflight *Frame // sent, not yet answered
-	attempt  int    // failed dials since the last good HELLO
+	attempt  int    // failed dials in a row
 }
 ```
 
@@ -2019,6 +2019,7 @@ func pipePair(t testing.TB) (net.Conn, net.Conn)
 func reach(name, addr string) string
 func handshake(conn net.Conn) (name string, w Welcome, err error) // given in chapter 1
 func firstContact(addr string) (string, error)
+func bannerOf(addr string) (string, error) // 1.2: dials, reads the banner, hangs up
 
 // chapter 2
 func readBanner(br *bufio.Reader) (string, error) // the name
@@ -2031,6 +2032,7 @@ func (c *Client) send(f Frame) error
 func (c *Client) recv() (Frame, error) // a BYE becomes *ByeError
 func (c *Client) exchange(frames ...Frame) ([]Frame, error)
 func (c *Client) Close() error
+func validName(name string) bool // given in client.go: 1 to 16 capitals, digits and hyphens
 
 // chapter 3
 func encodeFrame(f Frame) []byte
@@ -2095,8 +2097,11 @@ func (l *Link) Drain(ctx context.Context, queue []Frame) ([]error, error)
   capped at 30 s, times a factor drawn uniformly from [0.5, 1.0) with `r.Float64()`. Attempt
   1 waits 0.5–1 s, 2 waits 1–2 s ... 5 waits 8–16 s; from attempt 6 on, 15–30 s. Never 0,
   and the doubling is capped before it can overflow.
-- `connect` retries the whole handshake (dial, banner, HELLO) while the failure is `lost`,
-  waiting `redialDelay` through `Wait`, until a HELLO succeeds or ctx ends.
+- `redial` dials until a dial works, waiting `redialDelay` through `Wait` after each failure;
+  its count, `l.attempt`, is of failed dials in a row, and a dial that works resets it.
+  `connect` retries the whole handshake (dial, banner, HELLO) while the failure is `lost`,
+  waiting `redialDelay` on its own count of failed handshakes in a row, until a HELLO
+  succeeds or ctx ends.
 - `Send` numbers a command (`number`), keeps it as `inflight`, and sends it with `Do`. On a
   lost line it closes the client, `connect`s again, and, if `resume` says the command already
   ran, returns nil without sending it; otherwise it sends it again with the same seq. `settle`:
@@ -2151,7 +2156,8 @@ A pass ID in a path must have the bible's shape: lowercase satellite ID, `/`, th
 1. **Lines.** Every line, request line and header lines alike, ends in CR LF. The server reads
    through a `bufio.Reader` of 1024 bytes (`bufio.NewReaderSize(conn, 1024)`) with
    `ReadSlice('\n')`, so a line, CR LF included, is at most 1024 bytes (a 1022-character line
-   fits; 1023 doesn't). A line ending in LF without CR is 400 `bad line ending`.
+   fits; 1023 doesn't). A line ending in LF without CR, or holding a CR anywhere else, is 400
+   `bad line ending`.
 2. **The request line**: `METHOD SP TARGET SP VERSION`, exactly three non-empty parts split by
    single spaces, the target starting with `/`, the version shaped `HTTP/<digit>.<digit>`;
    otherwise 400 `bad request line`. A request line over 1024 bytes is 414
@@ -2160,11 +2166,14 @@ A pass ID in a path must have the bible's shape: lowercase satellite ID, `/`, th
    not an error: the server closes quietly.
 3. **Header fields**, until the blank line: `name:value`. The name is 1 or more token
    characters (letters, digits and `` !#$%&'*+-.^_`|~ ``), with nothing between it and the
-   colon; the value has spaces and tabs trimmed from both ends and is kept as sent. Names are
-   stored in lower case; a repeated name keeps every value in order (`Header`). A line with no
-   colon, an empty or crooked name, or a line starting with a space or a tab (old line folding)
-   is 400 `bad header line`. A header line over 1024 bytes is 431
-   `header line over 1024 bytes`; a 33rd field is 431 `more than 32 header fields`.
+   colon; the value has spaces and tabs trimmed from both ends and is otherwise kept as sent.
+   A value may hold no control character but the tab: RFC 9110 §5.5 says a NUL must be refused
+   or replaced, and Go's own server refuses them all (`isFieldValue`, given from 7.6). Names
+   are stored in lower case; a repeated name keeps every value in order (`Header`). A line with
+   no colon, an empty or crooked name, a value with a control character, or a line starting
+   with a space or a tab (old line folding) is 400 `bad header line`. A header line over 1024
+   bytes is 431 `header line over 1024 bytes`; a 33rd field is 431
+   `more than 32 header fields`.
 4. **Host** exactly once: 400 `missing host`, 400 `more than one host`.
 5. **The method**: `GET`, `HEAD` or `PUT`, case-sensitive; anything else is 501
    `method "PATCH" not implemented`.
@@ -2172,8 +2181,10 @@ A pass ID in a path must have the bible's shape: lowercase satellite ID, `/`, th
    1. Content-Length and Transfer-Encoding both present: 400
       `both content-length and transfer-encoding`. (Mirela: two programs reading one request
       two ways is how a second request gets hidden inside the first.)
-   2. Transfer-Encoding: its values joined with `, ` must equal `chunked` in any letter case,
-      else 501 `transfer-encoding "gzip" not implemented`; on GET or HEAD, 400
+   2. Transfer-Encoding: its values joined with `, ` must end in the coding `chunked`, in any
+      letter case, else 400 `bad transfer-encoding "gzip"`, as RFC 9112 §6.3 requires; a
+      coding before the final `chunked` is 501
+      `transfer-encoding "gzip, chunked" not implemented`; on GET or HEAD, 400
       `GET has no body` (`HEAD has no body`); otherwise the body is chunked (length −1).
    3. Content-Length: once only (400 `more than one content-length`), 1 or more ASCII digits
       (400 `bad content-length "12a"`; signs and spaces inside are bad), at most `MaxBody`
@@ -2231,7 +2242,7 @@ after every chunk):
 
 ```
 HTTP/1.1 201 Created\r\n
-Date: Tue, 20 Jun 2028 10:51:21 GMT\r\n
+Date: Tue, 20 Jun 2028 06:40:36 GMT\r\n
 Content-Type: text/plain; charset=utf-8\r\n
 Content-Length: 37\r\n
 Location: /recordings/furrow-a/YST/18856\r\n
@@ -2308,7 +2319,6 @@ type Request struct {
 	Length  int64  // 0 for no body, -1 for chunked
 	Body    []byte // chapter 8: read by the server before routing
 	Trailer Header // chapter 8: fields after a chunked body
-	Close   bool   // chapter 9: the request said Connection: close
 }
 
 // RequestError is a request the station server refuses, and its answer.
@@ -2376,6 +2386,7 @@ func (s *Server) feed(bw *bufio.Writer, lines <-chan string) error
 func (s *Server) route(req *Request) answer
 func (s *Server) Serve(ln net.Listener) error
 func (s *Server) serveConn(c net.Conn)
+func closing(req *Request) bool // given from 9.5 (conn.go): Connection: close, any letter case
 func (s *Server) Shutdown(ctx context.Context) error
 ```
 
@@ -2392,14 +2403,14 @@ given `put` keeps any complete body and answers 201.
 | Chapter | The learner writes (files) | Given read-only | Hidden |
 |---|---|---|---|
 | 1 | `listenLocal`, `serveOne`, `pipePair`, `reach`, `firstContact` (`main.go`, `pipe.go`) | `greeting`, `readBannerLine`, `handshake`, `Welcome` (`frames.go`) | `sim.go` |
-| 2 | `readBanner`, `readExactly`, `readPayload`, `readFrame`, `writeFrame`, `Client`'s `recv` and `exchange` (`client.go`) | `Frame`, the types, the errors, `NakError`, `ByeError`, `encodeFrame`, `decodeFrame` (`frame.go`); `newClient` | `sim.go` |
-| 3 | `tempC` (3.2), `encodeFrame` (`encode.go`), `decodeFrame` (`decode.go`), `rawStatus`, `decodeStatus` (`status.go`), `pointBody` (`command.go`), `(*Client).command` | `client.go`, `DishState`, `decodeWelcome`, `nakError`, `hello`, `status` | `sim.go` |
+| 2 | `readBanner`, `readExactly`, `readPayload`, `readFrame`, `writeFrame`, `Client`'s `recv` and `exchange` (`client.go`) | `Frame`, the types, the errors, `NakError`, `ByeError`, `encodeFrame`, `decodeFrame` (`frame.go`; this `decodeFrame` only splits a payload, and the CRC check is 3.7's); `newClient` | `sim.go` |
+| 3 | `tempC` (3.2), `encodeFrame` (`encode.go`), `decodeFrame` (`decode.go`), `decodeStatus` (`status.go`), `pointBody` (`command.go`), `(*Client).command` | `client.go`, `DishState`, `rawStatus` (from 3.4), `decodeWelcome`, `nakError`, `hello`, `status` | `sim.go` |
 | 4 | `describe`, `idleReader`, deadlines in `send` and `recv`, `heartbeat`, `recvCtx`, `Do` (`client.go`) | `frame.go`, `encode.go`, `decode.go`, `status.go`, `command.go` | `sim.go` |
 | 5 | `pollAll`, `serve`, `Broadcast`, `Shutdown`, `Run` (`poll.go`, `watch.go`, `service.go`) | the client, `watchLine`, `greeting`, `Watchers`' other methods | `sim.go` |
 | 6 | `redial`, `lost`, `learn`, `number`, `resume`, `Send`, `Drain` (`link.go`) | the client, `jogBody`, `redialDelay` (from 6.2), `settle`, `connect` (from 6.8) | `sim.go` |
-| 7 | `readLine`, `parseRequestLine`, `readHeader`, `contentLength`, `readRequest` (`request.go`) | `Header`, `RequestError`, `writeResponse`, `dateLayout`, `Store`, `validPassID`, `Server`, `serveConn` (`response.go`, `store.go`, `server.go`) | |
+| 7 | `readLine`, `parseRequestLine`, `readHeader`, `contentLength`, `readRequest` (`request.go`) | `Header`, `Request`, `RequestError`, `errLineTooLong`, `versionShaped`, `isToken` and `isFieldValue`, given in the editable `request.go`; `writeResponse`, `dateLayout`, `Store`, `validPassID`, `Server`, `serveConn` (`response.go`, `store.go`, `server.go`) | |
 | 8 | `readBody`, `chunkSize`, `readChunked`, `bodyLength`, `checkCRC`, `put` (`body.go`, `routes.go`) | `request.go` and chapter 7's files | |
-| 9 | `statusLine`, `writeResponse`, `writeChunk`, `endChunks`, `recording`, `feed`, `serveConn`, `Shutdown`, `route` (`response.go`, `server.go`, `routes.go`) | `request.go`, `body.go`, `store.go` | |
+| 9 | `statusLine`, `writeResponse`, `writeChunk`, `endChunks`, `recording`, `feed`, `serveConn`, `Shutdown`, `route` (`response.go`, `server.go`, `routes.go`) | `request.go`, `body.go`, `store.go`, and `closing` (`conn.go`, from 9.5) | |
 
 #### How lessons test the wire
 
@@ -2446,7 +2457,7 @@ given `put` keeps any complete body and answers 201.
 - Recordings in tests are `testRecording(n)`, byte i being `byte(i % 256)`, so they hold 0x00,
   CR and LF: n 24 has CRC `8295a696`, 1024 `b70b4c26`, 2048 `9f5edd58`, 4096 `a2912082`,
   65536 `b11de6a1`. The finale's are Furrow-A's `furrow-a/YST/18856` (4096 bytes, `a2912082`)
-  and Cirrine-1's `cirrine-1/YST/13676` (2048 bytes, `9f5edd58`).
+  and Cirrine-1's `cirrine-1/YST/14302` (2048 bytes, `9f5edd58`).
 - Program output (`code` lessons) never prints a port, a time or anything that depends on how
   reads split: requests printed in chapter 7 go to `http://127.0.0.1/...` through a Transport
   that dials the test listener, so the Host line reads `127.0.0.1`.
@@ -2494,7 +2505,7 @@ capitals. The Cape Wren contractor (the bible's "a contractor visits monthly") s
 | 1 | Mon 10 Jul 2028 | Mirela's desk, Port Ellery | Mirela, before anything is sealed: "Every secret this season starts as random bytes. Show me where ours come from." The draft nonce helper for Cirrine's commands and the ops console's session tokens both come from `math/rand/v2` seeded with the clock | Whoever knows roughly when a token or nonce was made can make it again. On Friday 14 July at 16:00 Mirela makes the season's master key, `k-2028-07`, with your helper |
 | 2 | Mon 17 Jul | the backend desks, with dlinkd's delivery folder | Yusra: "TL;DR: Cirrine wants proof that every file is exactly what left the satellite." Cirrine's archive checks SHA3-256, Apogee's own deliveries SHA-256 | Season 1's CRC-32 catches radio noise, not a person: Mirela changes "0.71" to "0.17" in a Furrowlight field report and the CRC still matches. Cirrine's first fingerprinted delivery is on Friday 21 July |
 | 3 | Mon 24 Jul | Mirela's desk | Mirela reviews the signing path before sealing builds on it, and finds three weak spots: Pipit-3's flight software checks a homemade signature, `sha256(key + command)`; a `\|` inside an argument signs like two arguments; the replay guard counts a command before checking its signature | Pipit-3 would obey a command nobody signed, and one forged sequence number could lock a satellite out of every later command. Mirela signs off on Friday 28 July after her twelve planted lines |
-| 4 | Mon 31 Jul | the Fishbowl | On Sunday 30 July the Fishbowl's spare laptop goes missing from the night-shift desk. It held a backup of the ops console's user file: 26 accounts, every password an unsalted SHA-256. Ingrid logs it; Mirela: "Assume whoever has it has a fast computer and a list of common passwords" | Every password is changed by Friday 4 August, and the console's login reopens at 16:00 that day with records a stolen copy can't give away |
+| 4 | Mon 31 Jul | the Fishbowl | On Sunday 30 July the Fishbowl's spare laptop goes missing from the night-shift desk. It held a backup of the ops console's user file: 26 accounts, every password an unsalted SHA-256. Ingrid logs it; Mirela: "Assume whoever has it has a fast computer and a list of common passwords" | Every password is changed by Friday 4 August, and the console's login reopens at 16:00 that day with records that make every guess at a stolen copy cost 600,000 rounds |
 | 5 | Mon 7 Aug | the lab bench at Port Ellery | Mirela's key inventory: `k-2027-03`, the one key that signs commands for every satellite, sits in uplinkd, in the lab bench's spare Pipit-2 flight computer and in two old test scripts | Whoever reads it out of any one of them can command all seven satellites. Each satellite gets keys of its own, derived from `k-2028-07`, which only uplinkd holds; they go up on the passes of Thursday 10 August, and `k-2027-03` retires at 00:00 UTC on Friday 11 August |
 | 6 | Mon 14 Aug, to Fri 25 Aug | Port Ellery's roof and the test van; the Fishbowl on Friday 25 August | Tomás points the test van's 1.2 m dish at Port Ellery's uplink and reads Pipit-2's commands (S-band, 2065 MHz) off the air in plain text. Cirrine's condition starts on Friday 25 August | Cirrine-1's first sealed command, `PING`, goes up at 07:30 UTC on Friday 25 August, on pass `cirrine-1/YST/15287` (Ystmark, LOS 07:41:12), and Cirrine-1 answers |
 | 7 | Mon 28 Aug | Yusra's desk | Hollis, Monday 09:02: "FURROW-A 0827 1402 NEVER ARRIVED". dlinkd says `furrow-a-20280827-1402.tif` (booking `bk-5274`) landed at 14:13:05 on Sunday; Furrowlight's receiver says nothing. Season 3's webhook signature can't settle it: Furrowlight holds the same secret, so either side could have written it | Yusra: "TL;DR: receipts nobody but Apogee can sign and anyone can check." Receipts start on Friday 1 September; that day Furrowlight checks Sunday's receipt against the file already in its own storage: it matches. The file had arrived; their receiver missed the event |
@@ -2667,10 +2678,12 @@ strictly increasing per satellite. Season 5 adds rules, never a new layout:
   are lowercase, such as `mirela`, `kiosk`, `bench`.
 - **Login rules**: derive again with the record's own count and salt and compare with
   `subtle.ConstantTimeCompare`; an unknown user and a wrong password give the same error,
-  `invalid user or password` (`errInvalidLogin`), after the same work (one derivation against a
-  fixed dummy record for an unknown user); a successful login against an old record or one
-  under 600,000 iterations saves a new record (upgrade at login); a session token is
-  `rand.Text()`, and the console keeps only its SHA-256 in hex.
+  `invalid user or password` (`errInvalidLogin`), after the same work: one derivation against a
+  fixed dummy record for an unknown user, and one for an old `sha256$` record too, which would
+  otherwise answer at once and show which accounts still have one (`matches`, from 4.8). A
+  record under 600,000 iterations still answers faster until it is upgraded. A successful login
+  against an old record or one under 600,000 iterations saves a new record (upgrade at login);
+  a session token is `rand.Text()`, and the console keeps only its SHA-256 in hex.
 - **Cost in tests**: one derivation at 600,000 iterations takes about 60 ms on an Apple-silicon
   Mac. A lesson's tests run at most six of them; other cases use 1,000-iteration records.
 
@@ -2711,7 +2724,9 @@ whose password nobody knows; the check always fails after one `kdf` call, like a
 - **Printing keys.** `Key` has `String()` returning `k-2028-07 (secret hidden)` and
   `GoString()` returning `Key{ID: "k-2028-07", Secret: hidden}`. fmt can't call methods on a
   value in an unexported field and prints its bytes, so `KeyRing` has its own `String()`:
-  `key ring: k-2028-07, k-2028-10`, IDs in activation order.
+  `key ring: k-2028-07, k-2028-10`, IDs in activation order, and a `GoString()` with the same
+  text, since `%#v` calls GoString. The number verbs (`%d`, `%o`, `%b`, `%c`, `%U`) skip both
+  methods and still print a key's bytes, so keys are logged with `%v` (lesson 5.5).
 
 #### Sealed commands (chapter 6)
 
@@ -2742,10 +2757,11 @@ type Sealed struct {
 - **Plaintext**: the operation and arguments joined by `|`, checked by chapter 3's canonical
   rules: `PING`, `SET_MODE|SAFE`. After opening, the full canonical command is
   `cirrine-1|4471|PING`.
-- **Order of checks** (the satellite and its stand-in in tests): parse (`ErrMalformed`);
-  version 2 (`ErrVersion`); satellite is its own (`ErrWrongSat`); key ID held (`ErrUnknownKey`)
-  and not revoked (`ErrRevoked`) or retired (`ErrRetired`); `Seq` above the last accepted
-  (`ErrReplay`); `Open` with the associated data (`ErrForged`); only then record `Seq`. A
+- **Order of checks** (the satellite and its stand-in in tests): parse (`ErrMalformed`, also
+  for a line that doesn't start with `SEAL`); version 2 (`ErrVersion`, only for a SEAL line);
+  satellite is its own (`ErrWrongSat`); key ID held (`ErrUnknownKey`) and not revoked
+  (`ErrRevoked`) or retired (`ErrRetired`); `Seq` above the last accepted (`ErrReplay`); `Open`
+  with the associated data (`ErrForged`); only then record `Seq`. A
   refusal changes nothing, so a forged line numbered 18,446,744,073,709,551,615 can't lock the
   satellite out. (Chapter 3 verifies before it compares `Seq`; here a number already seen is
   refused before any work is spent opening it, and 6.7's readme says so.)
@@ -2753,16 +2769,23 @@ type Sealed struct {
 
   ```go
   var (
-  	ErrMalformed  = errors.New("malformed command line")  // "malformed command line: want 7 fields"
-  	ErrVersion    = errors.New("unsupported version")     // "unsupported version: 3"
-  	ErrWrongSat   = errors.New("not for this satellite")  // `not for this satellite: "pipit-2"`
-  	ErrUnknownKey = errors.New("unknown key")             // `unknown key: "k-2027-03"`
-  	ErrRevoked    = errors.New("key revoked")             // `key revoked: "k-2028-10"`
-  	ErrRetired    = errors.New("key retired")             // `key retired: "k-2028-07"`
-  	ErrReplay     = errors.New("replayed sequence number") // "replayed sequence number: 4471, last 4471"
-  	ErrForged     = errors.New("command failed authentication")
+  	ErrMalformed = errors.New("malformed command line") // "malformed command line: want 7 fields"
+  	ErrVersion   = errors.New("unsupported version")    // "unsupported version: 3"
+  	ErrWrongSat  = errors.New("not for this satellite") // `not for this satellite: "pipit-2"`
+  	// ErrUnknownKey means the ring holds no version with the key ID asked for.
+  	ErrUnknownKey = errors.New("unknown key")
+  	ErrRevoked    = errors.New("key revoked") // `key revoked: "k-2028-10"`
+  	ErrRetired    = errors.New("key retired") // `key retired: "k-2028-07"`
+  	// ErrReplay refuses a command whose sequence number isn't above the last one accepted.
+  	ErrReplay = errors.New("replayed sequence number")
+  	// ErrForged refuses a command whose signature doesn't check out, and never says more.
+  	ErrForged = errors.New("command failed authentication")
   )
   ```
+
+  `ErrUnknownKey`, `ErrReplay` and `ErrForged` keep the text of their first declarations
+  (chapters 5 and 3). Wrapped, they read `unknown key: "k-2027-03"` and
+  `replayed sequence number: 4471, last 4471`.
 
 - **LOAD_KEY** (chapter 11): the plaintext `LOAD_KEY|<new key id>|<64 hex sign key>|<64 hex
   seal key>` (148 bytes for `k-2028-10`), sealed under the satellite's current seal key. After
@@ -2857,7 +2880,10 @@ public identity key in advance (`map[string]ed25519.PublicKey`, by station code)
    the dialer's share first.
 4. Data lines: `DATA <24 hex nonce> <hex ciphertext>`, AES-256-GCM under the session key with
    associated data `DATA|<from code>|<to code>`, a fresh random nonce each. A line that doesn't
-   open ends the session with an error.
+   open ends the session with an error. DATA lines carry no sequence number, so a machine in
+   the middle can drop, repeat or reorder them within a session, though never read or change
+   one; the CMD lines inside carry their own numbers. The HKDF info binds the two shares, not
+   the station codes, which is sound because each share's signature covers its code.
 5. Nothing of the session is kept afterwards: a stolen station later can't open a recording.
 
 Tests run both sides over `net.Pipe()` with a deadline of 1 s; the side in the middle is the
@@ -2875,7 +2901,8 @@ from `crypto/rand`, with `rand.Int`).
 | Stations | `yst.apogee.internal`, `pel.`, `sqt.`, `lan.`, `cwr.` | the intermediate | 1001 YST, 1002 PEL, 1003 SQT, 1004 LAN, 1005 CWR | 2028-09-22T00:00:00Z for 90 days, to 2028-12-21T00:00:00Z | DNS name = CN; server auth; digital signature |
 | uplinkd (headquarters) | `uplinkd`, DNS `uplinkd.apogee.internal` | the intermediate | 2001 | as stations | client auth; digital signature |
 | passplan | `passplan`, DNS `passplan.apogee.internal` | the intermediate | 2002 | as stations | client auth (it may read status, never queue) |
-| Rotation Day's | the same names | the intermediate | 1101–1105, 2101, 2102 | 2028-10-09T00:00:00Z to 2029-01-07T00:00:00Z | as above |
+| dishd (Port Ellery) | `dishd`, DNS `dishd.apogee.internal` | the intermediate | 2003 | as stations | client auth (it dials Ystmark's dish controllers) |
+| Rotation Day's | the same names | the intermediate | 1101–1105, 2101–2103 | 2028-10-09T00:00:00Z to 2029-01-07T00:00:00Z | as above |
 
 - Host names end in `.apogee.internal`; `.internal` is reserved for private networks, so no
   name can belong to anyone outside.
@@ -2883,7 +2910,8 @@ from `crypto/rand`, with `rand.Int`).
   refuses only a time before `NotBefore` or after `NotAfter`).
 - Files: `<name>.pem` holds the leaf then the intermediate (`CERTIFICATE` blocks);
   `<name>.key` the PKCS #8 private key (`PRIVATE KEY`), mode 0600; `roots.pem` the root.
-  Names: `yst`, `pel`, `sqt`, `lan`, `cwr`, `uplinkd`, `passplan`. `tls.X509KeyPair` loads a pair.
+  Names: `yst`, `pel`, `sqt`, `lan`, `cwr`, `uplinkd`, `passplan`, `dishd`. `tls.X509KeyPair`
+  loads a pair.
 - `Verify` always gets `Roots` (a pool with the root only), `Intermediates` (the chain the peer
   sent), `DNSName` where a name is checked, `KeyUsages` (server or client auth) and
   `CurrentTime` from the injected clock. Never leave `Roots` nil: on a Mac that hands the
@@ -2911,9 +2939,11 @@ from `crypto/rand`, with `rand.Int`).
   | `GET /status` | 200 `ok YST` and a newline |
   | `POST /uplink` | body: one CMD or SEAL line, at most 1024 bytes, syntax checked only; 202 `queued cirrine-1 4471`; 403 `only uplinkd may queue commands`; 400 `bad command line` |
 
-- **The dish controllers** speak their own raw socket protocol (Season 4); this season wraps
-  the connection from a station's uplinkd to a controller in TLS (`tls.Dialer`, or `tls.Client`
-  with `HandshakeContext`), with the same certificates. In tests the controller is a stand-in on
+- **The dish controllers** speak their own raw socket protocol (Season 4), and dishd at Port
+  Ellery is still the only program that talks to Ystmark's. This season wraps its connection to
+  a controller in TLS (`tls.Dialer`, or `tls.Client` with `HandshakeContext`): dishd proves
+  itself with its client certificate, 2003, and a controller presents its station's
+  certificate, 1001 for Ystmark. In tests the controller is a stand-in on
   `net.Listen("tcp", "127.0.0.1:0")` behind `tls.Server` that echoes each line it reads,
   `PING yst` in, `PING yst` out; it never claims to be the real protocol.
 
@@ -2964,13 +2994,13 @@ every certificate rather than trusting it (fail closed). The TLS check runs in
 | Thu 2028-08-10 | every satellite's own `k-2028-07` keys go up inside its operator's August flight-software update, which also teaches it to open SEAL lines |
 | Fri 2028-08-11 00:00 | `k-2027-03` retires; satellites answer only to their own keys |
 | Mon 2028-08-28 | `r-2028-08` made; published; Activate 2028-09-01T00:00:00Z |
-| Mon 2028-10-09 | `k-2028-10` made (Activate 2028-10-17T00:00:00Z); `k-2028-07` gets Retire 2028-10-24T00:00:00Z; `r-2028-10` published (Activate 2028-10-17T00:00:00Z) and `r-2028-08` gets Retire 2028-10-17T00:00:00Z; certificates 1101–1105, 2101, 2102 issued |
+| Mon 2028-10-09 | `k-2028-10` made (Activate 2028-10-17T00:00:00Z); `k-2028-07` gets Retire 2028-10-24T00:00:00Z; `r-2028-10` published (Activate 2028-10-17T00:00:00Z) and `r-2028-08` gets Retire 2028-10-17T00:00:00Z; certificates 1101–1105 and 2101–2103 issued |
 | Mon 9 to Fri 13 Oct | each satellite gets LOAD_KEY for `k-2028-10` on its first pass, sealed under its `k-2028-07` seal key |
 | Tue 2028-10-17 00:00:00 | Rotation Day: uplinkd seals and signs with `k-2028-10`; bookingd signs receipts with `r-2028-10` |
-| 00:30:00 | uplinkd's client certificate 2101 replaces 2001 (stations accept both until 24 October) |
+| 00:30:00 | uplinkd's client certificate 2101 replaces 2001, and dishd's 2103 replaces 2003 (stations and controllers accept both until 24 October) |
 | 01:00:00 to 01:15:40 | each station switches to its new certificate in its first quiet gap (below) |
 | 10:12:00 | revocation list 1: certificate 1005 (Cape Wren's old station computer left with its disk) |
-| Tue 2028-10-24 00:00:00 | `k-2028-07` retires; revocation list 2: 1001 to 1005, 2001 and 2002 |
+| Tue 2028-10-24 00:00:00 | `k-2028-07` retires; revocation list 2: 1001 to 1005 and 2001 to 2003 |
 
 **Rotation Day's passes** (Season 1's `Pass`; lessons 11.7 and 11.8). Each pass gets one sealed
 `PING`; the Cirrine-1 pass across midnight gets two, sealed at 23:59:58 and 00:01:00. A command
@@ -3014,14 +3044,14 @@ needs as read-only files under these names, and uses only the fields it needs. `
 | 1 | `newKey`, `newNonce`, `newSalt`, `newSessionToken` (`random.go`); `bits` and `Noncer` are lesson-only |
 | 2 | `parseDigest`, `newHash`, `fingerprintAs` (`digest.go`), `checkManifest` (`manifest.go`); `fingerprint`, `fingerprintStream` and `save` are lesson-only |
 | 3 | `Command` (`command.go`), `tag`, `verify`, `canonical` and its helpers `checkField`, `satIDRune`, `opRune`, `argRune` (`mac.go`), `Guard`, `(*Guard).Accept`, `ErrForged`, `ErrReplay` (`guard.go`), `checkLine` (`line.go`); `samePhrase`, `Signer` and `NewSigner` stay in their lessons' `main.go` |
-| 4 | `Record`, `derive`, `formatRecord`, `parseRecord`, `checkPassword`, `login`, `Console`, `(*Console).Check`, `(*Console).Login`, `errInvalidLogin` (`password.go`, `console.go`) |
-| 5 | `signKey`, `satKey`, `fleetKeys`, `KeyVersion`, `KeyRing`, `loadRing`, `(*KeyRing).SatKey`, `(*KeyRing).Versions`, `(*KeyRing).String`, `(*KeyRing).GoString`, `Key.String`, `Key.GoString` (`derive.go`, `ring.go`; `%#v` calls GoString, so both types need one) |
+| 4 | `Record`, `derive`, `formatRecord`, `parseRecord`, `checkPassword`, `newRecord`, `login`, `Console`, `(*Console).Check`, `(*Console).Login`, `(*Console).matches`, `(*Console).newRecord`, `needsUpgrade`, `dummyRecord`, `errInvalidLogin` (`password.go`, `console.go`); `checkStored` stays in 4.6's `main.go` |
+| 5 | `signKey`, `satKey`, `fleetKeys`, `KeyVersion`, `KeyRing`, `loadRing`, `(*KeyRing).SatKey`, `(*KeyRing).Versions`, `(*KeyRing).String`, `(*KeyRing).GoString`, `Key.String`, `Key.GoString`, `parseVersion`, `(*KeyRing).add`, `ErrUnknownKey` (`derive.go`, `ring.go`; `%#v` calls GoString, so both types need one) |
 | 6 | `seal`, `open`, `sealCmd`, `Sealed`, `(Sealed).AD`, `formatSealed`, `parseSealed`, `Satellite`, `SatKeys`, `(*Satellite).Accept`, `sealCommand`, the `Err…` sentinels (`seal.go`, `satellite.go`) |
 | 7 | `Notary`, `newNotary`, `(*Notary).Sign`, `(*Notary).Published`, `checkReceipt`, `publishKey`, `readKey`, `Receipt`, `Envelope`, `ReceiptKey`, `wrapReceipt`, `openEnvelope`, `verifyEnvelope`, `issue`, `checkDelivery` (`receipt.go`) |
 | 8 | `agree`, `parseShare`, `agreeHex`, `Identity`, `hello`, `checkHello`, `ErrBadHello`, `sessionKey`, `Backhaul`, `(*Backhaul).NewSession`, `wrapFor`, `unwrap`, `dial`, `answer` (`agree.go`, `backhaul.go`). Never a type named `Station`: that name is the bible's ground station |
 | 9 | `trusted`, `Issuer`, `newRoot`, `newIntermediate`, `issueServer`, `issueClient`, `verifyStation`, `checkAt`, `issueAll` (`ca.go`) |
 | 10 | `newClient`, `serverConfig`, `harden`, `requireClients`, `clientConfig`, `caller`, `Queue`, `stationHandler`, `dialController`, `uplinkClient`, `stationServer`, `send` (`tlsconf.go`, `station.go`) |
-| 11 | `accepts`, `signingKey`, `loadKeyCommand`, `revoke`, `isRevoked`, `withRevocations`, `switchTime`, `Day`, `Report`, `runDay` (`rotate.go`, `day.go`) |
+| 11 | `accepts`, `signingKey`, `loadKeyCommand`, `revoke`, `isRevoked`, `withRevocations`, `switchTime` (`rotate.go`), `(*Satellite).Receive` and `load` (`satellite.go`), `Slot`, `Day`, `(Day).Passes`, `(Day).Connect`, `(Day).Ping`, `handshake`, `Report`, `runDay` (`day.go`, `main.go`) |
 
 Signatures every chapter after the one that defines them uses exactly:
 
@@ -3084,8 +3114,9 @@ func switchTime(passes []Pass, station string, from time.Time) (time.Time, error
 
 `Satellite` (the flight software's stand-in) holds `ID`, `Keys map[string]SatKeys` (by key ID;
 `SatKeys{Sign, Seal []byte; Retire time.Time; Revoked bool}`), `Last uint64` and
-`Now func() time.Time`; from chapter 11 it also opens LOAD_KEY. `Guard` holds
-`last map[string]uint64` (a zero `Guard` works). `Queue` holds a mutex and the queued lines.
+`Now func() time.Time`; from chapter 11 its `Receive` checks a line as `Accept` does, then
+installs the keys a LOAD_KEY carries (`load`). `Guard` holds `last map[string]uint64` (a zero
+`Guard` works). `Queue` holds a mutex and the queued lines.
 
 #### How lessons test it
 
