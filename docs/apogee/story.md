@@ -3244,8 +3244,8 @@ table's words: twenty stations, eighty satellites, and passplan's rewrite.
 - **The wet season.** November to February brings the atoll's downpours, most in the evening and
   at night. They fade even S-band for minutes at a time: the radio logs `carrier lost` ten times
   a second while the signal is under its threshold.
-- **Its passes.** About fifteen a day, mostly Brine-3 (its 53° orbit suits an equatorial station)
-  and the sun-synchronous satellites' morning and evening clusters. Its UHF yagis and its dish can
+- **Its passes.** About nineteen a day in view, two or three from each satellite, Brine-3's the
+  most (its 53° orbit suits an equatorial station); about fifteen of them are booked. Its UHF yagis and its dish can
   fly two passes at once. About one pass in a hundred has always ended without the satellite's
   acknowledgment (a downpour, a low pass behind the palms over the 8° mask): Lantern Atoll's
   natural losses, more than any other station's (about one in a thousand elsewhere).
@@ -3871,16 +3871,23 @@ passplan plans the day ahead each morning and after every stow, from Tomás's no
 in the Fishbowl's rack; on Friday 19 January, 6.1 s. The fixes keep the plan identical.
 
 ```go
-// Elements place a satellite on its circular orbit at Epoch.
+// Elements place a satellite on its orbit for the pass model.
 type Elements struct {
-	RAANDeg   float64   // the ascending node's longitude, from Greenwich at Epoch
-	ArgLatDeg float64   // how far along its orbit the satellite is at Epoch, from the ascending node
-	Orbit0    int       // its orbit number at Epoch
-	Epoch     time.Time
+	Epoch    time.Time // the moment the numbers below describe; no pass before it
+	Rev0     int       // the orbit number at Epoch
+	NodeDeg  float64   // east longitude of the northbound equator crossing, at Epoch
+	PhaseDeg float64   // how far past that crossing the satellite is at Epoch, 0 to 360
+	// RevsPerDay is the satellite's orbits a day, where tracking measured them; zero means
+	// the period its altitude gives.
+	RevsPerDay float64
 }
 
-// elevationDeg is the satellite's elevation over the station at t (given, orbit.go).
+// elevationDeg is the satellite's elevation over the station at t, in degrees (given, orbit.go).
 func elevationDeg(sat Satellite, el Elements, st Station, t time.Time) float64
+
+// orbitNumber is the number of the orbit on which the satellite, near t, crosses the station's
+// latitude: Rev0 at Epoch, one more at each northbound equator crossing (given, orbit.go).
+func orbitNumber(sat Satellite, el Elements, st Station, t time.Time) int
 
 // Planned is one predicted pass in the day's plan.
 type Planned struct {
@@ -3889,33 +3896,155 @@ type Planned struct {
 }
 ```
 
-**The model**, exactly: a = 6371 + AltKm; mean motion n = √(398600.4418 / a³) rad/s; with dt the
-seconds since Epoch, u = ArgLatDeg (as radians) + n·dt, Ω = RAANDeg, i = IncDeg; the satellite at
-r = a(cos u cos Ω − sin u cos i sin Ω, cos u sin Ω + sin u cos i cos Ω, sin u sin i); the Earth
-turned by θ = 7.2921159e−5·dt rad, so (X, Y, Z) = (x cos θ + y sin θ, −x sin θ + y cos θ, z); the
-station on a sphere of 6371 km, S = 6371(cos φ cos λ, cos φ sin λ, sin φ); elevation =
-asin(((X,Y,Z) − S)·S / (|(X,Y,Z) − S|·6371)). Orbit number at t = Orbit0 + floor(u in degrees /
-360). No precession, no refraction. Brine-3 never rises over Ystmark in it.
+**The model**, exactly (the one Season 3's reviewers settled; Season 7's `model.go` is the same
+code): a = 6371 + AltKm km; the satellite moves along its orbit at n = √(398600.4418 / a³)
+rad/s, or at RevsPerDay·2π/86400 rad/s where `RevsPerDay` isn't 0; the orbit's plane turns at
+the mean Sun's rate, 2π/(365.2422·86400) rad/s, when IncDeg is over 90 (sun-synchronous), and
+otherwise at −1.5·n·J2·(6371/a)²·cos i rad/s, with J2 = 1.08263e−3; Earth turns at
+2π/86164.0905 rad/s. With dt the seconds since Epoch, u = PhaseDeg (as radians) + n·dt,
+Ω = NodeDeg (as radians) + (the plane's rate − Earth's rate)·dt and i = IncDeg, the satellite is
+at P = a(cos u cos Ω − sin u cos i sin Ω, cos u sin Ω + sin u cos i cos Ω, sin u sin i) km from
+Earth's center, in a frame that turns with Earth; the station is on a sphere of 6371 km,
+S = 6371(cos φ cos λ, cos φ sin λ, sin φ); elevation = asin((P − S)·S / (|P − S|·6371)). No
+refraction. Brine-3 never rises over Ystmark in it. The orbit number near t is that of the
+orbit on which the satellite crosses the station's latitude nearest t (the top or bottom of
+its track, for a station its track never reaches). `orbit.go` writes the arithmetic as Season
+7's `model.go` does, so the two give the same elevation to the last bit.
 
-**Elements at Epoch 2029-01-16T00:00:00Z** (RAAN°, argument of latitude°, orbit): pipit-1 201.49,
-322.40, 14321; pipit-2 40, 90, 16210; pipit-3 70, 45, 9936; furrow-a 294.51, 109.46, 22046;
-furrow-b 297.59, 287.93, 22043; brine-3 94.57, 61.67, 15439; cirrine-1 282.52, 176.51, 17430
-(the orbit model's state at the epoch, so the plan's passes are the catalog's to within seconds;
-Pipit-2 and Pipit-3 have no anchor in earlier seasons). With the bible's altitudes and
-inclinations, Lantern Atoll gets about fifteen passes a day, as this season's story says, and one
-`elevationDeg` call costs under 100 ns on a laptop, so a test plans a few satellites over a few
-hours in milliseconds.
+Lessons give this `orbit.go`, checked against Season 7's `model.go` on 200,000 random
+elevations, none different:
 
-**The plan's rules**: every whole second from `from` (included) to `to` (excluded); AOS is the
-first second at or above the station's mask, LOS the first second after it below; only passes
-that start and end inside the window; a pass shorter than 2 minutes is too short to book and is
-left out; `MaxElevDeg` comes from the given `peak` (the same in every version); the pass ID uses
-the orbit number at AOS; a booking matches by satellite, station and AOS to the second (the
-first in input order when two match); the plan is sorted by AOS, then ID.
+```go
+package main
+
+import (
+	"math"
+	"time"
+)
+
+const (
+	earthRadiusKm = 6371.0
+	muKm3PerS2    = 398600.4418
+	j2            = 1.08263e-3                       // how strongly Earth's bulge turns an orbit
+	earthRate     = 2 * math.Pi / 86164.0905         // Earth's turn, radians a second
+	sunRate       = 2 * math.Pi / (365.2422 * 86400) // the mean Sun's, radians a second
+)
+
+func rad(d float64) float64 { return d * math.Pi / 180 }
+func deg(r float64) float64 { return r * 180 / math.Pi }
+
+// skyTrack is one satellite over one station. Its times are seconds after the Epoch.
+type skyTrack struct {
+	a, cosI, sinI   float64    // the orbit's radius in km, and its tilt
+	n, u0           float64    // radians a second along the orbit, and how far along at Epoch
+	node0, nodeRate float64    // the node's longitude at Epoch, and how fast it moves over Earth
+	st, up          [3]float64 // the station, km from Earth's center, and straight up there
+}
+
+func newSkyTrack(o Orbit, e Elements, s Station) *skyTrack {
+	k := &skyTrack{a: earthRadiusKm + o.AltKm}
+	i := rad(o.IncDeg)
+	k.cosI, k.sinI = math.Cos(i), math.Sin(i)
+	k.n = math.Sqrt(muKm3PerS2 / (k.a * k.a * k.a))
+	if e.RevsPerDay > 0 {
+		k.n = e.RevsPerDay * 2 * math.Pi / 86400
+	}
+	drift := -1.5 * k.n * j2 * (earthRadiusKm / k.a) * (earthRadiusKm / k.a) * k.cosI
+	if o.IncDeg > 90 {
+		drift = sunRate // sun-synchronous: the plane keeps its angle to the Sun
+	}
+	k.node0, k.nodeRate, k.u0 = rad(e.NodeDeg), drift-earthRate, rad(e.PhaseDeg)
+	la, lo := rad(s.LatDeg), rad(s.LonDeg)
+	k.up = [3]float64{math.Cos(la) * math.Cos(lo), math.Cos(la) * math.Sin(lo), math.Sin(la)}
+	for j := range 3 {
+		k.st[j] = earthRadiusKm * k.up[j]
+	}
+	return k
+}
+
+// pos is the satellite's place over the turning Earth, km from its center.
+func (k *skyTrack) pos(t float64) (x, y, z float64) {
+	su, cu := math.Sincos(k.u0 + k.n*t)
+	sn, cn := math.Sincos(k.node0 + k.nodeRate*t)
+	return k.a * (cn*cu - sn*su*k.cosI), k.a * (sn*cu + cn*su*k.cosI), k.a * su * k.sinI
+}
+
+// elev is the satellite's elevation over the station at t, in degrees.
+func (k *skyTrack) elev(t float64) float64 {
+	x, y, z := k.pos(t)
+	dx, dy, dz := x-k.st[0], y-k.st[1], z-k.st[2]
+	d := math.Sqrt(dx*dx + dy*dy + dz*dz)
+	return deg(math.Asin((dx*k.up[0] + dy*k.up[1] + dz*k.up[2]) / d))
+}
+
+// orbit is the number of the orbit on which the satellite, near t, crosses the station's
+// latitude: Rev0 at Epoch, one more at each northbound equator crossing. A satellite whose
+// track never reaches the station's latitude counts from the top or bottom of its track.
+func (k *skyTrack) orbit(rev0 int, t float64) int {
+	u := k.u0 + k.n*t
+	var marks []float64 // where along an orbit the satellite is at the station's latitude
+	if s := k.up[2] / k.sinI; s >= 1 {
+		marks = []float64{math.Pi / 2}
+	} else if s <= -1 {
+		marks = []float64{3 * math.Pi / 2}
+	} else {
+		marks = []float64{math.Asin(s), math.Pi - math.Asin(s)}
+	}
+	best := math.Inf(1)
+	var at float64
+	for _, m := range marks {
+		c := m + 2*math.Pi*math.Round((u-m)/(2*math.Pi)) // the nearest such point to u
+		if d := math.Abs(c - u); d < best {
+			best, at = d, c
+		}
+	}
+	return rev0 + int(math.Floor(at/(2*math.Pi)))
+}
+
+// elevationDeg is the satellite's elevation over the station at t, in degrees.
+func elevationDeg(sat Satellite, el Elements, st Station, t time.Time) float64 {
+	return newSkyTrack(sat.Orbit, el, st).elev(t.Sub(el.Epoch).Seconds())
+}
+
+// orbitNumber is the number of the orbit on which the satellite, near t, crosses the
+// station's latitude.
+func orbitNumber(sat Satellite, el Elements, st Station, t time.Time) int {
+	return newSkyTrack(sat.Orbit, el, st).orbit(el.Rev0, t.Sub(el.Epoch).Seconds())
+}
+```
+
+Keep the arithmetic exactly as written: the same formula written another way gives other
+last bits in about a third of all elevations on arm64, because Go fuses multiplies and adds
+differently when an expression is written differently. It changed no pass, but there is no
+reason to risk it.
+
+**Elements at Epoch 2029-01-16T00:00:00Z** (NodeDeg, PhaseDeg, Rev0; `RevsPerDay` 0 unless
+given): pipit-1 201.4926001313, 322.4045275738, 14321; pipit-2 234.8439457617, 41.6844523733,
+19979; pipit-3 149.9999975496, 93.2834560607, 9917; furrow-a 294.5055026568, 109.4557673805,
+22046, `RevsPerDay` 867/57; furrow-b 297.5851207259, 287.9312984850, 22043, `RevsPerDay`
+867/57; brine-3 94.5696529379, 61.6707270863, 15439; cirrine-1 282.5236519320, 176.5142936516,
+17430. They are the settled fits carried to the epoch (Season 3's for Pipit-1, the Furrows,
+Brine-3 and Cirrine-1; Season 4's for Pipit-2, fitted to the Build gctl night's Ystmark pass;
+Pipit-3 from Apogee's own tracking, as in Season 7), so the plan's passes are exactly the
+catalog's. Lantern Atoll gets about nineteen passes a day in it (19.0 from 1 October to 31
+December 2028; 18.0 of 10° or more), two or three from each satellite. One `elevationDeg` call
+costs under 100 ns on a laptop, so a test plans a few satellites over a few hours in
+milliseconds.
+
+**The plan's rules**: the elevation is sampled every second from `from` (included) to `to`
+(excluded); where it crosses the station's mask between two samples, the crossing is bisected
+to a millionth of a second or finer and rounded to the nearest second (half to even): AOS
+where it rises, LOS where it sets; only passes that start and end inside the window; a pass
+shorter than 2 minutes is too short to book and is left out; `MaxElevDeg` comes from the given
+`peak`: the highest elevation at the unrounded AOS and at each whole second after it until
+LOS, to a tenth as `strconv.FormatFloat(v, 'f', 1, 64)` rounds it (the same in every version);
+the pass ID uses `orbitNumber` at the peak's instant; a booking matches by satellite, station
+and AOS to the second (the first in input order when two match); the plan is sorted by AOS,
+then ID.
 
 **Where the four minutes went**, and the fixes (lessons 9.4 to 9.8): `elevationDeg` called every
-second for every satellite and station (81% of the profile) → step 30 s and bisect each crossing
-to the second (the same AOS and LOS; about 28 times fewer calls); a linear scan of the next
+second for every satellite and station (81% of the profile) → step 30 s instead of 1 s before
+bisecting each crossing (the same AOS and LOS; about 28 times fewer calls); a linear scan of the next
 fourteen days' 2,000 bookings for every pass → a map built once, keyed by
 `bookingKey{SatID, Station string; AOSUnix int64}` (never a `time.Time` key: `==` compares its
 location too); the whole day sorted after every insert → once at the end. The plan's pass-ID check
