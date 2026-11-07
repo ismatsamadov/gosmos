@@ -47,28 +47,33 @@ pass.
 |---|---|---|---|---|---|---|
 | YST | Ystmark | 77.8° N, 2.0° E | 40 m | 5° | two 3.7 m dishes under radomes; S, X | Arctic island; sees every polar orbit on almost every revolution |
 | PEL | Port Ellery | 46.9° N, 38.1° W | 25 m | 5° | one 3.0 m dish, one UHF yagi array; UHF, S | Headquarters' rooftop; the test station |
-| SQT | Salar Quieto | 23.4° S, 104.6° W | 3,840 m | 3° | a 5.4 m and a 2.4 m dish; S, X | High salt flat; flat horizon, dry air |
+| SQT | Salar Quieto | 23.4° S, 104.6° W | 3,840 m | 3° | a 5.4 m and a 2.4 m dish, a receive-only UHF yagi; S, X, UHF to listen | High salt flat; flat horizon, dry air |
 | LAN | Lantern Atoll | 1.8° S, 82.5° E | 3 m | 8° | one 3.7 m dish, UHF yagis; UHF, S | Equatorial; best for low-inclination orbits |
-| CWR | Cape Wren | 53.9° S, 95.0° W | 110 m | 5° | one 3.7 m dish; S, X | Remote, unstaffed; windiest site |
+| CWR | Cape Wren | 53.9° S, 95.0° W | 110 m | 5° | one 3.7 m dish, a receive-only UHF yagi; S, X, UHF to listen | Remote, unstaffed; windiest site |
 
 Coordinates are invented for exercises and deliberately land in open ocean: don't map them.
 Latitude is positive north, longitude positive east.
 
+Only Port Ellery and Lantern Atoll send on UHF. Salar Quieto and Cape Wren have receive-only
+UHF yagis, enough to hear a beacon such as Thistle's or Pipit-1's but never to command a
+satellite; Ystmark has no UHF at all.
+
 - **Ystmark.** Polar night from November to February; radome heaters; arctic foxes chew
   cables, so the conduits are fox-proof. The fiber to the mainland fails in storms, and the
   station falls back to a slow satellite backhaul. Storms stow the dishes: like Cape Wren's,
-  they stow when the wind passes 72 km/h.
+  they stow when the wind reaches 72 km/h.
 - **Port Ellery.** Sea fog, gulls on the yagis, and the only station you can walk to. Every
   new piece of software runs here first, against a Pipit.
 - **Salar Quieto.** At 3,840 m, people walk slowly and dust gets everywhere. Its 3° mask is
   the lowest in the network; huge day-night temperature swings make the dish's pointing
-  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita. The
-  only road up is the Quebrada Añil.
+  drift until it is recalibrated. Its two dishes are nicknamed La Grande and Chiquita. La
+  Grande also carries a Ka-band test radio, 300 Mbps, which corrects Doppler shift itself; it
+  is a test, not a band customers book. The only road up is the Quebrada Añil.
 - **Lantern Atoll.** Tropical downpours fade the X-band link (rain fade), so it has none.
   Diesel power, salt corrosion, a caretaker on site. A high horizon of palm trees gives it
   the network's highest mask.
 - **Cape Wren.** Nobody lives there; a contractor visits monthly. The dish stows itself when
-  the wind passes 72 km/h, and tracks with a warning from 50 km/h.
+  the wind reaches 72 km/h, and tracks with a warning from 50 km/h.
 - **The test van.** A mobile station based at Port Ellery, with one 1.2 m dish, S-band only.
   It carries the dish to sites for calibration.
 
@@ -103,6 +108,9 @@ Customers, all invented: **Furrowlight** (crop imaging), **Brinewatch** (ship tr
 ## People
 
 Seven recurring characters. A story beat uses one of them, rarely two. First names in lessons.
+Lessons already fix their pronouns, so keep them: Nkem, Ingrid, Paz, Yusra and Mirela are
+"she", Tomás and Joss "he". Sunniva, Hollis and Professor Marr have none in a lesson yet:
+write around one, or add it here first.
 
 **Nkem Halloran**, staff backend engineer, your onboarding buddy and reviewer. Short, kind,
 exact. Asks one question at a time and likes smaller code.
