@@ -1577,13 +1577,13 @@ orbit numbers continue Season 3's (Furrow-A 15.2 a day, Cirrine-1 14.92).
 |---|---|---|---|---|
 | 1 | Mon 6 Mar | the hut's bench, beside the crate | Sunniva: dishd must talk to the maker's simulator before Dish 1's old controller comes out on Monday 20 March | Ystmark hears a polar orbit on almost every revolution; a controller nobody can talk to is a dish nobody can use. By Friday 10 March dishd says hello: `YST-1 firmware 2.4, last command 0` |
 | 2 | Mon 13 Mar | the hut, through Sunniva's test line to Port Ellery over the backhaul | Nkem: dishd must read whole frames however the line splits or glues them. The manual's page one is wrong: the banner ends in CR LF | Over the slow line an answer arrives in pieces, or two arrive in one read. In Wednesday's test dishd lost the second, a STATUS in which the simulated Dish 1 had stowed itself in the wind, and nobody saw the stow |
-| 3 | Mon 27 Mar | Dish 1's radome and the hut (Dish 1's controller went in from 20 to 24 March) | Sunniva: Dish 1's first status frames, read as the manual's table says, put it at 382.15° in a 3,277 km/h wind. Tomás flies up on Tuesday 28 March to point it true | Friday 31 March, Cirrine-1's 07:31 pass (`cirrine-1/YST/13094`), Dish 1's first customer pass on the new controller |
-| 4 | Mon 10 Apr | the hut, the first spring storm | Ingrid: on Tuesday 11 April the fiber dropped at 03:10 and dishd waited forty minutes on a connection that was already dead | Dish 1 sat still through Cirrine-1's 03:25 pass (`cirrine-1/YST/13256`). Yusra: "TL;DR: Cirrine lost its 03:25 pass and asks what stops it happening again." |
+| 3 | Mon 27 Mar | Dish 1's radome and the hut (Dish 1's controller went in from 20 to 24 March) | Sunniva: Dish 1's first status frames, read as the manual's table says, put it at 382.15° in a 3,277 km/h wind. Tomás flies up on Tuesday 28 March to point it true | Friday 31 March, Cirrine-1's 07:02 pass (`cirrine-1/YST/13094`), Dish 1's first customer pass on the new controller |
+| 4 | Mon 10 Apr | the hut, the first spring storm | Ingrid: on Tuesday 11 April the fiber dropped at 03:10 and dishd waited forty minutes on a connection that was already dead | Dish 1 sat still through Cirrine-1's 03:43 pass (`cirrine-1/YST/13256`). Yusra: "TL;DR: Cirrine lost its 03:43 pass and asks what stops it happening again." |
 | 5 | Mon 24 Apr | the hut, midnight sun (Dish 2's controller went in from 17 to 21 April) | Sunniva: dishd must run both dishes at once and show them on a watch port to her terminal, Ingrid's screen and Tomás's laptop | One dish's trouble must not stop the other; Friday 28 April's deploy must leave nothing hanging |
-| 6 | Mon 8 May | the hut, after the big storm | Sunniva, Tuesday 9 May: "Link down 14 min. Dish 2 waiting on your code. Coffee low." | From 07:22 to 07:36 the island had no line at all. dishd gave up and never dialed again; Ingrid restarted it at 07:51, too late for Cirrine-1's 07:40 pass (`cirrine-1/YST/13676`). Tomás's 0.35° calibration jog had left dishd at 07:22:04, two seconds before the line went; the restarted dishd sent it again under a new number, so Dish 2 moved twice and was 0.70° off for Furrow-A's 10:52 pass (`furrow-a/YST/18218`), which came down at a sixteenth of its strength. Friday 12 May at 10:00 Sunniva pulls the line on purpose, in the middle of a jog |
-| 7 | Mon 22 May | the hut | Sunniva: on 9 May the fiber stayed down until 19:40; recordings had nowhere to wait but the recorder's small disk, which filled at 13:20 and lost Furrow-B's 13:21 pass. Hollis: "LOST FURROW-B 13:21. FIELD 7. WHY." She wants a station server in the hut that keeps every recording until headquarters collects it. Nkem: build it on the socket you know | The station server's first requests must be read exactly, and the crooked ones refused, never guessed at |
-| 8 | Mon 5 Jun | the hut | Hollis, through Yusra: Furrowlight's June campaign, about ten Furrow passes a day over Ystmark. The recorder streams each pass to the station server as it comes down, its CRC last. Mirela reviews the length rules on Wednesday | On Tuesday 6 June the recorder restarted in the middle of Furrow-A's 10:47 pass (`furrow-a/YST/18644`): a cut stream must never be kept as a whole recording |
-| 9 | Mon 19 Jun, then Tue 20 Jun | the hut; the Fishbowl on the Board | Ingrid and Yusra: headquarters' collector must hear of each recording at once and fetch it over one open line. On Tuesday 20 June the station server takes every pass from 06:00 | Furrow-A's 10:41 pass (`furrow-a/YST/18856`, LOS 10:51:20) is the first Furrowlight pass through it; its image must reach Furrowlight within a minute of LOS, as the booking service promises |
+| 6 | Mon 8 May | the hut, after the big storm | Sunniva, Tuesday 9 May: "Link down 14 min. Dish 2 waiting on your code. Coffee low." | From 07:22 to 07:36 the island had no line at all. dishd gave up and never dialed again; Ingrid restarted it at 07:51, too late for Cirrine-1's 07:28 pass (`cirrine-1/YST/13676`). Tomás's 0.35° calibration jog had left dishd at 07:22:04, two seconds before the line went; the restarted dishd sent it again under a new number, so Dish 2 moved twice and was 0.70° off for Furrow-A's 07:52 pass (`furrow-a/YST/18218`), which came down at a sixteenth of its strength. Friday 12 May at 10:00 Sunniva pulls the line on purpose, in the middle of a jog |
+| 7 | Mon 22 May | the hut | Sunniva: on 9 May the fiber stayed down until 19:40; recordings had nowhere to wait but the recorder's small disk, which filled at 13:20 and lost Furrow-B's 13:21 pass. Hollis: "LOST FURROW-B 13:21. FIELD 7. WHY." Sunniva wants a station server in the hut that keeps every recording until headquarters collects it. Nkem: build it on the socket you know | The station server's first requests must be read exactly, and the crooked ones refused, never guessed at |
+| 8 | Mon 5 Jun | the hut | Hollis, through Yusra: Furrowlight's June campaign, ten booked Furrow passes a day over Ystmark. The recorder streams each pass to the station server as it comes down, its CRC last. Mirela reviews the length rules on Wednesday | On Tuesday 6 June the recorder restarted in the middle of Furrow-A's 08:02 pass (`furrow-a/YST/18644`): a cut stream must never be kept as a whole recording |
+| 9 | Mon 19 Jun, then Tue 20 Jun | the hut; the Fishbowl on the Board | Ingrid and Yusra: headquarters' collector must hear of each recording at once and fetch it over one open line. On Tuesday 20 June the station server takes every pass from 06:00 | Furrow-A's 06:32 pass (`furrow-a/YST/18856`, LOS 06:40:35) is the first Furrowlight pass through it; its image must reach Furrowlight within a minute of LOS, as the booking service promises |
 
 The opening (Monday 6 March) shows Ystmark in one image (the sun back for three weeks, two
 radomes on a ridge, −18 °C), hands over the badge, introduces Sunniva (station chief), Nkem
@@ -1591,9 +1591,9 @@ radomes on a ridge, −18 °C), hands over the badge, introduces Sunniva (statio
 sends the learner to the simulator on the hut's bench: the old controllers come out on the 20th.
 
 The finale (chapter 9, Tuesday 20 June): Furrow-A's recording streams into the station server
-during the pass; the collector at Port Ellery hears of it on the feed at 10:51:21, has every
-byte and its CRC by 10:51:23, and Furrowlight's webhook from the booking service goes out at
-10:51:24. Ingrid watches the Board. Sunniva: "Midnight sun. Both dishes. Every byte. Coffee for
+during the pass; the collector at Port Ellery hears of it on the feed at 06:40:36, has every
+byte and its CRC by 06:40:38, and Furrowlight's webhook from the booking service goes out at
+06:40:39. Ingrid watches the Board. Sunniva: "Midnight sun. Both dishes. Every byte. Coffee for
 two." The debrief points at Season 5: Mirela notes that anyone who can listen on the island's
 line can read every byte on it, and Cirrine has asked that its commands be readable by Cirrine
 alone.
@@ -1780,7 +1780,7 @@ sent again under its own number, which the controller would refuse if it had run
 | dishd | writing one frame | 5 s | `os.ErrDeadlineExceeded`: the line is lost |
 | dishd | heartbeat | PING after 10 s without sending | keeps the controller's 30 s idle limit far away and finds a dead line within 15 s |
 | dishd | poll | QUERY each dish every second (chapter 5) | the watch port's lines |
-| dishd | reconnect | wait 1 s, doubling per failed attempt, at most 30 s, times a jitter in [0.5, 1.0) | starts again from 1 s after a successful HELLO |
+| dishd | reconnect | wait 1 s, doubling per failed dial in a row, at most 30 s, times a jitter in [0.5, 1.0); a handshake that fails as a lost line waits the same way, on its own count | a dial that works starts the dial count again; a WELCOME ends the handshake count |
 
 dishd's read deadline is an idle deadline, moved forward before every read, not one deadline
 for a whole frame: over the backhaul a frame may trickle in over seconds and is still alive.
@@ -2003,7 +2003,7 @@ type Link struct {
 	client   *Client
 	next     uint32 // the next command's seq
 	inflight *Frame // sent, not yet answered
-	attempt  int    // failed dials since the last good HELLO
+	attempt  int    // failed dials in a row
 }
 ```
 
@@ -2019,6 +2019,7 @@ func pipePair(t testing.TB) (net.Conn, net.Conn)
 func reach(name, addr string) string
 func handshake(conn net.Conn) (name string, w Welcome, err error) // given in chapter 1
 func firstContact(addr string) (string, error)
+func bannerOf(addr string) (string, error) // 1.2: dials, reads the banner, hangs up
 
 // chapter 2
 func readBanner(br *bufio.Reader) (string, error) // the name
@@ -2031,6 +2032,7 @@ func (c *Client) send(f Frame) error
 func (c *Client) recv() (Frame, error) // a BYE becomes *ByeError
 func (c *Client) exchange(frames ...Frame) ([]Frame, error)
 func (c *Client) Close() error
+func validName(name string) bool // given in client.go: 1 to 16 capitals, digits and hyphens
 
 // chapter 3
 func encodeFrame(f Frame) []byte
@@ -2095,8 +2097,11 @@ func (l *Link) Drain(ctx context.Context, queue []Frame) ([]error, error)
   capped at 30 s, times a factor drawn uniformly from [0.5, 1.0) with `r.Float64()`. Attempt
   1 waits 0.5–1 s, 2 waits 1–2 s ... 5 waits 8–16 s; from attempt 6 on, 15–30 s. Never 0,
   and the doubling is capped before it can overflow.
-- `connect` retries the whole handshake (dial, banner, HELLO) while the failure is `lost`,
-  waiting `redialDelay` through `Wait`, until a HELLO succeeds or ctx ends.
+- `redial` dials until a dial works, waiting `redialDelay` through `Wait` after each failure;
+  its count, `l.attempt`, is of failed dials in a row, and a dial that works resets it.
+  `connect` retries the whole handshake (dial, banner, HELLO) while the failure is `lost`,
+  waiting `redialDelay` on its own count of failed handshakes in a row, until a HELLO
+  succeeds or ctx ends.
 - `Send` numbers a command (`number`), keeps it as `inflight`, and sends it with `Do`. On a
   lost line it closes the client, `connect`s again, and, if `resume` says the command already
   ran, returns nil without sending it; otherwise it sends it again with the same seq. `settle`:
@@ -2151,7 +2156,8 @@ A pass ID in a path must have the bible's shape: lowercase satellite ID, `/`, th
 1. **Lines.** Every line, request line and header lines alike, ends in CR LF. The server reads
    through a `bufio.Reader` of 1024 bytes (`bufio.NewReaderSize(conn, 1024)`) with
    `ReadSlice('\n')`, so a line, CR LF included, is at most 1024 bytes (a 1022-character line
-   fits; 1023 doesn't). A line ending in LF without CR is 400 `bad line ending`.
+   fits; 1023 doesn't). A line ending in LF without CR, or holding a CR anywhere else, is 400
+   `bad line ending`.
 2. **The request line**: `METHOD SP TARGET SP VERSION`, exactly three non-empty parts split by
    single spaces, the target starting with `/`, the version shaped `HTTP/<digit>.<digit>`;
    otherwise 400 `bad request line`. A request line over 1024 bytes is 414
@@ -2160,11 +2166,14 @@ A pass ID in a path must have the bible's shape: lowercase satellite ID, `/`, th
    not an error: the server closes quietly.
 3. **Header fields**, until the blank line: `name:value`. The name is 1 or more token
    characters (letters, digits and `` !#$%&'*+-.^_`|~ ``), with nothing between it and the
-   colon; the value has spaces and tabs trimmed from both ends and is kept as sent. Names are
-   stored in lower case; a repeated name keeps every value in order (`Header`). A line with no
-   colon, an empty or crooked name, or a line starting with a space or a tab (old line folding)
-   is 400 `bad header line`. A header line over 1024 bytes is 431
-   `header line over 1024 bytes`; a 33rd field is 431 `more than 32 header fields`.
+   colon; the value has spaces and tabs trimmed from both ends and is otherwise kept as sent.
+   A value may hold no control character but the tab: RFC 9110 §5.5 says a NUL must be refused
+   or replaced, and Go's own server refuses them all (`isFieldValue`, given from 7.6). Names
+   are stored in lower case; a repeated name keeps every value in order (`Header`). A line with
+   no colon, an empty or crooked name, a value with a control character, or a line starting
+   with a space or a tab (old line folding) is 400 `bad header line`. A header line over 1024
+   bytes is 431 `header line over 1024 bytes`; a 33rd field is 431
+   `more than 32 header fields`.
 4. **Host** exactly once: 400 `missing host`, 400 `more than one host`.
 5. **The method**: `GET`, `HEAD` or `PUT`, case-sensitive; anything else is 501
    `method "PATCH" not implemented`.
@@ -2172,8 +2181,10 @@ A pass ID in a path must have the bible's shape: lowercase satellite ID, `/`, th
    1. Content-Length and Transfer-Encoding both present: 400
       `both content-length and transfer-encoding`. (Mirela: two programs reading one request
       two ways is how a second request gets hidden inside the first.)
-   2. Transfer-Encoding: its values joined with `, ` must equal `chunked` in any letter case,
-      else 501 `transfer-encoding "gzip" not implemented`; on GET or HEAD, 400
+   2. Transfer-Encoding: its values joined with `, ` must end in the coding `chunked`, in any
+      letter case, else 400 `bad transfer-encoding "gzip"`, as RFC 9112 §6.3 requires; a
+      coding before the final `chunked` is 501
+      `transfer-encoding "gzip, chunked" not implemented`; on GET or HEAD, 400
       `GET has no body` (`HEAD has no body`); otherwise the body is chunked (length −1).
    3. Content-Length: once only (400 `more than one content-length`), 1 or more ASCII digits
       (400 `bad content-length "12a"`; signs and spaces inside are bad), at most `MaxBody`
@@ -2231,7 +2242,7 @@ after every chunk):
 
 ```
 HTTP/1.1 201 Created\r\n
-Date: Tue, 20 Jun 2028 10:51:21 GMT\r\n
+Date: Tue, 20 Jun 2028 06:40:36 GMT\r\n
 Content-Type: text/plain; charset=utf-8\r\n
 Content-Length: 37\r\n
 Location: /recordings/furrow-a/YST/18856\r\n
@@ -2308,7 +2319,6 @@ type Request struct {
 	Length  int64  // 0 for no body, -1 for chunked
 	Body    []byte // chapter 8: read by the server before routing
 	Trailer Header // chapter 8: fields after a chunked body
-	Close   bool   // chapter 9: the request said Connection: close
 }
 
 // RequestError is a request the station server refuses, and its answer.
@@ -2376,6 +2386,7 @@ func (s *Server) feed(bw *bufio.Writer, lines <-chan string) error
 func (s *Server) route(req *Request) answer
 func (s *Server) Serve(ln net.Listener) error
 func (s *Server) serveConn(c net.Conn)
+func closing(req *Request) bool // given from 9.5 (conn.go): Connection: close, any letter case
 func (s *Server) Shutdown(ctx context.Context) error
 ```
 
@@ -2392,14 +2403,14 @@ given `put` keeps any complete body and answers 201.
 | Chapter | The learner writes (files) | Given read-only | Hidden |
 |---|---|---|---|
 | 1 | `listenLocal`, `serveOne`, `pipePair`, `reach`, `firstContact` (`main.go`, `pipe.go`) | `greeting`, `readBannerLine`, `handshake`, `Welcome` (`frames.go`) | `sim.go` |
-| 2 | `readBanner`, `readExactly`, `readPayload`, `readFrame`, `writeFrame`, `Client`'s `recv` and `exchange` (`client.go`) | `Frame`, the types, the errors, `NakError`, `ByeError`, `encodeFrame`, `decodeFrame` (`frame.go`); `newClient` | `sim.go` |
-| 3 | `tempC` (3.2), `encodeFrame` (`encode.go`), `decodeFrame` (`decode.go`), `rawStatus`, `decodeStatus` (`status.go`), `pointBody` (`command.go`), `(*Client).command` | `client.go`, `DishState`, `decodeWelcome`, `nakError`, `hello`, `status` | `sim.go` |
+| 2 | `readBanner`, `readExactly`, `readPayload`, `readFrame`, `writeFrame`, `Client`'s `recv` and `exchange` (`client.go`) | `Frame`, the types, the errors, `NakError`, `ByeError`, `encodeFrame`, `decodeFrame` (`frame.go`; this `decodeFrame` only splits a payload, and the CRC check is 3.7's); `newClient` | `sim.go` |
+| 3 | `tempC` (3.2), `encodeFrame` (`encode.go`), `decodeFrame` (`decode.go`), `decodeStatus` (`status.go`), `pointBody` (`command.go`), `(*Client).command` | `client.go`, `DishState`, `rawStatus` (from 3.4), `decodeWelcome`, `nakError`, `hello`, `status` | `sim.go` |
 | 4 | `describe`, `idleReader`, deadlines in `send` and `recv`, `heartbeat`, `recvCtx`, `Do` (`client.go`) | `frame.go`, `encode.go`, `decode.go`, `status.go`, `command.go` | `sim.go` |
 | 5 | `pollAll`, `serve`, `Broadcast`, `Shutdown`, `Run` (`poll.go`, `watch.go`, `service.go`) | the client, `watchLine`, `greeting`, `Watchers`' other methods | `sim.go` |
 | 6 | `redial`, `lost`, `learn`, `number`, `resume`, `Send`, `Drain` (`link.go`) | the client, `jogBody`, `redialDelay` (from 6.2), `settle`, `connect` (from 6.8) | `sim.go` |
-| 7 | `readLine`, `parseRequestLine`, `readHeader`, `contentLength`, `readRequest` (`request.go`) | `Header`, `RequestError`, `writeResponse`, `dateLayout`, `Store`, `validPassID`, `Server`, `serveConn` (`response.go`, `store.go`, `server.go`) | |
+| 7 | `readLine`, `parseRequestLine`, `readHeader`, `contentLength`, `readRequest` (`request.go`) | `Header`, `Request`, `RequestError`, `errLineTooLong`, `versionShaped`, `isToken` and `isFieldValue`, given in the editable `request.go`; `writeResponse`, `dateLayout`, `Store`, `validPassID`, `Server`, `serveConn` (`response.go`, `store.go`, `server.go`) | |
 | 8 | `readBody`, `chunkSize`, `readChunked`, `bodyLength`, `checkCRC`, `put` (`body.go`, `routes.go`) | `request.go` and chapter 7's files | |
-| 9 | `statusLine`, `writeResponse`, `writeChunk`, `endChunks`, `recording`, `feed`, `serveConn`, `Shutdown`, `route` (`response.go`, `server.go`, `routes.go`) | `request.go`, `body.go`, `store.go` | |
+| 9 | `statusLine`, `writeResponse`, `writeChunk`, `endChunks`, `recording`, `feed`, `serveConn`, `Shutdown`, `route` (`response.go`, `server.go`, `routes.go`) | `request.go`, `body.go`, `store.go`, and `closing` (`conn.go`, from 9.5) | |
 
 #### How lessons test the wire
 
@@ -2446,7 +2457,7 @@ given `put` keeps any complete body and answers 201.
 - Recordings in tests are `testRecording(n)`, byte i being `byte(i % 256)`, so they hold 0x00,
   CR and LF: n 24 has CRC `8295a696`, 1024 `b70b4c26`, 2048 `9f5edd58`, 4096 `a2912082`,
   65536 `b11de6a1`. The finale's are Furrow-A's `furrow-a/YST/18856` (4096 bytes, `a2912082`)
-  and Cirrine-1's `cirrine-1/YST/13676` (2048 bytes, `9f5edd58`).
+  and Cirrine-1's `cirrine-1/YST/14302` (2048 bytes, `9f5edd58`).
 - Program output (`code` lessons) never prints a port, a time or anything that depends on how
   reads split: requests printed in chapter 7 go to `http://127.0.0.1/...` through a Transport
   that dials the test listener, so the Host line reads `127.0.0.1`.
