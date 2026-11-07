@@ -102,13 +102,15 @@ public enum TermLinker {
     public static func link(_ blocks: [MDBlock], terms: [CourseStory.Term]) -> [MDBlock] {
         let names = terms.filter(\.linked).map(\.term).filter { !$0.isEmpty }.sorted { $0.count > $1.count }
         guard !names.isEmpty else { return blocks }
-        var state = State(names: names)
+        var state = State(names: names, all: Set(terms.map { $0.term.lowercased() }))
         return blocks.map { state.link($0) }
     }
 
     struct State {
         /// The terms not linked yet, longest first.
         var names: [String]
+        /// Every term of the guide, lowercased, linked or not.
+        let all: Set<String>
 
         mutating func link(_ block: MDBlock) -> MDBlock {
             switch block {
@@ -154,12 +156,24 @@ public enum TermLinker {
         func firstMatch(in text: String) -> (String, Range<String.Index>)? {
             var best: (String, Range<String.Index>)?
             for name in names {
-                let found = TermLinker.spellings(of: name).compactMap { TermLinker.wholeWord($0, in: text) }.min { $0.lowerBound < $1.lowerBound }
+                let found = TermLinker.spellings(of: name).compactMap { use(of: $0, as: name, in: text) }.min { $0.lowerBound < $1.lowerBound }
                 guard let range = found else { continue }
                 // Longest first, so a later name only wins by starting sooner.
                 if best == nil || range.lowerBound < best!.1.lowerBound { best = (name, range) }
             }
             return best
+        }
+
+        /// The first whole-word use of `spelling` in `text`, passing over a word that with its
+        /// ending is another term of the guide: "uplinkd" is never "uplink" with a "d".
+        func use(of spelling: String, as name: String, in text: String) -> Range<String.Index>? {
+            var from = text.startIndex
+            while let range = TermLinker.wholeWord(spelling, in: text, from: from) {
+                let word = text[range].lowercased()
+                if word == name.lowercased() || !all.contains(word) { return range }
+                from = range.upperBound
+            }
+            return nil
         }
     }
 
@@ -173,9 +187,10 @@ public enum TermLinker {
     /// The endings a term may take in a readme: plurals, and the forms of a verb.
     static let endings = ["ing", "es", "ed", "s", "d"]
 
-    /// The first use of `word` in `text` that is a whole word, also with one of its endings.
-    static func wholeWord(_ word: String, in text: String) -> Range<String.Index>? {
-        var from = text.startIndex
+    /// The first use of `word` in `text` that is a whole word, also with one of its endings,
+    /// from `start` on.
+    static func wholeWord(_ word: String, in text: String, from start: String.Index? = nil) -> Range<String.Index>? {
+        var from = start ?? text.startIndex
         while let found = text.range(of: word, range: from..<text.endIndex) {
             let before = found.lowerBound == text.startIndex ? nil : text[text.index(before: found.lowerBound)]
             var end = found.upperBound
