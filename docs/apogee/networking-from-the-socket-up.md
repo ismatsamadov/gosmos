@@ -235,7 +235,7 @@ Read and write big-endian fields with encoding/binary, signed and scaled values,
 #### 3.9 Dish 1 Points True
 `dish-1-points-true` · code_tests · difficulty 8
 - **Objective:** Send a command and handle every kind of answer: ACK, NAK and BYE.
-- **Scenario:** Friday 31 March, 07:20: Cirrine-1's 07:31 pass will be Dish 1's first customer pass on the new controller, and the go/no-go poll needs the dish pointed.
+- **Scenario:** Friday 31 March, 06:50: Cirrine-1's 07:02 pass will be Dish 1's first customer pass on the new controller, and the go/no-go poll needs the dish pointed.
 - **Exercise:** `(c *Client) command(f Frame) error` sends the frame and returns nil; you read the answer: an ACK of the same seq is nil, a NAK is the given `nakError(ans)`, a BYE its ByeError, anything else an error naming the type and seq.
 - **Check:** POINT 119 gives nil, and the next status says 183.25° and 41.70°; a stowed simulator gives a NakError (errors.AsType) with code 4 and `seq 119 refused: stowed`; wind at 81 km/h gives code 3, `wind lock`; an ACK for seq 118 gives an error; a damaged answer gives ErrBadCRC. The mistake: taking any ACK as this command's.
 
@@ -477,8 +477,8 @@ Read an HTTP/1.1 request by hand: CR LF lines with limits, the request line, hea
 `refuse-a-crooked-header` · code_tests · difficulty 9
 - **Objective:** Refuse malformed header lines and too many fields with the right status.
 - **Scenario:** Mirela's second rule: when two programs could read a header two ways, refuse it.
-- **Exercise:** readHeader accepts any line with a colon; you refuse a line without a colon, an empty name or one with a space, a tab or another character outside the token set (400 `bad header line`), a line starting with a space or a tab (400), a header line over 1024 bytes (431 `header line over 1024 bytes`) and a 33rd field (431 `more than 32 header fields`).
-- **Check:** Each case gives its status and message as a RequestError; `Host :` and `Ho st:` give 400; 32 fields are read and 33 give 431. The mistake: trimming the name, which turns `Host :` into host.
+- **Exercise:** readHeader accepts any line with a colon; you refuse a line without a colon, an empty name or one with a space, a tab or another character outside the token set (400 `bad header line`), a value holding a control character other than the tab, such as NUL (400, with the given `isFieldValue`), a line starting with a space or a tab (400), a header line over 1024 bytes (431 `header line over 1024 bytes`) and a 33rd field (431 `more than 32 header fields`).
+- **Check:** Each case gives its status and message as a RequestError; `Host :` and `Ho st:` give 400; a NUL, a bell or a DEL in a value gives 400, while a tab and bytes from 0x80 up are kept; 32 fields are read and 33 give 431. The mistake: trimming the name, which turns `Host :` into host.
 
 #### 7.7 Quick Check: Header Fields
 `quick-check-header-fields` · quiz · difficulty 8
@@ -538,7 +538,7 @@ Read request bodies exactly: Content-Length, chunked transfer encoding and trail
 #### 8.5 Cut Off Mid-Pass
 `cut-off-mid-pass` · code_tests · difficulty 9
 - **Objective:** Tell a chunked body that ended from one that was cut: only the zero chunk and its blank line end it.
-- **Scenario:** Tuesday 6 June: the recorder restarted in the middle of Furrow-A's 10:47 pass, and its stream simply stopped.
+- **Scenario:** Tuesday 6 June: the recorder restarted in the middle of Furrow-A's 08:02 pass, and its stream simply stopped.
 - **Exercise:** readChunked returns what it has, with no error, when the stream ends between chunks; you answer 400 `recording cut off` for an end anywhere before the final blank line, and the given handler then keeps nothing.
 - **Check:** A stream ending after a whole chunk, inside a chunk, after the zero chunk and inside the trailer each give `recording cut off`; Go's client whose body fails mid-stream leaves nothing in the store or in `/recordings`; a complete stream is stored. The mistake: taking the end of the stream for the end of the body.
 
@@ -546,8 +546,8 @@ Read request bodies exactly: Content-Length, chunked transfer encoding and trail
 `one-length-never-two` · code_tests · difficulty 9
 - **Objective:** Combine Content-Length and Transfer-Encoding into one length, refusing a request with both or with an encoding the server doesn't know.
 - **Scenario:** Wednesday: Mirela shows how a request with both lengths, read one way by the station server and another by the next program, hides a second request inside the first.
-- **Exercise:** `bodyLength(method string, h Header, max int64) (int64, error)` returns contentLength's answer; you add the bible's steps 1 and 2: both present give 400, a Transfer-Encoding other than chunked gives 501, chunked on GET or HEAD gives 400, and chunked gives −1.
-- **Check:** `chunked` and `Chunked` give −1; `gzip` and `gzip, chunked` give 501 `transfer-encoding "gzip, chunked" not implemented`; two Transfer-Encoding lines of chunked give 501; both headers give 400 `both content-length and transfer-encoding`, whichever comes first; GET with chunked gives 400; Content-Length alone behaves as before. The mistake: letting Content-Length win when both are present, which is the trick itself.
+- **Exercise:** `bodyLength(method string, h Header, max int64) (int64, error)` returns contentLength's answer; you add the bible's steps 1 and 2: both present give 400, a Transfer-Encoding whose last coding isn't chunked gives 400, a coding before a final chunked gives 501, chunked on GET or HEAD gives 400, and chunked gives −1.
+- **Check:** `chunked` and `Chunked` give −1; `gzip` gives 400 `bad transfer-encoding "gzip"`, and so does `chunked, gzip`; `gzip, chunked` gives 501 `transfer-encoding "gzip, chunked" not implemented`; two Transfer-Encoding lines of chunked give 501; both headers give 400 `both content-length and transfer-encoding`, whichever comes first; GET with chunked gives 400; Content-Length alone behaves as before. The mistake: letting Content-Length win when both are present, which is the trick itself.
 
 #### 8.7 Too Big to Keep
 `too-big-to-keep` · code_tests · difficulty 9
@@ -588,7 +588,7 @@ Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persiste
 - **Objective:** Write an answer's head, a blank line and its body through one buffered writer, flushed once.
 - **Scenario:** The collector at Port Ellery reads these bytes over the island's line, so the station server must send them exactly and all at once.
 - **Exercise:** `writeResponse(w io.Writer, now time.Time, status int, fields []Field, body []byte) error` writes only the status line; you add Date from now in dateLayout, the fields in order, the blank line and the body through one bufio.Writer, returning Flush's error.
-- **Check:** The bible's 201 byte for byte at 10:51:21 UTC; http.ReadResponse reads the same bytes back as 201 with its body; a now in another time zone gives the same Date in GMT; a failing writer's error is returned; a counting writer sees one Write. The mistakes: no blank line, and Date in local time.
+- **Check:** The bible's 201 byte for byte at 06:40:36 UTC; http.ReadResponse reads the same bytes back as 201 with its body; a now in another time zone gives the same Date in GMT; a failing writer's error is returned; a counting writer sees one Write. The mistakes: no blank line, and Date in local time.
 
 #### 9.3 Quick Check: Status Lines
 `quick-check-status-lines` · quiz · difficulty 9
@@ -635,7 +635,7 @@ Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persiste
 #### 9.9 The Collector Comes Calling
 `the-collector-comes-calling` · code_tests · difficulty 10
 - **Objective:** Put every route in one place and run the whole station server against Go's own clients.
-- **Scenario:** Tuesday 20 June, midsummer: Furrow-A's 10:41 pass is the first Furrowlight pass through the station server, and its image must reach Furrowlight within a minute of LOS.
+- **Scenario:** Tuesday 20 June, midsummer: Furrow-A's 06:32 pass is the first Furrowlight pass through the station server, and its image must reach Furrowlight within a minute of LOS.
 - **Exercise:** `(s *Server) route(req *Request) answer` sends every request to the list; you route `/recordings`, a recording and `/feed` by method, answering 404 `no such path` and 405 `method not allowed` with each path's Allow.
 - **Check:** The collector follows `/feed` while the recorder streams furrow-a/YST/18856 with its trailer; the feed's line arrives within a second and the collector's GET returns 4096 bytes whose CRC matches, on one connection; Cirrine-1's upload cut mid-stream never reaches the feed; `PUT /recordings` gives 405 with `Allow: GET, HEAD`; HEAD /feed gives 405 with `Allow: GET`; DELETE gives 501; Shutdown ends the feed cleanly and closes everything within a second. The mistake: 404 for a known path with the wrong method.
 
@@ -652,12 +652,16 @@ Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persiste
   they never depend on map order or real waits.
 - **Chapter 6** `l.attempt` counts failed dials in a row and resets on a dial that works; the
   given `connect` keeps its own count of failed handshakes, so their backoff grows too.
-- **Chapter 7** `readLine` refuses a lone CR as well as a bare LF. The readmes say where the
-  station server is stricter than HTTP: HTTP/1.1 only, targets starting with `/`, an LF alone,
-  and a `Content-Length` list such as `4096, 4096`, which Mirela's crooked client sends.
+- **Chapter 7** `readLine` refuses a lone CR as well as a bare LF, and `readHeader` a value
+  holding a control character other than the tab, as RFC 9110 §5.5 asks of a NUL and as Go's
+  own server does. The readmes say where the station server is stricter than HTTP: HTTP/1.1
+  only, targets starting with `/`, an LF alone, and a `Content-Length` list such as
+  `4096, 4096`, which Mirela's crooked client sends.
 - **Chapter 8** A request whose last transfer coding isn't `chunked` gets 400, as RFC 9112
   requires; a coding before a final `chunked` stays 501. Chunk sizes of 1 to 16 hex digits are
   the station server's limit, not HTTP's. `Request.Close` is left out: chapter 9's `closing`
   helper, given from 9.5, decides when to hang up.
 - **Passes** all come from one orbit model; Pipit-2's orbit was fitted for this season, and
-  passes that model contradicted moved to real ones.
+  passes that model contradicted moved to real ones. Chapters 3, 4 and 6 keep their passes at
+  the model's times: Cirrine-1's 07:02, 03:43 and 07:28 and Furrow-A's 07:52, so 3.9 opens at
+  06:50.

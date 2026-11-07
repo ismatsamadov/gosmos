@@ -617,9 +617,9 @@ injected time.
 #### 9.8 Certificates for Every Station
 `certificates-for-every-station` · code_tests · difficulty 9
 - **Objective:** Issue a set of certificates and save them as PEM files, private keys with mode 0600.
-- **Scenario:** Friday 22 September: every station, uplinkd and passplan get their certificates before the weekend's passes.
-- **Exercise:** `issueAll(ca Issuer, dir string, now time.Time) error` is a stub; you issue the five station certificates (1001 to 1005) and the client certificates of uplinkd (2001) and passplan (2002), and write each `<name>.pem` (leaf, then intermediate) and `<name>.key` (PKCS #8) through a temporary file and a rename.
-- **Check:** seven pairs under `t.TempDir()`, each loading with `tls.X509KeyPair`; each certificate verifies for its own name and usage only; every `.key` has mode 0600; an issuer without a key → error and no files written.
+- **Scenario:** Friday 22 September: every station, uplinkd, passplan and dishd get their certificates before the weekend's passes.
+- **Exercise:** `issueAll(ca Issuer, dir string, now time.Time) error` is a stub; you issue the five station certificates (1001 to 1005) and the client certificates of uplinkd (2001), passplan (2002) and dishd (2003), and write each `<name>.pem` (leaf, then intermediate) and `<name>.key` (PKCS #8) through a temporary file and a rename.
+- **Check:** eight pairs under `t.TempDir()`, each loading with `tls.X509KeyPair`; each certificate verifies for its own name and usage only; every `.key` has mode 0600; an issuer without a key → error and no files written.
 
 ## Chapter 10 · Every Connection Encrypted
 
@@ -681,7 +681,7 @@ connection.
 #### 10.8 Encrypting a Bare Socket
 `encrypting-a-bare-socket` · code_tests · difficulty 9
 - **Objective:** Wrap a raw TCP connection in TLS with `tls.Dialer`, handshaking within a deadline.
-- **Scenario:** Ystmark's dish controllers speak their own raw socket protocol, and Sunniva wants the link from uplinkd to them encrypted too.
+- **Scenario:** Ystmark's dish controllers speak their own raw socket protocol, and Sunniva wants the link from dishd, the only program that talks to them, encrypted too.
 - **Exercise:** `dialController(ctx context.Context, addr string, cfg *tls.Config) (net.Conn, error)` dials plain TCP; you dial with a `tls.Dialer` (or `tls.Client` and `HandshakeContext`), so the handshake obeys `ctx`.
 - **Check:** the TLS stand-in controller echoes `PING yst`; a plain-TCP listener that never answers → an error within the context's 200 ms; a controller with the impostor's certificate → error.
 
@@ -776,5 +776,8 @@ switch between passes, and run the whole day.
   issuer without its certificate or key, and its certificate 1001 is signed on Friday.
 - **Chapters 10–11** `newClient` takes the injected clock, since Ystmark's certificate is valid
   only from 22 September; 11.4 loads new keys through `Satellite.Receive`, so `Accept` keeps
-  chapter 6's text; 11.6 also checks resumed sessions.
-- **Given code** keeps the text the learner last saw, including `KeyVersion`'s comments.
+  chapter 6's text; 11.6 also checks resumed sessions. dishd, not uplinkd, dials the dish
+  controllers in 10.8, as Season 4 has it, with a client certificate of its own (2003, then
+  2103 on Rotation Day), so 9.8 issues eight certificates.
+- **Given code** keeps the text the learner last saw, including `KeyVersion`'s comments and the
+  sentinels chapter 6's `seal.go` declares again (`ErrUnknownKey`, `ErrReplay`, `ErrForged`).
