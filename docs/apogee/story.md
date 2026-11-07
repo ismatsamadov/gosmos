@@ -2494,7 +2494,7 @@ capitals. The Cape Wren contractor (the bible's "a contractor visits monthly") s
 | 1 | Mon 10 Jul 2028 | Mirela's desk, Port Ellery | Mirela, before anything is sealed: "Every secret this season starts as random bytes. Show me where ours come from." The draft nonce helper for Cirrine's commands and the ops console's session tokens both come from `math/rand/v2` seeded with the clock | Whoever knows roughly when a token or nonce was made can make it again. On Friday 14 July at 16:00 Mirela makes the season's master key, `k-2028-07`, with your helper |
 | 2 | Mon 17 Jul | the backend desks, with dlinkd's delivery folder | Yusra: "TL;DR: Cirrine wants proof that every file is exactly what left the satellite." Cirrine's archive checks SHA3-256, Apogee's own deliveries SHA-256 | Season 1's CRC-32 catches radio noise, not a person: Mirela changes "0.71" to "0.17" in a Furrowlight field report and the CRC still matches. Cirrine's first fingerprinted delivery is on Friday 21 July |
 | 3 | Mon 24 Jul | Mirela's desk | Mirela reviews the signing path before sealing builds on it, and finds three weak spots: Pipit-3's flight software checks a homemade signature, `sha256(key + command)`; a `\|` inside an argument signs like two arguments; the replay guard counts a command before checking its signature | Pipit-3 would obey a command nobody signed, and one forged sequence number could lock a satellite out of every later command. Mirela signs off on Friday 28 July after her twelve planted lines |
-| 4 | Mon 31 Jul | the Fishbowl | On Sunday 30 July the Fishbowl's spare laptop goes missing from the night-shift desk. It held a backup of the ops console's user file: 26 accounts, every password an unsalted SHA-256. Ingrid logs it; Mirela: "Assume whoever has it has a fast computer and a list of common passwords" | Every password is changed by Friday 4 August, and the console's login reopens at 16:00 that day with records a stolen copy can't give away |
+| 4 | Mon 31 Jul | the Fishbowl | On Sunday 30 July the Fishbowl's spare laptop goes missing from the night-shift desk. It held a backup of the ops console's user file: 26 accounts, every password an unsalted SHA-256. Ingrid logs it; Mirela: "Assume whoever has it has a fast computer and a list of common passwords" | Every password is changed by Friday 4 August, and the console's login reopens at 16:00 that day with records that make every guess at a stolen copy cost 600,000 rounds |
 | 5 | Mon 7 Aug | the lab bench at Port Ellery | Mirela's key inventory: `k-2027-03`, the one key that signs commands for every satellite, sits in uplinkd, in the lab bench's spare Pipit-2 flight computer and in two old test scripts | Whoever reads it out of any one of them can command all seven satellites. Each satellite gets keys of its own, derived from `k-2028-07`, which only uplinkd holds; they go up on the passes of Thursday 10 August, and `k-2027-03` retires at 00:00 UTC on Friday 11 August |
 | 6 | Mon 14 Aug, to Fri 25 Aug | Port Ellery's roof and the test van; the Fishbowl on Friday 25 August | Tomás points the test van's 1.2 m dish at Port Ellery's uplink and reads Pipit-2's commands (S-band, 2065 MHz) off the air in plain text. Cirrine's condition starts on Friday 25 August | Cirrine-1's first sealed command, `PING`, goes up at 07:30 UTC on Friday 25 August, on pass `cirrine-1/YST/15287` (Ystmark, LOS 07:41:12), and Cirrine-1 answers |
 | 7 | Mon 28 Aug | Yusra's desk | Hollis, Monday 09:02: "FURROW-A 0827 1402 NEVER ARRIVED". dlinkd says `furrow-a-20280827-1402.tif` (booking `bk-5274`) landed at 14:13:05 on Sunday; Furrowlight's receiver says nothing. Season 3's webhook signature can't settle it: Furrowlight holds the same secret, so either side could have written it | Yusra: "TL;DR: receipts nobody but Apogee can sign and anyone can check." Receipts start on Friday 1 September; that day Furrowlight checks Sunday's receipt against the file already in its own storage: it matches. The file had arrived; their receiver missed the event |
@@ -2667,10 +2667,12 @@ strictly increasing per satellite. Season 5 adds rules, never a new layout:
   are lowercase, such as `mirela`, `kiosk`, `bench`.
 - **Login rules**: derive again with the record's own count and salt and compare with
   `subtle.ConstantTimeCompare`; an unknown user and a wrong password give the same error,
-  `invalid user or password` (`errInvalidLogin`), after the same work (one derivation against a
-  fixed dummy record for an unknown user); a successful login against an old record or one
-  under 600,000 iterations saves a new record (upgrade at login); a session token is
-  `rand.Text()`, and the console keeps only its SHA-256 in hex.
+  `invalid user or password` (`errInvalidLogin`), after the same work: one derivation against a
+  fixed dummy record for an unknown user, and one for an old `sha256$` record too, which would
+  otherwise answer at once and show which accounts still have one (`matches`, from 4.8). A
+  record under 600,000 iterations still answers faster until it is upgraded. A successful login
+  against an old record or one under 600,000 iterations saves a new record (upgrade at login);
+  a session token is `rand.Text()`, and the console keeps only its SHA-256 in hex.
 - **Cost in tests**: one derivation at 600,000 iterations takes about 60 ms on an Apple-silicon
   Mac. A lesson's tests run at most six of them; other cases use 1,000-iteration records.
 
@@ -2711,7 +2713,9 @@ whose password nobody knows; the check always fails after one `kdf` call, like a
 - **Printing keys.** `Key` has `String()` returning `k-2028-07 (secret hidden)` and
   `GoString()` returning `Key{ID: "k-2028-07", Secret: hidden}`. fmt can't call methods on a
   value in an unexported field and prints its bytes, so `KeyRing` has its own `String()`:
-  `key ring: k-2028-07, k-2028-10`, IDs in activation order.
+  `key ring: k-2028-07, k-2028-10`, IDs in activation order, and a `GoString()` with the same
+  text, since `%#v` calls GoString. The number verbs (`%d`, `%o`, `%b`, `%c`, `%U`) skip both
+  methods and still print a key's bytes, so keys are logged with `%v` (lesson 5.5).
 
 #### Sealed commands (chapter 6)
 
@@ -2742,10 +2746,11 @@ type Sealed struct {
 - **Plaintext**: the operation and arguments joined by `|`, checked by chapter 3's canonical
   rules: `PING`, `SET_MODE|SAFE`. After opening, the full canonical command is
   `cirrine-1|4471|PING`.
-- **Order of checks** (the satellite and its stand-in in tests): parse (`ErrMalformed`);
-  version 2 (`ErrVersion`); satellite is its own (`ErrWrongSat`); key ID held (`ErrUnknownKey`)
-  and not revoked (`ErrRevoked`) or retired (`ErrRetired`); `Seq` above the last accepted
-  (`ErrReplay`); `Open` with the associated data (`ErrForged`); only then record `Seq`. A
+- **Order of checks** (the satellite and its stand-in in tests): parse (`ErrMalformed`, also
+  for a line that doesn't start with `SEAL`); version 2 (`ErrVersion`, only for a SEAL line);
+  satellite is its own (`ErrWrongSat`); key ID held (`ErrUnknownKey`) and not revoked
+  (`ErrRevoked`) or retired (`ErrRetired`); `Seq` above the last accepted (`ErrReplay`); `Open`
+  with the associated data (`ErrForged`); only then record `Seq`. A
   refusal changes nothing, so a forged line numbered 18,446,744,073,709,551,615 can't lock the
   satellite out. (Chapter 3 verifies before it compares `Seq`; here a number already seen is
   refused before any work is spent opening it, and 6.7's readme says so.)
@@ -2753,16 +2758,23 @@ type Sealed struct {
 
   ```go
   var (
-  	ErrMalformed  = errors.New("malformed command line")  // "malformed command line: want 7 fields"
-  	ErrVersion    = errors.New("unsupported version")     // "unsupported version: 3"
-  	ErrWrongSat   = errors.New("not for this satellite")  // `not for this satellite: "pipit-2"`
-  	ErrUnknownKey = errors.New("unknown key")             // `unknown key: "k-2027-03"`
-  	ErrRevoked    = errors.New("key revoked")             // `key revoked: "k-2028-10"`
-  	ErrRetired    = errors.New("key retired")             // `key retired: "k-2028-07"`
-  	ErrReplay     = errors.New("replayed sequence number") // "replayed sequence number: 4471, last 4471"
-  	ErrForged     = errors.New("command failed authentication")
+  	ErrMalformed = errors.New("malformed command line") // "malformed command line: want 7 fields"
+  	ErrVersion   = errors.New("unsupported version")    // "unsupported version: 3"
+  	ErrWrongSat  = errors.New("not for this satellite") // `not for this satellite: "pipit-2"`
+  	// ErrUnknownKey means the ring holds no version with the key ID asked for.
+  	ErrUnknownKey = errors.New("unknown key")
+  	ErrRevoked    = errors.New("key revoked") // `key revoked: "k-2028-10"`
+  	ErrRetired    = errors.New("key retired") // `key retired: "k-2028-07"`
+  	// ErrReplay refuses a command whose sequence number isn't above the last one accepted.
+  	ErrReplay = errors.New("replayed sequence number")
+  	// ErrForged refuses a command whose signature doesn't check out, and never says more.
+  	ErrForged = errors.New("command failed authentication")
   )
   ```
+
+  `ErrUnknownKey`, `ErrReplay` and `ErrForged` keep the text of their first declarations
+  (chapters 5 and 3). Wrapped, they read `unknown key: "k-2027-03"` and
+  `replayed sequence number: 4471, last 4471`.
 
 - **LOAD_KEY** (chapter 11): the plaintext `LOAD_KEY|<new key id>|<64 hex sign key>|<64 hex
   seal key>` (148 bytes for `k-2028-10`), sealed under the satellite's current seal key. After
@@ -2857,7 +2869,10 @@ public identity key in advance (`map[string]ed25519.PublicKey`, by station code)
    the dialer's share first.
 4. Data lines: `DATA <24 hex nonce> <hex ciphertext>`, AES-256-GCM under the session key with
    associated data `DATA|<from code>|<to code>`, a fresh random nonce each. A line that doesn't
-   open ends the session with an error.
+   open ends the session with an error. DATA lines carry no sequence number, so a machine in
+   the middle can drop, repeat or reorder them within a session, though never read or change
+   one; the CMD lines inside carry their own numbers. The HKDF info binds the two shares, not
+   the station codes, which is sound because each share's signature covers its code.
 5. Nothing of the session is kept afterwards: a stolen station later can't open a recording.
 
 Tests run both sides over `net.Pipe()` with a deadline of 1 s; the side in the middle is the
@@ -2875,7 +2890,8 @@ from `crypto/rand`, with `rand.Int`).
 | Stations | `yst.apogee.internal`, `pel.`, `sqt.`, `lan.`, `cwr.` | the intermediate | 1001 YST, 1002 PEL, 1003 SQT, 1004 LAN, 1005 CWR | 2028-09-22T00:00:00Z for 90 days, to 2028-12-21T00:00:00Z | DNS name = CN; server auth; digital signature |
 | uplinkd (headquarters) | `uplinkd`, DNS `uplinkd.apogee.internal` | the intermediate | 2001 | as stations | client auth; digital signature |
 | passplan | `passplan`, DNS `passplan.apogee.internal` | the intermediate | 2002 | as stations | client auth (it may read status, never queue) |
-| Rotation Day's | the same names | the intermediate | 1101–1105, 2101, 2102 | 2028-10-09T00:00:00Z to 2029-01-07T00:00:00Z | as above |
+| dishd (Port Ellery) | `dishd`, DNS `dishd.apogee.internal` | the intermediate | 2003 | as stations | client auth (it dials Ystmark's dish controllers) |
+| Rotation Day's | the same names | the intermediate | 1101–1105, 2101–2103 | 2028-10-09T00:00:00Z to 2029-01-07T00:00:00Z | as above |
 
 - Host names end in `.apogee.internal`; `.internal` is reserved for private networks, so no
   name can belong to anyone outside.
@@ -2883,7 +2899,8 @@ from `crypto/rand`, with `rand.Int`).
   refuses only a time before `NotBefore` or after `NotAfter`).
 - Files: `<name>.pem` holds the leaf then the intermediate (`CERTIFICATE` blocks);
   `<name>.key` the PKCS #8 private key (`PRIVATE KEY`), mode 0600; `roots.pem` the root.
-  Names: `yst`, `pel`, `sqt`, `lan`, `cwr`, `uplinkd`, `passplan`. `tls.X509KeyPair` loads a pair.
+  Names: `yst`, `pel`, `sqt`, `lan`, `cwr`, `uplinkd`, `passplan`, `dishd`. `tls.X509KeyPair`
+  loads a pair.
 - `Verify` always gets `Roots` (a pool with the root only), `Intermediates` (the chain the peer
   sent), `DNSName` where a name is checked, `KeyUsages` (server or client auth) and
   `CurrentTime` from the injected clock. Never leave `Roots` nil: on a Mac that hands the
@@ -2911,9 +2928,11 @@ from `crypto/rand`, with `rand.Int`).
   | `GET /status` | 200 `ok YST` and a newline |
   | `POST /uplink` | body: one CMD or SEAL line, at most 1024 bytes, syntax checked only; 202 `queued cirrine-1 4471`; 403 `only uplinkd may queue commands`; 400 `bad command line` |
 
-- **The dish controllers** speak their own raw socket protocol (Season 4); this season wraps
-  the connection from a station's uplinkd to a controller in TLS (`tls.Dialer`, or `tls.Client`
-  with `HandshakeContext`), with the same certificates. In tests the controller is a stand-in on
+- **The dish controllers** speak their own raw socket protocol (Season 4), and dishd at Port
+  Ellery is still the only program that talks to Ystmark's. This season wraps its connection to
+  a controller in TLS (`tls.Dialer`, or `tls.Client` with `HandshakeContext`): dishd proves
+  itself with its client certificate, 2003, and a controller presents its station's
+  certificate, 1001 for Ystmark. In tests the controller is a stand-in on
   `net.Listen("tcp", "127.0.0.1:0")` behind `tls.Server` that echoes each line it reads,
   `PING yst` in, `PING yst` out; it never claims to be the real protocol.
 
@@ -2964,13 +2983,13 @@ every certificate rather than trusting it (fail closed). The TLS check runs in
 | Thu 2028-08-10 | every satellite's own `k-2028-07` keys go up inside its operator's August flight-software update, which also teaches it to open SEAL lines |
 | Fri 2028-08-11 00:00 | `k-2027-03` retires; satellites answer only to their own keys |
 | Mon 2028-08-28 | `r-2028-08` made; published; Activate 2028-09-01T00:00:00Z |
-| Mon 2028-10-09 | `k-2028-10` made (Activate 2028-10-17T00:00:00Z); `k-2028-07` gets Retire 2028-10-24T00:00:00Z; `r-2028-10` published (Activate 2028-10-17T00:00:00Z) and `r-2028-08` gets Retire 2028-10-17T00:00:00Z; certificates 1101–1105, 2101, 2102 issued |
+| Mon 2028-10-09 | `k-2028-10` made (Activate 2028-10-17T00:00:00Z); `k-2028-07` gets Retire 2028-10-24T00:00:00Z; `r-2028-10` published (Activate 2028-10-17T00:00:00Z) and `r-2028-08` gets Retire 2028-10-17T00:00:00Z; certificates 1101–1105 and 2101–2103 issued |
 | Mon 9 to Fri 13 Oct | each satellite gets LOAD_KEY for `k-2028-10` on its first pass, sealed under its `k-2028-07` seal key |
 | Tue 2028-10-17 00:00:00 | Rotation Day: uplinkd seals and signs with `k-2028-10`; bookingd signs receipts with `r-2028-10` |
-| 00:30:00 | uplinkd's client certificate 2101 replaces 2001 (stations accept both until 24 October) |
+| 00:30:00 | uplinkd's client certificate 2101 replaces 2001, and dishd's 2103 replaces 2003 (stations and controllers accept both until 24 October) |
 | 01:00:00 to 01:15:40 | each station switches to its new certificate in its first quiet gap (below) |
 | 10:12:00 | revocation list 1: certificate 1005 (Cape Wren's old station computer left with its disk) |
-| Tue 2028-10-24 00:00:00 | `k-2028-07` retires; revocation list 2: 1001 to 1005, 2001 and 2002 |
+| Tue 2028-10-24 00:00:00 | `k-2028-07` retires; revocation list 2: 1001 to 1005 and 2001 to 2003 |
 
 **Rotation Day's passes** (Season 1's `Pass`; lessons 11.7 and 11.8). Each pass gets one sealed
 `PING`; the Cirrine-1 pass across midnight gets two, sealed at 23:59:58 and 00:01:00. A command
@@ -3014,14 +3033,14 @@ needs as read-only files under these names, and uses only the fields it needs. `
 | 1 | `newKey`, `newNonce`, `newSalt`, `newSessionToken` (`random.go`); `bits` and `Noncer` are lesson-only |
 | 2 | `parseDigest`, `newHash`, `fingerprintAs` (`digest.go`), `checkManifest` (`manifest.go`); `fingerprint`, `fingerprintStream` and `save` are lesson-only |
 | 3 | `Command` (`command.go`), `tag`, `verify`, `canonical` and its helpers `checkField`, `satIDRune`, `opRune`, `argRune` (`mac.go`), `Guard`, `(*Guard).Accept`, `ErrForged`, `ErrReplay` (`guard.go`), `checkLine` (`line.go`); `samePhrase`, `Signer` and `NewSigner` stay in their lessons' `main.go` |
-| 4 | `Record`, `derive`, `formatRecord`, `parseRecord`, `checkPassword`, `login`, `Console`, `(*Console).Check`, `(*Console).Login`, `errInvalidLogin` (`password.go`, `console.go`) |
-| 5 | `signKey`, `satKey`, `fleetKeys`, `KeyVersion`, `KeyRing`, `loadRing`, `(*KeyRing).SatKey`, `(*KeyRing).Versions`, `(*KeyRing).String`, `(*KeyRing).GoString`, `Key.String`, `Key.GoString` (`derive.go`, `ring.go`; `%#v` calls GoString, so both types need one) |
+| 4 | `Record`, `derive`, `formatRecord`, `parseRecord`, `checkPassword`, `newRecord`, `login`, `Console`, `(*Console).Check`, `(*Console).Login`, `(*Console).matches`, `(*Console).newRecord`, `needsUpgrade`, `dummyRecord`, `errInvalidLogin` (`password.go`, `console.go`); `checkStored` stays in 4.6's `main.go` |
+| 5 | `signKey`, `satKey`, `fleetKeys`, `KeyVersion`, `KeyRing`, `loadRing`, `(*KeyRing).SatKey`, `(*KeyRing).Versions`, `(*KeyRing).String`, `(*KeyRing).GoString`, `Key.String`, `Key.GoString`, `parseVersion`, `(*KeyRing).add`, `ErrUnknownKey` (`derive.go`, `ring.go`; `%#v` calls GoString, so both types need one) |
 | 6 | `seal`, `open`, `sealCmd`, `Sealed`, `(Sealed).AD`, `formatSealed`, `parseSealed`, `Satellite`, `SatKeys`, `(*Satellite).Accept`, `sealCommand`, the `Err…` sentinels (`seal.go`, `satellite.go`) |
 | 7 | `Notary`, `newNotary`, `(*Notary).Sign`, `(*Notary).Published`, `checkReceipt`, `publishKey`, `readKey`, `Receipt`, `Envelope`, `ReceiptKey`, `wrapReceipt`, `openEnvelope`, `verifyEnvelope`, `issue`, `checkDelivery` (`receipt.go`) |
 | 8 | `agree`, `parseShare`, `agreeHex`, `Identity`, `hello`, `checkHello`, `ErrBadHello`, `sessionKey`, `Backhaul`, `(*Backhaul).NewSession`, `wrapFor`, `unwrap`, `dial`, `answer` (`agree.go`, `backhaul.go`). Never a type named `Station`: that name is the bible's ground station |
 | 9 | `trusted`, `Issuer`, `newRoot`, `newIntermediate`, `issueServer`, `issueClient`, `verifyStation`, `checkAt`, `issueAll` (`ca.go`) |
 | 10 | `newClient`, `serverConfig`, `harden`, `requireClients`, `clientConfig`, `caller`, `Queue`, `stationHandler`, `dialController`, `uplinkClient`, `stationServer`, `send` (`tlsconf.go`, `station.go`) |
-| 11 | `accepts`, `signingKey`, `loadKeyCommand`, `revoke`, `isRevoked`, `withRevocations`, `switchTime`, `Day`, `Report`, `runDay` (`rotate.go`, `day.go`) |
+| 11 | `accepts`, `signingKey`, `loadKeyCommand`, `revoke`, `isRevoked`, `withRevocations`, `switchTime` (`rotate.go`), `(*Satellite).Receive` and `load` (`satellite.go`), `Slot`, `Day`, `(Day).Passes`, `(Day).Connect`, `(Day).Ping`, `handshake`, `Report`, `runDay` (`day.go`, `main.go`) |
 
 Signatures every chapter after the one that defines them uses exactly:
 
@@ -3084,8 +3103,9 @@ func switchTime(passes []Pass, station string, from time.Time) (time.Time, error
 
 `Satellite` (the flight software's stand-in) holds `ID`, `Keys map[string]SatKeys` (by key ID;
 `SatKeys{Sign, Seal []byte; Retire time.Time; Revoked bool}`), `Last uint64` and
-`Now func() time.Time`; from chapter 11 it also opens LOAD_KEY. `Guard` holds
-`last map[string]uint64` (a zero `Guard` works). `Queue` holds a mutex and the queued lines.
+`Now func() time.Time`; from chapter 11 its `Receive` checks a line as `Accept` does, then
+installs the keys a LOAD_KEY carries (`load`). `Guard` holds `last map[string]uint64` (a zero
+`Guard` works). `Queue` holds a mutex and the queued lines.
 
 #### How lessons test it
 
