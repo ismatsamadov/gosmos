@@ -76,7 +76,7 @@ each day's plan whole, and match bookingd's export against it.
 `every-contact-of-the-week` · code_tests · difficulty 8
 - **Objective:** Turn the pass archive into the week's contacts with Season 7's rule, station by station, and save a file per day.
 - **Scenario:** The dish loaders need each day's contacts, and Nkem wants them to be passplan 2's own, contact for contact.
-- **Exercise:** `rehearse` must read `passes.txt`, keep the candidates (servable, at least 10°, at a rehearsed station), give them dishes with the given `assign`, write `plan/<day>.txt` for every day of the window, and print `plan: 14182 contacts, 28797 dropped`.
+- **Exercise:** `rehearse` must read `passes.txt`, keep the candidates (servable, at least 10°, at a rehearsed station), give them dishes with the given `assign`, write `plan/<day>.txt` for every day of the window, and print `plan: 14297 contacts, 28680 dropped`.
 - **Check:** All seven files of the investors' week against the reference plan, line for line; a one-day, one-station rehearsal; a contact whose LOS is after midnight in its AOS's file; a bad archive line as `archive line 3: ...`; the mistakes: Pipit-1 kept at Ystmark (no shared band), passes under 10° kept, all stations sorted into one list before assigning, lines written in station order.
 
 #### 1.3 Bookings Against the Plan
@@ -104,7 +104,7 @@ LOS, cut off a silent station, and stop the whole week from one context.
 `from-aos-to-los` · code_tests · difficulty 8
 - **Objective:** Run each contact concurrently from its AOS to its LOS, with waits measured from the injected clock.
 - **Scenario:** Ingrid wants each pass on the Fishbowl's screen as it starts and ends, and the whole week in seconds, so she can run it again after every change.
-- **Exercise:** After planning, `rehearse` must run the window: an `AOS` line at each contact's AOS and a `LOS ... flown` line at its LOS, then `week done: 14182 flown, 0 failed, 0 skipped` after the last LOS, and only then return.
+- **Exercise:** After planning, `rehearse` must run the window: an `AOS` line at each contact's AOS and a `LOS ... flown` line at its LOS, then `week done: 14297 flown, 0 failed, 0 skipped` after the last LOS, and only then return.
 - **Check:** Inside the bubble, every line's instant equal to its AOS or LOS for the whole investors' week; two dishes' contacts overlapping at Ystmark; `rehearse` returning at the last LOS, not before; the mistakes: `time.Until(c.AOS)` or `context.WithDeadline(ctx, c.LOS)`, 29 years away on the bubble's clock (the harness's guard reports `rehearse still running`), and passes flown one after another.
 
 #### 2.2 Call the Station
@@ -146,7 +146,7 @@ frame, drop what fails its CRC, and notice a dead line and dial it again.
 `hello-in-frames` · code_tests · difficulty 9
 - **Objective:** Write and read length-prefixed binary frames with a CRC, after the banner, through one buffered reader.
 - **Scenario:** Sunniva's radios now want each call to name its pass and dish before they say anything more.
-- **Exercise:** After the banner, `rehearse` must send HELLO (`thistle-2/PEL/02137 1`) and read the WELCOME; a NAK at HELLO makes the pass `failed refused`, no WELCOME by LOS `failed no_answer`; frames the station sends later are read and set aside until the next lesson.
+- **Exercise:** After the banner, `rehearse` must send HELLO (`thistle-2/PEL/02136 1`) and read the WELCOME; a NAK at HELLO makes the pass `failed refused`, no WELCOME by LOS `failed no_answer`; frames the station sends later are read and set aside until the next lesson.
 - **Check:** HELLO's bytes against the bible's example; the banner and WELCOME arriving in one write, and WELCOME one byte at a time; a pass HELLO'd for the wrong dish refused with NAK 1; the mistakes: a CRC that covers the length, a length written little-endian, a new reader for the frames after the banner.
 
 #### 3.2 Telemetry In
@@ -168,7 +168,7 @@ frame, drop what fails its CRC, and notice a dead line and dial it again.
 - **Objective:** Notice a dead connection with an idle read deadline, and dial again with growing waits until the pass is welcomed again or LOS comes.
 - **Scenario:** Ystmark's fiber dies without a sound in storms: calls stay open and nothing arrives, and the backhaul takes ten minutes to come up.
 - **Exercise:** Every read must bring a byte within 90 s; a lost line must be closed and dialed again (at once, then Season 4's `redialDelay` between failures), say HELLO for the same pass, and read on until LOS.
-- **Check:** Ystmark quiet from Thursday 04:02 with dials failing until 04:12: the loss noticed within 90 s, the waits between failed dials in their ranges, the passes after 04:12 flown over the backhaul, `pipit-2/YST/22861` `failed line_lost`; frames trickling 0.25 s apart never tripping the deadline; the mistakes: a deadline from `w.Now()` (never fires in the bubble), one deadline for a whole frame, redialing with no wait.
+- **Check:** Ystmark quiet from Thursday 03:31 with dials failing until 03:41: the loss noticed within 90 s, the waits between failed dials in their ranges, the passes after 03:41 flown over the backhaul, `pipit-2/YST/22861` `failed line_lost`; frames trickling 0.25 s apart never tripping the deadline; the mistakes: a deadline from `w.Now()` (never fires in the bubble), one deadline for a whole frame, redialing with no wait.
 
 #### 3.5 Quick Check: On the Wire
 `quick-check-on-the-wire` · quiz · difficulty 9
@@ -247,7 +247,7 @@ what never came.
 - **Objective:** Send Season 3's signed webhook for every landed file, to the booking's customer.
 - **Scenario:** Yusra: the investors will ask Furrowlight how soon its images arrive; and Joss has written Kessick's first receiver, for Thistle-2's first science on Thursday 26 July.
 - **Exercise:** `rehearse` must read `customers.json` and, as each booked file lands, POST its `data.landed` event with `Apogee-Timestamp` and `Apogee-Signature`, printing `DELIVERED <file>` on a 2xx.
-- **Check:** Every receiver verifying every signature and timestamp; one event per landed file, within 60 s of landing; event IDs from `evt-000001`, unique, with no gaps; Kessick's event for `bk-8801`; the mistakes: signing a re-encoded body or one with a newline, a timestamp in milliseconds.
+- **Check:** Every receiver verifying every signature and timestamp; one event per landed file, within 60 s of landing; event IDs from `evt-000001`, unique, with no gaps; Kessick's event for `bk-8792`; the mistakes: signing a re-encoded body or one with a newline, a timestamp in milliseconds.
 
 #### 5.3 Retry Without Hammering
 `retry-without-hammering` · code_tests · difficulty 10
@@ -261,7 +261,7 @@ what never came.
 - **Objective:** Turn a file's missing chunks into a command on the satellite's next contact, and land the file when they arrive.
 - **Scenario:** On Tuesday 24 July Furrow-K's 07:40 image over Vorrel Island comes down three chunks short, and Hollis wants it whole.
 - **Exercise:** On a satellite's next contact after a file stays incomplete, `rehearse` must send `DUMP_FILE <name> <n>...` (signed or sealed like its other commands), finish the file from the chunks that come, and deliver it.
-- **Check:** `furrow-k-20290724-0740.tif` asked for on `furrow-k/VRL/00404`, landing at 09:15:00 and delivered once; a CRC mismatch asked for whole; a satellite with no later contact left in `incomplete.txt`; the mistakes: asking again before the first pass's END, and asking on every later contact after the file is complete.
+- **Check:** `furrow-k-20290724-0740.tif` asked for on `furrow-k/VSK/00404`, landing at 08:12:30 and delivered once; a CRC mismatch asked for whole; a satellite with no later contact left in `incomplete.txt`; the mistakes: asking again before the first pass's END, and asking on every later contact after the file is complete.
 
 ## Chapter 6 · The Storm
 
@@ -296,11 +296,11 @@ Ystmark's storm arrives, and write the week's report, checked against golden fil
 - **Objective:** Reason about what the pager and the report count.
 - **Scenario:** Tomás asks what the investors will see on Friday.
 - **Exercise:** Three questions.
-- **Check:** A stowed pass is skipped, not failed, so it never pages, yet it is lost to its booking; Ystmark's week allows one lost pass, from 214 booked at 99.5% in integers; counts come from counters, not from reading the logs back.
+- **Check:** A stowed pass is skipped, not failed, so it never pages, yet it is lost to its booking; Ystmark's week allows one lost pass, from 210 booked at 99.5% in integers; counts come from counters, not from reading the logs back.
 
 #### 6.5 Every Pass Counts
 `every-pass-counts` · code_tests · difficulty 10
 - **Objective:** Finish the rehearsal and check the whole investors' week against golden files.
 - **Scenario:** Friday 20 July, 15:00, the Fishbowl: the full rehearsal with Ingrid's script, the fiber cut and the wind lock at Ystmark, Cirrine's restart, Furrow-K's lost chunks and Thistle-2's first science.
 - **Exercise:** `rehearse` must write `reports/week.txt` (rows, `all`, the lost bookings, the verdict) as the bible gives it, the last thing the week's golden files need.
-- **Check:** The investors' week against `testdata/week.golden` (NO-GO, the ten Furrows), `alerts.golden` and `health.golden`, `metrics.json` against the simulated world's counts, both lists empty; Yusra's moves on Thursday at six stations: GO; a station with nothing booked showing `-`; the mistakes: lost counting failures only, a budget computed in floats, unplanned bookings left out.
+- **Check:** The investors' week against `testdata/week.golden` (NO-GO, the nine Furrows), `alerts.golden` and `health.golden`, `metrics.json` against the simulated world's counts, both lists empty; Yusra's moves on Thursday at six stations: GO; a station with nothing booked showing `-`; the mistakes: lost counting failures only, a budget computed in floats, unplanned bookings left out.

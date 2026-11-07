@@ -1,9 +1,9 @@
 # Go at Scale: syllabus
 
-**Authoring status:** planned. Chapter 1 is written but not yet in the library: the season's
-pass model (`predict`) is being replaced by the orbit model the earlier seasons use, which
-changes the counts, pass IDs and times in this plan and in chapter 1. Once lessons are written,
-the lessons in `courses/apogee.sqlite` are the source of truth.
+**Authoring status:** planned. The pass model is the orbit model Seasons 3 to 6 use, ported to
+Go (`model.go`), with Pipit-2 fitted in Season 4; every count, pass ID and time in this plan
+comes from it. Chapter 1 is written and updated for the model but not yet in the library. Once
+lessons are written, the lessons in `courses/apogee.sqlite` are the source of truth.
 
 Season 7 of Apogee, March to June 2029. Apogee grows from five stations to twenty and from
 eight satellites to eighty, and the learner leads the rewrite of passplan, which must plan a
@@ -189,7 +189,7 @@ stops at its first error, and a separate limit for each key.
 - **Objective:** Combine a bounded group with real work: predict the whole fleet in twelve slots and stop at the first failure.
 - **Scenario:** Friday 16 March: passplan 2's predict stage runs on its new machine for the first time, eighty satellites over twenty stations for one day.
 - **Exercise:** `predictAll(ctx, els, slots, predict)` predicts one satellite after another; you run each in the given `Group` with limit `slots` and collect the results in a map under a mutex.
-- **Check:** 28 June with the model → 80 entries, `furrow-a` with 105 passes, 7,483 in all; never more than 12 at once (a counting predictor); a predictor that fails for `brine-17` with `no elements for brine-17` → that error, every running prediction saw its context end, and none started after it.
+- **Check:** 28 June with the model → 80 entries, `furrow-a` with 105 passes, 7,485 in all; never more than 12 at once (a counting predictor); a predictor that fails for `brine-17` with `no elements for brine-17` → that error, every running prediction saw its context end, and none started after it.
 
 ## Chapter 3 · Once and Only Once
 
@@ -232,7 +232,7 @@ compare-and-swap; and see, through Go's memory model, why a program without a ra
 - **Objective:** See that an atomic store publishes the writes made before it, and only those, to a goroutine whose load sees it.
 - **Scenario:** Wednesday 21 March: the test Board read a plan the moment its ready flag went up and got version 0 with no contacts, because the planner raised the flag first and filled the plan after.
 - **Exercise:** The planner goroutine stores `ready` true, waits until the Board has looked, then fills `plan`; the Board waits for `ready`, prints and says it has looked; you move the two lines that fill the plan above the `Store`.
-- **Check:** `plan v7: 2010 contacts`. The starter prints `plan v0: 0 contacts` on every run: the Board looks after the flag and before the fill. Both versions are free of races (the readme says `go run -race` agrees): the order alone was wrong.
+- **Check:** `plan v7: 2016 contacts`. The starter prints `plan v0: 0 contacts` on every run: the Board looks after the flag and before the fill. Both versions are free of races (the readme says `go run -race` agrees): the order alone was wrong.
 
 #### 3.6 Counting Without Locks
 `counting-without-locks` · code_tests · difficulty 8
@@ -301,9 +301,9 @@ files closed on every way out of a loop.
 #### 4.5 A Day at a Time
 `a-day-at-a-time` · code_tests · difficulty 9
 - **Objective:** Make a long sequence lazily: produce one day, yield it in order, and only then produce the next.
-- **Scenario:** The third quarter's catalog holds 672,283 passes, and the old planner hands each service a slice of all of them, about eighty-four megabytes a copy.
+- **Scenario:** The third quarter's catalog holds 672,292 passes, and the old planner hands each service a slice of all of them, about eighty-four megabytes a copy.
 - **Exercise:** `Catalog(n, w, predict) iter.Seq[PassView]` predicts the whole window into one slice, sorts it with the given `byAOS` and yields it; you predict every servable pair for one day, sort that day, yield it, then move to the next.
-- **Check:** 1 to 7 July → 51,176 passes beginning `brine-27/VSK/00697`, `furrow-s/SRH/00049`, `brine-16/CRP/00697`, every one servable and in `byAOS` order; breaking after 10 passes → every call to the predictor was for 1 July (a counting predictor); the starter asks about every day before yielding one.
+- **Check:** 1 to 7 July → 51,174 passes beginning `brine-27/VSK/00697`, `furrow-s/SRH/00049`, `brine-16/CRP/00697`, every one servable and in `byAOS` order; breaking after 10 passes → every call to the predictor was for 1 July (a counting predictor); the starter asks about every day before yielding one.
 
 #### 4.6 Errors Along the Way
 `errors-along-the-way` · code_tests · difficulty 8
@@ -438,7 +438,7 @@ sorted sequences.
 - **Objective:** Give a generic type an iterator method.
 - **Scenario:** Ingrid wants Cape Wren's next passes on the Board, straight from the planner's queue.
 - **Exercise:** `(*Queue[T]).Drain() iter.Seq[T]` yields nothing; you pop until the queue is empty or the loop stops; `main` prints the first five of Cape Wren's candidates for 9 April (max elevation 10° or more), from a queue.
-- **Check:** five lines `<AOS 15:04:05> <pass ID>`, the first `00:26:02 cirrine-1/CWR/18668` (the writer takes the rest from the model); the starter prints nothing.
+- **Check:** five lines `<AOS 15:04:05> <pass ID>`, the first `00:18:07 pipit-2/CWR/21230` (the writer takes the rest from the model); the starter prints nothing.
 
 #### 6.6 Peek Before You Pop
 `peek-before-you-pop` · code_tests · difficulty 8
@@ -587,7 +587,7 @@ and checks you write yourself.
 - **Objective:** Combine timers, a context and a fake clock to run, and test, a whole day of contacts.
 - **Scenario:** Friday 4 May: the station runner flies a day of contacts from the plan, and Ingrid wants it tested on take-over day's plan before any host sees it.
 - **Exercise:** `flyDay(ctx, now, contacts, fly)` calls `fly` for every contact at once; you wait for each contact's AOS with `waitUntil`, in order, and stop when the context ends.
-- **Check:** (bubble) 28 June's plan as it stands on 4 May (2,013 contacts) → every `fly` at its AOS to the second, in order; cancelled at 12:00 → `context.Canceled`, and exactly the contacts with AOS before 12:00 flown; the whole day in under a second of real time.
+- **Check:** (bubble) 28 June's plan as it stands on 4 May (2,020 contacts) → every `fly` at its AOS to the second, in order; cancelled at 12:00 → `context.Canceled`, and exactly the contacts with AOS before 12:00 flown; the whole day in under a second of real time.
 
 ## Chapter 9 · Benchmarks That Tell the Truth
 
@@ -602,7 +602,7 @@ that two versions agree before comparing them, and compare them with sub-benchma
 - **Objective:** Write a benchmark function with `for b.Loop()`.
 - **Scenario:** Monday 7 May: the second wave goes live, Tomás writes on the glass that passplan 2 is forty times faster, and Nkem asks for a benchmark anyone can run.
 - **Exercise:** `benchPlanDay(b *testing.B)` in `bench.go` calls `planDay` once; you build Cape Wren's 28 June candidates with the given helper before the loop and call `planDay` inside `for b.Loop()`.
-- **Check:** `testing.Benchmark(benchPlanDay)` at 20 iterations → `N` is 20 and `planDay` ran 20 times (it counts), returning Cape Wren's 75 contacts each time.
+- **Check:** `testing.Benchmark(benchPlanDay)` at 20 iterations → `N` is 20 and `planDay` ran 20 times (it counts), returning Cape Wren's 76 contacts each time.
 
 #### 9.2 Setup Before the Loop
 `setup-before-the-loop` · code_tests · difficulty 8
@@ -630,14 +630,14 @@ that two versions agree before comparing them, and compare them with sub-benchma
 - **Objective:** Report a benchmark's own unit of work with `b.ReportMetric`, and catch an input that runs out after one iteration.
 - **Scenario:** The new planner's benchmark read its candidates from a stream that was empty once used: from the second iteration on it planned nothing, very fast.
 - **Exercise:** `benchStream(b)` makes the candidate stream once, before the loop, from a pull iterator; you range a reusable sequence instead (`slices.Values` of the day) and report `contacts/op`.
-- **Check:** the reported `contacts/op` is 75 for Cape Wren's 28 June; `N` is 20; the starter reports 3.75 (75 over 20 iterations).
+- **Check:** the reported `contacts/op` is 76 for Cape Wren's 28 June; `N` is 20; the starter reports 3.8 (76 over 20 iterations).
 
 #### 9.6 Same Input, Same Answer
 `same-input-same-answer` · code_tests · difficulty 8
 - **Objective:** Check that two implementations agree before comparing their speed.
 - **Scenario:** Wednesday 16 May, 13:30: Brinewatch's thirty-six leave their rocket, and before anyone compares the planners on the week ahead Nkem asks whether they agree.
 - **Exercise:** `sameContacts(old, new []Contact) error` returns nil; you compare the lengths and each contact's pass ID and dish, and return the first difference as the bible writes it.
-- **Check:** equal lists → nil; a dish swapped → `contact 212: old pipit-2/TIR/22438 dish 1, new pipit-2/TIR/22438 dish 2`-style message for the planted index; different lengths → `old has 2010 contacts, new has 2009`; the given `planOld` and `planNew` on 17 May → nil.
+- **Check:** equal lists → nil; a dish swapped → `contact 213: old pipit-3/TIR/12398 dish 1, new pipit-3/TIR/12398 dish 2`-style message for the planted index; different lengths → `old has 2016 contacts, new has 2015`; the given `planOld` and `planNew` on 17 May → nil.
 
 #### 9.7 Quick Check: Fair Comparisons
 `quick-check-fair-comparisons` · quiz · difficulty 8
@@ -671,7 +671,7 @@ buffer reused, `sync.Pool` for scratch space, and struct keys instead of formatt
 #### 10.2 Build the Report Once
 `build-the-report-once` · code_tests · difficulty 8
 - **Objective:** Build a long string with `strings.Builder` and `Grow` instead of `+=`.
-- **Scenario:** The planner writes each host a text report on every replan, and Cape Wren's 75 lines were built with `+=`, each copying everything before it.
+- **Scenario:** The planner writes each host a text report on every replan, and Cape Wren's 76 lines were built with `+=`, each copying everything before it.
 - **Exercise:** `stationReport(code, contacts)` adds each line with `+=`; you write into a `strings.Builder`, grown once for the whole report.
 - **Check:** Cape Wren's 28 June report → the same text as before; at most 2 allocations (the starter makes one per line); an empty list → the heading alone.
 
@@ -685,7 +685,7 @@ buffer reused, `sync.Pool` for scratch space, and struct keys instead of formatt
 #### 10.4 Append, Don't Format
 `append-dont-format` · code_tests · difficulty 9
 - **Objective:** Write numbers and times into a byte slice with `strconv.AppendInt`, `strconv.AppendFloat` and `time.Time.AppendFormat`, without allocating.
-- **Scenario:** Each dish loader gets its day as lines like `05:29:26 05:37:52 1 furrow-a/VSK/24529`, each made with `fmt.Sprintf`, 2,006 times a replan.
+- **Scenario:** Each dish loader gets its day as lines like `05:29:26 05:37:52 1 furrow-a/VSK/24529`, each made with `fmt.Sprintf`, 2,011 times a replan.
 - **Exercise:** `appendContact(dst, c)` returns `append(dst, fmt.Sprintf(...)...)`; you append each part directly.
 - **Check:** the same bytes as the `fmt` version for 28 June's first 50 contacts; 0 allocations when `dst` has room; the line ends in a newline.
 
@@ -808,14 +808,14 @@ the newest run winning, stows that come and go, a hundred days under load, and t
 - **Objective:** Plan one station from merged lazy streams, watching the context as you go.
 - **Scenario:** Monday 11 June: Ingrid sets take-over day for Thursday 28 June, and Nkem asks for the planner's last pieces, starting with one station.
 - **Exercise:** `planStation(ctx, n, s, w, free, stows, cfg)` is a stub; you feed `stationPasses`, less the stowed passes, into `assign` with the dishes' free times, checking the context every 1,000 passes, and return the contacts and drops, or `ctx.Err()`.
-- **Check:** CWR on 28 June from scratch → 75 contacts, 285 dropped; with the stow from 09:47 to 13:23 → 71; SRH with its dish free at 00:07:00 → first contact `furrow-h/SRH/00003` at 00:08:21; a context cancelled at the start → `context.Canceled` and no contacts.
+- **Check:** CWR on 28 June from scratch → 76 contacts, 284 dropped; with the stow from 09:47 to 13:23 → 71; SRH with its dish free at 00:07:00 → first contact `furrow-h/SRH/00003` at 00:08:21; a context cancelled at the start → `context.Canceled` and no contacts.
 
 #### 12.2 Twenty Stations, Twelve Slots
 `twenty-stations-twelve-slots` · code_tests · difficulty 9
 - **Objective:** Run a job per station in a bounded group and merge their sorted results into one.
 - **Scenario:** Tuesday 12 June: the twenty stations, planned twelve at a time on passplan's twelve cores.
 - **Exercise:** `Plan(ctx, n, w, free, stows, cfg)` plans the stations one after another and sorts everything; you run `planStation` per station in a `Group` of `cfg.Slots`, keep each station's contacts by its index, and merge them with `MergeBy` and `byAOS`.
-- **Check:** 28 June from scratch → 2,013 contacts and 4,087 dropped, the same list as one station at a time; never more than 12 stations in flight; a predictor failing for HSK → its error, the other stations cancelled; `cfg.Slots` 1 → the same schedule.
+- **Check:** 28 June from scratch → 2,020 contacts and 4,082 dropped, the same list as one station at a time; never more than 12 stations in flight; a predictor failing for HSK → its error, the other stations cancelled; `cfg.Slots` 1 → the same schedule.
 
 #### 12.3 Quick Check: The Plan
 `quick-check-the-plan` · quiz · difficulty 8
@@ -829,14 +829,14 @@ the newest run winning, stows that come and go, a hundred days under load, and t
 - **Objective:** Hand over shared state between two owners at an instant, so neither touches what the other holds.
 - **Scenario:** Monday 25 June, the rehearsal: planned from scratch at midnight, nine of passplan 2's first contacts took a dish the old planner was still using. "What happens when two planners touch the same pass?"
 - **Exercise:** `handover(cur, at, turnaround) map[string][]time.Time` returns nil; you give each station one entry per dish, set from the latest LOS plus turnaround of `cur`'s contacts with AOS before `at`.
-- **Check:** the old planner's 27 June schedule at 00:00 on the 28th → 12 dishes busy past midnight, SRH's dish 1 free at 00:07:00; `Plan` with it → 2,010 contacts and none within two minutes of an old contact on the same dish; without it → 10 such conflicts (the test counts them); contacts of `cur` with AOS after `at` → ignored.
+- **Check:** the old planner's 27 June schedule at 00:00 on the 28th → 14 dishes busy past midnight, SRH's dish 1 free at 00:07:00; `Plan` with it → 2,016 contacts and none within two minutes of an old contact on the same dish; without it → 10 such conflicts (the test counts them); contacts of `cur` with AOS after `at` → ignored.
 
 #### 12.5 Nothing New, Nothing Changed
 `nothing-new-nothing-changed` · code_tests · difficulty 9
 - **Objective:** Replan from any instant so that, with no news, the result equals what was already published.
 - **Scenario:** passplan 2 replans every ten minutes, and in Monday's rehearsal each replan moved contacts nobody had asked to move, so the Board blinked.
 - **Exercise:** `replanFrom(ctx, n, cur, at, stows, cfg)` plans the whole window again from its start; you keep `cur`'s contacts with AOS before `at`, plan from `at` with `handover(cur, at, cfg.Turnaround)`, and join the two.
-- **Check:** version 1 of 28 June replanned at 09:47 with no stow → exactly version 1's contacts, 1,229 of them from 09:47 on with the same IDs and dishes; with Cape Wren stowed from 09:47 with no end → 1,978 on the day; the contacts before `at` never change.
+- **Check:** version 1 of 28 June replanned at 09:47 with no stow → exactly version 1's contacts, 1,235 of them from 09:47 on with the same IDs and dishes; with Cape Wren stowed from 09:47 with no end → 1,982 on the day; the contacts before `at` never change.
 
 #### 12.6 The Newest Run Wins
 `the-newest-run-wins` · code_tests · difficulty 10
@@ -850,18 +850,18 @@ the newest run winning, stows that come and go, a hundred days under load, and t
 - **Objective:** Turn events into replans with the state they carry: a stow with no end, then its end.
 - **Scenario:** Wednesday 27 June: Cape Wren's forecast says 74 km/h on Thursday morning, and Ingrid has passplan 2 rehearse it on Thursday's plan: a stow from 09:47 with no end, ended at 13:23.
 - **Exercise:** The given `Replanner` plans every event without stows; you keep the stows it has heard of (a stow event with a zero `To` adds one, a later one for the same station fills in its `To`) and plan each event with them.
-- **Check:** the start → 2,010 contacts on the day; the stow → a newer version with 1,978, Cape Wren's 32 contacts after 09:47 gone; its end → a newer version with 2,006, Cape Wren at 71, and the five lost passes the bible lists absent.
+- **Check:** the start → 2,016 contacts on the day; the stow → a newer version with 1,982, Cape Wren's 34 contacts after 09:47 gone; its end → a newer version with 2,011, Cape Wren at 71, and the six lost passes the bible lists absent.
 
 #### 12.8 A Hundred Days Under Load
 `a-hundred-days-under-load` · code_tests · difficulty 10
 - **Objective:** Run the planner at its real size, lazily, and cancellable within a day's work at any moment.
 - **Scenario:** Wednesday 27 June, 21:00: while Furrowlight's twenty-four are being heard for the first time, the rehearsal's last run plans a hundred days from 28 June with all eighty satellites, and Nkem's test of it plans the first week.
 - **Exercise:** `Plan` (from 12.2) checks its context only between stations; you check it before each day's prediction inside the merged streams, so a cancel stops every station within one day of work.
-- **Check:** 28 June to 5 July from the hand-over (a hundred days take three seconds to predict, a week a fifth of one) → 14,239 contacts, 42,859 candidates, 28,620 dropped; a predictor that cancels the run when first asked about 2 July → `context.Canceled`, no station asks about a day after 3 July, and no goroutine left; at most 12 stations in flight.
+- **Check:** 28 June to 5 July from the hand-over (a hundred days take three seconds to predict, a week a fifth of one) → 14,282 contacts, 42,853 candidates, 28,571 dropped; a predictor that cancels the run when first asked about 2 July → `context.Canceled`, no station asks about a day after 3 July, and no goroutine left; at most 12 stations in flight.
 
 #### 12.9 Take-Over Day
 `take-over-day` · code_tests · difficulty 10
 - **Objective:** Run passplan 2's whole day: the hand-over, replans on ticks and events, and the newest plan flown, in fake time.
 - **Scenario:** Thursday 28 June 2029, 00:00:00 UTC, the cut-over: twenty-four Furrows heard for the first time last night, eighty satellites, twenty stations, and Cape Wren's wind due at 09:47.
 - **Exercise:** `takeOver(ctx, n, old, at, events, cfg, now, fly)` is a stub; you hand over from `old` at `at`, run the replanner on the events and a ticker of `cfg.Replan`, and fly each contact of the current schedule at its AOS, reading the schedule again after every replan.
-- **Check:** (bubble, a one-day window, a replan every hour, the stow at 09:47 and its end at 13:23) 2,006 contacts flown, each at its AOS, none twice and none on a dish the old planner still held; none of Cape Wren's five lost passes flown; every one of the twenty-four new Furrows flown, 813 contacts; `pipit-1/LAN/16797` flown at 07:48:33; the whole day in under a second of real time.
+- **Check:** (bubble, a one-day window, a replan every hour, the stow at 09:47 and its end at 13:23) 2,011 contacts flown, each at its AOS, none twice and none on a dish the old planner still held; none of Cape Wren's six lost passes flown; every one of the twenty-four new Furrows flown, 819 contacts; `pipit-1/LAN/16797` flown at 07:48:33; the whole day in under a second of real time.
