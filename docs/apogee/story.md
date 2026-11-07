@@ -4206,7 +4206,7 @@ forms, and Sunniva and Paz only in passing. Times are UTC.
 | 1 | Mon 5 Mar | the Fishbowl's glass, then the backend desks | Nkem: before passplan 2, a smaller pipeline built the same way. tlmd's ingest reads the station telemetry feeds in one loop; with twenty feeds it falls behind, and when two stations hear the same satellite its frames arrive out of order, so "the newest frame" goes backward. Wednesday 7 March is Nkem's drill: twenty feeds, the five real stations and fifteen made from the new stations' positions. Thistle-2 leaves its rocket at 10:20 on Thursday 8 March | The Board and the pager read every satellite's newest frame from this feed. Thistle-2's first beacon reaches Port Ellery at 17:08 on Thursday (`thistle-2/PEL/00005`), and Joss and Professor Marr are in the Fishbowl to hear it |
 | 2 | Mon 12 Mar | the backend desks; passplan's new machine in Port Ellery's rack, twelve cores | Nkem: passplan 2's first draft predicts each satellite in its own goroutine, and each day in another: eight thousand at once. On Friday night, 9 March, the test machine ran out of memory. "Twelve planner slots. Never more." The station dish loaders and the Board take what passplan sends at their own pace | A planner that starves its machine stops the Board that shares it; a queue nobody bounds grows until the machine falls over |
 | 3 | Mon 19 Mar | Ingrid's desk in the Fishbowl, then the backend desks | Ingrid: on Monday the Board froze for six minutes while a hundred callers each loaded the station table. On Wednesday 21 March two of passplan 2's planning runs finished out of order, and on the test Board beside Ingrid's the older plan replaced the newer one | The test Board showed a plan twenty minutes old; on take-over day that would be the real one. Nkem's whiteboard question: "Why does a program without a race behave?" |
-| 4 | Mon 26 Mar | Yusra's desk | Yusra: "TL;DR: customers want to book a whole season ahead." Hollis: "WE PLAN A SEASON NOT A WEEK." bookingd's catalog offers fourteen days today; the third quarter (1 July to 30 September) holds 672,283 passes at stations that can serve them | The old passplan hands every service a slice of every pass: about eighty-four megabytes for each one that asks |
+| 4 | Mon 26 Mar | Yusra's desk | Yusra: "TL;DR: customers want to book a whole season ahead." Hollis: "WE PLAN A SEASON NOT A WEEK." bookingd's catalog offers fourteen days today; the third quarter (1 July to 30 September) holds 672,292 passes at stations that can serve them | The old passplan hands every service a slice of every pass: about eighty-four megabytes for each one that asks |
 | 5 | Mon 2 Apr | the Fishbowl | The first wave of new stations goes live on Monday 2 April: Tirrin Rock, Varsk Island, Calidra Atoll, Ilha Brumosa, Ostrel Island. From the same day passplan 2 runs in shadow, beside the old planner, and the two schedules are compared contact by contact every hour. The Board wants one station's contacts, bookingd one customer's, Ingrid the next twelve | Two planners that disagree about one pass would fly it twice or not at all; the first wave's schedules must be right from their first pass. Sunniva: "Tirrin up. Two dishes. Ice on both." |
 | 6 | Mon 9 Apr | the backend desks | Nkem: the shadow run sorts every candidate pass of a hundred days into one slice per station. A priority queue merges the eighty satellites' passes one at a time | Cirrine's twelve new satellites leave their rocket on Tuesday 17 April; the planner must be ready for them |
 | 7 | Mon 16 Apr | Mirela's desk; Kessick Polytechnic by message | On Saturday 14 April Thistle-2's student flight software sent `batt_v=nan` when a sensor glitched; tlmd's parser accepted it, and the pager's battery rule never fired, since nothing compares below a value that isn't a number. At 05:10 a line with a missing field crashed the parser and stopped every station's telemetry for forty minutes. Joss apologizes; Mirela: "Your parser accepts the line. Now show me the lines it refuses" | Cirrine's twelve send their first telemetry through this parser on Tuesday 17 April |
@@ -4214,7 +4214,7 @@ forms, and Sunniva and Paz only in passing. Times are UTC.
 | 9 | Mon 7 May, to Fri 18 May | the Fishbowl's glass, the backend desks | The second wave goes live on Monday 7 May: Ilvane Spit, Cape Solvane, Saltreach Island, Corith Point, Nimrie Point. Tomás writes on the glass: "passplan 2: forty times faster!" Nkem: "Faster at what?" Brinewatch's thirty-six leave their rocket on Wednesday 16 May | A planner that only looks faster would be trusted on take-over day |
 | 10 | Mon 21 May | the backend desks | With fifty-six satellites, every replan of a hundred days leaves the machine's memory full of garbage, and the Board's updates stutter while the collector cleans up. Nkem: "Halve the planner's garbage before the third wave" | The third wave adds five stations and the last launch adds twenty-four satellites |
 | 11 | Mon 28 May, to Fri 8 Jun | the backend desks | The third wave's hosts send their forms: Vorrel Island's says 0 dishes, Ilha Calmaria's lists a band "K". On Friday 1 June a test deploy of passplan 2 read `slots: 0` and planned nothing. Nkem: one validator for every settings struct, its rules in tags | The third wave goes live on Monday 4 June: Hasku Point, Ilha Calmaria, Quindle Island, Punta Ventisca, Vorrel Island. A wrong form takes a station's passes away |
-| 12 | Mon 11 Jun, to Thu 28 Jun | the Fishbowl | Ingrid runs take-over day like a pass: a full rehearsal in shadow on Monday 25 June, Furrowlight's launch on Wednesday 27 June, and the take-over at 00:00 UTC on Thursday 28 June | The heaviest schedule Apogee has ever flown: 2,006 contacts in one day at twenty stations, with twenty-four new Furrows in their first day of life |
+| 12 | Mon 11 Jun, to Thu 28 Jun | the Fishbowl | Ingrid runs take-over day like a pass: a full rehearsal in shadow on Monday 25 June, Furrowlight's launch on Wednesday 27 June, and the take-over at 00:00 UTC on Thursday 28 June | The heaviest schedule Apogee has ever flown: 2,011 contacts in one day at twenty stations, with twenty-four new Furrows in their first day of life |
 
 The opening (Monday 5 March) shows Tomás's drawing on the glass (five dots becoming twenty,
 eight satellites becoming eighty), hands over the badge, introduces Nkem (reviewer, author of
@@ -4223,7 +4223,7 @@ Nkem's first question about tlmd's ingest. Words of the first week: passplan, pl
 telemetry feed, the drill.
 
 The finale (chapter 12, Thursday 28 June): passplan 2 takes over at midnight without touching
-one of the old planner's eleven contacts in progress; flies 2,006 contacts through Cape Wren's
+one of the old planner's twelve contacts in progress; flies 2,011 contacts through Cape Wren's
 wind; and every one of Furrowlight's twenty-four new satellites, first heard the evening
 before, is heard all day. Ingrid writes one line in the log at 00:00 on Friday: "passplan 2:
 GO for every day." Hollis, through Yusra: "TWENTY-FOUR FURROWS. EVERY ONE HEARD." The debrief
@@ -4279,7 +4279,7 @@ is Cirrine-2, `brine-17` is Brine-17, `furrow-q` is Furrow-Q.
 | `thistle-2` | Kessick Polytechnic | 505 km, 97.4° | UHF | Thu 8 Mar, 10:20:00 | Kessick's second student cubesat; Joss now leads its flight software. First beacon at Port Ellery, 17:08:39 (`thistle-2/PEL/00005`) |
 | `cirrine-2` to `cirrine-13` (12) | Cirrine Atmospherics | 600 km, 97.8° | S | Tue 17 Apr, 09:40:00 | the bigger contract of Season 5 |
 | `brine-4` to `brine-39` (36) | Brinewatch | 480 km, 53.0° | S | Wed 16 May, 13:30:00 | ship tracking; like Brine-3, never over Ystmark |
-| `furrow-c` to `furrow-z` (24) | Furrowlight | 510 km, 97.4° | X S | Wed 27 Jun, 20:40:00 | lift-off 18:05, deployed one about every four minutes from 19:10; first contact `furrow-g/YST/00001` at 20:40:16, the last of the 24 first heard at 22:56:17 (`furrow-p/ICM/00003`) |
+| `furrow-c` to `furrow-z` (24) | Furrowlight | 510 km, 97.4° | X S | Wed 27 Jun, 20:40:00 | lift-off 18:05, deployed one about every four minutes from 19:10; first contact `furrow-g/YST/00001` at 20:40:16, the last of the 24 first heard at 22:28:50 (`furrow-c/TIR/00002`) |
 
 The fleet order (the seven, Thistle-2, then the three launches in this order, each by
 number or letter) is the **fleet order**.
@@ -4287,7 +4287,7 @@ number or letter) is the **fleet order**.
 #### The pass model
 
 passplan predicts passes from each satellite's **elements**, the few numbers that place it on
-its orbit (`Elements`, below). The model is written here once and copied unchanged into every
+its orbit (`Elements`, below: Season 6's type, to which this season adds `SatID` and `Orbit`). The model is written here once and copied unchanged into every
 lesson that predicts a pass, as `network.go` (the twenty stations and eighty satellites) and
 `model.go` (`predict`). It is the model Season 3's reviewers settled (their `passes.py`),
 ported to Go: a circular orbit around a round Earth, the orbit's plane turning with the mean
@@ -4307,7 +4307,7 @@ equator; the rest agree.) Elements of the eighty:
 | Satellites | Epoch | Rev0 | NodeDeg | PhaseDeg |
 |---|---|---|---|---|
 | `pipit-1` | 2029-01-01T00:00:00Z | 14094 | 201.4926025817 | 176.9565679403 |
-| `pipit-2` | 2029-01-01T00:00:00Z | 19752 | 100 | 200 |
+| `pipit-2` | 2029-01-01T00:00:00Z | 19752 | 234.8439482122 | 339.4065995135 |
 | `pipit-3` | 2029-01-01T00:00:00Z | 9689 | 150 | 40 |
 | `furrow-a` | 2029-01-01T00:00:00Z | 21818 | 294.5055051072 | 52.6136621172 |
 | `furrow-b` | 2029-01-01T00:00:00Z | 21815 | 297.5851231763 | 231.0891932221 |
@@ -4318,9 +4318,11 @@ equator; the rest agree.) Elements of the eighty:
 | `brine-n`, n = 4 to 39 | 2029-05-16T13:30:00Z | 1 | 120 | 10 × (n − 4) |
 | `furrow-c` … `furrow-z`, k = 0 to 23 | 2029-06-27T20:40:00Z | 1 | 10 | 15 × k |
 
-Pipit-1, Furrow-A, Furrow-B, Brine-3 and Cirrine-1 are Season 3's settled fits, carried to
-1 January 2029 (Furrow-A and Furrow-B with `RevsPerDay` 867/57: 867 orbits in 57 days, a
-little faster than their altitude gives); every other satellite has `RevsPerDay` 0. So the
+Pipit-1, Furrow-A, Furrow-B, Brine-3 and Cirrine-1 are Season 3's settled fits, and Pipit-2 is
+Season 4's, fitted to the Build gctl night's pass over Ystmark (`pipit-2/YST/13287`, 04:31:00 to
+04:40:33 on 30 October 2027, 47.2°) with its orbits counted from 19752 at 1 January 2029; all six
+are carried to 1 January 2029 (Furrow-A and Furrow-B with `RevsPerDay` 867/57: 867 orbits in 57
+days, a little faster than their altitude gives); every other satellite has `RevsPerDay` 0. So the
 orbit numbers continue the earlier seasons', and Furrow-A still rises over Salar Quieto at
 14:02:10 on 28 June (`furrow-a/SQT/24534`, to 14:12:04, 47.9°), as on launch day in 2028, though
 that day both of the station's dishes are taken by then. Pipit-1 crosses Port Ellery at 03:39:12
@@ -4669,18 +4671,18 @@ computed with Go 1.27.3 (the calibration writer checks them before chapter 4 is 
 
 | What | Number |
 |---|---|
-| Passes on Thursday 28 June (every satellite over every station) | 7,483 (Furrow-A: 105) |
-| ... at stations that can serve the satellite (`canServe`, below) | 7,287 |
-| ... of those, candidates: max elevation at least 10° | 6,100 |
-| Servable passes, 1 to 7 July | 51,176 (the first: `brine-27/VSK/00697` 00:00:04, `furrow-s/SRH/00049` 00:00:15, `brine-16/CRP/00697` 00:00:18) |
-| Third quarter, 1 July to 30 September: all passes / servable | 690,252 / 672,283 |
+| Passes on Thursday 28 June (every satellite over every station) | 7,485 (Furrow-A: 105) |
+| ... at stations that can serve the satellite (`canServe`, below) | 7,289 |
+| ... of those, candidates: max elevation at least 10° | 6,102 |
+| Servable passes, 1 to 7 July | 51,174 (the first: `brine-27/VSK/00697` 00:00:04, `furrow-s/SRH/00049` 00:00:15, `brine-16/CRP/00697` 00:00:18) |
+| Third quarter, 1 July to 30 September: all passes / servable | 690,261 / 672,292 |
 | Furrowlight's 26 satellites, third quarter, servable | 249,045 (1 to 14 July: 37,917, the first `furrow-s/SRH/00049` 00:00:15) |
-| Contacts planned for Monday 5 March (5 stations, 7 satellites) | 124, from 141 candidates |
-| Contacts for Monday 2 April (10 stations, 8 satellites) | 259, from 286 candidates |
-| Tirrin Rock alone on Tuesday 17 April | 121 contacts, from 148 candidates |
-| Contacts for Wednesday 27 June (the old planner's last day) | 1,649 |
-| Contacts for 28 June planned from scratch (no hand-over, no stow) | 2,013, from 6,100 candidates, 4,087 dropped; Cape Wren 75 of its 360 |
-| From the hand-over, 28 June to 5 July (lesson 12.8's week) | 14,239 contacts, from 42,859 candidates, 28,620 dropped |
+| Contacts planned for Monday 5 March (5 stations, 7 satellites) | 128, from 142 candidates |
+| Contacts for Monday 2 April (10 stations, 8 satellites) | 260, from 286 candidates |
+| Tirrin Rock alone on Tuesday 17 April | 120 contacts, from 148 candidates |
+| Contacts for Wednesday 27 June (the old planner's last day) | 1,653 |
+| Contacts for 28 June planned from scratch (no hand-over, no stow) | 2,020, from 6,102 candidates, 4,082 dropped; Cape Wren 76 of its 360 |
+| From the hand-over, 28 June to 5 July (lesson 12.8's week) | 14,282 contacts, from 42,853 candidates, 28,571 dropped |
 
 #### Planning: the rule
 
@@ -4748,8 +4750,8 @@ schedule whose AOS is before it stay as they are, flown by whoever planned them;
 starts at the cut-over with each dish free at the latest LOS plus turnaround of its contacts
 with AOS before the cut-over. The same rule makes every replan of passplan 2 a **continuation**:
 replanning at any instant with nothing new gives exactly the contacts the schedule already
-had from that instant on. At 00:00 on 28 June the old planner's schedule has eleven contacts in
-progress and one that ended less than two minutes before midnight; planned without the
+had from that instant on. At 00:00 on 28 June the old planner's schedule has twelve contacts in
+progress and two that ended less than two minutes before midnight; planned without the
 hand-over, ten of passplan 2's first contacts would take a dish still busy with one of the
 old planner's (the first: `furrow-j/SRH/00003` at 00:00:40, on the dish `furrow-k/SRH/00003`
 holds until 00:05:00).
@@ -5095,21 +5097,21 @@ Wednesday 27 June and Thursday 28 June 2029, UTC:
 | 19:10–20:40 | They leave the rocket, one about every four minutes; elements valid from 20:40:00 |
 | 19:56 | The launcher's elements arrive; the old passplan starts replanning the day for eighty satellites |
 | 20:00:39 | Its plan is ready, after 4 minutes 39 seconds |
-| 20:40:16 | First contact of the twenty-four, sixteen seconds after their elements begin: `furrow-g/YST/00001`; by 22:56:17 (`furrow-p/ICM/00003`) all have been heard |
+| 20:40:16 | First contact of the twenty-four, sixteen seconds after their elements begin: `furrow-g/YST/00001`; by 22:28:50 (`furrow-c/TIR/00002`) all have been heard |
 | 23:30 | Ingrid's go/no-go poll for the take-over: GO |
-| Thu 00:00:00 | Cut-over. passplan 2's run 1 plans 28 June to 6 October from the hand-over and publishes version 1: 2,010 contacts on the day, 200,714 in the window (613,491 candidates, 412,777 dropped). The old planner keeps its eleven contacts in progress |
+| Thu 00:00:00 | Cut-over. passplan 2's run 1 plans 28 June to 6 October from the hand-over and publishes version 1: 2,016 contacts on the day, 201,774 in the window (613,496 candidates, 411,722 dropped). The old planner keeps its twelve contacts in progress |
 | 00:01:04 | passplan 2's first contact: `cirrine-4/TIR/01069` |
 | 00:08:26 | The old planner's last contact ends (`furrow-f/ILV/00003`); at 00:10 it is switched off |
-| 05:29:26 | `furrow-a/VSK/24529`, the day's 420th contact: Furrow-A over Varsk Island at 74.9°, Hollis's pass |
-| 07:48:33 | `pipit-1/LAN/16797`, the 613th: Pipit-1's first contact of the day. Its two passes over Port Ellery went to Thistle-2, which rose a few minutes earlier each time |
-| 09:47:00 | Cape Wren's wind reaches 74 km/h and its dish stows itself; the stow is recorded with no end. Run 60 publishes version 60: Cape Wren dark until further notice, 1,978 contacts on the day (192,271 in the window) |
-| 13:23:00 | The wind has stayed under 72 km/h since 13:15, and Cape Wren unstows; the stow now ends at 13:23. Run 83 publishes version 83: 2,006 contacts on the day (200,710 in the window). Five Cape Wren passes were lost to the wind (`cirrine-1/CWR/19868` 10:54:48, `furrow-b/CWR/24530` 11:51:46, `cirrine-1/CWR/19869` 12:28:44, `furrow-g/CWR/00011` 13:11:36, and `furrow-d/CWR/00011` 13:22:45, still above the horizon at 13:23); the afternoon's 21 Cape Wren contacts became 22 others, from `furrow-b/CWR/24531` at 13:23:30. Cape Wren ends the day with 71 contacts instead of 75 |
+| 05:29:26 | `furrow-a/VSK/24529`, the day's 417th contact: Furrow-A over Varsk Island at 74.9°, Hollis's pass |
+| 07:48:33 | `pipit-1/LAN/16797`, the 612th: Pipit-1's first contact of the day. Its two passes over Port Ellery went to Thistle-2, which rose a few minutes earlier each time |
+| 09:47:00 | Cape Wren's wind reaches 74 km/h and its dish stows itself; the stow is recorded with no end. Run 60 publishes version 60: Cape Wren dark until further notice, 1,982 contacts on the day (193,239 in the window) |
+| 13:23:00 | The wind has stayed under 72 km/h since 13:15, and Cape Wren unstows; the stow now ends at 13:23. Run 83 publishes version 83: 2,011 contacts on the day (201,769 in the window). Six Cape Wren passes were lost to the wind (`pipit-2/CWR/22443` 10:44:34, `cirrine-1/CWR/19868` 10:54:48, `furrow-b/CWR/24530` 11:51:46, `cirrine-1/CWR/19869` 12:28:44, `furrow-g/CWR/00011` 13:11:36, and `furrow-d/CWR/00011` 13:22:45, still above the horizon at 13:23); the afternoon's 21 Cape Wren contacts became 22 others, from `furrow-b/CWR/24531` at 13:23:30. Cape Wren ends the day with 71 contacts instead of 76 |
 | 23:59:49 | The day's last AOS: `cirrine-2/BRM/01083` |
 | Fri 00:00 | Ingrid writes in the log: "passplan 2: GO for every day." |
 
 The day in numbers: 146 runs (run 1 at the cut-over, 143 ten-minute ticks from 00:10 to
 23:50, and the two at 09:47 and 13:23); three published versions (1, 60, 83), the other runs
-finding nothing new; 2,006 contacts flown at twenty stations, 813 of them for the twenty-four
+finding nothing new; 2,011 contacts flown at twenty stations, 819 of them for the twenty-four
 new Furrows; no pass flown twice, none touched by both planners. Lessons that run the whole
 day test it with their own `Config` (a replan every hour, a one-day window), so it ends in
 under a second (about 0.7 s, nearly all of it predicting passes).
@@ -5199,8 +5201,8 @@ func planDay(cands []PassView, sites []Site, turnaround time.Duration) []Contact
 func benchPlanDay(b *testing.B)
 func benchFresh(b *testing.B)
 func benchStream(b *testing.B)
-func sameContacts(old, new []Contact) error // "contact 212: old furrow-q/TIR/00011 dish 1, new furrow-q/TIR/00011 dish 2"
-func benchWindows(b *testing.B)             // sub-benchmarks old/days=1 ... new/days=28
+func sameContacts(old, new []Contact) error // "contact 213: old pipit-3/TIR/12398 dish 1, new pipit-3/TIR/12398 dish 2"
+func benchWindows(b *testing.B)             // sub-benchmarks old/hours=6 ... new/hours=24
 
 // chapter 10
 func collect(seq iter.Seq[PassView], n int) []PassView
@@ -5264,12 +5266,12 @@ func takeOver(ctx context.Context, n *Network, old *Schedule, at time.Time, even
 - Every wait in a test has a guard of about a second, so a wrong starter fails within a second
   or two and never hangs the run.
 - Tests plan a day or a week, lesson 12.8 included. The model watches each satellite's elevation,
-  about 4 µs a pass on one core: a day of every pass (7,483) takes 35 ms, a week of servable
+  about 4 µs a pass on one core: a day of every pass (7,485) takes 35 ms, a week of servable
   passes 0.2 s, a hundred days 3 s, so a hundred days and a quarter stay story numbers.
 - Where learners write checks (chapters 7 and 8) or benchmarks (chapter 9), their code goes in an
   editable non-test file and the read-only test calls it, as Season 1's chapter 15 did.
 - Messages read `call = got, want want`; schedules are compared by pass ID and dish:
-  `Plan(28 June)[290] = furrow-m/SQT/00005 dish 1, want furrow-m/SQT/00005 dish 2`.
+  `Plan(28 June)[289] = pipit-2/YST/22439 dish 2, want pipit-2/YST/22439 dish 1`.
 
 **Topics added this season** (front matter): `iterators`, `performance`, `reflection`. Fuzzing
 and synctest lessons use `testing`; atomics use `goroutines` and `mutexes`.
@@ -5290,7 +5292,6 @@ Arenas, a Calmaria guesthouse in Portugal); Quindle Island and Vorrel Island are
 checked. The satellites are numbered or lettered members of names already checked (Thistle,
 Cirrine, Brine, Furrow); "passplan 2" is the bible's own service with a number. No new people
 or customers.
-
 ## Seasons
 
 Each course of the series is a season of the learner's career at Apogee, and story time only
