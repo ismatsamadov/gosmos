@@ -1,10 +1,11 @@
 # Logging, Metrics and Profiling: syllabus
 
 **Authoring status:** in progress. Chapter 1 is in the library and was read in the app in
-light and dark; chapters 2–11 are being written from this plan, two chapters at a time, and
-each pair will be independently reviewed. Every pass in this plan was checked against the
-orbit model the earlier seasons use, which moved the opening's page from 03:12 to 02:46. Once
-lessons are written, the lessons in `courses/apogee.sqlite` are the source of truth.
+light and dark; chapters 2–11 are written and wait for their independent reviews, and chapter 9
+must then take the bible's settled pass model, the one Season 7 plans with. Every pass in this
+plan was checked against the orbit model the earlier seasons use, which moved the opening's page
+from 03:12 to 02:46. Once lessons are written, the lessons in `courses/apogee.sqlite` are the
+source of truth.
 
 Season 6 of Apogee, November 2028 to February 2029. The learner joins the on-call rota, and on
 their second night the pager wakes them at 02:46: one pass in five at Lantern Atoll is failing,
@@ -569,9 +570,9 @@ Write CPU profiles with `runtime/pprof`, read the hot path, measure inside a tes
 
 #### 9.4 Coarse Steps, Then Seconds
 `coarse-steps-then-seconds` · code_tests · difficulty 9
-- **Objective:** Call the hot function less: step 30 seconds, then bisect each crossing to the second.
+- **Objective:** Call the hot function less: sample every 30 seconds instead of every second before bisecting each crossing.
 - **Scenario:** The profile says passplan spends 81% of its time in `elevationDeg`, called every second for every satellite and station.
-- **Exercise:** `findPasses(el func(time.Time) float64, from, to time.Time, maskDeg float64) []contact` steps every second; you step 30 s and bisect each crossing to the whole second.
+- **Exercise:** `findPasses(el func(time.Time) float64, from, to time.Time, maskDeg float64) []contact` samples every second and bisects each crossing, as the plan's rules say; you sample every 30 s instead, with the same bisection.
 - **Check:** The same AOS and LOS, to the second, as the one-second scan for every pass of a 12-hour window over two stations; at least 20 times fewer calls to `el` (counted); at least 5 times faster by `testing.Benchmark`.
 
 #### 9.5 An Index for Bookings
