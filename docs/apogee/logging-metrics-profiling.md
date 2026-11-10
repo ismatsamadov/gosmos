@@ -1,11 +1,12 @@
 # Logging, Metrics and Profiling: syllabus
 
-**Authoring status:** in progress. Chapter 1 is in the library and was read in the app in
-light and dark; chapters 2–11 are written and wait for their independent reviews, and chapter 9
-must then take the bible's settled pass model, the one Season 7 plans with. Every pass in this
-plan was checked against the orbit model the earlier seasons use, which moved the opening's page
-from 03:12 to 02:46. Once lessons are written, the lessons in `courses/apogee.sqlite` are the
-source of truth.
+**Authoring status:** all eleven chapters are implemented as 88 lessons. Chapter 1 was read in
+the app in light and dark before the rest was written; chapters 2–11 were written from this plan
+two chapters at a time and every chapter independently reviewed. Chapters 2–11 are still to be
+read in the app. Every pass comes from the orbit model the earlier seasons use, and chapter 9
+plans on the settled one Season 7 plans with. The lessons in `courses/apogee.sqlite` are the
+source of truth, and the larger changes from this plan are listed under "Changes in writing and
+review" at the end.
 
 Season 6 of Apogee, November 2028 to February 2029. The learner joins the on-call rota, and on
 their second night the pager wakes them at 02:46: one pass in five at Lantern Atoll is failing,
@@ -125,7 +126,7 @@ Choose levels, filter with `HandlerOptions` and change them live with `LevelVar`
 - **Objective:** Change a running program's level with a `slog.LevelVar`.
 - **Scenario:** A restart clears whatever went wrong (Ingrid's Monday restart starts this week), so the night shift turns Lantern Atoll up through uplinkd's debug port instead.
 - **Exercise:** `levelHandler(v *slog.LevelVar) http.Handler` answers 204 and changes nothing; you set the level from the body of `PUT /debug/level` with `UnmarshalText`, answering 400 `unknown level "loud"` for anything else and 405 to another method.
-- **Check:** Through `httptest`: `debug` enables a DEBUG record; `WARN` in capitals works; `loud` answers 400 and leaves the level as it was; GET answers 405.
+- **Check:** Through `httptest`: `debug` enables a DEBUG record; `WARN` in capitals works; `loud` answers 400, once (nothing follows the 400), and leaves the level as it was; GET answers 405.
 
 #### 2.3 Quick Check: Levels
 `quick-check-levels` · quiz · difficulty 6
@@ -151,7 +152,7 @@ Choose levels, filter with `HandlerOptions` and change them live with `LevelVar`
 #### 2.6 A Logger for Each Pass
 `a-logger-for-each-pass` · code_tests · difficulty 7
 - **Objective:** Make a logger that carries one pass through all its records.
-- **Scenario:** `runPass` writes six records per pass, and on 8 November none of them said which pass.
+- **Scenario:** `runPass` writes six records per pass, and each must say which pass it belongs to; on 8 November no line did.
 - **Exercise:** `passLogger(l *slog.Logger, p PassView) *slog.Logger` returns `l`; you return `l.With(slog.String("pass_id", p.ID), passGroup(p))`.
 - **Check:** All six records carry `pass_id` and the group; two passes logging at once keep their own; the parent logger is unchanged.
 
@@ -169,12 +170,12 @@ Choose levels, filter with `HandlerOptions` and change them live with `LevelVar`
 - **Exercise:** Three questions about a five-line snippet in the readme.
 - **Check:** `With` returns a new logger and leaves the old one as it was; a group is a nested object in JSON and dotted keys in text; attributes from `With` come before the record's own.
 
-#### 2.9 One Line per Pass
-`one-line-per-pass` · code_tests · difficulty 7
-- **Objective:** Choose each event's level so a night at INFO reads one line per pass.
-- **Scenario:** Ingrid's rule for the night shift: at INFO a pass is one line, trouble is WARN or ERROR, and the rest waits at DEBUG.
+#### 2.9 Two Lines per Pass
+`two-lines-per-pass` · code_tests · difficulty 7
+- **Objective:** Choose each event's level so a night at INFO reads two lines per pass: where it starts and how it ends.
+- **Scenario:** Ingrid wants a night at INFO she can read at a glance; Nkem's rule: at INFO a pass is two lines, trouble is WARN or ERROR, and the rest waits at DEBUG.
 - **Exercise:** `levelFor(event string) slog.Level` returns INFO for everything; you map the bible's uplinkd messages to their levels, unknown events staying INFO.
-- **Check:** Replaying the night of 7–8 November's events: at INFO one line per pass plus the warnings; at DEBUG every event; each message at the bible's level; an unknown event at INFO.
+- **Check:** Replaying the night of 7–8 November's events: at INFO two lines per pass plus the warnings; at DEBUG every event; each message at the bible's level; an unknown event at INFO.
 
 ## Chapter 3 · Logs With Context
 
@@ -200,7 +201,7 @@ Carry pass and request IDs in `context.Context`, write a `slog.Handler` that add
 `with-keeps-the-wrapper` · code_tests · difficulty 8
 - **Objective:** Return your own handler, wrapped, from `WithAttrs` and `WithGroup`.
 - **Scenario:** After `l.With("program", "uplinkd")`, the pass ID vanished from every line at Lantern Atoll.
-- **Exercise:** The starter's `WithAttrs` and `WithGroup` return the inner handler's result; you wrap it in a `passHandler`.
+- **Exercise:** The starter's `WithAttrs` and `WithGroup` return the inner handler's result; you wrap it in a `passHandler`. The readme's note says that every attribute after `WithGroup` lands inside the group, which the next quiz checks.
 - **Check:** `l.With(...).InfoContext(ctx, ...)` still carries `pass_id`, exactly once; `testing/slogtest.TestHandler` passes on your handler; the inner handler still gets the `With` attributes.
 
 #### 3.4 Quick Check: Handlers
@@ -213,7 +214,7 @@ Carry pass and request IDs in `context.Context`, write a `slog.Handler` that add
 #### 3.5 The Pass Crosses the Wire
 `the-pass-crosses-the-wire` · code_tests · difficulty 8
 - **Objective:** Carry the pass ID between programs in a header: out with an `http.RoundTripper`, in with middleware.
-- **Scenario:** Headquarters' uplinkd hands each pass's lines to Lantern Atoll with `POST /uplink`, and the pass ID stops at the door.
+- **Scenario:** Headquarters' uplinkd hands each pass's commands to Lantern Atoll with `POST /uplink`, and the pass ID stops at the door.
 - **Exercise:** `passTransport.RoundTrip` and `acceptPass(next http.Handler) http.Handler` pass requests on unchanged; you set `Apogee-Pass` from the context on a clone of the request, and put the header's value into the handler's context.
 - **Check:** Through `httptest`, the station handler's record carries `pass_id`; no pass in the context sends no header and the handler sees none; the caller's request is not modified; an empty header is ignored.
 
@@ -222,7 +223,7 @@ Carry pass and request IDs in `context.Context`, write a `slog.Handler` that add
 - **Objective:** Read JSON lines back with `bufio.Scanner` and keep one pass's records.
 - **Scenario:** Next time the night shift must find a pass's lines in a minute, not a Monday.
 - **Exercise:** `follow(r io.Reader, passID string) (lines []Line, broken int, err error)` returns nothing; you decode each line into `Line`, keep that pass's lines in order, and count the lines that aren't JSON.
-- **Check:** The seven lines of `cirrine-1/LAN/16402` among forty; other passes left out; two broken lines counted, not fatal; `Raw` holds each line as written; a reader's error returned.
+- **Check:** The seven lines of `cirrine-1/LAN/16402` among forty; other passes left out, and a line that only names the pass in its message; two broken lines counted, not fatal; `Raw` holds each line as written; a reader's error returned.
 
 #### 3.7 In Time Order
 `in-time-order` · code_tests · difficulty 7
@@ -247,14 +248,14 @@ Keep secrets and personal data out of logs: redact headers, give secret types a 
 #### 4.1 The Key in the Headers
 `the-key-in-the-headers` · code_tests · difficulty 7
 - **Objective:** Redact secret headers before a request's headers are logged.
-- **Scenario:** Monday 27 November: Mirela finds Furrowlight's API key in 14 of bookingd's DEBUG lines, dumped with the request's headers; her test reads the log as anyone with the ops console could.
+- **Scenario:** Monday 27 November: Mirela finds Furrowlight's API key in 14 of bookingd's lines, 13 of them DEBUG lines dumped with the request's headers; her test reads the log as anyone with the ops console could.
 - **Exercise:** `safeHeader(h http.Header) http.Header` returns `h`; you return a copy in which every value of `Authorization`, `Cookie`, `Set-Cookie` and `Apogee-Signature` is `[redacted]`.
 - **Check:** The logged line holds none of the test key's 32 hex digits; other headers are kept; the request's own header is unchanged; each of two values is redacted; a name added in lowercase with `Add` is caught.
 
 #### 4.2 A Value That Logs Itself
 `a-value-that-logs-itself` · code_tests · difficulty 7
 - **Objective:** Implement `slog.LogValuer` so a secret type logs safely wherever it goes.
-- **Scenario:** Mirela: "Don't count on every log call remembering. Make the key refuse to be printed."
+- **Scenario:** Mirela: "Don't count on every log call remembering. Make the key refuse to be logged."
 - **Exercise:** `type APIKey string` has no `LogValue`; you write it, returning `<customer>.[redacted]`, or `[redacted]` when the key has no dot.
 - **Check:** Through the JSON and text handlers, inside a group and through `With`: no secret digits and the customer ID kept (`furrowlight.[redacted]`); a key without a dot gives `[redacted]`.
 
@@ -309,7 +310,7 @@ Write log files that stay inside a budget: append safely, count bytes, rotate by
 #### 5.1 Append, Never Truncate
 `append-never-truncate` · code_tests · difficulty 7
 - **Objective:** Open a log file for appending, creating it with mode 0640.
-- **Scenario:** Monday 4 December, 06:10: the old `disk` rule pages you with Lantern Atoll's disk 98% full; the new log files start with how a file is opened, because a restart in the middle of a day must add to its file.
+- **Scenario:** Monday 4 December, 08:10, ten minutes into your week on call: the old `disk` rule pages you with Lantern Atoll's disk 98% full; the new log files start with how a file is opened, because a restart in the middle of a day must add to its file.
 - **Exercise:** `openLog(path string) (*os.File, error)` uses `os.Create`; you use `os.OpenFile` with `O_APPEND|O_CREATE|O_WRONLY` and 0640.
 - **Check:** Opening twice and writing a line each time keeps both; a new file's mode is 0640; a missing folder returns an error.
 
@@ -351,16 +352,16 @@ Write log files that stay inside a budget: append safely, count bytes, rotate by
 #### 5.7 Say It Once, Then Count
 `say-it-once-then-count` · code_tests · difficulty 8
 - **Objective:** Sample repeated records in a handler: the first ten a minute, then one in a hundred, with a count of those dropped.
-- **Scenario:** Two thirds of the 41 GB was one line, `carrier lost`, ten times a second through every downpour.
+- **Scenario:** Through a downpour `carrier lost` repeats ten times a second and buries every other line of the night.
 - **Exercise:** `(*Sampler).Handle` passes every record; you count per level and message within the record's UTC minute, drop as the bible's rule says and add `dropped` to the next record passed; ERROR records always pass.
 - **Check:** 250 `carrier lost` warnings in one minute give 12 lines, the 110th and 210th with `dropped` 99; the next minute's first carries `dropped` 40; an ERROR is never dropped; two messages are counted apart; a logger made with `With` shares the counts.
 
 #### 5.8 The Disk Stays Under Budget
 `the-disk-stays-under-budget` · code_tests · difficulty 8
 - **Objective:** Combine sampling, rotation and pruning so a station's logs stay inside their budget.
-- **Scenario:** Friday 8 December: the new logging goes to Lantern Atoll, and Nkem replays the night of 3–4 December, its 180,000 `carrier lost` warnings and all.
+- **Scenario:** Friday 8 December: before the new logging goes to Lantern Atoll, Nkem gives it a bench night worse than any real one, 180,000 `carrier lost` warnings in fifty fades.
 - **Exercise:** `newStationLog(dir string, now func() time.Time) (*slog.Logger, io.Closer, error)` returns a logger on one plain file; you wire the given `Sampler`, a JSON handler and the `Rotator` (64 KiB files and a 1 MiB budget in the test), pruning after each rotation.
-- **Check:** After the replay the folder holds at most 1 MiB; every ERROR line and each minute's first ten warnings are there; every file name follows the rule; `Close` closes the current file.
+- **Check:** After the replay the rotated files hold at most 1 MiB and no file passes 64 KiB; every ERROR line and each minute's first ten warnings are there; every file name follows the rule; `Close` closes the current file.
 
 ## Chapter 6 · Counting What Matters
 
@@ -380,7 +381,7 @@ Count with `sync/atomic`: counters, gauges, labeled counters and histograms by h
 - **Objective:** Keep a reading that goes up and down, and bring it back down on every path with `defer`.
 - **Scenario:** Ingrid wants `passes_running` on the Board, and after a failed pass it stayed at 1.
 - **Exercise:** `track(g *Gauge, run func() error) error` adds 1 and takes it away only when `run` succeeds; you take it away with `defer`.
-- **Check:** The gauge reads 1 inside `run` and 0 after a success or a failure; the error is returned; 20 runs at once end at 0.
+- **Check:** The gauge reads 1 inside `run` and 0 after a success, a failure or a panic; the error is returned; 20 runs at once end at 0.
 
 #### 6.3 Quick Check: Counters and Gauges
 `quick-check-counters-and-gauges` · quiz · difficulty 7
@@ -408,7 +409,7 @@ Count with `sync/atomic`: counters, gauges, labeled counters and histograms by h
 - **Objective:** Publish metrics as JSON with `expvar.Publish` and `expvar.Func`.
 - **Scenario:** The pager and the Board read every program's numbers at one address, `/debug/vars`.
 - **Exercise:** `publish(m *Metrics)` publishes nothing; you publish `passes_total`, `ack_wait_seconds` and `goroutines` as `expvar.Func` values, once (the given `sync.Once`).
-- **Check:** `GET /debug/vars` through `expvar.Handler()` decodes to the nested counts, the histogram's `bounds`, `counts`, `count` and `sum_ms`, and a whole number of goroutines; a later `Inc` shows, since values are read at request time; `cmdline` and `memstats` are still there.
+- **Check:** `GET /debug/vars` through `expvar.Handler()` decodes to the nested counts, the histogram's `bounds`, `counts`, `count` and `sum_ms`, and a whole number of goroutines; a later `Inc` shows, since values are read at request time; `cmdline` and `memstats` are still there; a second `publish` is harmless.
 
 #### 6.7 Quick Check: What to Count
 `quick-check-what-to-count` · quiz · difficulty 8
@@ -441,7 +442,7 @@ Turn numbers into pages: rules over a window of results, thresholds held for a t
 `held-for-a-time` · code_tests · difficulty 8
 - **Objective:** Fire only after a value has stayed over its threshold for a while.
 - **Scenario:** Lantern Atoll's disk touches 91% for four minutes while a recording lands, which shouldn't wake anyone; fifteen minutes should.
-- **Exercise:** `(*Pager).Observe` fires on the first sample at `FireAt`; you keep the rule pending until the value has stayed there for `For`, and forget it when a sample falls below.
+- **Exercise:** `(*ruleState).beforeFiring`, in `state.go`, which the given `(*Pager).Observe` calls while a rule isn't firing, fires on the first sample at `FireAt`; you keep the rule pending until the value has stayed there for `For`, and forget it when a sample falls below.
 - **Check:** Over for 14 min 59 s gives no alert; exactly 15 min gives FIRING at that sample; a dip at 10 min starts the wait again; `For` 0 fires at once.
 
 #### 7.3 Quick Check: Thresholds
@@ -455,14 +456,14 @@ Turn numbers into pages: rules over a window of results, thresholds held for a t
 `fire-high-clear-low` · code_tests · difficulty 8
 - **Objective:** Use hysteresis: fire at one value and clear only below a lower one.
 - **Scenario:** A disk bobbing between 88% and 91% would fire and resolve all night.
-- **Exercise:** `Observe` resolves when a sample falls below `FireAt`; you resolve only below `ClearBelow`.
+- **Exercise:** `(*ruleState).whileFiring`, which `Observe` calls once a rule fires, resolves when a sample falls below `FireAt`; you resolve only below `ClearBelow`.
 - **Check:** The bobbing disk gives one FIRING and no RESOLVED; 0.84 gives one RESOLVED; exactly 0.85 stays firing; after resolving, a new rise fires again only after `For`.
 
 #### 7.5 One Page per Problem
 `one-page-per-problem` · code_tests · difficulty 8
 - **Objective:** Send one alert per problem, per rule and station, and a reminder only after `Repeat`.
 - **Scenario:** The old pager sent a page at every LOS while the problem lasted.
-- **Exercise:** `Observe` sends FIRING for every firing sample; you send it once, again only when `Repeat` has passed, and RESOLVED once.
+- **Exercise:** `whileFiring` sends FIRING for every firing sample; you send it once, again only when `Repeat` has passed, and RESOLVED once, for a Critical rule only.
 - **Check:** A night of firing samples gives one FIRING; with `Repeat` 24h a reminder at exactly 24 hours; two stations firing at once get one each; `Repeat` 0 never reminds; a Warning rule sends no RESOLVED.
 
 #### 7.6 The Right Person
@@ -476,8 +477,8 @@ Turn numbers into pages: rules over a window of results, thresholds held for a t
 `silences-that-end` · code_tests · difficulty 8
 - **Objective:** Hold back a station's pages for a window that always ends.
 - **Scenario:** At 07:28 Tomás muted Lantern Atoll "until morning", and nothing unmuted it until Ingrid noticed on Friday.
-- **Exercise:** `silenced(s []Silence, station string, at time.Time) bool` returns false; you return true when a silence for the station covers `at` (`From` included, `Until` not); the given pager holds those alerts.
-- **Check:** The generator's silence on 11 January holds an alert at 10:59 and not at 11:00; another station isn't held; a problem still firing pages at the first sample at or after 11:00; one that resolved meanwhile sends nothing.
+- **Exercise:** `silenced(s []Silence, station string, at time.Time) bool` returns false; you return true when a silence for the station covers `at` (`From` included, `Until` not); the given pager holds those alerts, with a new `held` field in `ruleState`, and routes the rest with `route`.
+- **Check:** The generator's silence on 11 January holds an alert at 10:59 and not at 11:00; another station isn't held; a problem still firing pages at the first sample at or after 11:00; one that resolved by then sends nothing.
 
 #### 7.8 The Night of Eleven Pages
 `the-night-of-eleven-pages` · code_tests · difficulty 9
@@ -497,14 +498,14 @@ Turn a target into numbers in code: availability, a budget in whole passes with 
 - **Objective:** Compute availability as passes flown over passes booked, refusing counts that can't be.
 - **Scenario:** Monday 8 January: Ingrid, Tomás and Yusra agree what "every pass counts" means in numbers.
 - **Exercise:** `availability(flown, booked int) (float64, error)` returns 0; you return flown/booked, with the bible's errors for nothing booked and for more flown than booked.
-- **Check:** Lantern Atoll's quarter, 1,358 of 1,380, gives 0.98406 to five places; all flown gives 1; 0 booked gives `no booked passes`; 5 flown of 4 gives `more flown than booked`.
+- **Check:** Lantern Atoll's quarter, 1,177 of 1,199, gives 0.98165 to five places; all flown gives 1; 0 booked gives `no booked passes`; 5 flown of 4 gives `more flown than booked`.
 
 #### 8.2 The Budget in Whole Passes
 `budget-in-whole-passes` · code_tests · difficulty 8
 - **Objective:** Turn a target in basis points into a budget of whole passes with integer arithmetic.
 - **Scenario:** Yusra asks how many passes Lantern Atoll may lose in a quarter and still keep its promise.
 - **Exercise:** `budget(t Target, booked int) int` uses floats; you compute `booked * (10000 - int(t)) / 10000`.
-- **Check:** 1,380 at 9900 → 13; 1,104 at 9950 → 5; 920 at 9950 → 4; 100 at 9950 → 0; 10,000 at 9995 → 5, where the float version gives 4.
+- **Check:** 1,199 at 9900 → 11; 1,104 at 9950 → 5; 920 at 9950 → 4; 100 at 9950 → 0; 10,000 at 9995 → 5, where the float version gives 4.
 
 #### 8.3 Quick Check: Targets
 `quick-check-targets` · quiz · difficulty 8
@@ -518,7 +519,7 @@ Turn a target into numbers in code: availability, a budget in whole passes with 
 - **Objective:** Count booked and lost passes in a rolling window on an injected clock.
 - **Scenario:** Customers don't wait for a quarter to end; Ingrid wants the last 30 days every morning.
 - **Exercise:** `window(results []Result, station string, now time.Time) (booked, lost int)` counts everything; you count the station's passes with LOS in `(now − 30 days, now]`, lost meaning failed or skipped.
-- **Check:** Lantern Atoll to 8 January 00:00 gives 452 and 11; LOS exactly 30 days back left out and exactly `now` counted; skipped counts as lost; other stations and later passes left out.
+- **Check:** Lantern Atoll to 8 January 00:00 gives 387 and 11; LOS exactly 30 days back left out and exactly `now` counted; skipped counts as lost; other stations and later passes left out.
 
 #### 8.5 How Fast It Burns
 `how-fast-it-burns` · code_tests · difficulty 8
@@ -539,7 +540,7 @@ Turn a target into numbers in code: availability, a budget in whole passes with 
 - **Objective:** Combine availability, budgets and what is left into the quarter's report.
 - **Scenario:** Friday 12 January: Yusra sends customers Apogee's first report in numbers; the generator's new part was fitted the day before.
 - **Exercise:** The quarter's counts are given; you write `row(code string, booked, lost int, t Target) string` in the bible's layout, and `main` prints the header and five rows.
-- **Check:** Exactly the bible's six-line table, from `Q4 2028  booked  lost  avail  budget  left` to `CWR         920     4  99.57       4     0`, Lantern Atoll at `98.41` with `-9` left.
+- **Check:** Exactly the bible's six-line table, from `Q4 2028  booked  lost  avail  budget  left` to `CWR         920     4  99.57       4     0`, Lantern Atoll at `98.17` with `-11` left.
 
 ## Chapter 9 · Where the Time Goes
 
@@ -580,7 +581,7 @@ Write CPU profiles with `runtime/pprof`, read the hot path, measure inside a tes
 - **Objective:** Replace a search inside a loop with a map built once.
 - **Scenario:** For each predicted pass, passplan read all 2,000 bookings of the next fourteen days.
 - **Exercise:** `attach(passes []PassView, bookings []Booking) []Planned` scans the bookings for each pass; you build a `map[bookingKey]string` once (satellite, station and AOS in Unix seconds) and look each pass up.
-- **Check:** The same booking IDs on 300 passes; a pass without a booking gets `""`; when two bookings match, the first in input order; an AOS in another time zone still matches; at least 10 times faster.
+- **Check:** The same booking IDs on 300 passes; a pass without a booking gets `""`; when two bookings match, the first in input order; an AOS in another time zone still matches; at least 5 times faster.
 
 #### 9.6 Quick Check: Measuring Speed
 `quick-check-measuring-speed` · quiz · difficulty 8
@@ -594,14 +595,14 @@ Write CPU profiles with `runtime/pprof`, read the hot path, measure inside a tes
 - **Objective:** Sort a result once, after it is built, instead of after every insert.
 - **Scenario:** passplan sorted the whole day after adding each pass: 600 passes, 600 sorts.
 - **Exercise:** `buildDay(groups [][]Planned) []Planned` appends each pass and sorts every time; you append them all, then sort once by AOS, then ID.
-- **Check:** The same order as before, ties broken by ID; the input slices unchanged; at least 10 times faster on 600 passes.
+- **Check:** The same order as before, ties broken by ID; the input slices unchanged; at least 5 times faster on 600 passes.
 
 #### 9.8 Planned in Seconds
 `planned-in-seconds` · code_tests · difficulty 9
 - **Objective:** Combine coarse steps, the index and one sort into a planner that is many times faster and plans the same day.
 - **Scenario:** Friday 19 January: passplan plans a day in 6.1 s, and Nkem asks for profiles on every program's debug port, for the next slow thing.
-- **Exercise:** `planDay` calls the old helpers; you use `findPasses`, `attach` and one sort, and write `cpu-after.prof` with `profileTo`.
-- **Check:** The same plan as the old planner for 12 hours of three satellites over two stations; at least 20 times fewer `elevationDeg` calls and at least 8 times faster; `cpu-after.prof` written and stopped.
+- **Exercise:** `planDay` calls the old helpers; you use `findPasses`, `attach` and one sort, and the test writes `cpu-after.prof` with your `profileTo`.
+- **Check:** The same plan as the old planner for 12 hours of three satellites over two stations; at least 20 times fewer `elevationDeg` calls and at least 5 times faster; `cpu-after.prof` written and stopped.
 
 ## Chapter 10 · Where the Memory Goes
 
@@ -614,7 +615,7 @@ Write heap profiles, read memory after a collection, count allocations with `tes
 - **Objective:** Write a heap profile with `pprof.Lookup("heap")` after a garbage collection.
 - **Scenario:** Monday 5 February: Lantern Atoll is failing again with the generator fixed, and Nkem has a new rule: nobody restarts uplinkd until its memory has been saved.
 - **Exercise:** `heapProfile(path string) error` only creates the file; you run `runtime.GC`, write the heap profile into it and close it, returning any error.
-- **Check:** `heap.prof` in the lesson folder starts with `1f 8b` and isn't empty; a bad path returns the error; the readme offers `go tool pprof -sample_index=inuse_space heap.prof` and says uplinkd serves the same profile on its debug port.
+- **Check:** `heap.prof` in the lesson folder starts with `1f 8b` and isn't empty; a bad path returns the error; the readme offers `go tool pprof -top -sample_index=inuse_space heap.prof` and says uplinkd serves its heap profile on its debug port too.
 
 #### 10.2 Memory in Use Now
 `memory-in-use-now` · code_tests · difficulty 9
@@ -656,7 +657,7 @@ Write heap profiles, read memory after a collection, count allocations with `tes
 - **Objective:** Fix a goroutine that blocks forever sending a result nobody will receive.
 - **Scenario:** Four of the goroutines you saved are stuck on one line of `runPass`, `done <- result{rep, err}`, each holding a worker.
 - **Exercise:** The given `runPass` is the bible's old one; you give `done` room for one and give the worker back with `defer` at the top of the goroutine.
-- **Check:** 20 failed passes, the fake radio answering only after `runPass` gave up, leave no goroutine behind and all four workers free; a flown pass still returns its result; the leak profile reports none from `runPass`.
+- **Check:** 20 failed passes, the fake radio giving up only after `runPass` did, leave no goroutine behind and all four workers free; a flown pass still returns its result; the leak profile reports none from `runPass`.
 
 #### 10.8 Nothing Left Behind
 `nothing-left-behind` · code_tests · difficulty 10
@@ -704,7 +705,7 @@ Follow work through a program and between programs: `runtime/trace` tasks and re
 - **Objective:** Start spans that find their parent in the context, with IDs and times from injected sources.
 - **Scenario:** A trace file stays on the bench; Nkem wants every uplinkd to write down what each pass did, as lines the night shift can search.
 - **Exercise:** `(*Tracer).Start(ctx context.Context, name string)` returns a span with no IDs; you take the trace ID and parent from the context's span (or start a trace), draw the IDs from `Rand` in the bible's order, set `Start`, copy the pass ID from the context and return a context carrying the new span.
-- **Check:** A child shares its parent's trace ID and names it as parent; the first root from `rand.NewPCG(1, 2)` is trace `c4f5a58656eef510`, span `9dcec3ad`, and its child `c8d04605`; `End` sets `End` and keeps a copy; spans from two goroutines keep their own parents.
+- **Check:** A child shares its parent's trace ID and names it as parent; the first root from `rand.NewPCG(1, 2)` is trace `c4f5a58656eef510`, span `9dcec3ad`, and its child `c8d04605`; `End` sets `End` and keeps a copy; spans from two goroutines keep their own parents; every draw from `Rand` holds `t.mu` (a watching source checks it with `TryLock`).
 
 #### 11.6 The Trace Crosses the Wire
 `the-trace-crosses-the-wire` · code_tests · difficulty 10
@@ -718,7 +719,7 @@ Follow work through a program and between programs: `runtime/trace` tasks and re
 - **Objective:** Keep the last seconds of a trace with `trace.FlightRecorder` and save them when something fails.
 - **Scenario:** Nobody can trace every station all night, but a failed pass should leave its last seconds behind.
 - **Exercise:** `watchPass(fr *trace.FlightRecorder, path string, run func() error) error` only calls `run`; you write a snapshot with `WriteTo` to `path` when `run` fails, and nothing when it succeeds.
-- **Check:** A failure leaves `flight.trace` starting with `go 1.`; a success leaves no file; `run`'s error is returned; the recorder is still running afterwards.
+- **Check:** A failure leaves `flight.trace` starting with `go 1.`; a success leaves no file; `run`'s error is returned, joined with the file's error when the file can't be made; the recorder is still running afterwards.
 
 #### 11.8 The Incident Review
 `the-incident-review` · code · difficulty 10
@@ -726,3 +727,34 @@ Follow work through a program and between programs: `runtime/trace` tasks and re
 - **Scenario:** Friday 23 February, 15:00, the Fishbowl: the incident review shows the bench replay's spans, and one picture explains three months.
 - **Exercise:** The bench replay's spans are given in `replay.go`; you write `timeline(spans []Span) []string`: roots by start, each followed by its children in the order they started, in the bible's layout; `main` prints the lines.
 - **Check:** Exactly the bible's eight lines, from `01:16:08 pass cirrine-1/LAN/17759    11m5s` to `02:22:30   fly                       3m12s`: a `fly` span that outlives its own pass.
+
+## Changes in writing and review
+
+- **Two lines a pass.** At INFO a pass reads `pass started` and then `pass flown` or `pass
+  failed`, where it starts and how it ends, so 2.9 is "Two Lines per Pass"
+  (`two-lines-per-pass`).
+- **The disk page** on Monday 4 December comes at 08:10, ten minutes into No. 039's week on call.
+  At 08:25 you turn Lantern Atoll's uplinkd down to INFO, since deleting a file uplinkd holds open
+  frees nothing, and Friday's deploy rotates the 41 GB file away. The file is mostly DEBUG `frame
+  received` lines with their frames in hex; `carrier lost` is the line that floods a downpour,
+  which 5.7's sampler is for. 5.8's flood is a night on the lab bench, worse than any real one.
+- **Chapter 8's numbers** come from one rule: the model's passes, with Lantern Atoll's one S-band
+  dish flying one pass at a time. That gives 387 booked in the 30 days to 8 January (budget 3,
+  remaining −8) and 1,199 in the quarter (22 lost, budget 11, left −11). Elsewhere customers book
+  only some of the passes the dishes could fly; Salar Quieto's quarter is 1,288, the most its
+  dishes can fly.
+- **Chapter 9** plans on the settled pass model: the given `orbit.go`, 1-second samples,
+  crossings bisected and rounded half to even, pass IDs from `orbitNumber`. Both planners give
+  the model's 2,705 passes of 16–29 January exactly. Speed checks ask for at least 5 times faster
+  (measured 24 to 45 times) and call counts for at least 20 times fewer. 9.5's 2,000 test
+  bookings carry no IDs.
+- **Chapter 7's given pager** sends a problem held in a silence when the silence ends, and its
+  reminders with it, and sends a RESOLVED only to someone who heard the FIRING; 7.4's test disk
+  flaps the way its readme says.
+- **Tests** accept every correct solution the reviewers tried and fail the mistakes they made:
+  2.2's missing `return` after a 400, 3.6's `strings.Contains`, 11.5's missing lock. Timing
+  checks hold under load: 10.6 waits for a steady goroutine count, and 10.8 and chapter 11 give
+  each pass 200 ms.
+- **Readmes** say only what is true: 4.7 explains the regular expression it uses, a heap profile
+  samples blocks (10.1), `MaxBytes` overrides `MinAge` (11.7), and Go 1.27's leak profile reports
+  four of the five stuck goroutines, since uplinkd still holds the fifth one's channel.
