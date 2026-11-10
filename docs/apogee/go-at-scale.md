@@ -1,9 +1,10 @@
 # Go at Scale: syllabus
 
-**Authoring status:** planned. The pass model is the orbit model Seasons 3 to 6 use, ported to
-Go (`model.go`), with Pipit-2 fitted in Season 4; every count, pass ID and time in this plan
-comes from it. Chapter 1 is written and updated for the model but not yet in the library. Once
-lessons are written, the lessons in `courses/apogee.sqlite` are the source of truth.
+**Authoring status:** in progress. Chapter 1 is in the library and was read in the app in
+light and dark; chapters 2–12 are still to be written. The pass model is the orbit model Seasons
+3 to 6 use, ported to Go (`model.go`), with Pipit-2 fitted in Season 4; every count, pass ID and
+time in this plan comes from it. Once lessons are written, the lessons in
+`courses/apogee.sqlite` are the source of truth.
 
 Season 7 of Apogee, March to June 2029. Apogee grows from five stations to twenty and from
 eight satellites to eighty, and the learner leads the rewrite of passplan, which must plan a
@@ -74,7 +75,7 @@ stage runs on several goroutines without losing its order.
 #### 1.2 Stages Join Up
 `stages-join-up` · code · difficulty 7
 - **Objective:** Compose a pipeline by passing one stage's output channel as the next stage's input.
-- **Scenario:** Wednesday 7 March, Nkem's drill begins with one feed: Port Ellery's morning, five lines, one of them garbled by the fog.
+- **Scenario:** Wednesday 7 March, 21:00: Nkem's drill begins with one feed: Port Ellery's day, five lines, one of them garbled by the fog.
 - **Exercise:** `main` ranges over `read`'s channel and prints raw lines; you pass that channel to the given `parse` stage and print each frame as `<satellite> <seq> <mode> <volts> V`.
 - **Check:** four frame lines (the writer picks Pipit-1 and Cirrine-1 frames, one `SAFE`), the garbled line dropped by `parse`; the starter prints the five raw lines.
 
@@ -88,7 +89,7 @@ stage runs on several goroutines without losing its order.
 #### 1.4 Stop Every Stage
 `stop-every-stage` · code_tests · difficulty 8
 - **Objective:** Make every send and receive of a stage also wait on `ctx.Done()`, so cancelling the run stops every goroutine.
-- **Scenario:** In the drill the Board read three frames and left, and the parse stage's goroutine sat blocked on its next send for the rest of the day, holding its feed open.
+- **Scenario:** In the drill the Board read three frames and left, and the parse stage's goroutine sat blocked on its next send for the rest of the night, holding its feed open.
 - **Exercise:** `parse(ctx, in <-chan Heard) <-chan TelemetryFrame` ranges over `in` and sends with a plain `out <- f`; you select on `ctx.Done()` for the receive and the send, and return when it's done.
 - **Check:** a 50-line feed → every good frame, then closed; a reader that takes 3 frames of 200 and cancels → no goroutine left (leak check; the starter leaves `goroutines left after cancel = 1, want 0`); a context cancelled before the first line → closed within a second; a line `parseLine` refuses is skipped.
 

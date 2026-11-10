@@ -3197,13 +3197,13 @@ the lab bench at Port Ellery, against a Pipit's passes.
 | Ch | Week of | Where | Who needs what | What is at stake |
 |---|---|---|---|---|
 | 1 | Mon 6 Nov 2028 | your desk; at home on the night of 7–8 Nov | Nkem, Wednesday morning: "`error` is not a log line." uplinkd's lines must say what failed, where and for which pass, in a form a program can search | At 02:46 three of Lantern Atoll's passes had failed overnight, Cirrine-1's sealed command had never gone up, and the log said `error` three times. A restart at 03:14 fixed it and nobody knows why. The new lines reach Lantern Atoll on Friday 10 Nov at 14:00 |
-| 2 | Mon 13 Nov | the Fishbowl, with the night shift | Ingrid: one line per pass at night, everything when someone asks, and no restart to change it. From Monday 08:00 her checklist restarts Lantern Atoll's uplinkd every Monday "until we know why" | Since Friday's deploy Lantern Atoll's uplinkd runs at DEBUG, to catch the next failure, and writes 2.1 million lines a night; the ops console's log view times out, and the night shift can't find a pass |
+| 2 | Mon 13 Nov | the Fishbowl, with the night shift | Ingrid: a night at INFO she can read at a glance (two lines a pass: where it starts, how it ends), everything when someone asks, and no restart to change it. From Monday 08:00 her checklist restarts Lantern Atoll's uplinkd every Monday "until we know why" | Since Friday's deploy Lantern Atoll's uplinkd runs at DEBUG, to catch the next failure, and writes 2.1 million lines a night; the ops console's log view times out, and the night shift can't find a pass |
 | 3 | Mon 20 Nov | the backend desks, then the bench | Nkem: follow the 8 November pass through bookingd, passplan, uplinkd at headquarters and uplinkd at Lantern Atoll in one search | It took Nkem and you all of Monday to line up four programs' lines by hand; next time the night shift must do it in a minute |
-| 4 | Mon 27 Nov | Mirela's desk | Mirela finds Furrowlight's API key in 14 of bookingd's DEBUG lines from Wednesday 22 Nov | Anyone who can read the logs could have booked as Furrowlight. Yusra and Hollis replace the key by 16:00 (Hollis: "NEW KEY. WHY."). On Friday 1 Dec at 16:00 Mirela plants twelve lines with secrets: none may reach a disk |
-| 5 | Mon 4 Dec | at home at 06:10 (you are on call), then the backend desks | The old `disk` rule pages you at 06:10, and every ten minutes after: Lantern Atoll's disk is 98% full, `uplinkd.log` alone 41 GB. Since 13 Nov its settings start it at DEBUG, "until we know why", and nobody set them back | A full disk leaves the recorder nowhere to keep the next pass, as Ystmark's did in May. The new log files go to every station on Friday 8 Dec |
+| 4 | Mon 27 Nov | Mirela's desk | Mirela finds Furrowlight's API key in 14 of bookingd's lines from Wednesday 22 Nov: 13 DEBUG header dumps and one `request failed` error | Anyone who can read the logs could have booked as Furrowlight. Yusra and Hollis replace the key by 16:00 (Hollis: "NEW KEY. WHY."). On Friday 1 Dec at 16:00 Mirela plants twelve lines with secrets: none may reach a disk |
+| 5 | Mon 4 Dec | at home at 08:10, ten minutes into your week on call, then the backend desks | The old `disk` rule pages you at 08:10, and every ten minutes after: Lantern Atoll's disk is 98% full, `uplinkd.log` alone 41 GB. Since 13 Nov its settings start it at DEBUG, "until we know why", and nobody set them back | A full disk leaves the recorder nowhere to keep the next pass, as Ystmark's did in May. The new log files go to every station on Friday 8 Dec |
 | 6 | Mon 11 Dec | Yusra's desk, the backend desks | Yusra: Brinewatch wants the exact number of its failed passes in November, and every week from now on. Ingrid's log says 5, uplinkd's lines 3, passplan's 6; bookingd's records say 4 | Logs are not counts. The counters reach every station on Tuesday 12 Dec at 10:00, and Brinewatch's first exact week goes out on Tuesday 19 Dec at 10:00 |
 | 7 | Tue 2 Jan 2029 | the Fishbowl | The night of 27–28 Dec: Lantern Atoll's passes failed from evening to dawn, and the pager woke Tomás eleven times for one problem | The new rules go live on Monday 8 Jan at 08:00: one page per problem, to the person on call, and silences that end |
-| 8 | Mon 8 Jan | the Fishbowl, Yusra's desk | Ingrid, Tomás and Yusra agree what "every pass counts" means in numbers; Yusra sends customers the quarter's report on Friday 12 Jan | Lantern Atoll lost 22 of 1,380 passes in the last quarter, nine over its budget. The generator's new part arrives by boat on Thursday 11 Jan |
+| 8 | Mon 8 Jan | the Fishbowl, Yusra's desk | Ingrid, Tomás and Yusra agree what "every pass counts" means in numbers; Yusra sends customers the quarter's report on Friday 12 Jan | Lantern Atoll lost 22 of 1,199 passes in the last quarter, eleven over its budget. The generator's new part arrives by boat on Thursday 11 Jan |
 | 9 | Mon 15 Jan | the backend desks | Tuesday 16 Jan, 05:10: Cape Wren stowed in 74 km/h of wind and passplan took 3 min 52 s to plan the rest of the day. Ingrid: "Four minutes is most of a checklist." | Until 05:14 the Board showed Brine-3's 05:29 pass at Cape Wren as booked, and the night shift started its checklist. By Friday 19 Jan a day plans in 6.1 s, and every program serves profiles on its debug port |
 | 10 | Mon 5 Feb | at home on the night of 6–7 Feb; the backend desks | The failures are back at Lantern Atoll, with the generator fixed. Ingrid's note on the Board: "LAN failing: call No. 039 before anyone restarts anything" | The night shift calls you at 01:50; you save the profiles at 02:00 and restart at 02:10; on Wednesday you find the culprit; the fix reaches every station on Friday 9 Feb at 10:00 |
 | 11 | Mon 12 Feb, to Fri 23 Feb | the lab bench at Port Ellery; the Fishbowl | Nkem: the incident review on Friday 23 Feb at 15:00 must explain everything since 17 October | On Tuesday 13 Feb the bench replay of 6–7 Feb, traced, shows each failed pass waiting for a worker; spans reach every uplinkd on Monday 19 Feb; the review shows one picture |
@@ -3219,7 +3219,8 @@ first week: on call, the rota, page, the night shift, log line.
 
 **How each chapter ends** (debrief facts): 1, the new lines at Lantern Atoll from Friday 14:00,
 and Ingrid's checklist gets "Monday 08:00: restart LAN uplinkd"; 2, the night shift's view shows
-one line per pass and can turn a station up or down without a restart, while Lantern Atoll's file
+two lines a pass, where it starts and how it ends, and can turn a station up or down without a
+restart, while Lantern Atoll's file
 keeps everything at DEBUG; 3, the night shift's search
 finds the 8 November pass's seven lines in seconds: it died inside Lantern Atoll's uplinkd,
 before its lines reached the radio; 4, Mirela signs off on Friday at 16:00: "LGTM once it fails
@@ -3245,7 +3246,7 @@ table's words: twenty stations, eighty satellites, and passplan's rewrite.
   at night. They fade even S-band for minutes at a time: the radio logs `carrier lost` ten times
   a second while the signal is under its threshold.
 - **Its passes.** About nineteen a day in view, two or three from each satellite, Brine-3's the
-  most (its 53° orbit suits an equatorial station); about fifteen of them are booked. Its UHF yagis and its dish can
+  most (its 53° orbit suits an equatorial station); about thirteen of them are booked. Its UHF yagis and its dish can
   fly two passes at once. About one pass in a hundred has always ended without the satellite's
   acknowledgment (a downpour, a low pass behind the palms over the 8° mask): Lantern Atoll's
   natural losses, more than any other station's (about one in a thousand elsewhere).
@@ -3337,8 +3338,10 @@ Brinewatch's losses in November (bookingd's records): 4, on 8, 15, 22 and 29 Nov
   `u.workers <- struct{}{}`; 14 of the program's own.
 - `heap.prof` (`/debug/pprof/heap`): 29 MiB in use, 20 MiB of it five buffers made in `runPass`.
 - `/debug/vars`: `goroutines` 19 (Ystmark 15, the other stations 14), `heap_bytes` 30408704.
-- The leak profile (`pprof.Lookup("goroutineleak")`, Go 1.27) reports the same five: each is
-  blocked on a channel nothing else can reach.
+- The leak profile (`pprof.Lookup("goroutineleak")`, Go 1.27) reports four of them, the ones on
+  `done <- result{rep, err}`: nothing else can reach `done`. The fifth waits on `u.workers`, which
+  uplinkd itself still holds, so the leak profile can't call it stuck; the goroutine count and
+  `goroutines.txt` show it.
 
 **The fix** (Friday 9 February 10:00, every station; chapter 10): no goroutine at all. Take the
 worker with a `select` on the context, give it back with `defer`, and pass the context to `fly`,
@@ -3506,9 +3509,9 @@ Every program logs with `log/slog`, one record per event, to its log file.
 |---|---|---|---|
 | uplinkd (station) | `pass started` | INFO | `pass` group |
 | | `worker taken`, `lines sent`, `ack received` | DEBUG | `lines`, `ack_ms` |
-| | `frame received` | DEBUG | `bytes` |
+| | `frame received` | DEBUG | `bytes`, `hex` |
 | | `carrier lost` | WARN | `margin_db` |
-| | `pass flown` | INFO | `pass` group, `max_elev_deg`, `ack_ms` |
+| | `pass flown` | INFO | `pass` group, `max_elev_deg`, `wait_ms`, `ack_ms` (from chapter 3) |
 | | `pass failed` | ERROR | `pass` group, `max_elev_deg`, `wait_ms`, `err` |
 | | `pass skipped` | WARN | `pass` group, `reason` |
 | | `lines queued` | INFO | `lines` (on `POST /uplink`) |
@@ -3538,6 +3541,7 @@ handler writes a `time.Duration` as nanoseconds (`570000000000`).
 | `max_elev_deg` | number, `22.6` |
 | `wait_ms`, `ack_ms`, `ms` | whole milliseconds: from pass prep to the end, from the lines to the acknowledgment, a step's length |
 | `lines`, `bytes`, `seq`, `status`, `passes`, `dropped` | integers |
+| `hex` | a frame's bytes as lowercase hex, on DEBUG `frame received` only (chapter 2) |
 | `margin_db` | number, the radio's signal margin |
 | `err` | the error's text (`slog.Any("err", err)`) |
 | `reason` | `stowed` |
@@ -3569,6 +3573,13 @@ lines among them):
 
 Lines with equal times keep their input order (headquarters' log is given first).
 
+The replay's other passes (chapter 3's fixtures): bookings `bk-5608` (`brine-3/LAN/14383`, Mon 6
+Nov 09:41:27, `req-004187`), `bk-5609` (`brine-3/LAN/14384`, 09:41:28, `req-004188`) and `bk-5613`
+(`furrow-a/LAN/20998`, 15:20:55, `req-004302`); passplan plans all four at 00:00:41, by AOS;
+Brine-3's lines are delivered and queued at 01:31:05 and 03:18:40 (`lines` 2 each); `carrier
+lost` ten times at 01:51:02 and five at 01:52:47, `margin_db` -1.5; `wait_ms` 501000, 570000,
+519000 and 201000; the 03:27:38 `pass flown` has `ack_ms` 71000.
+
 **Headers between programs.** `Apogee-Pass: cirrine-1/LAN/16402` carries the pass ID on
 `POST /uplink` from headquarters to a station (chapter 3); `Apogee-Trace` carries a span
 (chapter 11). An empty or missing header means none.
@@ -3578,14 +3589,16 @@ lessons an `httptest` server on 127.0.0.1):
 
 | Route | Answer | From |
 |---|---|---|
-| `PUT /debug/level` | body `debug`, `info`, `warn` or `error`, any case (`slog.LevelVar.UnmarshalText`): 204; anything else 400 `unknown level "loud"`; another method 405 | ch 2 |
+| `PUT /debug/level` | body `debug`, `info`, `warn` or `error`, any case (`slog.LevelVar.UnmarshalText`, which also takes offsets such as `info+2`): 204; a name it doesn't know 400 `unknown level "loud"`; another method 405 | ch 2 |
 | `GET /debug/vars` | `expvar.Handler()` | ch 6 |
 | `GET /debug/pprof/heap`, `/debug/pprof/goroutine` (`?debug=1` for text), `/debug/pprof/profile` | `net/http/pprof`'s `Handler(name)` and `Profile`, mounted on the program's own mux | 19 Jan (ch 9) |
 
 **Never in a log** (chapter 4), from Friday 1 December 2028:
 
 - Secret headers, redacted before a header is logged: `Authorization`, `Cookie`, `Set-Cookie`,
-  `Apogee-Signature`; each value becomes `[redacted]`, on a copy.
+  `Apogee-Signature`; each value becomes `[redacted]`, on a copy. `safeLogger`'s `ReplaceAttr`
+  hands any `http.Header` value to `safeHeader`, because the JSON handler writes a header's values
+  without calling `ReplaceAttr` on them.
 - Attribute keys always redacted by `ReplaceAttr`, in any letter case and any group: `api_key`,
   `authorization`, `password`, `secret`, `token`. The value becomes `[redacted]`; the key stays.
 - API keys and tokens inside any text (messages, string values, error texts) are scrubbed with
@@ -3604,8 +3617,11 @@ lessons an `httptest` server on 127.0.0.1):
 - Test secrets are Season 3's and Season 5's fixtures: Furrowlight's test key
   `furrowlight.5b0e7c1d9a3f4e6b8c2d1a0f9e8d7c6b`, its token shape
   `furrowlight.1830682800.<64 hex>`, `k-2028-10`'s test secret `uplink next master key, 32 bytes`
-  (base64 `dXBsaW5rIG5leHQgbWFzdGVyIGtleSwgMzIgYnl0ZXM=`), and Season 5's password
-  `fails closed, always`. Production keys never appear.
+  (base64 `dXBsaW5rIG5leHQgbWFzdGVyIGtleSwgMzIgYnl0ZXM=`), Season 5's password
+  `fails closed, always`, and, for other customers, Season 3's
+  `brinewatch.0f1e2d3c4b5a69788796a5b4c3d2e1f0`, `cirrine.c3a1f7e95d2b4086a7e1c9f3b5d8a024` and the
+  webhook secrets `furrowlight webhook secret` and `cirrine webhook secret`. Production keys never
+  appear.
 
 **Log files** (chapter 5), from Friday 8 December 2028:
 
@@ -3619,7 +3635,8 @@ lessons an `httptest` server on 127.0.0.1):
   own day (an empty current file is not renamed, it only takes the new day). A single record
   longer than `MaxBytes` goes alone into a fresh file. A clock that steps back never rotates. An existing current file opened at start takes its day from its
   modification time, and n continues after the highest of that day's rotated files.
-- Pruning, after each rotation: delete the program's rotated files whose day is more than
+- Pruning, each time the current file is opened (at start and after each rotation, through
+  `OnOpen`): delete the program's rotated files whose day is more than
   `KeepDays` (14) days before today's, then the oldest (by day, then n) until the rotated files
   fit `MaxTotal` (1 GiB per program; 1 MiB in tests). The current file and other programs' files
   are never touched; a name that doesn't parse is left alone.
@@ -3630,10 +3647,12 @@ lessons an `httptest` server on 127.0.0.1):
   one minute write 12 lines (the 110th and 210th with `dropped` 99), and the next minute's first
   carries `dropped` 40. The sampler shares its counts with the loggers `With` makes, and keeps a
   total for `log_lines_dropped_total`.
-- On 4 December at 06:10 the disk held 41 GB of `uplinkd.log` (two thirds of its lines
-  `carrier lost`), 64 GB of recordings waiting and 13 GB of system: 98%. You deleted the old
-  file by hand at 06:40 (Mirela agreed nothing in it had to be kept); after Friday's change the
-  disk stays about two thirds full. A program's starting level comes from its settings file; the
+- On 4 December at 08:10 the disk held 41 GB of `uplinkd.log` (most of it DEBUG `frame received`
+  lines, each with its frame in hex; `carrier lost` repeats ten times a second through a downpour), 64 GB of recordings waiting and 13 GB of system: 98%. At 08:25 you turn
+  Lantern Atoll's uplinkd down to INFO on its debug port and the file stops growing (deleting it
+  would free nothing while uplinkd holds it open); Friday's deploy rotates it on its first line and
+  prunes it, and after that the disk stays about two thirds full. A program's starting level comes
+  from its settings file; the
   night shift had set Lantern Atoll's uplinkd to start at DEBUG on 13 November, so restarts and
   deploys kept it there.
 
@@ -3799,10 +3818,11 @@ func (p *Pager) Observe(rule string, s Sample) (Alert, bool)
    `Repeat` has passed since the last FIRING sent, it sends FIRING again.
 
 **Routing.** Critical goes to the on-call name at the alert's time (the latest `Shift` whose
-`From` is at or before it); a RESOLVED goes to the same person and doesn't wake them; Warning
+`From` is at or before it); a RESOLVED goes to whoever is on call at its own time and doesn't wake them; Warning
 goes to `morning list`; Info to `log`. **Silences.** While a silence covers the station, alerts
-are held back but the state still changes; a problem still firing when the silence ends is sent
-at the first sample at or after `Until`; one that resolved meanwhile sends nothing.
+are held back but the state still changes; a problem that started during the silence and is still
+firing when it ends is sent at the first sample at or after `Until`, and one that resolved by then
+sends nothing, RESOLVED included; a reminder that fell due during the silence is sent then too.
 
 **The rules from Monday 8 January 2029, 08:00**:
 
@@ -3846,8 +3866,14 @@ Agreed on Monday 8 January 2029 by Ingrid, Tomás and Yusra (chapter 8).
 - **At this rate**: `exhaustIn(remaining, lostLast7d)` is `remaining` days' worth of the last
   week's losses, `remaining × 7 days / lostLast7d`; 0 when nothing remains; no answer (false)
   when nothing was lost in the week.
-- **Lantern Atoll, the 30 days to Monday 8 January 00:00**: booked 452, lost 11 (natural 13, 20,
-  23, 26 and 27 Dec and 3 Jan; five on 27–28 Dec), budget 4, remaining −7.
+- **Lantern Atoll, the 30 days to Monday 8 January 00:00**: booked 387, lost 11 (natural 13, 20,
+  23, 26 and 27 Dec and 3 Jan; five on 27–28 Dec), budget 3, remaining −8. **Booked at Lantern Atoll**: every pass of two minutes or
+  more, in the model, of Pipit-1, Furrow-A, Furrow-B, Brine-3 and Cirrine-1: Pipit-1's on the UHF
+  yagis; the one S-band dish flies one pass at a time, Brine-3's first, then the pass that ends
+  first. Pipit-2 and Pipit-3 never take the dish from a customer, and Brinewatch did not book
+  Brine-3's 3-minute pass at 21:13 on 27 December (`brine-3/LAN/15146`). Elsewhere customers book
+  only some of the passes the dishes could fly (Brinewatch 38 of Brine-3's 110 at Port Ellery,
+  Salar Quieto and Cape Wren in its first exact week).
 
 **The quarter, 1 October to 31 December 2028** (Yusra's report, Friday 12 January):
 
@@ -3855,13 +3881,14 @@ Agreed on Monday 8 January 2029 by Ingrid, Tomás and Yusra (chapter 8).
 Q4 2028  booked  lost  avail  budget  left
 YST        2208     2  99.91      11     9
 PEL        1104     1  99.91       5     4
-SQT        1656     3  99.82       8     5
-LAN        1380    22  98.41      13    -9
+SQT        1288     3  99.77       6     3
+LAN        1199    22  98.17      11   -11
 CWR         920     4  99.57       4     0
 ```
 
 Header `%-7s %7s %5s %6s %7s %5s`; rows `%-7s %7d %5d %6.2f %7d %5d`, availability in percent.
-Cape Wren's four were all skipped in wind. Lantern Atoll's 22: 15 natural, 7 to the leak (nobody
+Cape Wren's four were all skipped in wind. Lantern Atoll's 1,199 are its booked passes with LOS in
+the quarter; Salar Quieto's 1,288 fit under the 1,436 its dishes could fly. Lantern Atoll's 22: 15 natural, 7 to the leak (nobody
 knows that yet).
 
 #### passplan
@@ -4045,10 +4072,13 @@ then ID.
 **Where the four minutes went**, and the fixes (lessons 9.4 to 9.8): `elevationDeg` called every
 second for every satellite and station (81% of the profile) → step 30 s instead of 1 s before
 bisecting each crossing (the same AOS and LOS; about 28 times fewer calls); a linear scan of the next
-fourteen days' 2,000 bookings for every pass → a map built once, keyed by
+fourteen days' bookings for every pass (9.5's test generates 2,000, which carry no IDs; the
+real ones on Tuesday 16 January are `bk-5788` to `bk-5808`) → a map built once, keyed by
 `bookingKey{SatID, Station string; AOSUnix int64}` (never a `time.Time` key: `==` compares its
 location too); the whole day sorted after every insert → once at the end. The plan's pass-ID check
-compiled its pattern on every call; Nkem mentions it in the quiz.
+compiled its pattern on every call; Mirela asks about it in the quiz. Each lesson checks at least
+5 times faster (measured 24×, 45×, 39× and 25× for 9.4, 9.5, 9.7 and 9.8), and 9.4 and 9.8 also
+count at least 20 times fewer calls (measured 28× and 27×).
 
 #### Traces and spans
 
@@ -4134,13 +4164,13 @@ needs as read-only files and uses only the fields it needs. `Station`, `Satellit
 |---|---|
 | 1 | `newLogger`, `logFlown`, `logResult`, `msAttr`, `accessLog`, `newPassLog`, `passLine` (`log.go`); given: `dropTime`, `stamp` (`clock.go`) |
 | 2 | `levelHandler`, `programLogger`, `passGroup`, `passLogger`, `logFrame`, `levelFor` (`levels.go`) |
-| 3 | `withPass`, `passFrom`, `passHandler`, `passTransport`, `acceptPass`, `Line`, `follow`, `merge`, `programLog` (`context.go`, `handler.go`, `follow.go`); given: Season 3's `requestIDFrom` |
-| 4 | `safeHeader`, `APIKey`, `(APIKey).LogValue`, `(Key).LogValue`, `redact`, `maskEmail`, `scrub`, `safeLogger` (`redact.go`) |
-| 5 | `openLog`, `countingWriter`, `Rotator`, `prune`, `Sampler`, `NewSampler`, `newStationLog` (`files.go`, `rotate.go`, `sample.go`) |
-| 6 | `Counter`, `Gauge`, `track`, `CounterVec`, `Histogram`, `NewHistogram`, `Metrics`, `publish`, `Reading`, `increase` (`metrics.go`, `publish.go`) |
-| 7 | `Result`, `failedWithin`, `Rule`, `Sample`, `Alert`, `Silence`, `Pager`, `route`, `silenced`, `newRules` (`rules.go`, `pager.go`); given: `replay` |
+| 3 | `passKey`, `withPass`, `passFrom`, `passHandler`, `passTransport`, `acceptPass`, `Line`, `follow`, `merge`, `programLog` (`context.go`, `handler.go`, `follow.go`, `line.go`); given: Season 3's `requestIDKey` and `requestIDFrom` (`request.go`), `replayNovember8` (`replay.go`) |
+| 4 | `safeHeader`, `APIKey`, `(APIKey).LogValue`, `(Key).LogValue`, `redact`, `maskEmail`, `secretPattern`, `secrets`, `scrub`, `safeLogger` (`redact.go`) |
+| 5 | `openLog`, `countingWriter`, `Rotator`, `prune`, `Sampler`, `NewSampler`, `(*Sampler).Dropped`, `newStationLog` (`files.go`, `rotate.go`, `sample.go`); given: `rotatedName`, `parseRotated`, `rotated`, `rotatedFiles`, `fileBytes`, `totalBytes`, `keepDays` (`files.go`), `(*Rotator).open` and `OnOpen`, and the sampler's `sampling`, `tallyKey`, `tally`, `tallyOf` |
+| 6 | `Counter`, `Gauge`, `track`, `CounterVec`, `Histogram`, `NewHistogram`, `HistogramSnapshot`, `Metrics`, `publish`, `Reading`, `increase` (`metrics.go`, `track.go`, `vec.go`, `histogram.go`, `publish.go`, `readings.go`) |
+| 7 | `Result`, `failedWithin`, `Rule`, `Sample`, `Alert`, `Silence`, `Pager`, `ruleState` (`since`, `firing`, `sent`; `held` from 7.7), `beforeFiring`, `whileFiring`, `route`, `silenced`, `newRules` (`results.go`, `rules.go`, `state.go`, `pager.go`, `route.go`, `silence.go`, `rota.go`); given: `replay` (`replay.go`) |
 | 8 | `Target`, `availability`, `budget`, `window`, `burnRate`, `exhaustIn`, `row` (`budget.go`) |
-| 9 | `Elements`, `profileTo`, `benchPlan`, `contact`, `findPasses`, `bookingKey`, `attach`, `Planned`, `buildDay`, `planDay` (`plan.go`, `bench.go`); given: `elevationDeg`, `peak` (`orbit.go`) |
+| 9 | `profileTo`, `benchPlan`, `contact`, `findPasses`, `bookingKey`, `attach`, `Planned`, `buildDay`, `planDay` (`plan.go`, `bench.go`); given: `Elements` (`fleet.go`), `elevationDeg`, `orbitNumber` (`orbit.go`), `elevation`, `crossing`, `toSecond`, `scanEverySecond`, `peak`, `passViews`, `scanAllBookings`, `earlier`, `sortAfterEach` (`passplan.go`) |
 | 10 | `heapProfile`, `inUse`, `appendPassID`, `tail`, `leftBehind`, `Report`, `Uplink`, `runPass`, `ErrNoAck`, `ErrNoWorker` (`memory.go`, `uplink.go`) |
 | 11 | `traceTo`, `Span`, `Tracer`, `spanFrom`, `traceTransport`, `continueTrace`, `watchPass`, `timeline` (`trace.go`, `span.go`, `review.go`) |
 
@@ -4184,6 +4214,7 @@ type Rotator struct {
 	Program  string // "uplinkd": the current file is uplinkd.log
 	MaxBytes int64
 	Now      func() time.Time
+	OnOpen   func() // runs each time the current file is opened: at start and after every rotation
 	f        *os.File
 	size     int64
 	day      string // the current file's UTC day, "2028-12-04"
@@ -4241,7 +4272,8 @@ func exhaustIn(remaining, lostLast7d int) (time.Duration, bool)
 func row(code string, booked, lost int, t Target) string
 func profileTo(path string, work func()) error
 func benchPlan(b *testing.B)
-func findPasses(el func(time.Time) float64, from, to time.Time, maskDeg float64) []contact // contact{AOS, LOS}
+func findPasses(el func(time.Time) float64, from, to time.Time, maskDeg float64) []contact // contact{AOS, LOS}: the crossings, before rounding
+func peak(el func(time.Time) float64, aos, los time.Time) (float64, time.Time) // MaxElevDeg and the moment of it
 func attach(passes []PassView, bookings []Booking) []Planned
 func buildDay(groups [][]Planned) []Planned
 func planDay(sats []Satellite, els map[string]Elements, stations []Station, bookings []Booking, from, to time.Time) []Planned
@@ -4325,6 +4357,9 @@ header names `Apogee-Pass` and `Apogee-Trace`, in Season 3's `Apogee-` style; "t
 and "the Monday restart" as phrases; the contact addresses use the reserved `.example` domain.
 No new people, places, satellites or customers. Booking IDs this season run from `bk-5600` to
 `bk-5899`, above Season 5's `bk-5274` and Season 3's example `bk-5499`.
+Name checks (web search, 10 November 2026): nothing real was found for the badge "Ground
+Reliability Engineer" (only generic postings such as "Reliability Engineer, Ground Systems") or
+for the headers `Apogee-Pass` and `Apogee-Trace`.
 
 ### Season 7: scale
 
@@ -4363,7 +4398,7 @@ forms, and Sunniva and Paz only in passing. Times are UTC.
 
 | Ch | Week of (2029) | Where | Who needs what | What is at stake |
 |---|---|---|---|---|
-| 1 | Mon 5 Mar | the Fishbowl's glass, then the backend desks | Nkem: before passplan 2, a smaller pipeline built the same way. tlmd's ingest reads the station telemetry feeds in one loop; with twenty feeds it falls behind, and when two stations hear the same satellite its frames arrive out of order, so "the newest frame" goes backward. Wednesday 7 March is Nkem's drill: twenty feeds, the five real stations and fifteen made from the new stations' positions. Thistle-2 leaves its rocket at 10:20 on Thursday 8 March | The Board and the pager read every satellite's newest frame from this feed. Thistle-2's first beacon reaches Port Ellery at 17:08 on Thursday (`thistle-2/PEL/00005`), and Joss and Professor Marr are in the Fishbowl to hear it |
+| 1 | Mon 5 Mar | the Fishbowl's glass, then the backend desks | Nkem: before passplan 2, a smaller pipeline built the same way. tlmd's ingest reads the station telemetry feeds in one loop; with twenty feeds it falls behind, and when two stations hear the same satellite its frames arrive out of order, so "the newest frame" goes backward. Wednesday 7 March, from 21:00, is Nkem's drill: twenty feeds, the five real stations and fifteen made from the new stations' positions, replaying the day's lines. Thistle-2 leaves its rocket at 10:20 on Thursday 8 March | The Board and the pager read every satellite's newest frame from this feed. Thistle-2's first beacon reaches Port Ellery at 17:08 on Thursday (`thistle-2/PEL/00005`), and Joss and Professor Marr are in the Fishbowl to hear it |
 | 2 | Mon 12 Mar | the backend desks; passplan's new machine in Port Ellery's rack, twelve cores | Nkem: passplan 2's first draft predicts each satellite in its own goroutine, and each day in another: eight thousand at once. On Friday night, 9 March, the test machine ran out of memory. "Twelve planner slots. Never more." The station dish loaders and the Board take what passplan sends at their own pace | A planner that starves its machine stops the Board that shares it; a queue nobody bounds grows until the machine falls over |
 | 3 | Mon 19 Mar | Ingrid's desk in the Fishbowl, then the backend desks | Ingrid: on Monday the Board froze for six minutes while a hundred callers each loaded the station table. On Wednesday 21 March two of passplan 2's planning runs finished out of order, and on the test Board beside Ingrid's the older plan replaced the newer one | The test Board showed a plan twenty minutes old; on take-over day that would be the real one. Nkem's whiteboard question: "Why does a program without a race behave?" |
 | 4 | Mon 26 Mar | Yusra's desk | Yusra: "TL;DR: customers want to book a whole season ahead." Hollis: "WE PLAN A SEASON NOT A WEEK." bookingd's catalog offers fourteen days today; the third quarter (1 July to 30 September) holds 672,292 passes at stations that can serve them | The old passplan hands every service a slice of every pass: about eighty-four megabytes for each one that asks |
@@ -5452,6 +5487,7 @@ Arenas, a Calmaria guesthouse in Portugal); Quindle Island and Vorrel Island are
 checked. The satellites are numbered or lettered members of names already checked (Thistle,
 Cirrine, Brine, Furrow); "passplan 2" is the bible's own service with a number. No new people
 or customers.
+
 ### The capstone: Pass Day, Live
 
 After take-over day, the learner starts the capstone on Monday 2 July 2029. Their new badge
