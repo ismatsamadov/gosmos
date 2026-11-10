@@ -5583,7 +5583,7 @@ weeks with No. 039 so the rehearsal's author carries the pager for the investors
 
 Each lesson is one `package main` program (module `lesson`). Its only fixed entry point is
 `rehearse`; everything else is the learner's design, and readmes never require a name inside it.
-The read-only `world.go`, given from lesson 1.1, holds the contract:
+The read-only `world.go`, given from lesson 1.1, holds `World`; `rehearse`, below, is the learner's, in `rehearse.go`:
 
 ```go
 // World is everything outside the rehearsal: main builds the real one, and the tests
@@ -5614,7 +5614,7 @@ func rehearse(ctx context.Context, w World) error
 - **Names.** Every top-level name in the test files begins with `sim` (hidden files) or `test` /
   `Test` (`main_test.go`), so the learner's own names never collide with them; lesson 1.1's readme
   says so in one sentence.
-- **Given read-only**: `world.go` (1.1); `types.go`, the bible's canonical types the rehearsal
+- **Given read-only**: `world.go` (1.1); `main.go` (1.1), which dials `radio.<code>.apogee.internal:7301`; `types.go`, the bible's canonical types the rehearsal
   uses, unchanged (Band, Station, Orbit, Mode, Satellite, Pass, TelemetryFrame), Season 3's
   `PassView`, `Booking`, `Landing` and `Event`, and Season 7's `Contact`, `Window` and `Stow` (1.1);
   Season 7's `network.go` (`Site`, `Elements`, `Network`, `newNetwork`) and `plan.go` (`byAOS`,
@@ -5644,7 +5644,7 @@ Every file the rehearsal writes is saved whole through a temporary sibling and a
 2's way), folders created as needed, and written even when empty. When `ctx` ends during the run,
 the reports written after the run (health, incomplete, undelivered, metrics, alerts, week) are not
 written. A missing `bookings.json` means no bookings; every other missing input is an error that
-wraps `fs.ErrNotExist`. Input errors name the file: `bookings.json: json: unknown field "sat"`.
+wraps `fs.ErrNotExist`. Input errors name the file: `bookings.json: json: unknown field "sat"`. A second value is `bookings.json: more data after the bookings` (`customers.json: ... the customers`); `uplink-keys.txt`'s are `uplink-keys.txt: line 3: <problem>`; the archive's name their line, `archive line 3: want 4 fields, got 3`. The logs are written into temporary siblings as the week runs and renamed into place when it ends, stopped or not; a stopped pass has no end record and counts in no metric.
 
 #### Settings
 
@@ -5664,7 +5664,8 @@ or anything after the object is an error):
   the settings`; `rehearsal.json: week is required`; `rehearsal.json: week "2029-7-23" is not a
   date like 2006-01-02`; `rehearsal.json: days 8 is not from 1 to 7`; `rehearsal.json: unknown
   station "YSX"`. On any input error `rehearse` returns it and prints nothing.
-- The first console line: `rehearsal: 2029-07-23, 7 days, 20 stations`.
+- The first console line: `rehearsal: 2029-07-23, 7 days, 20 stations`; one day or one station
+  takes the singular (`rehearsal: 2029-07-26, 1 day, 2 stations`).
 
 #### The pass archive and the plan
 
@@ -5741,9 +5742,7 @@ a station's two dishes, overlap freely.
 - **Outcomes** (each chapter adds what it checks): a pass is **flown** when its station welcomed it
   (from 3.1; in chapter 2, when its banner arrived), every command it sent was acknowledged (from
   4.1) and its line wasn't down at LOS. Otherwise, the first that fits: **skipped** `stowed` (the
-  station refused the pass at HELLO: its dishes were stowed); **failed** `no_answer` (no banner, a
-  wrong banner, every dial failed or no WELCOME before LOS); `refused` (a NAK at HELLO other than
-  stowed, or a command refused); `stowed` (the station cut the pass with BYE `stowed`);
+  station refused the pass at HELLO: its dishes were stowed); **failed** `refused` (a NAK at HELLO other than stowed); `no_answer` (no banner, a wrong banner, every dial failed or neither a WELCOME nor a NAK before LOS); `refused` (a command refused); `stowed` (the station cut the pass with BYE `stowed`, or refused a redial as stowed);
   `line_lost` (lost and not back before LOS); `no_ack` (a command still unanswered at LOS).
 - **The end**: after the last contact's LOS and the last delivery, `rehearse` writes its reports and
   prints `week done: 14282 flown, 3 failed, 12 skipped`, then returns nil.
@@ -5794,8 +5793,7 @@ key: "k-2029-07"`, and `command must be sealed` from a Cirrine satellite given a
 1. Answers HELLO at once: WELCOME, or NAK 2 while its dishes are stowed, or NAK 1.
 2. Relays a TLM frame at AOS + 10 s and every 60 s after, while before LOS.
 3. Answers each command 2 s after it arrives (ACK or NAK), one at a time, in the order received.
-4. On a booked pass, relays the satellite's file: FILE at AOS + 30 s, one CHUNK a second, END one
-   second after the last chunk. Chunks asked for again (DUMP_FILE) come first: FILE again, then the
+4. On a booked pass, relays the satellite's file: FILE at AOS + 30 s, the k-th chunk k seconds after it, END one second after the last chunk. Chunks asked for again (DUMP_FILE) come first: FILE again, then the
    asked chunks, from 2 s after the command's ACK, and the pass's own file waits until they are done.
 5. At LOS sends BYE `los` and closes; when its dishes stow during a call, BYE `stowed` and closes.
 6. On a new call during a pass (a redial), sends FILE again before continuing a file in progress;
@@ -5880,10 +5878,10 @@ Mirela made `k-2029-07` on Monday 9 July with Activate Wednesday 25 July 00:00, 
   `last` comes from the WELCOME and `next` is one more than the rehearsal's own last number for that
   satellite (Season 4's rule). **One command at a time per satellite across the whole network**: a
   satellite over two stations at once (common at the polar stations) never has two commands in
-  flight, so its numbers reach it in order.
+  flight, so its numbers reach it in order. The lock is a channel with room for one, taken in the same `select` that reads the call: inside the tests' bubble a goroutine waiting on a `sync.Mutex` isn't durably blocked, so a mutex held across a round trip stops simulated time and the run hangs to the 10 s timeout.
 - **Never twice** (Season 4's rule): when the line is lost with a command in flight, the new
   WELCOME's `last` says what happened: `last` at or above its number means it ran, and counts as
-  acknowledged; otherwise the same line is sent again, same number. A command still unanswered at
+  acknowledged; otherwise the same line is sent again, same number. A NAK `replayed sequence number` to that line means its first copy reached the satellite after the line dropped and ran: it counts as acknowledged (Season 4's NAK `duplicate` rule). A command still unanswered at
   LOS is settled the same way on the satellite's next contact: done if `last` reached it; a PING is
   then dropped, and a LOAD_KEY or DUMP_FILE still needed is sent again, numbered afresh.
 - **Which master**: at the start of the window each satellite holds every master activated before
@@ -5898,7 +5896,7 @@ Mirela made `k-2029-07` on Monday 9 July with Activate Wednesday 25 July 00:00, 
   satellite, key held and valid, number above `last`, signature or seal, only then record), try
   their keys newest first for a CMD line, refuse a CMD line to a Cirrine (`command must be sealed`),
   and keep `last` across contacts. Their numbers at the start of the window are the simulated
-  world's (`pipit-2` 6314, `cirrine-1` 9712, `thistle-2` 412 in the examples).
+  world's (`pipit-2` 6314, `cirrine-1` 9712, `thistle-2` 412 in the examples); the others: pipit-1 5518, pipit-3 2907, furrow-a 8841, furrow-b 8790, brine-3 7426, and for each 2029 satellite 40 plus its ID's FNV-1a hash mod 300.
 - **Vectors** (Go 1.27.3): `CMD pipit-2 6315 PING sig=0cb110af1256712defcb30409a53e47e402b944c6a13ab67a236315160034810`
   (`k-2028-10`, sign key `514e8010…22ad`, Season 5's); with Season 5's fixed nonce (vectors only),
   `SEAL 2 cirrine-1 9713 k-2029-07 a1b2c3d4e5f60718293a4b5c 840b65d7152c90505bbbec4f7dad949a2e2a4fee`
@@ -5953,9 +5951,8 @@ secrets (Season 3's, and Kessick's new one):
   HMAC-SHA256 under the customer's secret of the timestamp, a dot and the exact body. Event IDs are
   `evt-` and six digits, counting from `evt-000001` in the order files land (files landing in the
   same second may take either order). Kessick's first:
-  `{"id":"evt-000792","type":"data.landed","booking_id":"bk-8792","sat_id":"thistle-2","station":"PEL","file":"thistle-2-20290726-1603.dat","bytes":2048,"landed_at":"2029-07-26T16:04:25Z"}`,
-  at timestamp `1879776265`, signs as `0a124c6505dd9e9b2ccd67d35e7274d94f3584f0f929ee5d397116167dab7adf`
-  (the ID shows the shape; the run decides the number).
+  `{"id":"evt-000783","type":"data.landed","booking_id":"bk-8792","sat_id":"thistle-2","station":"PEL","file":"thistle-2-20290726-1603.dat","bytes":2048,"landed_at":"2029-07-26T16:04:25Z"}`,
+  at timestamp `1879776265`, signs as `340bfc1649ec9f7fae412dddb919258dad72fc043e8bf0f45b2c8b06fd03c62e`: the 783rd file to land in the investors' week, the only one at 16:04:25. The event's `station` is the booking's, even when the file lands on a later contact elsewhere.
 - **Season 3's schedule**: the first attempt as soon as the file lands; retried on a transport
   error, 408, 429 and 5xx; at most 8 attempts, after failed attempt n waiting 2 s × 2^(n−1), capped
   at 5 minutes, times a factor drawn uniformly from [0.5, 1.0); every attempt signed again with its
@@ -5997,7 +5994,7 @@ satellite and `accepted` or `refused`; `files_landed_total`; `deliveries_total` 
 backhaul answers take 2.7 s and land in ≤ 5).
 
 **Pages**, Season 6's pager from 8 January 2029, with its two pass rules, per rehearsed station,
-evaluated every minute on the minute of `w.Now()`; a pass's result counts from its LOS; skipped and
+evaluated every minute on the minute of `w.Now()`; from the window's first minute until the week is done, each minute counting every pass whose LOS is at or before it; a pass's result counts from its LOS; skipped and
 stopped passes are not failures:
 
 | Rule | Value per station | FireAt | ClearBelow | For | Repeat | Severity |
@@ -6060,14 +6057,10 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
   Ystmark. (Pipit-2's `pipit-2/YST/22866`, 11:21:07, is skipped too; Apogee books none of its own
   passes.)
 - `reports/incomplete.txt` and `reports/undelivered.txt` empty.
-- **Yusra's moves**, Friday 20 July: each of the nine to its Furrow's next unbooked contact elsewhere
-  that day: furrow-h to `furrow-h/CSL/00437` 12:52:04, furrow-g to `furrow-g/ICM/00436` 11:28:56,
+- **Yusra's moves**, Friday 20 July: each of the nine to its Furrow's next unbooked contact that day at another station of the second run: furrow-h to `furrow-h/CSL/00437` 12:52:04, furrow-g to `furrow-g/ICM/00436` 11:28:56,
   furrow-e to `furrow-e/CSL/00436` 11:31:23, furrow-z to `furrow-z/CSL/00437` 11:42:34, furrow-y to
-  `furrow-y/ICM/00437` 11:52:47, furrow-w to `furrow-w/CSL/00437` 11:53:55, furrow-v to
-  `furrow-v/SRH/00438` 12:59:04, furrow-t to `furrow-t/TIR/00437` 11:55:14, furrow-s to
-  `furrow-s/QND/00438` 14:34:16. The second run, Thursday only at YST, CSL, ICM, SRH, TIR and QND
-  (69 bookings, 678 contacts), with the same storm: `GO:
-  every booked pass flown`.
+  `furrow-y/ICM/00437` 11:52:47, furrow-w to `furrow-w/CSL/00437` 11:53:55, furrow-v to `furrow-v/QND/00438` 14:22:57, furrow-t to `furrow-t/TIR/00437` 11:55:14, furrow-s to
+  `furrow-s/QND/00438` 14:34:16. The second run, Thursday only at YST, CSL, ICM, TIR and QND (63 bookings, 605 contacts), with the same storm: `GO: every booked pass flown`. (Not Saltreach Island: a plan that starts at 00:00 Thursday gives its one dish to a different train of Furrows in the first hour and drops `bk-8669`.)
 
 #### How the lessons test it
 
@@ -6079,8 +6072,7 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
   simulated receiver in memory, and `Out` records each line with the instant it was written. Nothing
   reaches the network; there is no loopback inside a bubble (Seasons 4 and 7).
 - **The pass archive** is written by the test from Season 7's model (`sim_passes_test.go`), only
-  for the stations and days a case rehearses, and cached per test binary: the full investors' week
-  (52,596 passes) takes about 0.06 s on ten cores, 0.22 s on one and 1.2 s under `-race`; a day at
+  for the stations and days a case rehearses, and cached per test binary: the full investors' week (52,596 passes) takes about 0.075 s on ten cores, 0.22 s on one and 1.1 s under `-race` (0.28 s for the four stations of a `-race` run); a day at
   two stations, 4 ms on one core.
 - **Guards.** The harness runs `rehearse` in a goroutine and waits for it until the window's end
   plus one hour of simulated time; past that it fails the test (`rehearse still running at Mon 30
@@ -6089,8 +6081,7 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
   goroutine stuck on a channel of its own can still panic the bubble; starters never do.
 - **The simulated world's knobs**, set per case (each defaults to off): the bookings, keys and
   customers files; `silent` (stations that answer and never send a byte); `banner` (a station's
-  banner text); `dialFail` (stations whose calls fail); `split` and `glue` (messages written in
-  pieces of at most n bytes, or the banner and the first frame in one write); `corrupt` (a pass's
+  banner text); `dialFail` (a station's calls fail during a window, all week without one); `split` and `glue` (messages written in pieces of at most n bytes, or, at a station with one contact in progress, the banner and that contact's WELCOME written in one write as the call is answered, before HELLO); `late` (a station relays each TLM frame late, so a satellite's frames arrive out of number order); `flipEvery` (a station's every n-th TLM frame arrives with a flipped byte); `corrupt` (a pass's
   n-th TLM frame with a flipped byte); `badLength` (a frame with length 8 after a pass's n-th
   frame); `quiet` and `backhaul` (a station's dead-line window and its slow window); `dropBefore` and
   `dropAfter` (a pass's call dropped just before the satellite gets a command, or just after it runs
@@ -6102,10 +6093,7 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
   bytes it received, every command each satellite ran or refused (number, operation, key ID,
   instant, station), every chunk sent, and every delivery attempt (customer, event, instant,
   signature checked).
-- **Size.** Each lesson's tests run the whole network for the whole week at most once (lessons
-  1.2, 2.1 and 6.5), cached and checked from several angles; every other case is one to six
-  stations for one or two days. On an Apple-silicon Mac the full week runs in under half a second
-  (0.37 s, 0.30 s on one core). Under `-race` it takes 2.0 s, plus 1.2 s for its archive, and
+- **Size.** Each lesson's tests fly the whole network for the whole week at most once: one cached run of the investors' week as Ingrid scripts it, with its 1,493 bookings (`simWeekRun`), shared by every check that needs it from lesson 1.1 to 6.5; every other case is one to six stations for one or two days. On an Apple-silicon Mac (M5) that week takes 1.24 s with every chapter's features (0.89 s without bookings), the bubble pinned to one CPU, which is faster there than ten. Under `-race` the four-station week takes 2.4 s, plus 0.28 s for its archive, and
   pkgcheck runs every test three times that way, so the test files include Season
   7's `race_on_test.go` and `race_off_test.go`, and with `raceOn` the full-week cases rehearse four
   stations (YST, TIR, PEL, VRL) and check invariants instead of golden files.
@@ -6143,10 +6131,13 @@ candidate, dropped pass, pass archive, booking, AOS, LOS, banner, frame, CRC, ba
 wind lock, master key, derived key, sealed command, LOAD_KEY, overlap, retire, webhook, landing, on
 call, page, the morning list, error budget, the Fishbowl, the Board.
 
-**Name checks** to run before the capstone ships: the job title "Ground Segment Lead"; the phrase
-"the investors' week"; "pass line" as a term; the customer ID `kessick` and the receiver host
-names under `.example` (reserved, so only the company names matter, all already checked). The
-master `k-2029-07` follows Season 5's pattern. No new people, places, satellites or customers.
+**Name checks** (web search, 10 November 2026): "Ground Segment Lead" is a common job title in
+real space-industry postings, a generic title like "ground station engineer", not a company,
+product or person, so it stays; nothing real was found for "the investors' week" (only generic
+"Investor Week" events), "pass line" as a satellite term (elsewhere a generic phrase) or the
+customer ID `kessick`; the receiver hosts use the reserved `.example` domain, and the customer
+names were checked before. The master `k-2029-07` follows Season 5's pattern. No new people,
+places, satellites or customers.
 
 ## Seasons
 

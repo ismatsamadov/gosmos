@@ -1,5 +1,11 @@
 # Pass Day, Live: syllabus
 
+**Authoring status:** in progress. The simulated world and the whole reference program are
+built, and the investors' week runs in them exactly as the bible scripts it; every lesson's
+solution is a cut of that program. Chapter 1 is in the library and is still to be read in the
+app; chapters 2–6 are still to be written. Once lessons are written, the lessons in
+`courses/apogee.sqlite` are the source of truth.
+
 The capstone of the Apogee series, after Season 7; story time 2 to 20 July 2029, with the
 investors' week of 23 to 29 July as its finale. The world, the characters, the code and the
 writing rules are in `story.md`, whose section "The capstone: Pass Day, Live" fixes every contract
@@ -55,14 +61,14 @@ chunk and delivery.
 
 Difficulty rises from 8 to 10: Season 7 ended at 10, and a project restarts lower, as Build gctl
 and Build the Board did. Every code lesson is `code_tests`. Each lesson's tests rehearse the whole
-network for the whole week at most once (1.2, 2.1, 6.5); every other case flies one to six
+network for the whole week at most once, one cached run of the investors' week that every check needing it shares; every other case flies one to six
 stations for a day or two.
 
 ## Chapter 1 · The Week's Plan
 
 `the-weeks-plan` · 4 lessons · Monday 2 and Tuesday 3 July
 
-Read strict settings and passplan's pass archive, apply Season 7's rule station by station, save
+Read strict settings and passplan's pass archive, apply passplan 2's rule station by station, save
 each day's plan whole, and match bookingd's export against it.
 
 #### 1.1 The Rehearsal's Settings
@@ -146,7 +152,7 @@ frame, drop what fails its CRC, and notice a dead line and dial it again.
 `hello-in-frames` · code_tests · difficulty 9
 - **Objective:** Write and read length-prefixed binary frames with a CRC, after the banner, through one buffered reader.
 - **Scenario:** Sunniva's radios now want each call to name its pass and dish before they say anything more.
-- **Exercise:** After the banner, `rehearse` must send HELLO (`thistle-2/PEL/02136 1`) and read the WELCOME; a NAK at HELLO makes the pass `failed refused`, no WELCOME by LOS `failed no_answer`; frames the station sends later are read and set aside until the next lesson.
+- **Exercise:** After the banner, `rehearse` must send HELLO (`thistle-2/PEL/02136 1`) and read the WELCOME; a NAK at HELLO makes the pass `failed refused`, or `skipped stowed` when its code is 2, BYE `stowed` makes it `failed stowed`, and no WELCOME by LOS `failed no_answer`; frames the station sends later are read and set aside until the next lesson.
 - **Check:** HELLO's bytes against the bible's example; the banner and WELCOME arriving in one write, and WELCOME one byte at a time; a pass HELLO'd for the wrong dish refused with NAK 1; the mistakes: a CRC that covers the length, a length written little-endian, a new reader for the frames after the banner.
 
 #### 3.2 Telemetry In
@@ -194,7 +200,7 @@ mid-week.
 
 #### 4.2 One Satellite, Two Stations
 `one-satellite-two-stations` · code_tests · difficulty 9
-- **Objective:** Keep one satellite's commands in order across concurrent passes with one lock per satellite.
+- **Objective:** Keep one satellite's commands in order across concurrent passes with one lock per satellite, a channel with room for one.
 - **Scenario:** Nkem: "What does the satellite see if two stations send it a command at once?" Over the poles, Ystmark and Tirrin Rock often hold the same Furrow.
 - **Exercise:** A satellite must never have two commands in flight, whichever stations hold it, and every command must take the next number.
 - **Check:** A day at Ystmark and Tirrin Rock: every satellite's commands run in strictly increasing numbers, none refused as replayed, none run twice; the mistake: numbering per pass, so two passes send `last+1` and the satellite refuses the second.
@@ -303,4 +309,4 @@ Ystmark's storm arrives, and write the week's report, checked against golden fil
 - **Objective:** Finish the rehearsal and check the whole investors' week against golden files.
 - **Scenario:** Friday 20 July, 15:00, the Fishbowl: the full rehearsal with Ingrid's script, the fiber cut and the wind lock at Ystmark, Cirrine's restart, Furrow-K's lost chunks and Thistle-2's first science.
 - **Exercise:** `rehearse` must write `reports/week.txt` (rows, `all`, the lost bookings, the verdict) as the bible gives it, the last thing the week's golden files need.
-- **Check:** The investors' week against `testdata/week.golden` (NO-GO, the nine Furrows), `alerts.golden` and `health.golden`, `metrics.json` against the simulated world's counts, both lists empty; Yusra's moves on Thursday at six stations: GO; a station with nothing booked showing `-`; the mistakes: lost counting failures only, a budget computed in floats, unplanned bookings left out.
+- **Check:** The investors' week against `testdata/week.golden` (NO-GO, the nine Furrows), `alerts.golden` and `health.golden`, `metrics.json` against the simulated world's counts, both lists empty; Yusra's moves on Thursday at five stations: GO; a station with nothing booked showing `-`; the mistakes: lost counting failures only, a budget computed in floats, unplanned bookings left out.
