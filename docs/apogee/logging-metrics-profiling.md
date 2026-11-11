@@ -2,8 +2,7 @@
 
 **Authoring status:** all eleven chapters are implemented as 88 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this plan
-two chapters at a time and every chapter independently reviewed. Chapters 2–11 are still to be
-read in the app. Every pass comes from the orbit model the earlier seasons use, and chapter 9
+two chapters at a time and every chapter independently reviewed. Chapters 2–11 were then read in the app in light and dark, two chapters at a time. Every pass comes from the orbit model the earlier seasons use, and chapter 9
 plans on the settled one Season 7 plans with. The lessons in `courses/apogee.sqlite` are the
 source of truth, and the larger changes from this plan are listed under "Changes in writing and
 review" at the end.
@@ -615,7 +614,7 @@ Write heap profiles, read memory after a collection, count allocations with `tes
 - **Objective:** Write a heap profile with `pprof.Lookup("heap")` after a garbage collection.
 - **Scenario:** Monday 5 February: Lantern Atoll is failing again with the generator fixed, and Nkem has a new rule: nobody restarts uplinkd until its memory has been saved.
 - **Exercise:** `heapProfile(path string) error` only creates the file; you run `runtime.GC`, write the heap profile into it and close it, returning any error.
-- **Check:** `heap.prof` in the lesson folder starts with `1f 8b` and isn't empty; a bad path returns the error; the readme offers `go tool pprof -top -sample_index=inuse_space heap.prof` and says uplinkd serves its heap profile on its debug port too.
+- **Check:** `heap.prof` in the lesson folder starts with `1f 8b` and isn't empty; a bad path returns the error; the readme offers `go tool pprof -top -inuse_space heap.prof` and says uplinkd serves its heap profile on its debug port too.
 
 #### 10.2 Memory in Use Now
 `memory-in-use-now` · code_tests · difficulty 9
