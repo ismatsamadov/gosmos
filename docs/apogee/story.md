@@ -4407,7 +4407,7 @@ forms, and Sunniva and Paz only in passing. Times are UTC.
 | 7 | Mon 16 Apr | Mirela's desk; Kessick Polytechnic by message | On Saturday 14 April Thistle-2's student flight software sent `batt_v=nan` when a sensor glitched; tlmd's parser accepted it, and the pager's battery rule never fired, since nothing compares below a value that isn't a number. At 05:10 a line with a missing field crashed the parser and stopped every station's telemetry for forty minutes. Joss apologizes; Mirela: "Your parser accepts the line. Now show me the lines it refuses" | Cirrine's twelve send their first telemetry through this parser on Tuesday 17 April |
 | 8 | Mon 23 Apr, to Fri 4 May | the backend desks | Nkem: passplan 2's timers (a replan every ten minutes, a deadline on every planning run, a wait until each contact's AOS, a pause for news to settle) are tested with real sleeps: the suite takes eleven minutes and fails one run in five | The second wave goes live on Monday 7 May; a test that lies about time would let a broken replan through |
 | 9 | Mon 7 May, to Fri 18 May | the Fishbowl's glass, the backend desks | The second wave goes live on Monday 7 May: Ilvane Spit, Cape Solvane, Saltreach Island, Corith Point, Nimrie Point. Tomás writes on the glass: "passplan 2: forty times faster!" Nkem: "Faster at what?" Brinewatch's thirty-six leave their rocket on Wednesday 16 May | A planner that only looks faster would be trusted on take-over day |
-| 10 | Mon 21 May | the backend desks | With fifty-six satellites, every replan of a hundred days leaves the machine's memory full of garbage, and the Board's updates stutter while the collector cleans up. Nkem: "Halve the planner's garbage before the third wave" | The third wave adds five stations and the last launch adds twenty-four satellites |
+| 10 | Mon 21 May | the backend desks | With fifty-six satellites, every replan of a hundred days leaves the machine's memory full of garbage, and the test Board's updates stutter while the collector cleans up. Nkem: "Halve the planner's garbage before the third wave" | The third wave adds five stations and the last launch adds twenty-four satellites |
 | 11 | Mon 28 May, to Fri 8 Jun | the backend desks | The third wave's hosts send their forms: Vorrel Island's says 0 dishes, Ilha Calmaria's lists a band "K". On Friday 1 June a test deploy of passplan 2 read `slots: 0` and planned nothing. Nkem: one validator for every settings struct, its rules in tags | The third wave goes live on Monday 4 June: Hasku Point, Ilha Calmaria, Quindle Island, Punta Ventisca, Vorrel Island. A wrong form takes a station's passes away |
 | 12 | Mon 11 Jun, to Thu 28 Jun | the Fishbowl | Ingrid runs take-over day like a pass: a full rehearsal in shadow on Monday 25 June, Furrowlight's launch on Wednesday 27 June, and the take-over at 00:00 UTC on Thursday 28 June | The heaviest schedule Apogee has ever flown: 2,011 contacts in one day at twenty stations, with twenty-four new Furrows in their first day of life |
 
@@ -4456,7 +4456,7 @@ rain would fade it, as at Lantern Atoll. Only Port Ellery and Lantern Atoll send
 | ICM | Ilha Calmaria | 8.0° N, 30.0° W | 7° | 1 | S | Mon 4 Jun | In the calm belt of the tropical Atlantic ("calmaria" means calm), with sudden squalls |
 | QND | Quindle Island | 25.0° S, 95.0° E | 5° | 1 | S X | Mon 4 Jun | An island of the eastern Indian Ocean, in the trade winds |
 | PVT | Punta Ventisca | 60.5° S, 40.0° E | 5° | 1 | S X | Mon 4 Jun | A cape in the Southern Ocean ("ventisca" means blizzard); the radome heater never stops |
-| VRL | Vorrel Island | 64.0° S, 140.0° W | 4° | 2 | S X | Mon 4 Jun | An ice-bound island in the far south: the south's Ystmark |
+| VRL | Vorrel Island | 64.0° S, 140.0° W | 4° | 2 | S X | Mon 4 Jun | An icebound island in the far south: the south's Ystmark |
 
 The table order (the five, then the waves in this order) is the **table order** every list
 of stations uses. In readmes a new station is its name first and its code after: "Tirrin Rock
@@ -4472,7 +4472,7 @@ is Cirrine-2, `brine-17` is Brine-17, `furrow-q` is Furrow-Q.
 |---|---|---|---|---|---|
 | `pipit-1`, `pipit-2`, `pipit-3`, `furrow-a`, `furrow-b`, `brine-3`, `cirrine-1` | as in the bible | as in the bible | Pipit-1 UHF; Pipit-2 S; Pipit-3 S X; the Furrows X S; Brine-3 S; Cirrine-1 S | flying | the bible's |
 | `thistle-2` | Kessick Polytechnic | 505 km, 97.4° | UHF | Thu 8 Mar, 10:20:00 | Kessick's second student cubesat; Joss now leads its flight software. First beacon at Port Ellery, 17:08:39 (`thistle-2/PEL/00005`) |
-| `cirrine-2` to `cirrine-13` (12) | Cirrine Atmospherics | 600 km, 97.8° | S | Tue 17 Apr, 09:40:00 | the bigger contract of Season 5 |
+| `cirrine-2` to `cirrine-13` (12) | Cirrine Atmospherics | 600 km, 97.8° | S | Tue 17 Apr, 09:40:00 | the bigger contract of Season 5; first contact `cirrine-3/VSK/00001` at 09:41:01 |
 | `brine-4` to `brine-39` (36) | Brinewatch | 480 km, 53.0° | S | Wed 16 May, 13:30:00 | ship tracking; like Brine-3, never over Ystmark |
 | `furrow-c` to `furrow-z` (24) | Furrowlight | 510 km, 97.4° | X S | Wed 27 Jun, 20:40:00 | lift-off 18:05, deployed one about every four minutes from 19:10; first contact `furrow-g/YST/00001` at 20:40:16, the last of the 24 first heard at 22:28:50 (`furrow-c/TIR/00002`) |
 
@@ -4933,8 +4933,7 @@ func assign(s Site, passes iter.Seq[PassView], free []time.Time, turnaround time
 ```
 
 `byAOS` is the comparator everywhere: schedules, merges, catalogs. Chapter 6 teaches it;
-`plan.go` is given from chapter 6 on (before that a lesson that needs the rule gives its own
-copy of `byAOS` read-only).
+`plan.go` is given from chapter 6 on. Before that, a lesson that needs it gives `byAOS` read-only or hidden as it stands until 6.1, comparing the AOS alone (`// byAOS orders passes by AOS.` above `return a.AOS.Compare(b.AOS)`), and no check depends on the order of passes that rise in the same second; 6.1 adds the pass ID after Port Ellery's tie of Sunday 8 April, the first two candidates at one station to rise in the same second since 2 April.
 
 **The window.** passplan 2 plans a **window** of a hundred days: from 00:00 UTC of the current
 day to 00:00 a hundred days later (28 June to 6 October on take-over day). A schedule holds
@@ -4949,7 +4948,7 @@ had from that instant on. At 00:00 on 28 June the old planner's schedule has twe
 progress and two that ended less than two minutes before midnight; planned without the
 hand-over, ten of passplan 2's first contacts would take a dish still busy with one of the
 old planner's (the first: `furrow-j/SRH/00003` at 00:00:40, on the dish `furrow-k/SRH/00003`
-holds until 00:05:00).
+holds until 00:05:00). Run 1 is itself a replan, of the old planner's schedule from the cut-over, so passplan 2's schedules on take-over day also carry the old planner's contacts, which rose before their window, and every later replan's hand-over still waits for their dishes. Planned from the hand-over alone, version 1 would forget them, and the 00:10 tick would give Ilvane Spit's dish 2 to `cirrine-4/ILV/01069` (AOS 00:10:23) while `furrow-f/ILV/00003`'s turnaround lasts until 00:10:26: a fourth version, and one dish touched by both planners.
 
 **Publishing.** Every planning run takes the next **run number** when it starts (counting from
 1 when passplan 2 starts) and its schedule carries it as `Version`. A run whose contacts equal
@@ -5015,7 +5014,7 @@ The bounds, everywhere:
 | Turnaround | 2 minutes | the rule |
 | Minimum max elevation for a contact | 10° | the rule |
 | Replan | every 10 minutes, and at once on news | chapters 8, 12 |
-| Run limit | 30 seconds per planning run; past it the run is cancelled | chapter 8 |
+| Run limit | 30 seconds per planning run; past it the run is canceled | chapter 8 |
 | Quiet | 5 seconds: news arriving closer together than this makes one replan | chapter 8 |
 | Dish loader queue | 256 contacts per station; when full, passplan waits | chapter 2 |
 | Dish loader uploads | 2 at once per station (the hosts' lines are thin) | chapter 2 |
@@ -5037,7 +5036,7 @@ The **stages** of a planning run, in order:
    full), the schedule to the Board through a queue of 4 (drop the oldest), chapter 2.
 
 A run is cancellable at every stage: every goroutine selects on its context, the predictor
-is asked again only between days, and a cancelled run publishes nothing and leaves no
+is asked again only between days, and a canceled run publishes nothing and leaves no
 goroutine behind.
 
 #### tlmd's ingest (chapter 1)
@@ -5100,13 +5099,12 @@ func formatLine(f TelemetryFrame) string {
   `batt_v=+7.91` or `batt_v=07.91`) is `line: not canonical`.
 - Thistle-2's lines of Saturday 14 April, as Joss forwarded them, include
   `thistle-2 2214 2029-04-14T03:36:12Z batt_v=nan temp_c=1.0 mode=SAFE` (heard at Port Ellery,
-  pass `thistle-2/PEL/00560`) and the line that crashed the old parser on the next pass,
-  `thistle-2 2290 2029-04-14T05:10:41Z batt_v=7.40` (four fields).
+  pass `thistle-2/PEL/00560`) and the line that crashed the old parser on the next pass, `thistle-2 2290 2029-04-14T05:10:41Z batt_v=7.40` (four fields). Thistle-2 numbers a frame about every 75 seconds. Mirela keeps four of Saturday's lines as corpus files: those two (`saturday-0336`, `saturday-0510`), `thistle-2 2216 2029-04-14T03:38:42Z batt_v=7.42 temp_c=-Inf mode=SAFE` (`saturday-0338`) and the 05:13:11 line that lost its satellite ID and starts with a space (`saturday-0513`). Joss's fourteen odd lines (7.8) are frame 2214 with the battery at 7.91 V written fourteen wrong ways: `batt_v=+7.91`, `batt_v=07.91`, a time ending `+00:00`, the sequence `02214`, `batt_v=7.9`, `temp_c=1`, `temp_c=1e0`, `batt_v=NaN`, `mode=safe`, `Thistle-2`, the sequence `-1`, a time ending `.000Z`, two spaces after the satellite ID, and a seventh field `crc=6e`.
 - The **Pipit beacon** (chapter 7.6) is the bible's 12 bytes, decoded into
   `Beacon{Sat uint8; Seq uint16; Mode uint8; BattMV uint16; TempDeciC int16; Flags uint8}`:
   `decodeBeacon(b []byte) (Beacon, error)` refuses a length other than 12 (`beacon: want 12
   bytes, got 7`), wrong sync bytes (`beacon: no sync`) and a bad XOR (`beacon: bad check
-  byte`); `encodeBeacon(bc Beacon) []byte` writes it back.
+  byte`); `encodeBeacon(bc Beacon) []byte` writes it back. Every Pipit sends this beacon, and Pipit-1 is satellite number 1 and Pipit-2 number 2, as in Season 1.
 
 How fuzz lessons run (the app's `go test` runs a fuzz test's seed corpus only, never the
 fuzzer): the read-only `main_test.go` holds `FuzzParseLine` (and `FuzzBeacon`). It adds every
@@ -5114,8 +5112,7 @@ seed in the learner's `seeds.go` (`var lineSeeds []string`) with `f.Add`, and `g
 runs every file in `testdata/fuzz/FuzzParseLine/` (format: the line `go test fuzz v1`, then
 `string("...")`). Its target calls the learner's property, `checkLine(t, parse, line)` in
 `checks.go`, through `safely`, which turns a panic into the failure `parseLine("...") panicked:
-<value>`, so a crash reads as a failed check rather than a stack dump. Mutant parsers live in
-the test file; tests that prove the seeds or the property catch them re-run the test binary
+<value>`, so a crash reads as a failed check rather than a stack dump. Mirela's reference parser, which accepts exactly the lines `formatLine` writes with a valid satellite ID, readings in range and a known mode, is hidden in `reference_test.go`; mutant parsers built from it live in the test file; tests that prove the seeds or the property catch them re-run the test binary
 (`os.Args[0] -test.run=^FuzzParseLine$`, `APOGEE_MUTANT=<name>`) and expect it to fail, as
 Season 1's chapter 15 did. Readmes say once how to fuzz for real in a terminal:
 `go test -fuzz=FuzzParseLine -fuzztime=30s`, and that a failure it finds is saved under
@@ -5129,8 +5126,9 @@ type Predictor func(e Elements, s Site, from, to time.Time) []PassView
 func Days(from time.Time, n int) iter.Seq[time.Time]                               // 4.1: n midnights
 func Passes(predict Predictor, e Elements, s Site, w Window) iter.Seq[PassView]     // 4.2: a day at a time
 func (sch *Schedule) At(station string) iter.Seq2[int, Contact]                     // 4.4: (dish, contact) by AOS
-func Catalog(n *Network, w Window, predict Predictor) iter.Seq[PassView]            // 4.5: servable, by AOS then ID
+func Catalog(n *Network, w Window, predict Predictor) iter.Seq[PassView]            // 4.5: servable, in byAOS order
 func ReadPasses(r io.Reader) iter.Seq2[PassView, error]                             // 4.6: the pass archive
+func parsePass(line string) (PassView, error)                                       // 4.6: given, one archive line
 func Archive(open func() (io.ReadCloser, error)) iter.Seq2[PassView, error]         // 4.7: closes on every way out
 func Bookable(n *Network, w Window, predict Predictor, operator string) iter.Seq[PassView] // 4.8
 
@@ -5140,6 +5138,7 @@ func Take[V any](seq iter.Seq[V], n int) iter.Seq[V]                 // 5.3
 func Zip[V any](a, b iter.Seq[V]) iter.Seq2[V, V]                    // 5.6: pairs, until either ends
 func Merge[V any](a, b iter.Seq[V], cmp func(V, V) int) iter.Seq[V] // 5.7: two sorted into one
 func Compare(old, new iter.Seq[Contact]) iter.Seq[Change]            // 5.9: the shadow run
+func changes(olds, news []Contact) []Change                          // 5.9: given, one second's contacts matched by pass ID
 
 // Change is one difference between two schedules.
 type Change struct {
@@ -5163,8 +5162,7 @@ func MergeBy[T any](cmp func(a, b T) int, seqs ...iter.Seq[T]) iter.Seq[T] // 6.
 func stationPasses(n *Network, s Site, w Window, predict Predictor, minElevDeg float64) iter.Seq[PassView] // 6.8
 ```
 
-- An iterator stops the moment `yield` returns false and never calls it again (Go panics
-  with `range function continued iteration after function for loop body returned false`).
+- An iterator stops the moment `yield` returns false and never calls it again (Go panics with `runtime error: range function continued iteration after function for loop body returned false`).
   An iterator that opened something closes it on every way out, with `defer` inside the
   iterator function.
 - Generated sequences are made a day at a time: `Passes` asks the predictor for one day, yields
@@ -5174,10 +5172,11 @@ func stationPasses(n *Network, s Site, w Window, predict Predictor, minElevDeg f
 - `Merge` and `MergeBy` keep ties stable: on equal keys the earlier sequence's value comes
   first. They use `iter.Pull` and call every `stop` they got, whether the loop ends or breaks.
   `MergeBy` holds one value per input sequence at a time, in a `Queue`.
+- `Compare` walks both schedules a second at a time: it gathers each schedule's contacts with the earliest AOS either has left and yields what `changes` finds among them (the old planner's `old only` and `dish` changes in its order, then `new only` in passplan 2's), so contacts at different stations that rise in the same second (5 April, 05:00:11: `brine-3/SQT/16651` and `furrow-a/VSK/23251`) match in whatever order each planner lists them. On Thursday 5 April Tirrin Rock's host parked both dishes from 07:30 to 08:24 to clear their ice, a stow only the old planner heard of: its 273 contacts and passplan 2's 276 differ in four, all at Tirrin Rock (`new only` `furrow-b/TIR/23250` 07:38:06, `pipit-2/TIR/21175` 07:52:22 and `pipit-3/TIR/11124` 08:23:30, then `dish` `furrow-a/TIR/23253` 08:24:16, on dish 2 for passplan 2 and dish 1 for the old planner). passplan 2 hears of stows from Friday 6 April, and planned again with the stow, Thursday has 273 contacts in both.
 - The **pass archive** is one pass per line, `<pass ID> <AOS> <LOS> <max elev>`, times in RFC
   3339 UTC, elevation with one decimal:
   `furrow-a/SQT/24534 2029-06-28T14:02:10Z 2029-06-28T14:12:04Z 47.9`. A bad line yields its
-  error, `archive line 3: <problem>`, and ends the sequence.
+  error, `archive line 3: <problem>`, and ends the sequence. The archive is Apogee's file of every past pass; lessons quote it from 1 January 2029 on, where the model's passes begin. `parsePass` reads a line; its problems read `3 fields, want 4`, `bad pass ID "…"`, `bad AOS "…"`, `bad LOS "…"` and `bad max elevation "…"`. A failed read yields the reader's error, unwrapped, after the passes before it, and `Archive` yields `open`'s error unwrapped.
 
 #### Time in a bubble (chapter 8)
 
@@ -5207,15 +5206,12 @@ func flyDay(ctx context.Context, now func() time.Time, contacts []Contact, fly f
   context ends first; it stops its timer either way.
 - `every` calls `f` at each tick until the context ends, then stops its ticker and returns: a day
   has 144 ticks of 10 minutes.
-- `planWithin` gives the run a context that ends after `limit`; a run past its limit returns
-  `plan: took longer than 30s` wrapping `context.DeadlineExceeded`.
-- A `Debouncer` calls `fire` once, `quiet` after the last of a burst of `Notify` calls; `Stop`
-  cancels a pending fire.
+- `planWithin` gives the run a context that ends after `limit` and cancels it when the run returns; a run past its limit returns `plan: took longer than 30s: context deadline exceeded` (the message names `limit`), which wraps `context.DeadlineExceeded`; any other error, a caller's cancel included, comes back unchanged.
+- A `Debouncer` calls `fire` once, `quiet` after the last of a burst of `Notify` calls; `Stop` cancels a pending fire, and a later `Notify` arms it again. It holds one `time.AfterFunc` timer, made by the first `Notify` and `Reset` by later ones under a mutex; passplan 2's quiet is 5 seconds.
 - `flyDay` waits until each contact's AOS in order and calls `fly`; it returns `ctx.Err()` when
   the context ends, having flown exactly the contacts whose AOS came first.
-- Learners write synctest checks in `checks.go` (8.2 and 8.7), proved against mutants as above.
-  Inside a bubble there is no network, `T.Run` isn't allowed, and every goroutine the bubble
-  starts must end before the test function returns.
+- When a timer and `ctx.Done()` are ready together, a `select` takes either, so no test ends a context at the instant a timer is due: 8.4 cancels at 24:00:01 and 09:47, between ticks, and 8.8 at noon, between contacts at 11:59:51 and 12:00:01.
+- Learners write synctest checks in `checks.go` (8.2 and 8.7), proved against mutants as above, re-run with `APOGEE_MUTANT` as in chapter 7. The test runs the learner's check twenty times, stopping at the first failure, so a check that passes only by luck (one that looks without `synctest.Wait`) fails; and it fails a check that calls the code on the real clock, which it tells by a real-clock reading taken just before (a call within a minute of it is outside any bubble; a bubble's clock starts in 2000 and may be moved to any year). A count that a timer's function changes is an atomic, or under a mutex: the race detector sees no order between a test's read and a timer's later write, even in fake time. Inside a bubble a real network read keeps the clock still (in-memory fakes such as `net.Pipe` don't), `T.Run` isn't allowed, and every goroutine the bubble starts must end before the test function returns.
 
 #### Benchmarks and allocations (chapters 9 and 10)
 
@@ -5223,21 +5219,16 @@ func flyDay(ctx context.Context, now func() time.Time, contacts []Contact, fly f
   `for b.Loop()`. Read-only tests run it with `testing.Benchmark` after
   `flag.Set("test.benchtime", "20x")`, so it runs exactly 20 iterations in milliseconds.
   Tests never check nanoseconds: they check iterations, allocations, bytes and the learner's
-  own metrics (`b.ReportMetric`). Readmes give the terminal command for the timings:
-  `go test -bench=. -benchmem -count=10`.
+  own metrics (`b.ReportMetric`). Readmes give the terminal command for the timings: `go test -bench=. -benchmem -count=10`. Tests that set `-test.benchtime` put it back when they end, so a terminal's benchmarks keep their time. A sub-benchmark doesn't inherit `b.ReportAllocs` from its parent; lesson 9.8's test reads the six lines of a re-run of its test binary (`-test.run=^$ -test.bench=^BenchmarkWindows$ -test.benchtime=2x -test.cpu=1`).
 - Allocation budgets use `testing.AllocsPerRun` and `BenchmarkResult.AllocsPerOp`, computed on
   Go 1.27.3 by the writer, never guessed. Counts drift under `-race`, so every budget test skips
   there: the test files include `race_on_test.go` (`//go:build race`, `const raceOn = true`)
   and `race_off_test.go` (`//go:build !race`, `const raceOn = false`), and a budget test
-  begins `if raceOn { t.Skip("allocation counts differ under -race") }`.
-- The **old planner** (`planOld`, given read-only in chapters 9 and 10) is the 2023 passplan
-  brought to the rule: it predicts every pair into one slice, sorts that slice by station, then
-  AOS, then ID, and assigns station by station, growing its slices as it goes and keying a map
-  by formatted pass IDs. The **new planner** (`planNew`) is per station: candidates merged by
-  `MergeBy`, assigned, slices sized ahead. Both return the same contacts for the same input;
-  the new one sorts nothing in place and allocates a fraction as much.
-- The **dish loader line** (chapter 10), one contact per line, a day per file: AOS and LOS as
-  `15:04:05`, the dish, the pass ID: `05:29:26 05:37:52 1 furrow-a/VSK/24529`.
+  begins `if raceOn { t.Skip("allocation counts differ under -race") }`. Without `-race`, code that formats with `fmt` or pulls with `iter.Pull` still allocates a little more when the collector runs (`planNew` up to about 0.4%; exact with `GOGC=off`), so a budget on such code allows a margin (9.8: 1.5%, its benchmark re-run on one CPU); `planDay` and `assign` count exactly. A range-over-func loop counts the same in a test only when the compiler inlines its function there: out of line, the loop's closure, its state and the variables it writes go on the heap (3 allocations for 10.1's `collect` written with `slices.Grow`), so 10.1 subtracts what `collect` makes for no passes.
+- The **old planner** (`planOld` in `planners.go`, given read-only in chapters 9 and 10; a copy in chapter 10 is 9's file byte for byte) is the 2023 passplan's planning brought to the rule and run on passplan 2's pass model: it predicts every pair into one slice, sorts that slice by station, then AOS, then ID, and assigns station by station, growing its slices as it goes and keeping each contact's dish in a map keyed by pass ID. The **new planner** (`planNew`) is per station: chapter 6's `stationPasses` (candidates merged by `MergeBy`), assigned, then the stations' contacts merged by `MergeBy` into a slice sized ahead. Both return the same contacts for the same input, and the new one sorts nothing in place. On one core it is no faster, and heavier: predicting passes is nearly all of both (91 to 96% of `planOld`'s time, 96 to 98% of its allocations), and `MergeBy` starts an `iter.Pull` for every satellite at every station (about six allocations each) and boxes every value it queues (two allocations, through `container/heap`'s `any`). For 6, 12 and 24 hours from midnight on Friday 18 May (303, 619 and 1,237 contacts), `planNew` takes up to about 15% longer and makes 2.1 to 3.3 times the allocations: about 23,600, 30,500 and 43,100 against 7,150, 12,040 and 20,970. No planner that predicts its own passes can make a fraction of `planOld`'s allocations: predicting the 1,564 pairs that share a band is 93 to 94% of them. That is chapter 9's truth on the glass ("Not faster. Heavier. That we can fix."): no later lesson or story line says passplan 2 plans faster than the old planner on one core, or allocates less. Where a story line sets passplan 2 against the old passplan's 4 minutes 39 seconds a day, the difference is the old passplan's own, older pass prediction and passplan 2's twelve planner slots, never passplan 2's planning. Chapter 10 cuts garbage around the merge: `planStationFat` is its own function (`planNew`, readable in 9.6 and 9.8, has no string keys), and chapter 6's `queue.go` and `merge.go` stay as they are, since chapter 12 gives them read-only.
+- The **dish loader line** (chapter 10), one contact per line, a day per file: AOS and LOS as `15:04:05`, the dish, the pass ID: `05:29:26 05:37:52 1 furrow-a/VSK/24529`.
+- Chapter 10's pieces: a host's report (10.2) is `CWR contacts: 76`, then one line a contact in AOS order, `cirrine-1/CWR/19862 dish 1`; the export (10.5) writes each station's dish loader lines in one write from an 8 KB buffer (Ystmark's 199 lines on take-over day, 7,811 bytes, are the longest day); a planner slot's scratch holds 512 passes (Ystmark's 439 candidates are the most), and `putScratch` keeps none over 65,536 (6.8 MB). The per-station step `planStationFat` (10.8) copies the candidates into a slice grown from nil, skips repeats with a map keyed by `fmt.Sprintf("%s %s %d", SatID, Station, AOS.Unix())`, sorts the copy and assigns it: on take-over day 1,471 allocations and 213 KB at Cape Wren, 1,789 and 251 KB at Ystmark; `planStationLean` 11 and 60 KB, 13 and 93 KB. Planning take-over day at twenty stations from a network loaded once (each station's candidates predicted, the step, the host report and the export of its dish loader lines) makes 81,657 allocations and 12.0 MB with Monday 21 May's code and 42,705 and 6.0 MB with Friday 25 May's (the debrief's "6 MB of garbage instead of 12"); of what is left, predicting passes is 99% of the allocations and 77% of the bytes. No line compares these with `planOld`.
+- A `sync.Pool` may lose its values to any collection, keeps a part for each P (a CPU the program runs on), and after a collection allocates that part again on its next use (2 allocations, `New` not called). No check needs a value back from a pool through a collection: 10.6 counts its rounds with the collector off (`debug.SetGCPercent(-1)`) and checks that a 65,536-pass scratch is kept on one CPU (`runtime.GOMAXPROCS(1)`) with the collector off, skipped under `-race`, where `Put` drops one value in four; 10.8 measures on one CPU. With a forced collection before every pool call, every check of 10.6 and 10.8 still passes but 10.6's count, which then reads the pool's own 4 allocations a round.
 
 #### Struct tags (chapter 11)
 
@@ -5245,8 +5236,7 @@ One validator reads the `check` tag of every exported field; `applyDefaults` rea
 A `check` tag is rules separated by commas: `required` (not the zero value; a slice not empty),
 `min=<n>` and `max=<n>` (ints, floats, and durations written as duration text), `len=<n>` (a
 string's length in characters, or each string of a `[]string`), `oneof=<a> <b> ...` (a string,
-or each string of a `[]string`). A field whose type has no use for a rule is a mistake in the
-tag, and says so: `Config.Slots: rule len=3 does not fit int`.
+or each string of a `[]string`). A field whose type has no use for a rule is a mistake in the tag, and says so: `Config.Slots: rule len=3 does not fit int`; so does a `min` or `max` bound that doesn't parse for the field's type (`Config.Slots: rule max=6A does not fit int`). An unknown rule is `HostConfig.Name: unknown rule "sometimes"`. A `time.Duration` is told by its type (its kind is `int64`); `oneof` takes words separated by spaces and `len` counts characters, both on a `string` or each string of a `[]string`. A field with no `check` key, or an empty one, has no rules.
 
 ```go
 // HostConfig is the form a station's host fills in when its dish is installed.
@@ -5268,18 +5258,15 @@ type PipelineConfig struct {
 }
 ```
 
-- `Validate(v any) error` takes a struct or a pointer to one and checks every exported field in
-  order, nested structs too, returning every problem joined with `errors.Join`, or nil. Each
+- `Validate(v any) error` takes a struct or a pointer to one and checks every exported field in order and walks into each struct field, embedded or not, right after that field's own rules (pointer fields and slices are not followed), returning every problem joined with `errors.Join`, or nil; a nested struct's problems name its own type (`HostConfig.Dishes` inside a struct that embeds `HostConfig`). Each
   problem is `<Type>.<Field>: <problem>`: `HostConfig.Dishes: 0 is below min 1`,
   `Config.Slots: 70 is above max 64`, `Config.Turnaround: 15m0s is above max 10m0s`,
   `HostConfig.Bands: "K" is not one of UHF S X`, `HostConfig.Code: "VRLX" is not 3 characters`,
   `HostConfig.Name: required`. Ints print with `%d`, floats with `%g`, durations with
-  `String()`, strings with `%q`. A value that isn't a struct is `validate: want a struct, got int`.
+  `String()`, strings with `%q`. A value that isn't a struct is `validate: want a struct, got %T`: `got int`, `got []main.HostConfig`.
 - `applyDefaults(ptr any) error` sets each zero exported field that has a `default` tag, through
-  a pointer (`defaults: want a pointer to a struct, got main.Config`); it leaves set fields and
-  unexported fields alone.
-- The forms of the third wave: Vorrel Island's says `Dishes: 0` (the host meant two), Ilha
-  Calmaria's lists bands `S` and `K`; the other three are right. The test deploy of Friday 1 June
+  a pointer (`defaults: want a pointer to a struct, got main.Config`); it leaves set fields, unexported fields and fields without a `default` key alone. Zero means "use the default", so a `Buffer: 0` becomes 16; a default the field can't read returns `setText`'s error, wrapped as `defaults: <Field>: …`.
+- The forms of the third wave: Vorrel Island's says `Dishes: 0` (the host meant two); Ilha Calmaria's first form (Thursday 31 May) left the station's name blank and listed bands `S` and `K`, and its corrected form (Friday 1 June) still listed `S` and `K`; the other three are right, and all five were right by go-live. The test deploy of Friday 1 June
   had a `Config` with `Slots: 0`.
 
 #### Take-over day
@@ -5294,7 +5281,7 @@ Wednesday 27 June and Thursday 28 June 2029, UTC:
 | 20:00:39 | Its plan is ready, after 4 minutes 39 seconds |
 | 20:40:16 | First contact of the twenty-four, sixteen seconds after their elements begin: `furrow-g/YST/00001`; by 22:28:50 (`furrow-c/TIR/00002`) all have been heard |
 | 23:30 | Ingrid's go/no-go poll for the take-over: GO |
-| Thu 00:00:00 | Cut-over. passplan 2's run 1 plans 28 June to 6 October from the hand-over and publishes version 1: 2,016 contacts on the day, 201,774 in the window (613,496 candidates, 411,722 dropped). The old planner keeps its twelve contacts in progress |
+| Thu 00:00:00 | Cut-over. passplan 2's run 1 replans the old planner's schedule from the cut-over, over 28 June to 6 October, and publishes version 1: the old planner's contacts that rose before 00:00 stay in it, flown by the old planner, and the rest is planned from the hand-over: 2,016 contacts on the day, 201,774 in the window (613,496 candidates, 411,722 dropped). The old planner keeps its twelve contacts in progress |
 | 00:01:04 | passplan 2's first contact: `cirrine-4/TIR/01069` |
 | 00:08:26 | The old planner's last contact ends (`furrow-f/ILV/00003`); at 00:10 it is switched off |
 | 05:29:26 | `furrow-a/VSK/24529`, the day's 417th contact: Furrow-A over Varsk Island at 74.9°, Hollis's pass |
@@ -5308,8 +5295,7 @@ The day in numbers: 146 runs (run 1 at the cut-over, 143 ten-minute ticks from 0
 23:50, and the two at 09:47 and 13:23); three published versions (1, 60, 83), the other runs
 finding nothing new; 2,011 contacts flown at twenty stations, 819 of them for the twenty-four
 new Furrows; no pass flown twice, none touched by both planners. Lessons that run the whole
-day test it with their own `Config` (a replan every hour, a one-day window), so it ends in
-under a second (about 0.7 s, nearly all of it predicting passes).
+day test it with their own `Config` (a replan every hour, a one-day window), so it ends in under a second. 12.9's test also puts a `dayModel` in `passModel`'s place: each pair's passes of the day predicted once and every replan's question answered from them, exactly what `predict` gives (checked for every pair from every ten-minute instant and from 09:47 and 13:23), so the day costs one day of prediction: about 0.35 s and 0.65 s of CPU, against 0.7 s and 2.3 s.
 
 **Bookings.** Where a lesson needs a booking (Season 3's `Booking`), its ID is from `bk-7001`
 to `bk-7999`: Season 5 reached `bk-5274`, and the numbers below `bk-7000` are left to Season 6.
@@ -5320,22 +5306,22 @@ Polytechnic's of Thistle-2's first pass over Port Ellery (`thistle-2/PEL/00005`)
 
 Each lesson is its own `package main` (module `lesson`). A lesson gives the pieces it needs
 from earlier chapters as read-only files under these names; `network.go` and `model.go` are
-hidden unless the readme sends the learner to read them.
+hidden unless the readme sends the learner to read them. `types.go` holds the types (Season 1's and this season's: `Site`, `Elements`, `Network`, `Window`, `Contact` and the rest), cut to what the lesson needs; `network.go` is the `newNetwork` block alone.
 
 | Chapter | The learner writes (files) | Given |
 |---|---|---|
 | 1 | `read`, `parse` (cancellable), `newest`, `merge`, `ingest`, `parseInOrder` (`ingest.go`) | `Heard`, `Health`, `parseLine`, `readFeed` from 1.7 (`telemetry.go`) |
-| 2 | `Slots`, `newSlots`, `Acquire`, `Release`, `predictAll`, `runPool`, `feed`, `offer`, `Group`, `newGroup`, `Go`, `Wait`, `Uploads`, `newUploads`, `(*Uploads).Do` (`slots.go`, `queue.go`, `group.go`) | `Elements`, `PassView`, `Contact`, `Schedule`; fake predictors in tests |
-| 3 | `Tables`, `(*Tables).Network`, `networkOnce`, `Run`, `newRun`, `Stop`, `Done`, `Stats`, `(*Stats).Add`, `Snapshot`, `Publisher`, `Current`, `Update`, `Offer` (`tables.go`, `stats.go`, `publish.go`) | `loadNetwork() (*Network, error)` (the slow loader: in tests it counts its calls), `network.go` |
-| 4 | `Days`, `Passes`, `(*Schedule).At`, `Catalog`, `ReadPasses`, `Archive`, `Bookable` (`seq.go`, `archive.go`) | `network.go`, `model.go`, `Predictor` |
-| 5 | `Filter`, `Map`, `Take`, `Zip`, `Merge`, `Compare`, `Change` (`adapt.go`, `shadow.go`) | the schedules of 2 April from both planners, as fixtures |
-| 6 | `byAOS`, `passHeap`, `Queue`, `heapOf`, `NewQueue` and methods, `MergeBy`, `stationPasses` (`queue.go`, `merge.go`) | `network.go`, `model.go`, `Passes`, `Filter` |
-| 7 | `parseLine` (strict), `lineSeeds` (`seeds.go`), `checkLine` (`checks.go`), `decodeBeacon` | `formatLine`, `encodeBeacon`, `Beacon`, the fuzz targets, corpus files |
-| 8 | `waitUntil`, `checkWaitUntil` (`checks.go`), `every`, `planWithin`, `Debouncer`, `checkDebouncer` (`checks.go`), `flyDay` (`timers.go`) | `Contact`, `Schedule`, the day's contacts as a fixture |
-| 9 | `benchPlanDay`, `benchFresh`, `benchStream`, `sameContacts`, `benchWindows` (`bench.go`) | `planOld`, `planNew`, `plan.go`, `network.go`, `model.go` |
-| 10 | `collect`, `stationReport`, `appendContact`, `exportStations`, `getScratch`, `putScratch`, `passKey`, `dedupe`, `planStationLean` (`lean.go`) | `planStationFat`, `plan.go` |
-| 11 | `fieldLines`, `tagLines`, `describe`, `checkRule`, `applyDefaults`, `Validate` (`validate.go`) | `Config`, `HostConfig`, `PipelineConfig`, the hosts' forms |
-| 12 | `planStation`, `Plan`, `handover`, `replanFrom`, `Replanner`, `takeOver` (`planner.go`, `replan.go`) | everything above, read-only: `network.go`, `model.go`, `plan.go`, `queue.go`, `merge.go`, `group.go`, `publish.go`, `timers.go` |
+| 2 | `Slots`, `newSlots`, `Acquire`, `Release`, `predictAll`, `runPool`, `feed`, `offer`, `Group`, `newGroup`, `Go`, `fail`, `Wait`, `Uploads`, `newUploads`, `(*Uploads).Do` (`slots.go`, `predict.go`, `pool.go`, `queue.go`, `group.go`, `uploads.go`) | `Elements`, `PassView`, `Contact`, `Schedule`; 2.1's `predictAll` (`predict.go`); `network.go` and `model.go` in 2.8; fake predictors in tests |
+| 3 | `Tables`, `(*Tables).Network`, `networkOnce`, `Run`, `newRun`, `Stop`, `Done`, `Stats`, `(*Stats).Add`, `Snapshot`, `Publisher`, `Current`, `Update`, `Offer` (`tables.go`, `run.go`, `stats.go`, `publish.go`) | `loadNetwork() (*Network, error)` (the slow loader: in tests it counts its calls), `network.go` |
+| 4 | `Days`, `Passes`, `(*Schedule).At`, `Catalog`, `ReadPasses`, `Archive`, `Bookable` (`seq.go`, `archive.go`) | `network.go` and `model.go` (hidden); `Predictor` above `Passes` in `seq.go`; `byAOS` as it stands until 6.1 (the AOS alone) and `canServe` (`plan.go`) in 4.5 and 4.8; `parsePass` (`passline.go`) in 4.6 and 4.7; in 4.4 the schedule of 2 April, planned by a hidden test file from hidden `network.go`, `model.go` and `plan.go` |
+| 5 | `Filter`, `Map`, `Take`, `Zip`, `Merge`, `Compare` (`adapt.go`, `shadow.go`); `main` in 5.1 and 5.5 | `types.go`; the earlier adapters back in the editable `adapt.go`, read-only in 5.5; `Change` above `Compare` in `shadow.go`, and `changes` (`match.go`, read-only) in 5.9; the schedule of 2 April, planned from scratch by a hidden test file (a hidden `wave.go` in 5.5) from hidden `network.go`, `model.go` and `plan.go`, with `byAOS` as it stands until 6.1; in 5.9 both planners' schedules of 5 April, planned the same way by a hidden test file |
+| 6 | `byAOS`, `passHeap`, `Queue`, `heapOf`, `NewQueue` and methods, `MergeBy`, `stationPasses` (`plan.go`, `queue.go`, `merge.go`) | `network.go`, `model.go`, `plan.go`, `Predictor` and `Passes` (`seq.go`), `Filter` (`adapt.go`) |
+| 7 | `parseLine` (strict, `parse.go`), `lineSeeds` (`seeds.go`), `checkLine` (`checks.go`), `decodeBeacon` (`decode.go`) | `formatLine` (`telemetry.go`), `encodeBeacon` and `Beacon` (`beacon.go`), the fuzz targets, Mirela's reference parser (hidden), corpus files |
+| 8 | `waitUntil`, `checkWaitUntil` (`checks.go`), `every`, `planWithin`, `Debouncer`, `checkDebouncer` (`checks.go`), `flyDay` (`timers.go`) | `Contact`, `Schedule` (`types.go`); the earlier `timers.go`, read-only, in 8.2 and 8.7; `notifier` (`checks.go`); in 8.8 the day's contacts as a fixture, planned by a hidden test file from hidden `network.go`, `model.go` and `plan.go`; Nkem's mutants in the tests |
+| 9 | `benchPlanDay`, `benchFresh`, `benchStream`, `sameContacts`, `benchWindows` (`bench.go`) | `june28`, `stationDay`, `dayCounts`, `planned` and `planDay` (`day.go`, read-only in 9.1, 9.2, 9.4 and 9.5); `planOld` and `planNew` (`planners.go`, read-only in 9.6 and 9.8) with chapter 6's `seq.go`, `adapt.go`, `queue.go` and `merge.go`, hidden; `plan.go` (read-only in 9.1 to 9.5, hidden in 9.6 and 9.8); `network.go` and `model.go`, hidden; `Config` in `types.go` in 9.6 and 9.8 |
+| 10 | `collect`, `stationReport`, `appendContact`, `exportStations`, `getScratch`, `putScratch`, `passKey`, `dedupe`, `planStationLean` (`lean.go`) | `planStationFat` (`fat.go`, 10.8); earlier solutions read-only: `appendContact` (`loader.go`, 10.5), the pool with `getScratch`, `putScratch` and `maxScratch` (`scratch.go`, 10.8), `passKey` (`keys.go`, 10.8); `plan.go` (read-only in 10.8, hidden elsewhere); `types.go`; hidden `network.go`, `model.go`, chapter 9's `day.go` (10.1, 10.6–10.8) and chapter 8's `day_test.go` (10.2, 10.4, 10.5) |
+| 11 | `fieldLines`, `tagLines`, `describe`, `checkRule`, `measure`, `applyDefaults`, `Validate` (`validate.go`) | `Config`, `HostConfig`, `PipelineConfig` (`types.go`); `main`, with 11.2's `Note` (`main.go`, in 11.1 and 11.2); from 11.6, `checkRule` cutting each rule at `=` with the `min` and `max` messages and `misfit`, in the editable file; `setText` (`defaults.go`) in 11.8; in 11.10, read-only, `checkRule`, `misfit` and `measure` (`rules.go`), `applyDefaults` and `setText` (`defaults.go`) and the hosts' forms as first sent, `hostForms` and `form` (`forms.go`) |
+| 12 | `planStation`, `Plan`, `handover`, `replanFrom`, `(*Replanner).Run`, `heard`, `takeOver` (`planner.go`, `replan.go`) | everything above, read-only (`network.go` and `model.go` hidden): `plan.go` (with `stowedDuring`), 4.8's `seq.go`, 5.7's `adapt.go`, chapter 6's `queue.go` and `merge.go`, `group.go`, `publish.go`, `timers.go`; `passmodel.go` (`passModel`, the model `planStation` asks, which tests replace); `Stow`, `Schedule`, `Config` and `Event` in `types.go`; the rest of the `Replanner` (`newReplanner`, `publish`) in `replan.go` from 12.6; the earlier `planner.go`, read-only, in 12.6, 12.7 and 12.9; answer keys in a hidden `ref_test.go` (all but 12.6) |
 
 Signatures every lesson after the one that defines them uses exactly (with the ones listed in
 the sections above):
@@ -5360,7 +5346,7 @@ func runPool(ctx context.Context, jobs <-chan Elements, workers int, do func(con
 func feed(ctx context.Context, contacts []Contact, q chan<- Contact) error
 func offer(q chan *Schedule, s *Schedule) (dropped int)
 func newGroup(ctx context.Context, limit int) (*Group, context.Context)
-func (g *Group) Go(job func(ctx context.Context) error) // waits for a slot; runs nothing once the group has failed
+func (g *Group) Go(job func(ctx context.Context) error) // waits for a slot; runs nothing once the group's context has ended, and fails the group with that cause
 func (g *Group) Wait() error                            // the first error, after every job has returned
 func newUploads(perStation int) *Uploads
 func (u *Uploads) Do(ctx context.Context, station string, upload func() error) error
@@ -5392,21 +5378,22 @@ func checkDebouncer(t *testing.T, newD func(quiet time.Duration, fire func()) no
 // chapter 9
 func planOld(n *Network, w Window, cfg Config) []Contact
 func planNew(n *Network, w Window, cfg Config) []Contact
+func stationDay(code string, day time.Time) (Site, []PassView)                   // the station and its candidates that day, in fleet order
 func planDay(cands []PassView, sites []Site, turnaround time.Duration) []Contact // sorts cands in place, then assigns
 func benchPlanDay(b *testing.B)
 func benchFresh(b *testing.B)
 func benchStream(b *testing.B)
-func sameContacts(old, new []Contact) error // "contact 213: old pipit-3/TIR/12398 dish 1, new pipit-3/TIR/12398 dish 2"
+func sameContacts(old, new []Contact) error // "contact 213: old cirrine-5/ILV/00445 dish 1, new cirrine-5/ILV/00445 dish 2"
 func benchWindows(b *testing.B)             // sub-benchmarks old/hours=6 ... new/hours=24
 
 // chapter 10
 func collect(seq iter.Seq[PassView], n int) []PassView
-func stationReport(code string, contacts []Contact) string
+func stationReport(code string, contacts []Contact) string // "CWR contacts: 76", then "cirrine-1/CWR/19862 dish 1" a contact
 func appendContact(dst []byte, c Contact) []byte
 func exportStations(w io.Writer, byStation map[string][]Contact, codes []string) error
 func getScratch() *[]PassView
-func putScratch(p *[]PassView)
-type passKey struct { // a pass's identity without formatting its ID
+func putScratch(p *[]PassView) // keeps none over maxScratch (65536) passes
+type passKey struct {          // a pass's identity without formatting its ID
 	SatID, Station string
 	AOS            int64 // Unix seconds
 }
@@ -5419,20 +5406,26 @@ func fieldLines(v any) []string // "Slots int int"
 func tagLines(v any) []string   // "Slots: min=1,max=64"
 func describe(v any) []string   // "Slots=12"
 func checkRule(name string, v reflect.Value, rule string) error
+func misfit(name, rule string, t reflect.Type) error             // "Config.Slots: rule len=3 does not fit int"
+func measure(v reflect.Value, text string) (int, any, any, bool) // cmp.Compare's result, v and the bound for %v; false when the bound doesn't fit v
 func applyDefaults(ptr any) error
+func setText(v reflect.Value, text string) error // a duration, an int, a float or a string, from text
 func Validate(v any) error
 
 // chapter 12
+var passModel Predictor = predict // passmodel.go: the pass model planStation asks; tests replace it
 func planStation(ctx context.Context, n *Network, s Site, w Window, free []time.Time, stows []Stow, cfg Config) ([]Contact, int, error)
 func Plan(ctx context.Context, n *Network, w Window, free map[string][]time.Time, stows []Stow, cfg Config) (*Schedule, error)
 func handover(cur *Schedule, at time.Time, turnaround time.Duration) map[string][]time.Time
 func replanFrom(ctx context.Context, n *Network, cur *Schedule, at time.Time, stows []Stow, cfg Config) (*Schedule, error)
+// Event is news for the replanner: a tick, or a stow that begins or ends.
 type Event struct {
 	At   time.Time
 	Stow *Stow // nil for a tick; a stow with a zero To begins, one with a To ends it
 }
 func newReplanner(n *Network, pub *Publisher, cfg Config, now func() time.Time) *Replanner
 func (r *Replanner) Run(ctx context.Context, events <-chan Event) error
+func heard(stows []Stow, st Stow) []Stow // 12.7: st begun, or its station's open stow ended, in a new slice
 func takeOver(ctx context.Context, n *Network, old *Schedule, at time.Time, events <-chan Event, cfg Config, now func() time.Time, fly func(Contact)) error
 ```
 
@@ -5440,10 +5433,11 @@ func takeOver(ctx context.Context, n *Network, old *Schedule, at time.Time, even
   contact lists with `MergeBy`, and returns a schedule whose `Version` the caller sets; its
   first error cancels the other stations and is returned.
 - `replanFrom` keeps `cur`'s contacts with AOS before `at`, plans from `at` with `handover(cur,
-  at, cfg.Turnaround)`, and returns both together, by AOS then ID.
+  at, cfg.Turnaround)`, and returns both together in a new slice, by AOS then ID, over `cur`'s window; its `Dropped` counts the passes from `at` on. `handover` gives a station an entry for each dish up to the highest its contacts before `at` used; a dish with no entry is free now, as `assign` reads `free`.
 - A `Replanner` takes the next run number for every event (a tick or a stow), cancels the run in
   progress, plans from the event's instant with every stow it has heard of, and offers the
-  result; a run whose contacts equal the current schedule's offers nothing.
+  result; a run whose contacts equal the current schedule's offers nothing. Its runs are numbered after the publisher's current version; `Run` also replans every `cfg.Replan` on a ticker of its own, plans each run through `planWithin(ctx, cfg.RunLimit, …)`, waits for its runs before returning (when `events` closes, the last one still finishes), and leaves word in its `news` channel (room for one) after each schedule it publishes, which the station runner reads.
+- `takeOver` replans a copy of `old` given passplan 2's window (`cfg.Days` days from `at`) from `at` and publishes it as version 1; it runs a `Replanner` on `events` and flies each contact of the newest schedule at its AOS, the first after the last one flown in `byAOS` order (starting from a pass at `at` with no ID), waking on the `Replanner`'s `news` to read the schedule again; once `ctx` ends it waits for `Run` and returns `ctx.Err()`.
 
 #### How lessons test it
 
@@ -5459,7 +5453,7 @@ func takeOver(ctx context.Context, n *Network, old *Schedule, at time.Time, even
   `goroutines left after cancel = 3, want 0`. (A leaked goroutine inside a synctest bubble
   ends the whole test binary with a deadlock panic, so leak checks never use a bubble.)
 - Every wait in a test has a guard of about a second, so a wrong starter fails within a second
-  or two and never hangs the run.
+  or two and never hangs the run. The guard is for what right code does at once: a wait on real work, such as 2.8's day of predictions (up to 0.4 s under `-race` on a busy machine), gets five seconds of its own, and the guard starts after it. A wait on a loop that can run on without yielding also caps memory: 5.9's walk fails once it has allocated 64 MB (a right walk of a day allocates 64 KB), since a loop that appends without pulling takes gigabytes within the guard's second, and the table stops at the first walk still running. 12.9's station runner test ends the day after 3,000 flights, more than a day holds, so a runner that flies one contact over and over stops. A check that can fail a wrong starter only by waiting out its guard (12.2's twelve stations at once) runs first, with a guard of its own, and the checks after it run only once it passes, so the starter fails in about a second.
 - Tests plan a day or a week, lesson 12.8 included. The model watches each satellite's elevation,
   about 4 µs a pass on one core: a day of every pass (7,485) takes 35 ms, a week of servable
   passes 0.2 s, a hundred days 3 s, so a hundred days and a quarter stay story numbers.
@@ -5474,9 +5468,9 @@ and synctest lessons use `testing`; atomics use `goroutines` and `mutexes`.
 **New field guide words** (world words only; Go words are taught in readmes): passplan,
 passplan 2, planner slot, candidate (pass), contact, dropped pass, turnaround, window, shadow
 run, cut-over, hand-over, take-over day, host, wave, rideshare, deployment, elements, first
-contact, telemetry feed, the drill, dish loader, pass archive, Thistle-2. Carried over and
+contact, telemetry feed, the drill, dish loader, pass archive, Thistle-2, planning run, test Board, station runner. Carried over and
 needed again: AOS, LOS, pass, pass ID, LEOP, stow, mask, max elevation, catalog, the Board, the
-Fishbowl, booking, bookingd, tlmd, UTC.
+Fishbowl, booking, bookingd, tlmd, UTC, benchmark (Season 6's), band (Season 1's), deploy (Season 4's).
 
 **Name checks** to run before the season ships: the fifteen station names. A web search on
 6 November 2026 found nothing real under Tirrin Rock, Varsk Island, Calidra Atoll, Ilha
