@@ -2,9 +2,10 @@
 
 **Authoring status:** in progress. The simulated world and the whole reference program are
 built, and the investors' week runs in them exactly as the bible scripts it; every lesson's
-solution is a cut of that program. Chapters 1–5 are implemented as 24 lessons, each written from
-this plan and independently reviewed, and chapter 1 was read in the app in light and dark.
-Chapter 6 is still to be written and reviewed, and chapters 2–6 are still to be read in the app.
+solution is a cut of that program. All six chapters are implemented as 29 lessons. Chapters 1–5
+were each written from this plan and independently reviewed, and chapter 1 was read in the app
+in light and dark; chapter 6 is written and still to be reviewed, and chapters 2–6 are still to
+be read in the app.
 The lessons in `courses/apogee.sqlite` are the source of truth, and the larger changes from this
 plan so far are listed under "Changes in writing and review" at the end.
 
