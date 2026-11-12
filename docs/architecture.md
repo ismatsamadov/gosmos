@@ -14,11 +14,14 @@ the files themselves. Everything lives in this one repository.
 | `courses/` | The course libraries built into the app: `apogee.sqlite`, the Apogee courses planned in `docs/apogee/` |
 | `db/schema.sql` | A library's schema (format in `user_version`); `db/` also holds the Go package that creates, opens, checks and migrates libraries, with the schema embedded, and `db/history/` the schema of every older format |
 | `db/learner.sql` | The learner database's schema |
-| `cmd/library/` | The library tool, for any library: `create`, `check`, `migrate`, `verify` |
+| `cmd/library/` | The library tool, for any library: `create`, `check`, `migrate`, `verify`, `drift` |
 | `cmd/author/`, `internal/` | The authoring tool: writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` refuses pictures, videos and embeds |
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |
+| `cmd/passes/` | The pass model of the Apogee world, as the lessons carry it, printing passes for writers |
+| `scripts/pkgcheck.sh` | Checks lesson packages before import (`docs/authoring.md`) |
+| `app/scripts/snapshot.sh` | Draws one screen of a copy of the app to a PNG, under its own bundle identifier and learner data |
 | `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify` |
 
 ## The databases

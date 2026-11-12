@@ -48,14 +48,16 @@ never runs git and syncs nothing.
 | `db/schema.sql` | A library's tables, constraints and conventions (format 9) |
 | `db/learner.sql` | The learner database's tables |
 | `db/` | The Go package that creates, opens, checks and migrates libraries; `db/history/` keeps the schema of every older format |
-| `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify` |
+| `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify`, `drift` |
 | `cmd/author/`, `internal/` | Go tool: writes lessons, and a course's story, into a library from packages, and exports them back |
+| `cmd/passes/` | Go tool: the passes of the Apogee world, from the pass model every pass in its courses comes from |
+| `scripts/pkgcheck.sh` | Checks lesson packages before they are imported: readme rules, hints, 30 runs, `-race`, failing starters |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |
 | `docs/library-format.md` | The library format: what any library must hold, and what the app checks |
 | `docs/architecture.md` | How the pieces fit together, and why |
 | `docs/design.md` | How the app looks and behaves |
 | `docs/apogee/` | The Apogee courses: their world, their Go syllabus, a sample chapter |
-| `docs/authoring.md` | How every new course is made: the steps, where things go, the checks |
+| `docs/authoring.md` | How lessons, chapters and courses are added and fixed: the tools, the steps, the checks, the world's numbers, seeing it in the app (`app/scripts/snapshot.sh`) |
 | `Makefile` | `make install` builds and installs the app; `make test`, `make check`, `make verify` |
 
 ## Requirements
