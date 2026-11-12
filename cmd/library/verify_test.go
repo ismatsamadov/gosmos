@@ -245,6 +245,33 @@ func TestVerifyOneCourse(t *testing.T) {
 	}
 }
 
+// A guided project's tests run the whole program built so far, so verify gives its lessons
+// longer before it calls a run slow; a course's lessons keep the shorter limit.
+func TestVerifyGivesGuidedProjectsLonger(t *testing.T) {
+	slow, project := slowAfter, projectSlowAfter
+	slowAfter, projectSlowAfter = 800*time.Millisecond, 3*time.Second
+	t.Cleanup(func() { slowAfter, projectSlowAfter = slow, project })
+
+	sleepy := map[string]string{"main.go": program("\ttime.Sleep(1500 * time.Millisecond)\n\tfmt.Print(\"Hello, Apogee!\\n\")\n")}
+	stmts := codeLessonSQL("slow", "type_code", 0, expect(greeting), map[string]string{"main.go": todo}, sleepy)
+	stmts = append(stmts,
+		`INSERT INTO course VALUES ('c-project', 'build-a-pad', 'Build a Pad', 'Guided Project', 'One program.', 'An invented project.', 1)`,
+		`INSERT INTO chapter VALUES ('ch-project', 'c-project', 0, '1-pad', 'Pad', '')`,
+	)
+	for _, stmt := range codeLessonSQL("slow-step", "type_code", 0, expect(greeting), map[string]string{"main.go": todo}, sleepy) {
+		stmts = append(stmts, strings.Replace(stmt, "'ch-verify'", "'ch-project'", 1))
+	}
+	path := verifyLibrary(t, stmts...)
+
+	code, byLesson, out := problems(t, path)
+	if code != 1 || len(byLesson["slow"]) != 1 || !strings.HasSuffix(byLesson["slow"][0], "to run, over 800ms") {
+		t.Errorf("the course's lesson, 1.5 s against 800ms: exit %d, problems %q, want one, over 800ms", code, byLesson["slow"])
+	}
+	if strings.Contains(out, "build-a-pad/") {
+		t.Errorf("the guided project's lesson, 1.5 s against 3s, was reported:\n%s", out)
+	}
+}
+
 // A starter without a go.mod gets the one the app writes: the language version of the Go
 // toolchain that runs it, so a lesson may use what that Go has. errors.AsType came in Go 1.26.
 func TestVerifyUsesTheToolchainsGoVersion(t *testing.T) {

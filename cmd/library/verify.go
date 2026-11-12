@@ -27,13 +27,15 @@ import (
 )
 
 var (
-	runTimeout   = 10 * time.Second // a run that takes longer is stopped and reported
-	slowAfter    = 2 * time.Second  // a run that takes longer is reported as slow
-	buildTimeout = 2 * time.Minute  // building is not a run: a cold build cache is slow
+	runTimeout       = 10 * time.Second // a run that takes longer is stopped and reported
+	slowAfter        = 2 * time.Second  // a run that takes longer is reported as slow
+	projectSlowAfter = 5 * time.Second  // the same for a guided project, whose tests run the whole program so far
+	buildTimeout     = 2 * time.Minute  // building is not a run: a cold build cache is slow
 )
 
 type codeLesson struct {
 	uuid, name, typ string // name is course/chapter/lesson
+	project         bool   // its course is a guided project
 	expected        sql.NullString
 	starter         []starterFile
 	solution        map[string]string
@@ -180,7 +182,7 @@ func plural(n int, thing string) string {
 }
 
 func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLesson, error) {
-	query := `SELECT l.uuid, co.slug || '/' || ch.slug || '/' || l.slug, l.type, c.expected_output
+	query := `SELECT l.uuid, co.slug || '/' || ch.slug || '/' || l.slug, l.type, c.expected_output, co.kind = 'Guided Project'
 		FROM lesson l JOIN code_lesson c ON c.lesson_uuid = l.uuid
 		JOIN chapter ch ON ch.uuid = l.chapter_uuid JOIN course co ON co.uuid = ch.course_uuid`
 	var args []any
@@ -199,7 +201,7 @@ func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLess
 	var ls []*codeLesson
 	for rows.Next() {
 		l := &codeLesson{solution: map[string]string{}}
-		if err := rows.Scan(&l.uuid, &l.name, &l.typ, &l.expected); err != nil {
+		if err := rows.Scan(&l.uuid, &l.name, &l.typ, &l.expected, &l.project); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -237,6 +239,14 @@ func loadCodeLessons(ctx context.Context, d *sql.DB, course string) ([]*codeLess
 	return ls, nil
 }
 
+// slowLimit is how long a run of l may take before it is reported as slow.
+func (l *codeLesson) slowLimit() time.Duration {
+	if l.project {
+		return projectSlowAfter
+	}
+	return slowAfter
+}
+
 // verifyLesson returns the problems of one code lesson.
 func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson) []string {
 	var problems []string
@@ -268,8 +278,8 @@ func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson) []str
 		case r.timedOut:
 			add("%s did not finish within %s", what, runTimeout)
 			continue
-		case r.built && r.took > slowAfter:
-			add("%s took %s to run, over %s", what, r.took.Round(10*time.Millisecond), slowAfter)
+		case r.built && r.took > l.slowLimit():
+			add("%s took %s to run, over %s", what, r.took.Round(10*time.Millisecond), l.slowLimit())
 		}
 		switch {
 		case side == "solution" && !r.built && tests:
