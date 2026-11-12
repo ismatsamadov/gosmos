@@ -18,6 +18,7 @@ struct ReadmeColumn<Footer: View>: View {
                 VStack(alignment: .leading, spacing: 0) {
                     LessonHeader(lesson: lesson)
                         .padding(.bottom, 24)
+                        .id(ReadmeColumnAnchor.top)
                     // Not once the lesson is marked not done again: its XP is gone then.
                     if lesson.justPassed && (lesson.isReview || lesson.isDone) {
                         MissionCompletePanel(lesson: lesson)
@@ -58,6 +59,9 @@ struct ReadmeColumn<Footer: View>: View {
             .onChange(of: lesson.footerRequests) {
                 withAnimation(reduceMotion ? nil : .smooth) { proxy.scrollTo(ReadmeColumnAnchor.footer, anchor: .top) }
             }
+            .onChange(of: lesson.topRequests) {
+                withAnimation(reduceMotion ? nil : .smooth) { proxy.scrollTo(ReadmeColumnAnchor.top, anchor: .top) }
+            }
         }
         .textSelection(.enabled)
         .background(Theme.surface)
@@ -90,7 +94,7 @@ struct ReadmeColumn<Footer: View>: View {
     private var lockedReason: String { "The last hint opens after a Submit that fails." }
 }
 
-enum ReadmeColumnAnchor: Hashable { case footer }
+enum ReadmeColumnAnchor: Hashable { case top, footer }
 
 /// The lesson's reference solution: a button that shows it beside your code, and what a look
 /// does. Before you pass, looking is fine but brings the lesson back for review; after, it

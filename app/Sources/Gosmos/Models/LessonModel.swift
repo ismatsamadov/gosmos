@@ -33,6 +33,9 @@ final class LessonModel {
     private(set) var finishedChapter = false
     /// Bumped to bring the part below the readme (the quiz) into view.
     private(set) var footerRequests = 0
+    /// Bumped to bring the top of the readme into view, where a pass that finishes the chapter
+    /// shows its debrief.
+    private(set) var topRequests = 0
     /// Which hints show, and whether the next may.
     private(set) var hints: HintState
     /// The reference solution beside your code, while you look at it.
@@ -175,8 +178,11 @@ final class LessonModel {
         if let code {
             code.run(submit: true)
         } else if let quiz {
-            footerRequests += 1
+            let top = topRequests
             quiz.submit()
+            // The verdicts are below the readme, unless this pass finished the chapter: then
+            // markPassed has asked for its debrief, above the readme, instead.
+            if topRequests == top { footerRequests += 1 }
         }
     }
 
@@ -199,6 +205,8 @@ final class LessonModel {
         guard !isReview else { return }
         if scheduled { comesBackForReview = true }
         finishedChapter = finishing ?? finishesChapter
+        // The debrief shows above the readme, which may be scrolled down to the task or the quiz.
+        if finishedChapter { topRequests += 1 }
         app?.setDone(ref, true)
     }
 
