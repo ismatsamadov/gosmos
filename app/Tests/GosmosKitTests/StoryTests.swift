@@ -123,6 +123,22 @@ import Testing
         #expect(alone.map(\.1) == ["uplink"])
     }
 
+    /// A term is never linked inside a longer name, where its link would open the wrong
+    /// meaning: a longer term linked earlier ("passplan" in a second "passplan 2"), a numbered
+    /// name ("Cirrine-4") or a hyphenated word ("sub-benchmark"); its first use on its own links
+    /// instead. A name that goes on in letters, as "HMAC-SHA256" does, still links its term.
+    @Test func aTermInsideALongerNameIsNotLinked() {
+        let terms = [CourseStory.Term(term: "passplan", meaning: "The old planner."),
+                     CourseStory.Term(term: "passplan 2", meaning: "The new planner."),
+                     CourseStory.Term(term: "Cirrine", meaning: "A customer."),
+                     CourseStory.Term(term: "benchmark", meaning: "A timed run."),
+                     CourseStory.Term(term: "HMAC", meaning: "A keyed hash.")]
+        let readme = "passplan 2 plans. Then passplan 2 replans, Cirrine-4 rises, a sub-benchmark runs and HMAC-SHA256 signs. Cirrine waits, the benchmark ends and passplan stops."
+        let found = Self.links(TermLinker.link(Readme.parse(readme), terms: terms))
+        #expect(found.map(\.1) == ["passplan 2", "HMAC", "Cirrine", "benchmark", "passplan"])
+        #expect(found.map(\.0) == ["gosmos-term:passplan%202", "gosmos-term:HMAC", "gosmos-term:Cirrine", "gosmos-term:benchmark", "gosmos-term:passplan"])
+    }
+
     @Test func termsMatchWholeWordsOnly() {
         #expect(TermLinker.wholeWord("AOS", in: "CHAOS reigns") == nil)
         #expect(TermLinker.wholeWord("pass", in: "a password") == nil)

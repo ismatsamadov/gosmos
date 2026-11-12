@@ -165,12 +165,15 @@ public enum TermLinker {
         }
 
         /// The first whole-word use of `spelling` in `text`, passing over a word that with its
-        /// ending is another term of the guide: "uplinkd" is never "uplink" with a "d".
+        /// ending is another term of the guide ("uplinkd" is never "uplink" with a "d") and a
+        /// use inside a longer name (TermLinker.isInsideLongerName).
         func use(of spelling: String, as name: String, in text: String) -> Range<String.Index>? {
             var from = text.startIndex
             while let range = TermLinker.wholeWord(spelling, in: text, from: from) {
                 let word = text[range].lowercased()
-                if word == name.lowercased() || !all.contains(word) { return range }
+                if (word == name.lowercased() || !all.contains(word)) && !TermLinker.isInsideLongerName(range, in: text, terms: all) {
+                    return range
+                }
                 from = range.upperBound
             }
             return nil
@@ -208,4 +211,27 @@ public enum TermLinker {
     }
 
     static func isWordCharacter(_ c: Character) -> Bool { c.isLetter || c.isNumber || c == "_" }
+
+    /// Whether the use of a term at `range` is part of a longer name, whose meaning its link
+    /// would get wrong: another term of the guide that starts there ("passplan" in a "passplan 2"
+    /// linked earlier), a numbered name ("Cirrine" in "Cirrine-4") or a hyphenated word
+    /// ("benchmark" in "sub-benchmark"). A name that goes on in letters, as "HMAC-SHA256" does,
+    /// still links its term. `terms` are the guide's, lowercased.
+    static func isInsideLongerName(_ range: Range<String.Index>, in text: String, terms: Set<String>) -> Bool {
+        if range.lowerBound > text.startIndex {
+            let hyphen = text.index(before: range.lowerBound)
+            if text[hyphen] == "-", hyphen > text.startIndex, isWordCharacter(text[text.index(before: hyphen)]) { return true }
+        }
+        if range.upperBound < text.endIndex, text[range.upperBound] == "-" {
+            let next = text.index(after: range.upperBound)
+            if next < text.endIndex, text[next].isNumber { return true }
+        }
+        let rest = text[range.lowerBound...].lowercased()
+        let length = text.distance(from: range.lowerBound, to: range.upperBound)
+        return terms.contains { term in
+            guard term.count > length, rest.hasPrefix(term) else { return false }
+            let end = rest.index(rest.startIndex, offsetBy: term.count)
+            return end == rest.endIndex || !isWordCharacter(rest[end])
+        }
+    }
 }

@@ -1,4 +1,5 @@
 import AppKit
+import CodeEditor
 import GosmosKit
 import SwiftUI
 
@@ -37,6 +38,18 @@ struct GosmosApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let app = AppModel()
+    /// The pasteboard's change count when the app last came forward.
+    private var pasteboardChanges = NSPasteboard.general.changeCount
+
+    // Text copied here from a readme carries the characters that lay its inline code out
+    // (InlineCodeText); another app gets it without them, as the editor does (PastedText).
+    func applicationDidResignActive(_ notification: Notification) {
+        let board = NSPasteboard.general
+        guard board.changeCount != pasteboardChanges, let text = board.string(forType: .string),
+              PastedText.needsCleaning(text) else { return }
+        board.clearContents()
+        board.setString(PastedText.clean(text), forType: .string)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.app.info("Launched")
@@ -127,8 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Back from another app, such as the editor the lesson folder is open in: take in edits
-    /// made there, and count what has come due meanwhile.
+    /// made there, count what has come due meanwhile, and note the pasteboard, so text copied
+    /// here is known when the app goes to the back.
     func applicationDidBecomeActive(_ notification: Notification) {
+        pasteboardChanges = NSPasteboard.general.changeCount
         app.lesson?.code?.save()
         Task { await app.refreshDueCount() }
     }

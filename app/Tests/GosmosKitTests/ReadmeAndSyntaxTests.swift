@@ -157,6 +157,19 @@ import Testing
     }
 }
 
+/// Inline code a line can hold keeps to one line; longer code breaks where it must.
+@Suite struct InlineCodeTextTests {
+    @Test func shortCodeKeepsToOneLine() {
+        let code = "go test -bench=. -benchmem"
+        let shown = InlineCodeText.shown(code)
+        #expect(shown.unicodeScalars.filter { $0 == "\u{2060}" }.count == code.count - 1)
+        #expect(shown.replacingOccurrences(of: "\u{2060}", with: "") == code)
+        let long = String(repeating: "x", count: InlineCodeText.unbrokenLimit + 1)
+        #expect(InlineCodeText.shown(long) == long)
+        #expect(InlineCodeText.shown("x") == "x")
+    }
+}
+
 @Suite struct GoLexerTests {
     func kinds(_ code: String) -> [(String, SyntaxKind)] {
         let ns = code as NSString

@@ -70,6 +70,21 @@ import Testing
         return textView
     }
 
+    /// Code copied from a readme carries the characters that lay it out there; a paste leaves
+    /// them out, and keeps everything else.
+    @Test func aPasteLeavesOutCharactersThatNeverBelongInCode() {
+        #expect(PastedText.clean("\u{202F}o\u{2060}s\u{2060}.\u{2060}Open\u{202F}") == "os.Open")
+        #expect(PastedText.clean("a\u{200B}b\u{FEFF}c d\u{00A0}e") == "abc d\u{00A0}e")
+        #expect(!PastedText.needsCleaning("plain code"))
+        let textView = makeTextView("x := ", selection: 5)
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        board.declareTypes([.string], owner: nil)
+        board.setString("\u{202F}o\u{2060}s\u{2060}.\u{2060}Getwd()\u{202F}", forType: .string)
+        #expect(textView.readSelection(from: board, type: .string))
+        #expect(textView.string == "x := os.Getwd()")
+    }
+
     @Test func usesTextKit2WithCodeFriendlySettings() {
         let textView = makeTextView("x", selection: 0)
         #expect(textView.textLayoutManager != nil)

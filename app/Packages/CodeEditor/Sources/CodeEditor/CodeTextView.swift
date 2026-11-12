@@ -107,6 +107,19 @@ final class CodeTextView: NSTextView {
         super.insertText(insertString, replacementRange: replacementRange)
     }
 
+    // A paste or a drop leaves out the characters that never belong in code (PastedText), such
+    // as those that lay inline code out in a lesson's readme.
+    override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        guard let text = pboard.string(forType: .string), PastedText.needsCleaning(text) else {
+            return super.readSelection(from: pboard, type: type)
+        }
+        let cleaned = NSPasteboard.withUniqueName()
+        defer { cleaned.releaseGlobally() }
+        cleaned.declareTypes([.string], owner: nil)
+        cleaned.setString(PastedText.clean(text), forType: .string)
+        return super.readSelection(from: cleaned, type: .string)
+    }
+
     /// The text's characters, read in place without copying.
     var characters: NSString {
         textStorage?.mutableString ?? ""
