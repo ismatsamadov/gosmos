@@ -6134,7 +6134,7 @@ the simulated world, simulated time, the investors' week, pass line, radio (a st
 for the week, Kessick's receiver, science file. Carried over and needed again: pass, contact,
 candidate, dropped pass, pass archive, booking, AOS, LOS, banner, frame, CRC, backhaul, fiber, stow,
 wind lock, master key, derived key, sealed command, LOAD_KEY, overlap, retire, webhook, landing, on
-call, page, the morning list, error budget, night shift, the Fishbowl, the Board.
+call, page, the morning list, error budget, night shift, uplinkd, dlinkd, the Fishbowl, the Board.
 
 **Name checks** (web search, 10 November 2026): "Ground Segment Lead" is a common job title in
 real space-industry postings, a generic title like "ground station engineer", not a company,

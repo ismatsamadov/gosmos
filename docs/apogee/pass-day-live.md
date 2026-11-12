@@ -1,12 +1,13 @@
 # Pass Day, Live: syllabus
 
-**Authoring status:** in progress. The simulated world and the whole reference program are
+**Authoring status:** complete. The simulated world and the whole reference program are
 built, and the investors' week runs in them exactly as the bible scripts it; every lesson's
 solution is a cut of that program. All six chapters are implemented as 29 lessons, each
 written from this plan and independently reviewed. Chapter 1 was read in the app in light and
-dark; chapters 2–6 are still to be read in the app.
+dark before the rest was written, and chapters 2–6 were read the same way once all were
+reviewed.
 The lessons in `courses/apogee.sqlite` are the source of truth, and the larger changes from this
-plan so far are listed under "Changes in writing and review" at the end.
+plan are listed under "Changes in writing and review" at the end.
 
 The capstone of the Apogee series, after Season 7; story time 2 to 20 July 2029, with the
 investors' week of 23 to 29 July as its finale. The world, the characters, the code and the
