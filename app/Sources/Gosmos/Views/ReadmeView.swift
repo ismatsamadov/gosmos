@@ -463,8 +463,9 @@ enum Inline {
                     out += a
                 case .code(let s):
                     // A subtle capsule: a narrow no-break space on each side inside a faint
-                    // background, so the padding never wraps away from the code.
-                    var a = AttributedString("\u{202F}" + s + "\u{202F}")
+                    // background, so the padding never wraps away from the code, and code short
+                    // enough for a line kept to one (InlineCodeText).
+                    var a = AttributedString("\u{202F}" + InlineCodeText.shown(s) + "\u{202F}")
                     a.font = .system(size: (size * 0.88).rounded(), weight: bold ? .semibold : .regular, design: .monospaced)
                     a.backgroundColor = Color.secondary.opacity(0.13)
                     if let link { a.link = link }
