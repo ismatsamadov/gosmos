@@ -2,10 +2,9 @@
 
 **Authoring status:** in progress. The simulated world and the whole reference program are
 built, and the investors' week runs in them exactly as the bible scripts it; every lesson's
-solution is a cut of that program. All six chapters are implemented as 29 lessons. Chapters 1–5
-were each written from this plan and independently reviewed, and chapter 1 was read in the app
-in light and dark; chapter 6 is written and still to be reviewed, and chapters 2–6 are still to
-be read in the app.
+solution is a cut of that program. All six chapters are implemented as 29 lessons, each
+written from this plan and independently reviewed. Chapter 1 was read in the app in light and
+dark; chapters 2–6 are still to be read in the app.
 The lessons in `courses/apogee.sqlite` are the source of truth, and the larger changes from this
 plan so far are listed under "Changes in writing and review" at the end.
 
@@ -275,29 +274,29 @@ what never came.
 
 `the-storm` · 5 lessons · Monday 16 to Friday 20 July
 
-Write structured logs on the simulated clock, count the week, page through Season 6's rules as
+Write structured logs on the simulated clock, count the week, page through the pager's rules as
 Ystmark's storm arrives, and write the week's report, checked against golden files.
 
 #### 6.1 A Line for Every Pass
 `a-line-for-every-pass` · code_tests · difficulty 9
 - **Objective:** Write JSON log records with `log/slog`, stamped with the simulated clock, with nothing secret in them.
 - **Scenario:** Monday 16 July: Sunniva forecasts a storm at Ystmark for Thursday 26 July, and Ingrid wants to read the rehearsal's version of that day the way the night shift would.
-- **Exercise:** `rehearse` must write the bible's records to `logs/uplinkd.log`, `logs/dlinkd.log` and `logs/pager.log`, every record's `time` from `w.Now()`.
-- **Check:** Exactly one `pass started` and one end record per contact, with the bible's attributes; a failed and a skipped pass's levels, `reason` and `err`; one `file landed` per file and one `event delivered` per event; every master's text and hex, every derived key and every webhook secret absent from every log; the mistakes: the wall clock in `time`, a duration as nanoseconds.
+- **Exercise:** `rehearse` must write the bible's records to `logs/uplinkd.log` and `logs/dlinkd.log`, saved whole when the week ends, stopped or not, every record's `time` from `w.Now()`; `logs/pager.log` comes with the pager in 6.3.
+- **Check:** Exactly one `pass started` and one end record per contact, with the bible's attributes; a failed and a skipped pass's levels, `reason` and `err`; one `file landed` per file and one `event delivered` per event; every master's text and hex, every derived key and every webhook secret absent from every log; the mistakes: the wall clock in `time`, an end record for a stopped pass, logs lost to a stop, a customer logged whole with its secret, `frames` counting every frame or only the lines that parse.
 
 #### 6.2 Counted, Not Guessed
 `counted-not-guessed` · code_tests · difficulty 9
 - **Objective:** Count the week with counters safe for many goroutines and publish them in Season 6's shapes.
 - **Scenario:** Yusra: the investors will ask how many passes flew, and "about" is not a number.
 - **Exercise:** `rehearse` must keep the bible's counters and histogram as the week runs and write `reports/metrics.json` at the end.
-- **Check:** Every counter equal to the simulated world's own count for a day at three stations and for the whole week; a 2 s answer in the ≤ 2 bucket and Ystmark's 2.7 s ones in ≤ 5; skipped passes under `skipped`, never `failed`; the mistake: a redialed pass counted twice.
+- **Check:** Every counter equal to the simulated world's own count for Thursday at Ystmark, Varsk Island and Port Ellery (the storm, the flipped bytes, Brinewatch's receiver down) and for the whole week; a 2 s answer in the ≤ 2 bucket and Ystmark's 2.7 s ones in ≤ 5; skipped passes under `skipped`, never `failed`; the mistake: a redialed pass counted twice.
 
 #### 6.3 One Page per Problem
 `one-page-per-problem` · code_tests · difficulty 10
 - **Objective:** Evaluate stateful alert rules every minute on the simulated clock and route each alert by the rota.
 - **Scenario:** Ingrid: the storm must wake whoever is on call once, not once a pass, and you carry the pager for the investors' week.
-- **Exercise:** `rehearse` must evaluate `pass-failures` and `failed-pass` for every rehearsed station on every minute, route them with the given rota, and write `reports/alerts.txt` and the `alert sent` records.
-- **Check:** Ystmark's Thursday: exactly the bible's five alerts, the page at 10:56 to `No. 039` and its RESOLVED at 16:56; skipped passes never counted; a failure at Monday 07:59 paging Nkem and one at 08:00 paging No. 039; same-minute order; the mistakes: a page per failure, a RESOLVED for a Warning, a failure counted from its last frame instead of its LOS.
+- **Exercise:** `rehearse` must evaluate `pass-failures` and `failed-pass` for every rehearsed station on every minute, route them with the given rota, and write `reports/alerts.txt` and the `alert sent` records to `logs/pager.log`.
+- **Check:** Ystmark's Thursday: exactly the bible's five alerts, the page at 10:56 to `No. 039` and its RESOLVED at 16:56; skipped passes never counted; on Monday 23 July a page at 07:59 to Nkem and one at 08:00 to No. 039, each RESOLVED six hours after its last failure to the person it paged; same-minute order (stations in table order, then rules by name); the mistakes: a page per failure, a RESOLVED for a Warning, a failure counted from its last frame instead of its LOS.
 
 #### 6.4 Quick Check: Pages and Counts
 `quick-check-pages-and-counts` · quiz · difficulty 9
@@ -311,7 +310,7 @@ Ystmark's storm arrives, and write the week's report, checked against golden fil
 - **Objective:** Finish the rehearsal and check the whole investors' week against golden files.
 - **Scenario:** Friday 20 July, 15:00, the Fishbowl: the full rehearsal with Ingrid's script, the fiber cut and the wind lock at Ystmark, Cirrine's restart, Furrow-K's lost chunks and Thistle-2's first science.
 - **Exercise:** `rehearse` must write `reports/week.txt` (rows, `all`, the lost bookings, the verdict) as the bible gives it, the last thing the week's golden files need.
-- **Check:** The investors' week against `testdata/week.golden` (NO-GO, the nine Furrows), `alerts.golden` and `health.golden`, `metrics.json` against the simulated world's counts, both lists empty; Yusra's moves on Thursday at five stations: GO; a station with nothing booked showing `-`; the mistakes: lost counting failures only, a budget computed in floats, unplanned bookings left out.
+- **Check:** The investors' week against `testdata/week.golden` (NO-GO, the nine Furrows), `alerts.golden` and `health.golden`, `metrics.json` against the simulated world's counts, both lists empty; Yusra's moves on Thursday at five stations: GO; a station with nothing booked showing `-`; Lantern Atoll's week with 100 bookings and one lost: a budget of 1 at its 99.0% target, and `NO-GO: 1 booked pass lost`; the mistakes: lost counting failures only, a budget computed in floats, unplanned bookings left out, one target for every station.
 
 ## Changes in writing and review
 
@@ -339,6 +338,13 @@ Ystmark's storm arrives, and write the week's report, checked against golden fil
   Tuesday's 93 contacts at Port Ellery before `k-2029-07`, all eighty satellites holding
   `k-2029-07` by Monday 09:27:31, and 1,483 files landing until 5.4 asks for Furrow-K's three lost
   chunks, 1,484 from then on.
+- **Chapter 6** saves its logs whole even when the week is stopped, writes no end record for a
+  stopped pass, and adds `logs/pager.log` with the pager in 6.3. A RESOLVED goes to the person it
+  paged, unlike Season 6's pager, so the one woken hears it is over. No real week reaches the
+  atolls' 99.0% target (Lantern Atoll has 59 bookings), so 6.5 books Lantern Atoll's week up to
+  100 and checks the budget of one lost pass and the singular `NO-GO: 1 booked pass lost`.
+- **The finale's last booked pass** sets at 00:02:42 on Monday 30 July, so the debrief says every
+  booked pass of the week has flown by 00:03.
 - **Tests** accept the other correct designs the reviewers tried and fail the usual mistakes with
   clear messages. Each starter is the previous lesson's solution byte for byte, and each lesson's
   tests add to the previous lesson's.

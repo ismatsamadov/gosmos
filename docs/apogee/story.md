@@ -5550,8 +5550,7 @@ the pager pages No. 039 once, at 10:56, and resolves at 16:56; Thistle-2's first
 reaches Kessick at 16:04; the week's report says NO-GO: nine booked passes lost, all Furrowlight's,
 all at Ystmark. Hollis: "NINE FURROWS. ONE STORM." Yusra moves each booking to its Furrow's next free
 contact elsewhere; the second run says GO. The debrief closes the series: on Thursday 26 July the
-storm comes as Sunniva said, Ystmark stows at 10:50, the pager rings once, and on Monday 30 July at
-00:00 every booked pass of the week has flown. Ingrid writes one line in the log: "Every pass
+storm comes as Sunniva said, Ystmark stows at 10:50, the pager rings once, and by 00:03 on Monday 30 July every booked pass of the week has flown (the last, `bk-9493` over Lantern Atoll, sets at 00:02:42). Ingrid writes one line in the log: "Every pass
 counts. Every pass counted."
 
 **Who is on call**: Season 6's rota, a week each from Monday 08:00 UTC, except that Nkem swapped
@@ -5639,7 +5638,7 @@ func rehearse(ctx context.Context, w World) error
 | `reports/health.txt` | written: each satellite's newest frame | 3.2 |
 | `files/<file>` | written: each downlink, whole | 5.1 |
 | `reports/incomplete.txt`, `reports/undelivered.txt` | written: files still missing chunks, events never delivered | 5.1, 5.3 |
-| `logs/uplinkd.log`, `logs/dlinkd.log`, `logs/pager.log` | written: JSON log records | 6.1 |
+| `logs/uplinkd.log`, `logs/dlinkd.log`, `logs/pager.log` | written: JSON log records | 6.1 (`pager.log` 6.3) |
 | `reports/metrics.json`, `reports/alerts.txt`, `reports/week.txt` | written: the numbers, the pages, the week's report | 6.2, 6.3, 6.5 |
 
 Every file the rehearsal writes is saved whole through a temporary sibling and a rename (Season
@@ -5755,6 +5754,7 @@ a station's two dishes, overlap freely.
 - **Chapter 3's runs**: on Thursday at Ystmark `pipit-2/YST/22861` (03:28:42–03:37:44) is the only contact in progress when the fiber dies at 03:31; its last frame before then is its TLM frame of 03:30:52, so the dead line is noticed at 03:32:22, and the next contact there, `cirrine-1/YST/20282` at 04:25:02, is the first to fly the backhaul. At Varsk Island on Thursday `cirrine-5/VSK/01487` flies 00:42:43–00:47:38 (its third TLM frame at 00:44:53) and `pipit-2/VSK/22860` 01:39:45–01:48:41; the station relays 747 TLM frames that day, and in the investors' week its flips spoil 13 of its 5,280. At Tirrin Rock `pipit-2/TIR/22864` (08:15:11–08:23:23) has dish 1 and `furrow-b/TIR/24954` (08:17:25–08:25:39) dish 2, no other candidate within four minutes. Thistle-2 flies only at Port Ellery and Lantern Atoll (10 and 15 contacts in the week); its first frame at Port Ellery on Thursday is `thistle-2 1879776236 2029-07-26T16:03:56Z batt_v=7.66 temp_c=8.4 mode=NOMINAL`, and the one made at 16:06:56 reads `batt_v=nan`. A Thursday at Ystmark, Tirrin Rock and Port Ellery never hears brine-6, -10, -15, -18, -23, -31, -33 and -38; the week hears all eighty. Ilha Brumosa's shortest Thursday pass is `furrow-j/BRM/00442` (21:28:38–21:34:16) and Corith Point's first `brine-20/CRP/01080` (00:54:03–00:59:02).
 - **Chapter 4's runs**: Tuesday at Port Ellery, before `k-2029-07` activates, has 93 contacts, 17 of them Cirrine's; Pipit-2's first is `pipit-2/PEL/22832` at 05:28:22, and Thistle-2 flies `thistle-2/PEL/02106` (16:45:15–16:53:57) and `thistle-2/PEL/02107` (18:19:14–18:26:53). Wednesday at Port Ellery has 88. On Thursday Furrow-O rises over Ystmark at 18:26:27 (dish 2) and over Tirrin Rock at 18:26:29, and Furrow-L over Tirrin Rock at 18:38:01 and over Ystmark at 18:38:10; no other satellite's two passes there begin within 12 s. In the week five pairs of one satellite's contacts begin less than 2 s apart: brine-24 at CRP and LAN (Sat 13:11:23), brine-3 at CSL and PEL (Tue 19:43:44), brine-32 at LAN and CRP (Wed 14:17:54/55), cirrine-1 at YST and TIR (Sat 15:50:06/07), furrow-w at TIR and YST (Sun 18:29:54/55). Cirrine-7's only dish-1 pass at Ystmark on Thursday is `cirrine-7/YST/01488` (01:51:00–01:57:56). Over the backhaul `cirrine-1/YST/20282`'s PING, sent at 04:25:12, reaches Ystmark at 04:25:12.35 and runs at 04:25:14.35; a bad length loses the line at 04:25:12.6, and the copy is refused as replayed at 04:25:16.35. The week's last LOAD_KEY runs at Mon 09:27:31 (`thistle-2/LAN/02086`, 09:27:17–09:33:19), and no command runs within 5 s of Wed 00:00:00.
 - **Chapter 5's runs**: the investors' week lands 1,483 files until lesson 5.4 (`reports/incomplete.txt`: `furrow-k-20290724-0740.tif missing 21 22 23`) and all 1,484 from it, with 1,484 events; each file named below is the only landing in its second. The first is `cirrine-6-20290723-0003.dat` (`bk-8001`, ILV, 6,144 bytes) at Monday 00:04:17: `evt-000001`, timestamp `1879459457`, signature `bfeca88736851964481525450c7153269ce7e2d67a93666937780cf880046127`. Until 5.4 Cirrine-5's event is `evt-000288` and Kessick's `evt-000782` (signature `d2f673e98b5e195ab686c78182693b38487c53632de5cdf753c9d6b145310aa5`); from 5.4 Furrow-K's is `evt-000284` (station VRL; its DUMP_FILE runs on `furrow-k/VSK/00404` at 08:12:24), Cirrine-5's `evt-000289` and Kessick's `evt-000783`. On their first pass 362 of the week's files have two chunks swapped and 319 one chunk twice (Thistle-2's first science file: chunk 6). A Thursday-only plan at Port Ellery drops `brine-5/PEL/01080` (`bk-8674`); among the booked contacts it keeps are `cirrine-8/PEL/01488` (`bk-8676`, 01:32:40–01:42:59, its file landing at 01:33:35), `brine-14/PEL/01083` (`bk-8697`, 05:38:10–05:47:29), `furrow-a/PEL/24958` (`bk-8739`, 10:44:10–10:53:23), `cirrine-8/PEL/01496` (`bk-8782`, 14:47:42–14:58:00) and `brine-3/PEL/18374` (`bk-8798`, 17:06:06–17:15:25). After its first science pass Thistle-2's next contacts are `thistle-2/LAN/02138` (Thursday 20:12:03–20:18:39, `bk-8840`; a DUMP_FILE sent there runs at 20:12:17) and `thistle-2/LAN/02146` (Friday 08:02:49–08:08:36, `bk-8930`). Four contacts work out their commands while another station still brings their satellite's file down: `furrow-u/TIR/00441` (Thursday, AOS 18:03:28, during `furrow-u/YST/00441`'s file over the backhaul), `furrow-k/TIR/00471` and `furrow-j/TIR/00471` (Saturday), `furrow-e/TIR/00486` (Sunday). The week's shortest contact is `furrow-j/LAN/00461` (3 min 14 s), the shortest booked `thistle-2/LAN/02153` (3 min 18 s); on `furrow-t/LAN/00431` (Thursday 02:50:16–02:53:35) a file lands at 02:51:35 and its event's 8th attempt always comes after LOS.
+- **Chapter 6's runs**: the investors' week writes 28,595 records to `logs/uplinkd.log` (14,297 `pass started`, 14,282 `pass flown`, 3 `pass failed`, 12 `pass skipped`, one `line lost`, `pipit-2/YST/22861` at Thursday 03:32:22), 2,968 to `logs/dlinkd.log` (1,484 `file landed`, 1,484 `event delivered`) and 5 to `logs/pager.log`; `frames_total` 124,056, `bad_frames_total` 13, `bad_lines_total` 27, `files_landed_total` 1,484, `ack_wait_seconds` 14,239 in ≤ 2 and 127 in ≤ 5 (count 14,366, `sum_ms` 28,820,900); delivered Brinewatch 421, Cirrine 345, Furrowlight 704, Kessick 14. Booked, in table order: YST 210, PEL 74, SQT 82, LAN 59, CWR 87, TIR 110, VSK 123, CAL 44, BRM 60, OST 64, ILV 66, CSL 56, SRH 43, CRP 43, NIM 70, HSK 50, ICM 41, QND 48, PVT 51, VRL 112; the second run YST 19, TIR 16, CSL 13, ICM 7, QND 8. Thursday at YST, VSK and PEL with the storm, `flipEvery` VSK 400 and Brinewatch's receiver down: 381 contacts, 242 answers in ≤ 2 and 127 in ≤ 5, 14 Brinewatch events undelivered, 1 bad frame, 1 bad line, 46 files. A one-day plan of Monday 23 July at YST, PEL, NIM and VRL flies `pipit-2/YST/22817` 05:25:47–05:35:30, `furrow-b/NIM/24906` 05:27:08–05:35:18, `furrow-z/VRL/00387` 05:28:35–05:35:02, `furrow-n/VRL/00388` 07:48:38–07:58:16, `furrow-o/NIM/00388` 07:50:05–07:59:18 and `cirrine-10/PEL/01451` 14:07:54–14:17:51. A Thursday-only plan at Port Ellery holds 11 of the week's bookings. Lantern Atoll (one dish) flies 532 contacts in the week, 59 booked (Calidra Atoll 500 and 44), so neither reaches the 100 bookings at which 99.0% first allows a lost pass. The last booked pass, `bk-9493` (`brine-36/LAN/01141`, Sunday 23:54:36 to Monday 00:02:42), sets after the window closes.
 
 #### The pass line
 
@@ -5984,9 +5984,12 @@ webhook secret; tests search every log for each).
 | | `pass skipped` | WARN | `pass`, `pass_id`, `reason` |
 | | `line lost` | WARN | `pass_id`, `err` |
 | `logs/dlinkd.log` (`dlinkd`, `HQ`) | `file landed` | INFO | `file`, `bytes`, `booking_id`, `pass_id` |
+| | `file not saved` | ERROR | `file`, `err` |
 | | `event delivered` | INFO | `event_id`, `customer`, `attempts` |
 | | `event undelivered` | ERROR | `event_id`, `customer`, `attempts`, `err` |
 | `logs/pager.log` (`pager`, `HQ`) | `alert sent` | INFO | `rule`, `station`, `kind`, `value`, `to` |
+
+`frames` counts the pass's TLM frames with a good CRC and `commands` the commands it sent that its satellite ran; a file's `pass_id` is the pass it landed on, `customer` the customer's ID and `attempts` the requests sent for the event.
 
 **Numbers**: `reports/metrics.json`, one JSON object written at the end, in Season 6's shapes (a
 counter by two labels is `{"<a>":{"<b>":n}}`; the histogram is Season 6's `HistogramSnapshot`):
@@ -6007,8 +6010,7 @@ stopped passes are not failures:
 | `pass-failures` | failed passes with LOS in `(now−6h, now]` | 2 | 1 | 0 | 24h | Critical |
 | `failed-pass` | failed passes with LOS in `(now−1m, now]` | 1 | 1 | 0 | 0 | Warning |
 
-Critical goes to whoever is on call at the alert's minute (the rota above; a RESOLVED to the same
-person), Warning to `morning list`. `reports/alerts.txt`, one line per alert in time order, the same
+Critical goes to whoever is on call at the alert's minute (the rota above; a RESOLVED to the same person, unlike Season 6's pager, so the one woken hears it is over), Warning to `morning list`. `reports/alerts.txt`, one line per alert in time order, the same
 minute by station (table order) then rule name: `Thu 10:56 FIRING pass-failures YST 2 to No. 039`
 (minute as `Mon 15:04`, kind, rule, station, value as `%g`, recipient).
 
@@ -6030,7 +6032,7 @@ YST          210     9  95.71       1    -8
 - Then one line per lost booking, by AOS then booking ID: `bk-8743 Thu 11:05:54 furrow-h/YST
   skipped stowed` (booking ID, AOS as `Mon 15:04:05`, satellite/station, outcome; unplanned ones as
   `unplanned <reason>`).
-- Last, the verdict: `GO: every booked pass flown` or `NO-GO: 9 booked passes lost`.
+- Last, the verdict: `GO: every booked pass flown`, or `NO-GO: 9 booked passes lost` (`NO-GO: 1 booked pass lost` for one).
 
 #### The investors' week, as Ingrid scripts it
 
@@ -6132,7 +6134,7 @@ the simulated world, simulated time, the investors' week, pass line, radio (a st
 for the week, Kessick's receiver, science file. Carried over and needed again: pass, contact,
 candidate, dropped pass, pass archive, booking, AOS, LOS, banner, frame, CRC, backhaul, fiber, stow,
 wind lock, master key, derived key, sealed command, LOAD_KEY, overlap, retire, webhook, landing, on
-call, page, the morning list, error budget, the Fishbowl, the Board.
+call, page, the morning list, error budget, night shift, the Fishbowl, the Board.
 
 **Name checks** (web search, 10 November 2026): "Ground Segment Lead" is a common job title in
 real space-industry postings, a generic title like "ground station engineer", not a company,
