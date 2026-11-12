@@ -132,6 +132,31 @@ import Testing
         await app.prepareToQuit()
     }
 
+    @Test func aQuizPassThatFinishesTheChapterShowsItsDebriefNotTheQuiz() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("quiz"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("quiz") && app.lesson?.quiz != nil }
+        let lesson = try #require(app.lesson)
+        let quiz = try #require(lesson.quiz)
+        // A wrong answer brings the quiz's verdicts into view.
+        quiz.pick(1, for: 0)
+        lesson.submit()
+        #expect(lesson.footerRequests == 1)
+        #expect(lesson.topRequests == 0)
+        // The right one passes the chapter's only lesson: its debrief, above the readme, comes
+        // into view instead of the quiz.
+        quiz.pick(0, for: 0)
+        lesson.submit()
+        #expect(lesson.finishedChapter)
+        #expect(lesson.topRequests == 1)
+        #expect(lesson.footerRequests == 1)
+        await app.prepareToQuit()
+    }
+
     @Test func aRedoReturnsToReviewWithoutAdvancingTheCourse() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
