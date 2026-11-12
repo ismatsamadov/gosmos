@@ -380,7 +380,7 @@ private struct CourseMissionCard: View {
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(idealWidth: 300, maxWidth: .infinity, alignment: .leading)
                         }
-                        Text("\(course.chapters.count) chapters  ·  \(course.lessons.count) lessons")
+                        Text("\(course.chapters.count == 1 ? "1 chapter" : "\(course.chapters.count) chapters")  ·  \(course.lessons.count == 1 ? "1 lesson" : "\(course.lessons.count) lessons")")
                             .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                     }
                     Spacer(minLength: 0)
