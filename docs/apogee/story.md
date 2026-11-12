@@ -5535,6 +5535,14 @@ investors), Sunniva (Ystmark's weather); the simulated world, which Nkem grew fr
 drill of March; and the first assignment: say what week the rehearsal flies, and plan it. Words of
 the first week: rehearsal, the investors' week, the simulated world, simulated time.
 
+**Chapter 2 ends** on Thursday 5 July, wind 12 at Ystmark. Sunniva: "Wind 12. Every call on time. Radios still waiting for a hello."
+
+**Chapter 3 ends** on Monday 9 July, wind 9 at Ystmark. Sunniva: "Wind 9. Fiber cut at 03:31, as scripted. One Pipit-2 pass lost. The rest flew the backhaul."
+
+**Chapter 4 ends** on Wednesday 11 July. Every command goes up signed or sealed, one at a time per satellite, and none runs twice; in the rehearsal all eighty satellites hold `k-2029-07` by Monday 09:27:31. Mirela: "LGTM once it fails closed. It does."
+
+**Chapter 5 ends** on Friday 13 July. In the rehearsal every file of the week lands whole and reaches its customer: Furrow-K's image at 08:12:30 on Tuesday, Thistle-2's first science at Kessick at 16:04:25 on Thursday. Yusra: "TL;DR: 1,484 files, 1,484 events, none lost."
+
 **The finale** (chapter 6, Friday 20 July, 15:00): the full rehearsal of the investors' week with
 Ingrid's script (below). The fiber at Ystmark dies at 03:31 on Thursday and one pass fails; the
 dishes stow in the wind from 10:50 to 12:00, during the new Furrows' highest passes of the week;
@@ -5743,6 +5751,10 @@ a station's two dishes, overlap freely.
 - **Stopping**: when `ctx` ends, no pass dials again, every call open hangs up at once and prints
   its LOS line `stopped`, deliveries stop, and once every goroutine has ended the console's last
   line is `rehearsal stopped at Tue 12:00:00` and `rehearse` returns `context.Cause(ctx)`.
+- **Chapter 2's runs** (the settled model): the investors' week's first contact is `furrow-r/ICM/00384` at Monday 00:00:06, and its last LOS is `furrow-m/ILV/00490`'s at Monday 30 July 00:07:45, when `rehearse` returns. On Thursday at Ystmark, in the week's plan and in a Thursday-only one, dish 2 takes Furrow-M (`furrow-m/YST/00436`, 10:46:20–10:55:32) while dish 1 still flies Furrow-N (`furrow-n/YST/00436`, 10:42:25–10:51:36). Calidra Atoll and Port Ellery fly 500 and 614 contacts in the week; with Calidra Atoll silent, `week done: 614 flown, 500 failed, 0 skipped`. Ystmark and Tirrin Rock on Monday and Tuesday, stopped at Tuesday 12:00:00, have three passes open (`furrow-g/TIR/00406`, `furrow-f/YST/00406`, `furrow-f/TIR/00406`) and none starting or ending then; the next AOS is 12:00:58.
+- **Chapter 3's runs**: on Thursday at Ystmark `pipit-2/YST/22861` (03:28:42–03:37:44) is the only contact in progress when the fiber dies at 03:31; its last frame before then is its TLM frame of 03:30:52, so the dead line is noticed at 03:32:22, and the next contact there, `cirrine-1/YST/20282` at 04:25:02, is the first to fly the backhaul. At Varsk Island on Thursday `cirrine-5/VSK/01487` flies 00:42:43–00:47:38 (its third TLM frame at 00:44:53) and `pipit-2/VSK/22860` 01:39:45–01:48:41; the station relays 747 TLM frames that day, and in the investors' week its flips spoil 13 of its 5,280. At Tirrin Rock `pipit-2/TIR/22864` (08:15:11–08:23:23) has dish 1 and `furrow-b/TIR/24954` (08:17:25–08:25:39) dish 2, no other candidate within four minutes. Thistle-2 flies only at Port Ellery and Lantern Atoll (10 and 15 contacts in the week); its first frame at Port Ellery on Thursday is `thistle-2 1879776236 2029-07-26T16:03:56Z batt_v=7.66 temp_c=8.4 mode=NOMINAL`, and the one made at 16:06:56 reads `batt_v=nan`. A Thursday at Ystmark, Tirrin Rock and Port Ellery never hears brine-6, -10, -15, -18, -23, -31, -33 and -38; the week hears all eighty. Ilha Brumosa's shortest Thursday pass is `furrow-j/BRM/00442` (21:28:38–21:34:16) and Corith Point's first `brine-20/CRP/01080` (00:54:03–00:59:02).
+- **Chapter 4's runs**: Tuesday at Port Ellery, before `k-2029-07` activates, has 93 contacts, 17 of them Cirrine's; Pipit-2's first is `pipit-2/PEL/22832` at 05:28:22, and Thistle-2 flies `thistle-2/PEL/02106` (16:45:15–16:53:57) and `thistle-2/PEL/02107` (18:19:14–18:26:53). Wednesday at Port Ellery has 88. On Thursday Furrow-O rises over Ystmark at 18:26:27 (dish 2) and over Tirrin Rock at 18:26:29, and Furrow-L over Tirrin Rock at 18:38:01 and over Ystmark at 18:38:10; no other satellite's two passes there begin within 12 s. In the week five pairs of one satellite's contacts begin less than 2 s apart: brine-24 at CRP and LAN (Sat 13:11:23), brine-3 at CSL and PEL (Tue 19:43:44), brine-32 at LAN and CRP (Wed 14:17:54/55), cirrine-1 at YST and TIR (Sat 15:50:06/07), furrow-w at TIR and YST (Sun 18:29:54/55). Cirrine-7's only dish-1 pass at Ystmark on Thursday is `cirrine-7/YST/01488` (01:51:00–01:57:56). Over the backhaul `cirrine-1/YST/20282`'s PING, sent at 04:25:12, reaches Ystmark at 04:25:12.35 and runs at 04:25:14.35; a bad length loses the line at 04:25:12.6, and the copy is refused as replayed at 04:25:16.35. The week's last LOAD_KEY runs at Mon 09:27:31 (`thistle-2/LAN/02086`, 09:27:17–09:33:19), and no command runs within 5 s of Wed 00:00:00.
+- **Chapter 5's runs**: the investors' week lands 1,483 files until lesson 5.4 (`reports/incomplete.txt`: `furrow-k-20290724-0740.tif missing 21 22 23`) and all 1,484 from it, with 1,484 events; each file named below is the only landing in its second. The first is `cirrine-6-20290723-0003.dat` (`bk-8001`, ILV, 6,144 bytes) at Monday 00:04:17: `evt-000001`, timestamp `1879459457`, signature `bfeca88736851964481525450c7153269ce7e2d67a93666937780cf880046127`. Until 5.4 Cirrine-5's event is `evt-000288` and Kessick's `evt-000782` (signature `d2f673e98b5e195ab686c78182693b38487c53632de5cdf753c9d6b145310aa5`); from 5.4 Furrow-K's is `evt-000284` (station VRL; its DUMP_FILE runs on `furrow-k/VSK/00404` at 08:12:24), Cirrine-5's `evt-000289` and Kessick's `evt-000783`. On their first pass 362 of the week's files have two chunks swapped and 319 one chunk twice (Thistle-2's first science file: chunk 6). A Thursday-only plan at Port Ellery drops `brine-5/PEL/01080` (`bk-8674`); among the booked contacts it keeps are `cirrine-8/PEL/01488` (`bk-8676`, 01:32:40–01:42:59, its file landing at 01:33:35), `brine-14/PEL/01083` (`bk-8697`, 05:38:10–05:47:29), `furrow-a/PEL/24958` (`bk-8739`, 10:44:10–10:53:23), `cirrine-8/PEL/01496` (`bk-8782`, 14:47:42–14:58:00) and `brine-3/PEL/18374` (`bk-8798`, 17:06:06–17:15:25). After its first science pass Thistle-2's next contacts are `thistle-2/LAN/02138` (Thursday 20:12:03–20:18:39, `bk-8840`; a DUMP_FILE sent there runs at 20:12:17) and `thistle-2/LAN/02146` (Friday 08:02:49–08:08:36, `bk-8930`). Four contacts work out their commands while another station still brings their satellite's file down: `furrow-u/TIR/00441` (Thursday, AOS 18:03:28, during `furrow-u/YST/00441`'s file over the backhaul), `furrow-k/TIR/00471` and `furrow-j/TIR/00471` (Saturday), `furrow-e/TIR/00486` (Sunday). The week's shortest contact is `furrow-j/LAN/00461` (3 min 14 s), the shortest booked `thistle-2/LAN/02153` (3 min 18 s); on `furrow-t/LAN/00431` (Thursday 02:50:16–02:53:35) a file lands at 02:51:35 and its event's 8th attempt always comes after LOS.
 
 #### The pass line
 
@@ -5828,11 +5840,11 @@ arrives twice. About one Thistle-2 frame in seven reads `batt_v=nan`.
 
 `reports/health.txt`: one line per satellite of the network, in fleet order: `formatLine` of its
 newest frame that parsed, or `<id> never heard`. Thistle-2's first TLM frame of its science pass,
-relayed at AOS + 10 s (the battery and temperature values show the shape only):
+relayed at AOS + 10 s, as the simulated world makes it:
 
 ```
 thistle-2 1879776236 2029-07-26T16:03:56Z
-    batt_v=7.95 temp_c=3.5 mode=NOMINAL
+    batt_v=7.66 temp_c=8.4 mode=NOMINAL
 ```
 
 (One line on the wire and in the file; readmes split it.)
@@ -5872,7 +5884,7 @@ Mirela made `k-2029-07` on Monday 9 July with Activate Wednesday 25 July 00:00, 
   `last` comes from the WELCOME and `next` is one more than the rehearsal's own last number for that
   satellite (Season 4's rule). **One command at a time per satellite across the whole network**: a
   satellite over two stations at once (common at the polar stations) never has two commands in
-  flight, so its numbers reach it in order. The lock is a channel with room for one, taken in the same `select` that reads the call: inside the tests' bubble a goroutine waiting on a `sync.Mutex` isn't durably blocked, so a mutex held across a round trip stops simulated time and the run hangs to the 10 s timeout.
+  flight, so its numbers reach it in order. The lock is a channel with room for one, taken in the same `select` that reads the call: inside the tests' bubble a goroutine waiting on a `sync.Mutex` isn't durably blocked, so a mutex held across a round trip stops simulated time for good; the harness then fails the test and says where the mutex was asked for.
 - **Never twice** (Season 4's rule): when the line is lost with a command in flight, the new
   WELCOME's `last` says what happened: `last` at or above its number means it ran, and counts as
   acknowledged; otherwise the same line is sent again, same number. A NAK `replayed sequence number` to that line means its first copy reached the satellite after the line dropped and ran: it counts as acknowledged (Season 4's NAK `duplicate` rule). A command still unanswered at
@@ -5884,7 +5896,7 @@ Mirela made `k-2029-07` on Monday 9 July with Activate Wednesday 25 July 00:00, 
   it holds; it holds it once that LOAD_KEY is acknowledged. Signing and sealing use the newest master
   that has activated, hasn't retired, isn't revoked and that the satellite holds (Season 5's
   `signingKey`, plus "holds"). So in the investors' week every satellite gets `k-2029-07` on its
-  first contact (all eighty have one by Monday 09:27:17), commands use `k-2028-10` until Tuesday
+  first contact (all eighty hold it by Monday 09:27:31; the last is Thistle-2, whose first contact, at Lantern Atoll, begins at 09:27:17), commands use `k-2028-10` until Tuesday
   23:59:59 and `k-2029-07` from Wednesday 00:00:00, and `k-2028-07` is never used.
 - **The satellites** in the simulated world check every line by Season 5's order (parse, version,
   satellite, key held and valid, number above `last`, signature or seal, only then record), try
@@ -5918,8 +5930,7 @@ a Furrowlight file has 48 (12,288 bytes), Cirrine's 24 (6,144), Brinewatch's 16 
   to delivery. A file missing chunks waits for them; one whose chunks are all there but whose CRC
   doesn't match is dropped and asked for whole.
 - **Asked again** (5.4): on the satellite's next contact (any station), after its PING, `DUMP_FILE
-  <name> <n> <n>...`, the missing numbers ascending, or the name alone for the whole file; it lands
-  when the asked chunks have come down.
+  <name> <n> <n>...`, the missing numbers ascending, or the name alone for the whole file; it lands when the asked chunks have come down. A file is asked for only while no pass is bringing it down: a pass holds a file from its FILE, or from its own DUMP_FILE's run, until the file's END or the pass's LOS; a DUMP_FILE an earlier contact left unanswered holds nothing, so the next contact asks again.
 - `reports/incomplete.txt`, at the end: one line per file still incomplete, by name: `<name>
   missing 21 22 23` or `<name> crc mismatch`. Empty in the investors' week.
 
@@ -5946,7 +5957,7 @@ secrets (Season 3's, and Kessick's new one):
   `evt-` and six digits, counting from `evt-000001` in the order files land (files landing in the
   same second may take either order). Kessick's first:
   `{"id":"evt-000783","type":"data.landed","booking_id":"bk-8792","sat_id":"thistle-2","station":"PEL","file":"thistle-2-20290726-1603.dat","bytes":2048,"landed_at":"2029-07-26T16:04:25Z"}`,
-  at timestamp `1879776265`, signs as `340bfc1649ec9f7fae412dddb919258dad72fc043e8bf0f45b2c8b06fd03c62e`: the 783rd file to land in the investors' week, the only one at 16:04:25. The event's `station` is the booking's, even when the file lands on a later contact elsewhere.
+  at timestamp `1879776265`, signs as `340bfc1649ec9f7fae412dddb919258dad72fc043e8bf0f45b2c8b06fd03c62e`: the 783rd file to land in the investors' week, the only one at 16:04:25 (the 782nd, `evt-000782`, until lesson 5.4 lands Furrow-K's Tuesday image). The event's `station` is the booking's, even when the file lands on a later contact elsewhere.
 - **Season 3's schedule**: the first attempt as soon as the file lands; retried on a transport
   error, 408, 429 and 5xx; at most 8 attempts, after failed attempt n waiting 2 s × 2^(n−1), capped
   at 5 minutes, times a factor drawn uniformly from [0.5, 1.0); every attempt signed again with its
@@ -6071,8 +6082,7 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
 - **Guards.** The harness runs `rehearse` in a goroutine and waits for it until the window's end
   plus one hour of simulated time; past that it fails the test (`rehearse still running at Mon 30
   Jul 01:00`), cancels `ctx`, closes every call and waits for `rehearse` to return, so a starter that
-  waits forever on a silent station fails cleanly instead of deadlocking the bubble. A learner's
-  goroutine stuck on a channel of its own can still panic the bubble; starters never do.
+  waits forever on a silent station fails cleanly instead of deadlocking the bubble. Once `rehearse` returns, the world sleeps until that same instant (at least ten simulated minutes) before the bubble ends, so passes a rehearsal left asleep wake and are checked instead of panicking the bubble; a learner's goroutine stuck on a channel of its own can still panic it, and starters never do. A watch outside the bubble, in real time, ends the one hang the guard can't see: when the console has been quiet for half a second and, at two looks in a row, no goroutine in the bubble can run and one waits for a `sync.Mutex`, it fails the run's test (`simulated time stopped after Tue 19:43:51 while a goroutine waited for a sync.Mutex at line.go:152: a mutex held across a wait stops the clock`) and ends the test binary.
 - **The simulated world's knobs**, set per case (each defaults to off): the bookings, keys and
   customers files; `silent` (stations that answer and never send a byte); `banner` (a station's
   banner text); `dialFail` (a station's calls fail during a window, all week without one); `split` and `glue` (messages written in pieces of at most n bytes, or, at a station with one contact in progress, the banner and that contact's WELCOME written in one write as the call is answered, before HELLO); `late` (a station relays each TLM frame late, so a satellite's frames arrive out of number order); `flipEvery` (a station's every n-th TLM frame arrives with a flipped byte); `corrupt` (a pass's
@@ -6085,9 +6095,8 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
 - **What tests read**: the console with its instants; the files in `w.Dir`; and the simulated
   world's records: each call (station, pass, dish, dialed and hung-up instants, who hung up), the raw
   bytes it received, every command each satellite ran or refused (number, operation, key ID,
-  instant, station), every chunk sent, and every delivery attempt (customer, event, instant,
-  signature checked).
-- **Size.** Each lesson's tests fly the whole network for the whole week at most once: one cached run of the investors' week as Ingrid scripts it, with its 1,493 bookings (`simWeekRun`), shared by every check that needs it from lesson 1.1 to 6.5; every other case is one to six stations for one or two days. On an Apple-silicon Mac (M5) that week takes 1.24 s with every chapter's features (0.89 s without bookings), the bubble pinned to one CPU, which is faster there than ten. Under `-race` the four-station week takes 2.4 s, plus 0.28 s for its archive, and
+  instant, station), every chunk sent, and every delivery attempt (customer, event, instant, signature checked). Lesson 4.3 also fixes `crypto/rand`'s stream with `testing/cryptotest.SetGlobalRandom` for one small run and checks that every nonce is a piece of it: a nonce from `math/rand` seals as well as one from `crypto/rand`, and `cipher.NewGCMWithRandomNonce` draws from `crypto/rand` without importing it.
+- **Size.** Each lesson's tests fly the whole network for the whole week at most once: one cached run of the investors' week as Ingrid scripts it, with its 1,493 bookings (`simWeekRun`), shared by every check that needs it from lesson 1.1 to 6.5; every other case is one to six stations for one or two days, except 2.3's silent Calidra Atoll, which flies the week beside Port Ellery (1,114 contacts). On an Apple-silicon Mac (M5) that week takes 1.24 s with every chapter's features (0.89 s without bookings), the bubble pinned to one CPU, which is faster there than ten. Under `-race` the four-station week takes 2.4 s, plus 0.28 s for its archive, and
   pkgcheck runs every test three times that way, so the test files include Season
   7's `race_on_test.go` and `race_off_test.go`, and with `raceOn` the full-week cases rehearse four
   stations (YST, TIR, PEL, VRL) and check invariants instead of golden files.
