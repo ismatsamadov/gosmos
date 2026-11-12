@@ -186,10 +186,14 @@ in them.
   ```
 
   The model and the elements of all eighty satellites are written out in the bible under
-  "The pass model", and `cmd/passes` holds the same code, copied from the lessons. Its
-  elements hold from 1 January 2029; the passes of Seasons 1 to 6 came from the same model
-  fitted at earlier epochs and are recorded in the bible and the lessons. A new satellite gets
-  its elements in the bible and in `cmd/passes/network.go` first, with a test.
+  "The pass model", and `cmd/passes` holds the same code, copied from the lessons. The
+  elements describe each satellite from 1 January 2029, or from its deployment; the six fitted
+  to passes the stations recorded (Pipit-1, Pipit-2, Furrow-A, Furrow-B, Brine-3, Cirrine-1)
+  also run back to 2027, and there they give the passes Seasons 3 to 6 used, to the second.
+  Two things differ from those seasons' lists: a pass shorter than two minutes no longer
+  counts, and Season 3's catalog keeps two Furrow passes a few seconds shorter than the model
+  (its lessons print the catalog's). Season 1's passes came before the model. A new satellite
+  gets its elements in the bible and in `cmd/passes/network.go` first, with a test.
 - **The world's facts.** The bible holds the stations (place, mask, dishes), the fleet
   (orbits, radios), the people, the timeline of every season, and useful numbers such as
   orbital periods and slant ranges. Take them from there; add a new one there first.

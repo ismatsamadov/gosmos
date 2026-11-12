@@ -12,20 +12,31 @@
 // The model is the one docs/apogee/story.md writes out under "The pass model", copied unchanged
 // from the lessons that carry it: model.go from Season 7's, network.go (the twenty stations and
 // the eighty satellites' elements) from the capstone's, and types.go, the types they use, from
-// Season 7's. Change them only together with the bible and those lessons. The elements hold
-// from 1 January 2029, or a satellite's deployment, on: the passes of Seasons 1 to 6 came from
-// the same model fitted to earlier epochs, and the bible and the lessons record them.
+// Season 7's. Change them only together with the bible and those lessons.
+//
+// The elements describe each satellite from 1 January 2029, or from its deployment. The six
+// whose elements were fitted to passes the stations recorded (network.go says which) also fly
+// back to 2027, the story's first year, as Season 3's model has them: run backwards, the model
+// gives Season 3's reference passes and Season 2's gctl-night pass to the second.
 package main
 
 import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"slices"
 	"strings"
 	"time"
 )
+
+// fitted are the satellites whose elements network.go fitted to passes the stations recorded,
+// so their orbits are known back to storyStart.
+var fitted = map[string]bool{"pipit-1": true, "pipit-2": true, "furrow-a": true, "furrow-b": true, "brine-3": true, "cirrine-1": true}
+
+// storyStart is the beginning of the Apogee story's first year.
+var storyStart = time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
 
 const usage = `usage: passes --from <date> [--to <date>] [--sat <ids>] [--station <codes>]
   prints each pass with its AOS in [from, to): pass ID, AOS, LOS and maximum elevation.
@@ -82,11 +93,19 @@ func run(args []string, out, errOut io.Writer) int {
 	}
 	var passes []PassView
 	for _, e := range elements {
-		if from.Before(e.Epoch) && *satList != "" {
-			fmt.Fprintf(errOut, "passes: %s's elements start at %s; it has no passes before that\n", e.SatID, e.Epoch.Format(time.RFC3339))
+		first := e.Epoch
+		if fitted[e.SatID] {
+			first = storyStart
+		}
+		if from.Before(first) && *satList != "" {
+			fmt.Fprintf(errOut, "passes: %s has no passes before %s\n", e.SatID, first.Format(time.RFC3339))
+		}
+		start := later(from, first)
+		if start.Before(e.Epoch) {
+			e = backdated(e, start.Add(-24*time.Hour))
 		}
 		for _, s := range sites {
-			passes = append(passes, predict(e, s, from, to)...)
+			passes = append(passes, predict(e, s, start, to)...)
 		}
 	}
 	slices.SortStableFunc(passes, func(a, b PassView) int {
@@ -99,6 +118,22 @@ func run(args []string, out, errOut io.Writer) int {
 		fmt.Fprintf(out, "%s %s %s %.1f\n", p.ID, p.AOS.UTC().Format(time.RFC3339), p.LOS.UTC().Format(time.RFC3339), p.MaxElevDeg)
 	}
 	return 0
+}
+
+// backdated returns e describing the same orbit from an earlier epoch, its orbits numbered the
+// same way, so predict can look back before e.Epoch.
+func backdated(e Elements, epoch time.Time) Elements {
+	k := newSkyTrack(e, Site{})
+	dt := e.Epoch.Sub(epoch).Seconds()
+	u := k.u0 - k.n*dt                    // how far along its orbit the satellite is at epoch
+	revs := math.Floor(u / (2 * math.Pi)) // northbound equator crossings between, as a negative count
+	node := math.Mod(k.node0-k.nodeRate*dt, 2*math.Pi)
+	if node < 0 {
+		node += 2 * math.Pi
+	}
+	e.Epoch, e.Rev0 = epoch, e.Rev0+int(revs)
+	e.PhaseDeg, e.NodeDeg = deg(u-2*math.Pi*revs), deg(node)
+	return e
 }
 
 // parseDate reads a day (midnight UTC) or an RFC 3339 instant.
