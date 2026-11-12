@@ -380,7 +380,7 @@ enum ReferenceFixture {
     @Test func lessonLinksCarryTheAppsOwnAddress() throws {
         let lesson: String = Fixtures.codeLesson
         let isLesson = { (id: String) in id == lesson }
-        let web = try #require(LinkTarget(destination: "https://www.boot.dev/lessons/\(lesson)", isLesson: isLesson))
+        let web = try #require(LinkTarget(destination: "https://lessons.example/lessons/\(lesson)", isLesson: isLesson))
         #expect(web.url == "gosmos-lesson:\(lesson)")
         #expect(LinkTarget(destination: web.url, isLesson: isLesson) == .lesson(lesson))
         #expect(LinkTarget(destination: try #require(URL(string: web.url)).absoluteString, isLesson: isLesson) == .lesson(lesson))
@@ -392,7 +392,7 @@ enum ReferenceFixture {
         let url = try #require(URL(string: target.url))
         #expect(url.scheme == "gosmos-lesson" && LinkTarget(destination: url.absoluteString, isLesson: { $0 == odd }) == target)
         // Every link the app writes is its own.
-        let readme = "[Next](https://www.boot.dev/lessons/\(lesson)), [the spec](https://go.dev/ref/spec), [Println](godoc:fmt.Println), [types](godoc-article:spec#Types)"
+        let readme = "[Next](https://lessons.example/lessons/\(lesson)), [the spec](https://go.dev/ref/spec), [Println](godoc:fmt.Println), [types](godoc-article:spec#Types)"
         let urls = ReadmeLinkTests.destinations(Readme.parse(readme)).compactMap { LinkTarget(destination: $0, isLesson: isLesson)?.url }
         #expect(urls == ["gosmos-lesson:\(lesson)", "godoc:fmt.Println", "godoc-article:spec#Types"])
     }
