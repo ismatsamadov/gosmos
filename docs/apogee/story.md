@@ -4484,8 +4484,8 @@ number or letter) is the **fleet order**.
 passplan predicts passes from each satellite's **elements**, the few numbers that place it on
 its orbit (`Elements`, below: Season 6's type, to which this season adds `SatID` and `Orbit`). The model is written here once and copied unchanged into every
 lesson that predicts a pass, as `network.go` (the twenty stations and eighty satellites) and
-`model.go` (`predict`). It is the model Season 3's reviewers settled (their `passes.py`),
-ported to Go: a circular orbit around a round Earth, the orbit's plane turning with the mean
+`model.go` (`predict`); `go run ./cmd/passes` runs the same code. It is the model Season 3's
+reviewers settled, ported to Go: a circular orbit around a round Earth, the orbit's plane turning with the mean
 Sun for a sun-synchronous satellite (one tilted past 90°) and by Earth's bulge for any other,
 Earth turning beneath it, and a station's mask. It watches the satellite's elevation every 20
 seconds (less often while the satellite is far below the horizon), finds each instant it
@@ -4495,9 +4495,9 @@ minutes doesn't count. Near the top of its track a satellite crosses a high stat
 twice on one orbit; the station sees it rise once and set once: one pass. Pass IDs follow the
 bible's rule: the orbit is the one on which the satellite crosses the station's latitude during
 the pass (the top or bottom of its track where it never reaches that latitude), counted from
-`Rev0` at `Epoch`; a new satellite's orbits count from 1 at its deployment. (`passes.py` numbers
-a pass by the orbit at its AOS, which gives two passes one ID at stations just north of the
-equator; the rest agree.) Elements of the eighty:
+`Rev0` at `Epoch`; a new satellite's orbits count from 1 at its deployment. (Season 3's first
+version numbered a pass by the orbit at its AOS, which gave two passes one ID at stations just
+north of the equator; the rest agree.) Elements of the eighty:
 
 | Satellites | Epoch | Rev0 | NodeDeg | PhaseDeg |
 |---|---|---|---|---|
@@ -5509,12 +5509,12 @@ broken lines put in on purpose, and checks that nothing is missed.
 
 **Where the passes come from.** Every pass in this section and in the lessons (pass ID, AOS, LOS,
 maximum elevation) comes from Season 7's pass model, `model.go`: Season 3's reviewers' settled
-`passes.py` ported to Go, on Season 7's `network.go`, whose elements are Season 3's fits for
+model ported to Go, on Season 7's `network.go`, whose elements are Season 3's fits for
 Pipit-1, Cirrine-1, Brine-3, Furrow-A and Furrow-B, Season 4's for Pipit-2 and Season 7's own for
 the rest. The hidden test file `sim_passes_test.go` holds a copy of `model.go`. It gives exactly
-what `passes.py` gives (all 933 passes of the five fitted in Season 3 over the five original
+what Season 3's model gives (all 933 passes of the five fitted in Season 3 over the five original
 stations in the investors' week, and all 213 of Pipit-2's, to the second and the tenth of a
-degree), and, as in Season 7, a pass shorter than two minutes doesn't count. No pass is invented,
+degree; `cmd/passes`'s tests hold it to those counts), and, as in Season 7, a pass shorter than two minutes doesn't count. No pass is invented,
 and no pass is longer than its orbit allows. The rehearsal itself never predicts a pass: it reads them from
 passplan's pass archive (below).
 
@@ -6099,7 +6099,7 @@ The finale's world, and every fact chapters 2 to 6 may use. All times UTC, 2029.
   bytes it received, every command each satellite ran or refused (number, operation, key ID,
   instant, station), every chunk sent, and every delivery attempt (customer, event, instant, signature checked). Lesson 4.3 also fixes `crypto/rand`'s stream with `testing/cryptotest.SetGlobalRandom` for one small run and checks that every nonce is a piece of it: a nonce from `math/rand` seals as well as one from `crypto/rand`, and `cipher.NewGCMWithRandomNonce` draws from `crypto/rand` without importing it.
 - **Size.** Each lesson's tests fly the whole network for the whole week at most once: one cached run of the investors' week as Ingrid scripts it, with its 1,493 bookings (`simWeekRun`), shared by every check that needs it from lesson 1.1 to 6.5; every other case is one to six stations for one or two days, except 2.3's silent Calidra Atoll, which flies the week beside Port Ellery (1,114 contacts). On an Apple-silicon Mac (M5) that week takes 1.24 s with every chapter's features (0.89 s without bookings), the bubble pinned to one CPU, which is faster there than ten. Under `-race` the four-station week takes 2.4 s, plus 0.28 s for its archive, and
-  pkgcheck runs every test three times that way, so the test files include Season
+  `scripts/pkgcheck.sh` runs every test three times that way, so the test files include Season
   7's `race_on_test.go` and `race_off_test.go`, and with `raceOn` the full-week cases rehearse four
   stations (YST, TIR, PEL, VRL) and check invariants instead of golden files.
 - **Golden files** (6.5): `testdata/week.golden`, `alerts.golden`, `health.golden`, written by the

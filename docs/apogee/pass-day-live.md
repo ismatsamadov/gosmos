@@ -349,3 +349,51 @@ Ystmark's storm arrives, and write the week's report, checked against golden fil
 - **Tests** accept the other correct designs the reviewers tried and fail the usual mistakes with
   clear messages. Each starter is the previous lesson's solution byte for byte, and each lesson's
   tests add to the previous lesson's.
+
+## Changing the capstone later
+
+The whole program, as the learner ends it, is 6.5's solution with its given files: export the
+course with `go run ./cmd/author export courses/apogee.sqlite --course pass-day-live <folder>`.
+Each starter is the previous lesson's solution byte for byte, so a fix to one lesson's code goes
+into every later lesson's starter and solution; the hidden `sim_*_test.go` files are the same in
+every lesson, so a change to them goes into all of them. `go run ./cmd/library drift --course
+pass-day-live --diff` and `verify --course pass-day-live` show what is left. What building the
+world taught, for anyone who changes its tests:
+
+1. **A `sync.Mutex` held across a wait stops the bubble.** A goroutine waiting on a mutex is not
+   durably blocked, so time never moves again if the holder waits for simulated time. The
+   harness's `simWatch` fails such a run within about a second and names the lock; a
+   satellite's command lock is a channel for that reason, and the same goes for a learner who
+   guards a `net.Conn`'s writes with a mutex.
+2. **A station runs a command that arrived before the line dropped.** A resend then meets
+   `replayed sequence number`, which 4.4 treats as "it ran".
+3. **A one-day window plans differently at its start.** A plan starting at 00:00 frees every
+   dish then, so a station's first hour can differ from the week's (Saltreach Island, Port
+   Ellery, Salar Quieto and Hasku Point lose a Thursday booking that way). A case that needs the
+   week's bookings uses stations whose day plans agree, or the cached week.
+4. **`net.Pipe` has no buffer.** A station's writer blocks until the rehearsal reads, which is
+   how 4.1's waiting for the ACK without reading frames fails (`no_ack`).
+5. **A failed bubble ends its test.** `synctest.Test` calls `t.FailNow` once the bubble's test
+   fails, and `simOnce` doesn't cache a stuck run, so a case that can get stuck goes at the top
+   of its own test (2.3's `TestSilence`).
+6. **A redial with no wait explodes in real time.** The world slows a dial loop to 500 calls a
+   simulated second per station (`simSpinLimit`); keep such stations to one pass
+   (`testArchive`), stop a wrong-banner case soon after its AOS, and look calls up per station
+   (`testDialer`).
+7. **Two things due in the same simulated instant race.** Plant trouble (`badLength`, `corrupt`,
+   drops) away from AOS + 10 s, when from 4.1 a pass's first command goes up.
+8. **A window starting after Wednesday 00:00 already holds `k-2029-07`.** Its satellites get no
+   LOAD_KEY and sign with it; checks of `k-2028-10` need a window starting before Wednesday.
+9. **A case's archive holds contacts of the world's plan.** The stations fly
+   `simPlanFor(window, stations)` of the full archive, so every pass `testArchive` keeps must be
+   a contact there, on the dish the rehearsal gives it (a Thursday-only plan at Port Ellery
+   drops `brine-5/PEL/01080`).
+10. **Only a short contact lets a delivery outlast the week.** Retries end at most 254 s after
+    a landing; to see the week wait, book a short contact alone (`furrow-t/LAN/00431`).
+11. **`go test -count=30` draws the week's jitter once.** `simOnce` caches the week per test
+    binary, so `scripts/pkgcheck.sh`'s 30 runs share one draw: also run the compiled test binary
+    as fresh processes (20 each for 5.3 and 5.4).
+12. **The pager stops when the week does.** A one-day case's RESOLVED, six hours after its last
+    failure, needs a later contact to keep the week going (6.3's `cirrine-10/PEL/01451`).
+13. **The atolls' 99.0% target never shows in a real week.** 6.5 books Lantern Atoll's week up
+    to 100 with test bookings (`bk-9911` to `bk-9951`) and flies only the booked contacts.

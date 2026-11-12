@@ -5,6 +5,7 @@
 //	library check <file>
 //	library migrate <file> [--learner <file>] [--title T]
 //	library verify <file> [--course <slug>] [--teaching]
+//	library drift <file> [--course <slug>] [--diff]
 //
 // check prints one line for each problem and exits 1 if there is any. It writes nothing, with
 // one exception: a write that was interrupted (a crash, or Ctrl-C during a write) leaves a
@@ -42,7 +43,11 @@ const usage = `usage:
   library verify <file> [--course <slug>] [--teaching]
       run every code lesson with the Go toolchain: it must pass with its solution and fail
       with its starter. With --teaching, every code lesson must also have 2 or 3 hints and a
-      solution note, and every quiz answer an explanation`
+      solution note, and every quiz answer an explanation
+  library drift <file> [--course <slug>] [--diff]
+      list each lesson whose read-only or hidden Go files give a declaration differently
+      from the last text the learner saw, where no solution changed it first; --diff
+      shows each change`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -62,7 +67,7 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var title, version, learner, course string
-	var teaching bool
+	var teaching, diffs bool
 	switch cmd {
 	case "create":
 		fs.StringVar(&title, "title", "", "")
@@ -74,6 +79,9 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	case "verify":
 		fs.StringVar(&course, "course", "", "")
 		fs.BoolVar(&teaching, "teaching", false, "")
+	case "drift":
+		fs.StringVar(&course, "course", "", "")
+		fs.BoolVar(&diffs, "diff", false, "")
 	default:
 		fmt.Fprintf(errOut, "unknown command %q\n%s\n", cmd, usage)
 		return 2
@@ -99,6 +107,8 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 		ok = err == nil
 	case "verify":
 		ok, err = verify(ctx, path, course, teaching, out)
+	case "drift":
+		ok, err = drift(ctx, path, course, diffs, out)
 	}
 	if err != nil {
 		fmt.Fprintln(errOut, "library:", err)
