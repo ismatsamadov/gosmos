@@ -2,8 +2,8 @@
 
 **Authoring status:** all twelve chapters are implemented as 102 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–12 were written from this plan
-a chapter or two at a time, and every chapter was independently reviewed. Chapters 2–9 were then
-read in the app in light and dark, two chapters at a time; chapters 10–12 are still to be read. Every pass comes from the orbit model
+a chapter or two at a time, and every chapter was independently reviewed. Chapters 2–12 were then
+read in the app in light and dark, in six parts. Every pass comes from the orbit model
 Seasons 3 to 6 use, ported to Go (`model.go`), with Pipit-2 fitted in Season 4. The lessons in
 `courses/apogee.sqlite` are the source of truth, and the larger changes from this plan are listed
 under "Changes in writing and review" at the end.
