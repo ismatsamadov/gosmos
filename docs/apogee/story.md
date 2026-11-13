@@ -2721,7 +2721,7 @@ to." The debrief points at Season 6: in November the learner carries the pager a
 Lantern Atoll's generator has started to sound different.
 
 The epilogue (chapter 13, Wednesday 25 October to Friday 3 November) closes the season after its
-climax. Thursday 26 October: the reset file still holds every token as it was sent, its oldest link
+climax. Wednesday 25 October: the reset file holds every token as it was sent. Thursday 26 October: its oldest link
 (March 2027) still works, a link Nkem used in May works again, and the reset form answers "no account
 named" to strangers. Tuesday 31 October: Ingrid's phone runs 20 seconds slow. Wednesday 1 November:
 Mirela reads a code over Nkem's shoulder, and Ingrid asks why six digits are fine now. Thursday 2

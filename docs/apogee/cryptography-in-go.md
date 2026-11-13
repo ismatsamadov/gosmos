@@ -871,7 +871,7 @@ Issue password reset tokens with `rand.Text` and keep only their SHA-256, expire
 #### 13.7 Quick Check: Six-Digit Codes
 `quick-check-six-digit-codes` · quiz · difficulty 8
 - **Objective:** Check what makes six-digit codes acceptable, why the window is one step either side, and why the console keeps the secret itself.
-- **Scenario:** Wednesday afternoon, Ingrid with her phone: "Six digits again. In July you told me six digits weren't basically as good as the tokens."
+- **Scenario:** Wednesday afternoon, Ingrid with her phone: "Six digits again. In July I asked if six digits were basically as good as the tokens, and you said no."
 - **Exercise:** Three questions, about the plan she copied into her checklist.
 - **Check:** each code counts only beside the right password, within its 90 seconds and once, unlike the old six-digit codes, which were the whole secret; the window covers drifting clocks and typing time, and each extra step is one more code a guess could match; the console must make the same codes as the phone, so it keeps the secret whole.
 
