@@ -586,8 +586,9 @@ landed, day and night. You build it with Go's standard library. Nkem reviews eve
 Yusra brings the customers' wishes, Mirela reviews who may do what, and Ingrid runs launch
 day like a pass.
 
-Story time runs from Monday 1 November 2027 to Tuesday 1 February 2028: twelve chapters,
-all but chapter 11 of about a week each (chapter 11 is the afternoon of Friday 21 January), with a
+Story time runs from Monday 1 November 2027 to Friday 4 February 2028: thirteen chapters,
+all but chapters 11 and 13 of about a week each (chapter 11 is the afternoon of Friday 21 January,
+chapter 13 the first days open, Wednesday 2 to Friday 4 February), with a
 quiet holiday fortnight (Monday 20 December to Sunday 2 January)
 between chapters 7 and 8. No new people, places, satellites or customers are introduced.
 Customers speak through Yusra ("TL;DR: ...") and Furrowlight through Hollis's capitals.
@@ -615,6 +616,7 @@ tests everything.
 | 10 | Mon 17 Jan | the backend desks | Yusra: customers ask `GET /bookings` every few seconds to learn whether their data has landed; Furrowlight asks every five seconds, 17,280 times a day | "Your data has landed," a second after the file lands, signed so nobody else can say it |
 | 11 | Fri 21 Jan, 15:00 to 18:20 UTC | the backend desks | Hollis, right after his capitals about the five-second loop: he wants to see Furrowlight's bookings himself, in a browser; Yusra wants a signed-in page beside the API before rehearsal week, and Mirela reviews it | A signed-in browser can be made to cancel a booking from any other website. At 18:20 Hollis signs in and sees only Furrowlight's bookings; Mirela's page with a hidden cancel form is refused |
 | 12 | Mon 24 Jan, then Tue 1 Feb | the Fishbowl | Ingrid runs launch like a pass: a rehearsal week, a full rehearsal on Monday 31 January, then launch at 14:00 UTC on Tuesday 1 February | At 14:01 Yusra finds that the customer guide's sample request says `Authorization: Token` instead of `Bearer`, and customers are copying it. The guide is built into the service, so it must restart at 14:05, while Furrow-A is over Salar Quieto (AOS 14:02:10, LOS 14:11:52) |
+| 13 | Wed 2 to Fri 4 Feb | the backend desks | The first week open: Cirrine's 1.9 GB software image arrives as a command file (Wed 09:10) and Furrowlight's is a PDF (Wed 15:00); Hollis's download of Tuesday's image breaks four times (Thu 08:10) and his field team needs a link without a key (Thu 11:00); Tomás finds Brinewatch's events in the weather service's log (Thu 15:00); Mirela's own phishing email goes through `/go` (Fri 08:30); Brinewatch is at 11 of its 12 February bookings (Fri 11:00) | What the service does in its first week, customers will rely on. Friday's 17:00 deploy ships the week |
 
 The opening (Monday 1 November) hands over the new badge, shows Yusra's spreadsheet and the
 launch date, introduces Nkem (reviewer), Yusra (the customers' voice) and Mirela (who will
@@ -627,6 +629,10 @@ and Furrowlight's receiver hears about it at 14:13:03. By evening every customer
 through the service and Yusra archives her spreadsheet. The debrief points at the Board project
 (the next passes on every screen in the building) and at Season 4: Sunniva's new dish
 controllers at Ystmark arrive in March, and they speak only raw sockets.
+
+The epilogue (chapter 13, Wednesday 2 to Friday 4 February) is the first week open. Each lesson is a
+surprise from real customers, and Friday's 17:00 deploy ships everything the week added. Its debrief
+ends on Monday, when Ingrid has one more thing to ask: the Board project.
 
 #### New systems
 
@@ -682,6 +688,7 @@ learner first meets `MemStore`'s inside in chapter 7, where they write it.
 | 10 | `Event`, `Landing`, `post`, `AnswerError`, `statusOf`, `signature`, `verifyEvent`, `backoff`, `retryable`, `Sender`, `Delivery`, `ErrUndelivered`, `Notifier`, `idempotent`, `keyStore`, `claim`, `validKey`, `replay`, `answerRecorder` (`webhook.go`, `idempotency.go`) |
 | 11 | `cookieName`, `sessionLife`, `sessionCookie` (`cookie.go`); `session`, `Sessions`, `newSessions`, `(*Sessions).Start`, `Lookup`, `End` (`sessions.go`); `Account`, `(*Account).routes`, `signedIn`, `page`, `signInForm`, `signIn`, `signOut`, `cancel` (`account.go`); `pageHTML`, `signInHTML`, `render`, `renderPage`, `renderSignIn` (`page.go`); `noCrossOrigin`, `cors`, `securityHeaders` (`browser.go`); `site` (11.9's `main.go`) |
 | 12 | `stop`, `serve`, `run`, `Outbox`, `OpenOutbox`, `(*Outbox).NewEventID`, `Put`, `Remove`, `Pending`, `outboxFile`, `(*Notifier).Start`, `Stop`, `(*Notifier).deliver`, `sleep`, `App`, `newApp`; 12.8's `client.go` (`request`, `answer`, `errorCode`, with chapter 8's `send` and `token`) (`run.go`, `outbox.go`, `webhook.go`, `app.go`) |
+| 13 | `readCommands`, `uploadError` (`commands.go`); `checkCommands` (`sniff.go`); `Files`, `(*Files).booking`, `upload`, `landed`, `download`, `link`, `shared` (`files.go`); `sendFile` (`send.go`); `linkLife`, `Link`, `errBadLink`, `errLinkExpired`, `linkSig`, `linkFor`, `checkLink` (`link.go`); `errInside`, `checkDial`, `webhookClient` (`dial.go`); `localPath`, `goNext` (`next.go`); `usage`, `(*usage).take` (`usage.go`); `Quota`, `openQuota`, `(*Quota).Take`, `save` (`quota.go`); `metered`, `(*Quota).Give` (`metered.go`); `firstWeek` (13.9's `main.go`) |
 
 Signatures every chapter after the first one that defines them uses exactly:
 
@@ -759,6 +766,23 @@ func noCrossOrigin(h http.Handler) http.Handler
 func cors(origin string) func(http.Handler) http.Handler
 func securityHeaders(next http.Handler) http.Handler
 func site(api http.Handler, a *Account, origin string) http.Handler
+
+// chapter 13: the first week open
+func readCommands(w http.ResponseWriter, r *http.Request) ([]byte, error) // the form's "file" part, the body capped at maxBodyBytes
+func checkCommands(data []byte) error                                     // 415 unless sniffed as exactly text/plain; charset=utf-8
+func sendFile(w http.ResponseWriter, r *http.Request, file *os.File)    // http.ServeContent with the file's name and ModTime
+func linkSig(path string, expires int64, key []byte) string             // hex HMAC-SHA256 of "<path>?expires=<unix>"
+func linkFor(path string, expires time.Time, key []byte) string
+func checkLink(path, expires, sig string, key []byte, now time.Time) error // errBadLink, then errLinkExpired
+func checkDial(network, address string, c syscall.RawConn) error        // a net.Dialer's Control hook
+func webhookClient() *http.Client
+func localPath(next string) bool
+func goNext(l *log.Logger) http.Handler
+func (u *usage) take(customer string, plan int, now time.Time) error
+func openQuota(path string, plans map[string]int, now func() time.Time) (*Quota, error)
+func (q *Quota) Take(customer string) error
+func (q *Quota) Give(customer string) error
+func firstWeek(app *App, f *Files, q *Quota, l *log.Logger) http.Handler
 
 // checks the learner writes, in editable non-test files
 func checkStore(t *testing.T, open func() Store)                             // chapter 7, contract.go
@@ -913,7 +937,7 @@ type Config struct {
 - **Booking IDs** are `bk-` and four digits. Yusra's spreadsheet ends at `bk-4498`; in
   chapters 4 to 6 the service holds her last imported bookings, `bk-4491` to `bk-4498`. The
   service's own count starts at `bk-4501` (Furrowlight's first, chapter 5) and is near
-  `bk-4912` on launch day (Furrow-A's 14:02 pass).
+  `bk-4912` on launch day (Furrow-A's 14:02 pass), and reaches `bk-4937` in the first week open (Brinewatch's 12th February booking, Friday 4 February).
 
 #### The API
 
@@ -956,13 +980,13 @@ and the same message text. From lesson 5.2 every handler error goes through `wri
 
 | Status | `error` | Messages, exactly |
 |---|---|---|
-| 400 | `bad_request` | `request body: empty`; `request body: ` followed by the decoder's error, such as `request body: json: unknown field "sat"`; `request body: unexpected data after the JSON value`; the query messages above; `unknown band "x"`; `idempotency key must be 1 to 64 letters, digits, - or _` |
+| 400 | `bad_request` | `request body: empty`; `request body: ` followed by the decoder's error, such as `request body: json: unknown field "sat"`; `request body: unexpected data after the JSON value`; the query messages above; `unknown band "x"`; `idempotency key must be 1 to 64 letters, digits, - or _`; `form has no "file" part` (chapter 13) |
 | 401 | `unauthorized` | `missing credentials`; `invalid api key`; `invalid token`; `token expired` |
-| 403 | `forbidden` | `cirrine-1 is not one of your satellites` |
+| 403 | `forbidden`; `quota_exceeded` | `cirrine-1 is not one of your satellites`; `invalid link`; `link expired`; `plan of 12 bookings a month used up: the count starts again at 2028-03-01T00:00:00Z` (the last three chapter 13) |
 | 404 | `not_found` | `no station "ZZZ"`; `no pass furrow-a/SQT/15865`; `booking bk-5499: not found` |
 | 409 | `conflict` | `furrow-a over SQT at 2027-12-06T14:02:10Z: already booked`; `idempotency key "wk49-mon" was used for a different request`; `a request with idempotency key "wk49-mon" is in progress` |
 | 413 | `too_large` | `request body over 65536 bytes` |
-| 415 | `unsupported_media_type` | `send the body as application/json` |
+| 415 | `unsupported_media_type` | `send the body as application/json`; `send the command file as multipart/form-data`; `command file must be plain text, not application/pdf` (chapter 13) |
 | 422 | `invalid_booking` | the booking rules below |
 | 429 | `rate_limited` | `slow down: 10 requests at once, then 1 a second` |
 | 500 | `internal` | `internal error`, whatever went wrong; the error's own text never reaches the caller |
@@ -1301,6 +1325,52 @@ type Sender struct {
   was down for its own deploy, and two attempts were made) when the service restarts; Furrowlight's
   launch-day event is `evt-000118`.
 
+#### The first week open (chapter 13)
+
+- **Days:** Wed 2 Feb 09:10, Cirrine's 1.9 GB software image as the command file of `bk-4918`
+  (`cirrine-1/YST/12245`, Thu 3 Feb 09:00:05–09:10:24); Wed 15:00, a PDF as Furrowlight's command file
+  for `bk-4921` (`furrow-a/SQT/16777`, Fri 4 Feb 14:36:38–14:46:32); Thu 08:10, Hollis's four broken
+  downloads of `furrow-a-20280201-1402.tif` (`bk-4912`, 10,912,500,000 bytes, landed 14:13:02 on 1 Feb);
+  Thu 11:00, his field team's link (until Fri 11:00); Thu 15:00, Tomás (on call for launch week) finds
+  Brinewatch's events in the weather service's log, and Brinewatch sends Yusra its public address that
+  afternoon; Fri 08:30, Mirela's email; Fri 11:00, Brinewatch at 11 of 12; Fri 16:00, 13.9; 17:00, the
+  deploy.
+- **Routes**, all inside the service's middleware: `POST /bookings/{id}/commands` (token, limit): a
+  `multipart/form-data` body of at most 65,536 bytes whose part `file` is kept as `commands/<id>.txt` in
+  the data folder when `http.DetectContentType` calls it exactly `text/plain; charset=utf-8`; 204.
+  `GET /bookings/{id}/file` (token, limit) and `GET /files/{id}?expires=&sig=` (the link alone): the
+  landed file through `http.ServeContent` as `application/octet-stream`, 206 for a `Range`, 404 `no file
+  for bk-4921 yet`. `POST /bookings/{id}/link` (token, limit): 200 `{"url":…,"expires_at":…}`, valid
+  `linkLife` (24 hours) from `Now()` truncated to the second. `GET /go?next=` (public): 303 to `next` when
+  it parses, starts with one `/` and holds no `\`, else to `/guide/`; it logs `req-000009 go
+  /guide/files.html`.
+- **dlinkd's delivery folder** holds each landed file in a folder named for its booking:
+  `bk-4912/furrow-a-20280201-1402.tif`. From chapter 13 customers fetch landed files from the booking
+  service.
+- **Download links:** `<path>?expires=<Unix seconds>&sig=<64 hex>`, the HMAC-SHA256 under the link key (32
+  random bytes of its own; in tests the ASCII `bookingd test link key, 32 bytes`) of `<path>?expires=<Unix
+  seconds>`. The signature is checked first with `hmac.Equal` (`invalid link`), then the expiry (`link
+  expired` from its second on), both 403 `forbidden`. With the test key, `/files/bk-4912?expires=1833274800`
+  signs as `2757ac02d305eefdc043203dc622beab809b459066d7826fa50c58868ad3ac1d`.
+- **Webhooks** go out through `webhookClient`: 5 s, no redirect followed, and a dialer whose `Control` hook
+  refuses loopback, private, link-local and unspecified addresses and any address that doesn't parse
+  (`errInside`, "webhook address is inside a network"). Launch Day's `newApp` still builds the old client;
+  13.9's `firstWeek` swaps it in. A refused dial is a transport error, so `retryable` still retries it:
+  eight attempts, none of which leaves the machine. Brinewatch's `evt-000121`, for `bk-4913`'s file on
+  Wednesday, was the first event posted to 10.20.0.31.
+- **Plans**, bookings made per calendar month in UTC: Furrowlight 60, Cirrine 40, Brinewatch 12; Apogee's
+  own have none. `Quota` keeps `usage.json` in the data folder. Before Friday's deploy Yusra seeds it with
+  `{"month":"2028-02-01T00:00:00Z","used":{"brinewatch":11,"cirrine":4,"furrowlight":9}}`, the 24
+  bookings `bk-4913` to `bk-4936`. Past the plan the answer is 403 `quota_exceeded` `plan of 12 bookings a
+  month used up: the count starts again at 2028-03-01T00:00:00Z`, never 429, since clients retry a 429
+  within a minute. `metered` counts each booking before the store keeps it, and gives back one the store
+  refuses.
+- **Fixtures:** `bk-4913` (Brinewatch, `brine-3/LAN/10103`, Wed 12:27:50–12:34:37), `bk-4918`, `bk-4921`,
+  `bk-4933` (Furrowlight, `furrow-a/SQT/16792`, Sat 5 Feb 14:16:50–14:26:55), `bk-4936` (Brinewatch,
+  `brine-3/CWR/10136`, Fri 15:43:26–15:52:39), `bk-4937` (Brinewatch's 12th, `brine-3/PEL/10140`, Fri
+  21:06:32–21:14:28); the refused 13th is `brine-3/PEL/10141` (Fri 22:43:27–22:52:45). 13.9's catalog adds
+  `furrow-b/YST/16776` and `cirrine-1/YST/12265`. Every pass comes from `cmd/passes`.
+
 #### The weather service (chapter 2, and the Board)
 
 - `GET /weather/{code}` answers 200 with one reading:
@@ -1309,6 +1379,7 @@ type Sender struct {
   fields: the opposite of the booking service's own strict input, on purpose.
 - Its errors are plain text: 404 `no station "CRW"`; 503
   `mast silent since 2027-11-08T12:51:00Z` with `Retry-After: 60`.
+- It listens at 10.20.0.31, port 80, on Apogee's office network (chapter 13).
 - A reading is fresh for 15 minutes after its `at`: exactly 15 minutes old is still fresh.
 - Its client never waits more than 2 seconds (`http.Client{Timeout: 2 * time.Second}`), and
   each call also takes the poll's context.
@@ -1389,18 +1460,22 @@ only to be printed use URLs on `http://127.0.0.1`, so a printed `Host` line read
   re-executed test binary (`os.Args[0] -test.run=...` with `APOGEE_MUTANT` naming the
   mutant), as in Season 1's chapter 15.
 - A flood of hundreds of requests goes through `ServeHTTP` with recorders, not the loopback.
+- 13.6's test dials the name `localhost`, resolved from the Mac's own hosts file, to show that a name
+  resolving inside is refused; no other test resolves a name. 13.1's 1.9 GB upload is made as it is read
+  and stops after 1 MiB, so a starter that reads everything fails at once.
 
 **Topics added this season** (front matter): `http`, `json`, `security`. Lessons keep using the
 older ones (`context`, `errors`, `interfaces`, `mutexes`, `testing`, `time`...).
 
 **New field guide words** (world words only; Go and HTTP words are taught in readmes):
 booking, booking service, bookingd, the beta, catalog, customer guide, weather service, weather
-mast, landing, account page, planning page.
+mast, landing, account page, planning page, command file, plan (not linked: an everyday word).
 
 **Name checks** to run before the season ships: `bookingd` (and the header names
 `Apogee-Timestamp` and `Apogee-Signature`, which use the invented company's name). Nothing else
 this season is a new proper name. The planning page's host, `plan.furrowlight.example`, uses the
-reserved `.example`.
+reserved `.example`. Chapter 13 adds none: Mirela's look-alike site is `apogee-bookings.example`,
+under the reserved `.example`.
 
 ### The Board project: every screen in the building
 

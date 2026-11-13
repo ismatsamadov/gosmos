@@ -5,7 +5,7 @@ Season 3 of Apogee, November 2027 to February 2028. Customers book passes by ema
 learner moves from reading a single request to a tested service that authenticates, limits,
 calls customers back and restarts in the middle of a live pass without dropping anything.
 
-**Authoring status:** all twelve chapters are implemented as 106 lessons. Chapter 1 was read in
+**Authoring status:** all thirteen chapters are implemented as 115 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this
 plan two chapters at a time and each pair independently reviewed. The world, the characters and
 the writing rules are in `story.md`, whose section "Season 3: open for business" fixes every
@@ -44,8 +44,9 @@ test cases, and the larger changes are listed under "Changes in writing and revi
 | 10 | Calling Customers Back | `calling-customers-back` | Deliver signed webhooks with backoff, jitter and retries, verify them on arrival, and make a create safe to retry. | 10 |
 | 11 | Signed In | `signed-in` | Sign people in with cookies and server-side sessions, refuse other sites' forms with `http.CrossOriginProtection`, let one trusted origin call the API with CORS, and send a browser's security headers. | 9 |
 | 12 | Launch Day | `launch-day` | Shut a server down gracefully, carry contexts into every handler, keep pending work across a restart, and test the whole service. | 9 |
+| 13 | The First Week Open | `the-first-week-open` | Read uploads from `multipart` forms within a limit and judge their bytes with `http.DetectContentType`, resume downloads with `http.ServeContent`, sign download links that expire, refuse webhook addresses inside a network in a `net.Dialer`'s `Control` hook, keep redirects on the site, and count a monthly plan on an injected clock. | 9 |
 
-106 lessons: 4 code, 86 code_tests and 16 quizzes (84.9% hands-on). Calibration starts with
+115 lessons: 4 code, 94 code_tests and 17 quizzes (85.2% hands-on). Calibration starts with
 chapter 1; later chapters are written only after it has been imported and read in the app.
 Difficulty rises from 4 to 10. Every server listens on 127.0.0.1 on a port the system picks;
 clocks and random sources are injected; no test reaches the network, sleeps more than 50 ms or
@@ -887,6 +888,80 @@ restart, and one test of the whole service.
 - **Exercise:** `run` stops the server but leaves the notifier running and never resumes the outbox; you stop in the bible's order (drain, shut down, stop the notifier, which saves the outbox) and start the notifier from the outbox.
 - **Check:** The first process: bookings made, a request in flight at the stop that finishes, Cirrine's `evt-000117` saved with its attempts. The second process, from the same folder: the bookings intact and the next ID continuing, Cirrine's event delivered with the same ID, and the 14:13:02 landing delivered to Furrowlight on its first attempt as `evt-000118`. The whole run takes a few seconds at most.
 
+## Chapter 13 · The First Week Open
+
+`the-first-week-open` · 9 lessons
+
+The first customers' week: file uploads read from `multipart` forms within a limit and sniffed
+with `http.DetectContentType`, ranged downloads that resume through `http.ServeContent`, download
+links signed with HMAC that expire, webhooks refused inside the network by a `net.Dialer`'s
+`Control` hook, redirects that stay on the site, and a monthly plan on an injected clock.
+
+**Story:** Wednesday 2 to Friday 4 February 2028, the first week open, at the backend desks, between Launch Day and the Board project. Real customers do what the beta never did. Cirrine attaches Cirrine-1's 1.9 GB software image as a command file and Furrowlight sends a PDF; Hollis's download of Tuesday's 10.9 GB image breaks four times, and his field team needs a link without a key; Tomás, on call for launch week, finds Brinewatch's events in his weather service's log; Mirela writes a phishing email of her own through Yusra's `/go` links; Brinewatch reaches 11 of the 12 bookings its plan allows in February. Friday's 17:00 deploy ships the week.
+
+#### 13.1 Forms That Carry Files
+`forms-that-carry-files` · code_tests · difficulty 9
+- **Objective:** Read one file out of a `multipart/form-data` body with `r.MultipartReader()` and `NextPart`, behind `http.MaxBytesReader`.
+- **Scenario:** Wednesday 2 February, 09:10: Cirrine's engineer attached Cirrine-1's whole software image, 1.9 GB, to Thursday's booking instead of its command file, and the draft read every byte into memory.
+- **Exercise:** `readCommands(w http.ResponseWriter, r *http.Request) ([]byte, error)` returns the whole body; you cap the body at `maxBodyBytes` and return the bytes of the part named `file`, errors as they come, and `http.ErrMissingFile` when no part has that name.
+- **Check:** Cirrine's form, a `note` part first → exactly the command file; a 65,000-byte file → all of it; a text/plain body → `http.ErrNotMultipart`; a form with only a note → `http.ErrMissingFile`; the 1.9 GB form, made as it is read → a `*http.MaxBytesError` with at most 65,537 bytes read. `r.FormFile` passes too. The mistakes: the limit set after `MultipartReader`, which reads the body it found, and an `io.LimitReader` on the part, which stops without saying the body was too large.
+
+#### 13.2 The Bytes, Not the Label
+`the-bytes-not-the-label` · code_tests · difficulty 9
+- **Objective:** Judge an upload by its bytes with `http.DetectContentType`, not by the `Content-Type` its sender wrote.
+- **Scenario:** Wednesday, 15:00: Furrowlight's command file for Friday's 14:36 pass over Salar Quieto (`bk-4921`) is a PDF of the command list, labeled `text/plain` like everything its script sends.
+- **Exercise:** `checkCommands(data []byte) error` accepts every file; you return a 415 `unsupported_media_type`, `command file must be plain text, not <type>`, unless the sniffed type is exactly `text/plain; charset=utf-8`. The read-only `upload` handler reads, checks and keeps the file.
+- **Check:** A command list, and one with a UTF-8 byte-order mark → nil; a PDF, a web page, XML, a zip, a PNG, UTF-16 text and raw bytes → 415 naming each sniffed type; through `upload`, a PDF labeled `text/plain` → 415 and nothing kept, the list labeled `application/octet-stream` → 204 and kept. The mistakes: `text/` as a prefix (HTML and XML get through), a comparison with `text/plain` alone (every list refused), `text/plain` as a prefix (UTF-16 gets through).
+
+#### 13.3 Pick Up Where It Stopped
+`pick-up-where-it-stopped` · code_tests · difficulty 9
+- **Objective:** Serve a file with `http.ServeContent`, which answers `Range` with 206 and `Content-Range`, and `If-Range` by the file's modification time.
+- **Scenario:** Thursday 3 February, 08:10. Hollis: "FURROW-A 0201 1402: FOUR TRIES, NEVER WHOLE." Every retry of Tuesday's 10,912,500,000-byte image got the whole file again.
+- **Exercise:** `sendFile(w http.ResponseWriter, r *http.Request, file *os.File)` copies the whole file with `io.Copy`; you answer with `http.ServeContent` and the name and modification time from `file.Stat()`. The read-only `download` handler finds the caller's landed file.
+- **Check:** Against a 64 KiB stand-in landed at 14:13:02: the whole file with `Accept-Ranges: bytes` and `Last-Modified`; `Range: bytes=40000-` → 206, `Content-Range: bytes 40000-65535/65536`, and the two parts make the image; `bytes=65536-` → 416; `If-Range` with the image's own date → 206, with an older one → 200 and the whole file; a booking whose pass hasn't flown → 404 `no file for bk-4921 yet`. The mistake: a zero or wall-clock modification time, which never matches `If-Range`.
+
+#### 13.4 A Link That Runs Out
+`a-link-that-runs-out` · code_tests · difficulty 9
+- **Objective:** Check a download link signed with HMAC-SHA256 over its path and expiry: the signature in constant time with `hmac.Equal`, then the expiry.
+- **Scenario:** Thursday, 11:00: Hollis wants Furrowlight's field team, agronomists with laptops and no API key, to fetch Tuesday's image; a link from `POST /bookings/{id}/link` works for 24 hours.
+- **Exercise:** `checkLink(path, expires, sig string, key []byte, now time.Time) error` accepts any link; you recompute `linkSig`, compare in constant time, and return `errBadLink` for a changed or malformed link and `errLinkExpired` from the expiry's second on.
+- **Check:** Hollis's link on Thursday and one second before expiry → nil; at its expiry and on Saturday → `link expired`; its expiry moved on (also when read after the real expiry), bk-4912's signature on bk-4913's path, another key, no or non-hex signature, a non-numeric or missing expiry → `invalid link`; `go/parser` finds `hmac.Equal` (or `subtle.ConstantTimeCompare`) in `checkLink`; through the handlers, the minted `/files/bk-4912?expires=1833274800&sig=…` downloads whole and from byte 40000, and is refused when edited and on Friday at 11:00.
+
+#### 13.5 Quick Check: Files and Links
+`quick-check-files-and-links` · quiz · difficulty 9
+- **Objective:** Reason about resumes, body limits and what a link's signature covers.
+- **Scenario:** Thursday afternoon: Nkem's three questions before the field team gets its first link.
+- **Exercise:** Three questions.
+- **Check:** A 200 to a resume is the whole file, so the client starts again from it; `http.MaxBytesReader` ends the read at 64 KiB with an error the service answers with 413; an expiry outside the signature could be moved on by anyone holding the link.
+
+#### 13.6 Webhooks Stay Outside
+`webhooks-stay-outside` · code_tests · difficulty 10
+- **Objective:** Refuse to connect to loopback, private, link-local and unspecified addresses from a `net.Dialer`'s `Control` hook, which sees the address actually dialed.
+- **Scenario:** Thursday, 15:00: Tomás, on call this week, finds Brinewatch's events in his weather service's log; Brinewatch gave its receiver's inside address, `http://10.20.0.31/apogee-events`, which inside Apogee's network is the weather service.
+- **Exercise:** `checkDial(network, address string, _ syscall.RawConn) error` allows everything; you parse the address with `netip.ParseAddrPort` and return an error wrapping `errInside` for an inside address or one that doesn't parse. The read-only `webhookClient` installs it.
+- **Check:** 203.0.113.7, 198.51.100.20, 172.32.0.1 and 2001:db8::7 → nil; 10.20.0.31, 172.16.5.4, 172.31.255.254, 192.168.1.20, 127.0.0.1, 127.8.9.10, ::1, 169.254.169.254, fe80::1, fd12:3456::7, 0.0.0.0, :: and `weather-service:80` → `errInside`; `webhookClient` posting to a test server at 127.0.0.1 and to `localhost` (resolved from the Mac's hosts file) → `errInside`, and the server gets no request. The mistakes: string prefixes (172.32.0.1 is outside), IPv6 forgotten, 0.0.0.0, which reaches this very machine, and a parse error let through.
+
+#### 13.7 Only Our Own Pages
+`only-our-own-pages` · code_tests · difficulty 9
+- **Objective:** Keep a redirect's `next` to a path on the same site: parsed with `url.Parse`, starting with one `/`, with no `\`.
+- **Scenario:** Friday 4 February, 08:30: Mirela forwards an email she wrote herself whose link, `/go?next=https://apogee-bookings.example/renew`, starts with the booking service's own address and ends on a page that asks for the API key.
+- **Exercise:** `localPath(next string) bool` accepts everything; you accept only a `next` that parses, starts with `/` but not `//`, and holds no backslash. The read-only `goNext` redirects to it with 303, or to `/guide/`, and logs where it sent the browser.
+- **Check:** `/guide/files.html`, a page with a query and a fragment, and `/account/` → themselves; an empty `next`, Mirela's link, `//…`, `///…`, `/\…`, `\\…`, a tab or a line break between the slashes, `https:/…`, `javascript:` and `guide/files.html` → `/guide/`; no log line names Mirela's site. The mistakes: a leading `/` alone, and an empty host after parsing, which lets `/\…` and `https:/…` through.
+
+#### 13.8 A Plan for the Month
+`a-plan-for-the-month` · code_tests · difficulty 9
+- **Objective:** Count usage per customer per calendar month on an injected clock, refuse past the plan with a clear 403, and start again at the month boundary in UTC.
+- **Scenario:** Friday, 11:00. Yusra: "TL;DR: Brinewatch has made 11 of the 12 bookings its plan allows in February, and asks what number 13 gets."
+- **Exercise:** `(*usage).take(customer string, plan int, now time.Time) error` counts nothing; you start a new count when `now`, in UTC, is in another month than `u.Month`, refuse a used-up plan with 403 `quota_exceeded`, `plan of 12 bookings a month used up: the count starts again at 2028-03-01T00:00:00Z`, and otherwise count. The read-only `Quota` keeps the count in `usage.json` and skips customers without a plan.
+- **Check:** Brinewatch's 12th counted and its 13th refused; at 2028-02-29T23:59:59Z refused, at 2028-03-01T00:00:00Z counted from 1; Cirrine's 41st refused with its own plan, and counted beside Brinewatch's full plan; a clock at 21:30 UTC−3 on 29 February → March; February 2029 → a new count; December's refusal names 2029-01-01; through `Quota`, the 13th still refused after reopening the file, Apogee's 100 bookings never counted, and 50 bookings at once with 30 of 40 made → exactly 10. The mistakes: `>` for `>=`, a month without its year, the clock's own zone, a reset date from `now.AddDate`.
+
+#### 13.9 One Week Open
+`one-week-open` · code_tests · difficulty 10
+- **Objective:** Put each of the week's features behind the guard it needs, beside the API and inside its middleware.
+- **Scenario:** Friday, 16:00: the week's work goes out in tonight's deploy, and Nkem wants it served as one handler.
+- **Exercise:** `firstWeek(app *App, f *Files, q *Quota, l *log.Logger) http.Handler` registers the new routes unguarded inside the service's middleware; you put the upload, download and link routes behind `s.private`, wrap `s.Store` in `metered` with `q`, and give the notifier's `Sender` the client from `webhookClient()`.
+- **Check:** Through `httptest.NewServer` at Friday 16:00 with the assembled service: Furrowlight's command file for `bk-4933` → 204 and kept, without a token → 401, a PDF → 415; `bk-4912`'s file from byte 60000 → 206; a link until Saturday 16:00, fetched with no token → 200 and with a range → 206, its expiry moved on → 403; `/go` to Mirela's site → `/guide/`; Brinewatch's 12th February booking → 201 `bk-4937`, its 13th → 403 `quota_exceeded`, and `usage.json` at 12; a delivery to Brinewatch's old inside address → `ErrUndelivered` wrapping `errInside`, with no request reaching the stand-in weather service; `/stations` still answered, and the upload in the access log.
+
 ## Changes in writing and review
 
 - **Booking IDs** start 1,500 higher than first planned, so they keep growing after Season 2's:
@@ -920,3 +995,4 @@ restart, and one test of the whole service.
   methods are part of the API, and 11.8's request helper is called `request`.
 - **Spelling** is American throughout, `canceled` included.
 - **Chapter 11** was added after the season shipped. It takes Friday 21 January's afternoon, the only story time between chapter 10's Friday and Launch Day's Monday, and adds new declarations only: no given text of another chapter changes, and Launch Day's lessons leave the account page out of `newApp`.
+- **Chapter 13** was added after the season shipped, as its epilogue: Wednesday 2 to Friday 4 February 2028, after Launch Day's finale and before the Board project. It adds new declarations and files only; no given text of another chapter changes, and 13.9 wraps Launch Day's `newApp` instead of changing it. The plan counts bookings made in a calendar month and keeps them in `usage.json`, so a restart forgets nothing.
