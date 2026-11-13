@@ -15,6 +15,8 @@
 #                       first course's opening
 #   QA_SIZE=1400x900    the window's size (taller for a long readme)
 #   QA_DELAY=3          seconds before drawing (a failed Submit needs about 8)
+#   QA_ID=qa            the last part of the copy's bundle identifier; two copies that run at
+#                       once need two, each with its own QA folder
 #
 # The launch arguments pick the screen: -GosmosOpenLesson <lesson uuid> and
 # -GosmosLaunchAction <action>; docs/authoring.md lists them. --clean removes the copy, its data
@@ -23,7 +25,7 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
 QA="${QA:-${TMPDIR:-/tmp}/gosmos-qa}"
-id=app.gosmos.Gosmos.qa
+id=app.gosmos.Gosmos.${QA_ID:-qa}
 app="$QA/Gosmos QA.app"
 lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
