@@ -41,14 +41,14 @@ numbers, times and extra test cases. `go run ./cmd/author export` writes them ou
 | 12 | Every Radio Speaks | `every-radio-speaks` | interfaces, io.Writer, type switches, assertions | 8 | 3 | 4 | 1 |
 | 13 | When the Frame Is Wrong | `when-the-frame-is-wrong` | errors, wrapping, custom errors, defer, panic, recover | 13 | 2 | 9 | 2 |
 | 14 | Reading the Raw Feed | `reading-the-raw-feed` | strings, strconv, runes, bytes, HMAC, arrays, array keys | 10 | 2 | 7 | 1 |
-| 15 | Trust, but Verify | `trust-but-verify` | testing basics | 8 | 0 | 7 | 1 |
+| 15 | Trust, but Verify | `trust-but-verify` | testing basics, the go tools | 9 | 0 | 7 | 2 |
 | 16 | Splitting groundctl | `splitting-groundctl` | packages, modules | 7 | 4 | 1 | 2 |
 | 17 | One Helper, Every Type | `one-helper-every-type` | generics | 7 | 1 | 5 | 1 |
 | 18 | All Stations at Once | `all-stations-at-once` | goroutines, channels, select | 10 | 4 | 4 | 2 |
 | 19 | Locks and Deadlines | `locks-and-deadlines` | mutexes, context | 9 | 1 | 6 | 2 |
-| | **Total** | | | **164** | **60** | **78** | **26** |
+| | **Total** | | | **165** | **60** | **78** | **27** |
 
-Mix: 36.6% code, 47.6% code_tests, 15.9% quizzes (84.1% hands-on). Every quiz is a quick
+Mix: 36.4% code, 47.3% code_tests, 16.4% quizzes (83.6% hands-on). Every quiz is a quick
 check of one to three questions that comes right after the idea it checks.
 
 ## How to read a lesson entry
@@ -1370,10 +1370,11 @@ Pipit-2, which Mirela reviews line by line.
 
 ## Chapter 15 · Trust, but Verify
 
-`trust-but-verify` · 8 lessons: 7 code_tests, 1 quiz
+`trust-but-verify` · 9 lessons: 7 code_tests, 2 quizzes
 
 Testing basics: cases as data, choosing cases that catch bugs, `*testing.T` with `Errorf`
-and `Fatalf`, subtests with `t.Run`, helpers with `t.Helper`, and fixtures in `testdata`.
+and `Fatalf`, subtests with `t.Run`, helpers with `t.Helper`, fixtures in `testdata`, and
+what `gofmt`, `go vet`, `go test -cover` and `govulncheck` report.
 
 **Story arc.** A one-character bug in the replay guard nearly lets an old SET_MODE command
 through to Cirrine-1. Mirela's new rule: nothing touches the uplink path without tests its
@@ -1453,7 +1454,20 @@ re-executed run's output.
 - **Check:** `TestLoadsFixture` gets the file's 12 lines; `TestMissingFixtureIsFatal`: a
   re-executed probe asking for a missing file fails with your message.
 
-#### 15.8 Guard the Uplink
+#### 15.8 Quick Check: Four Go Tools
+`quick-check-four-go-tools` · quiz · difficulty 5
+- **Objective:** Check what `gofmt`, `go vet`, `go test -cover` and `govulncheck` each report.
+- **Scenario:** Before her sign-off, Mirela runs four commands over the uplink code in a
+  terminal.
+- **Exercise:** Three questions about the four commands in the readme; in the app only
+  `gofmt` runs (Format Code), and the part of `go vet` that every `go test` runs first.
+- **Check:** A verb that doesn't fit its value, `t.Errorf("seq %d", c.Op)`, is a `go vet`
+  finding, and `go test` reports it and runs no test (`[build failed]`); `coverage: 80.0% of
+  statements` means one statement in five never ran, not that a test failed or that the code
+  is right; `govulncheck` also checks the Go release that builds a program, so it can report a
+  vulnerability in one that uses only the standard library.
+
+#### 15.9 Guard the Uplink
 `guard-the-uplink` · code_tests · difficulty 7
 - **Objective:** Combine a case table, subtests and a helper into a full test of one
   function.

@@ -1,6 +1,6 @@
 # Logging, Metrics and Profiling: syllabus
 
-**Authoring status:** all eleven chapters are implemented as 88 lessons. Chapter 1 was read in
+**Authoring status:** all eleven chapters are implemented as 90 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this plan
 two chapters at a time and every chapter independently reviewed. Chapters 2–11 were then read in the app in light and dark, two chapters at a time. Every pass comes from the orbit model the earlier seasons use, and chapter 9
 plans on the settled one Season 7 plans with. The lessons in `courses/apogee.sqlite` are the
@@ -24,7 +24,7 @@ line, metric, rule, number, date, type and signature used here.
 
 | # | Chapter | Slug | Go topics | Lessons |
 |---|---|---|---|---|
-| 1 | Logs a Machine Can Read | `logs-a-machine-can-read` | Write structured records with `log/slog`: messages and attributes, the text and JSON handlers, typed values, errors, durations in milliseconds, and an old `*log.Logger` routed through a handler. | 8 |
+| 1 | Logs a Machine Can Read | `logs-a-machine-can-read` | Write structured records with `log/slog`: messages and attributes, the text and JSON handlers, typed values, errors, durations in milliseconds, an old `*log.Logger` routed through a handler, the build a program names when it starts, and a recovered panic's stack in one record. | 10 |
 | 2 | Levels and Groups | `levels-and-groups` | Choose levels, filter with `HandlerOptions` and change them live with `LevelVar`, attach attributes once with `Logger.With`, group them with `slog.Group`, and skip work nobody reads. | 9 |
 | 3 | Logs With Context | `logs-with-context` | Carry pass and request IDs in `context.Context`, write a `slog.Handler` that adds them to every record and survives `With`, pass them between programs in a header, and read the lines back in order. | 8 |
 | 4 | Never in a Log | `never-in-a-log` | Keep secrets and personal data out of logs: redact headers, give secret types a `LogValue`, replace attributes by key with `ReplaceAttr`, mask addresses and scrub secrets hidden in text. | 8 |
@@ -36,7 +36,7 @@ line, metric, rule, number, date, type and signature used here.
 | 10 | Where the Memory Goes | `where-the-memory-goes` | Write heap profiles, read memory after a collection, count allocations with `testing.AllocsPerRun`, free big arrays behind small slices, count goroutines and make every goroutine end. | 8 |
 | 11 | Following One Request | `following-one-request` | Follow work through a program and between programs: `runtime/trace` tasks and regions, a flight recorder for the last seconds, spans by hand carried in a context and a header, and a timeline built from them. | 8 |
 
-88 lessons: 4 code, 70 code_tests and 14 quizzes (84% hands-on). Calibration starts with
+90 lessons: 4 code, 72 code_tests and 14 quizzes (84% hands-on). Calibration starts with
 chapter 1; later chapters are written only after it has been imported and read in the app.
 Difficulty rises from 6 to 10. Speed is measured inside tests with `testing.Benchmark` and
 `testing.AllocsPerRun`, and checks compare, never time; profiles and traces are written to the
@@ -47,9 +47,9 @@ files.
 
 ## Chapter 1 · Logs a Machine Can Read
 
-`logs-a-machine-can-read` · 8 lessons
+`logs-a-machine-can-read` · 10 lessons
 
-Write structured records with `log/slog`: messages and attributes, the text and JSON handlers, typed values, errors, durations in milliseconds, and an old `*log.Logger` routed through a handler.
+Write structured records with `log/slog`: messages and attributes, the text and JSON handlers, typed values, errors, durations in milliseconds, an old `*log.Logger` routed through a handler, the build a program names when it starts, and a recovered panic's stack in one record.
 
 #### 1.1 A Line That Says Why
 `a-line-that-says-why` · code · difficulty 6
@@ -100,7 +100,21 @@ Write structured records with `log/slog`: messages and attributes, the text and 
 - **Exercise:** `accessLog(h slog.Handler) *log.Logger` returns `log.New(os.Stderr, "", 0)`; you return `slog.NewLogLogger(h, slog.LevelInfo)`.
 - **Check:** `Printf("req-000007 POST /bookings 201 236B 4ms")` arrives in the handler's JSON as `msg` at INFO; two calls make two records; nothing reaches standard error.
 
-#### 1.8 The Line Lantern Atoll Needed
+#### 1.8 Which Build Is Running
+`which-build-is-running` · code_tests · difficulty 6
+- **Objective:** Name a program's build in its first record, from `runtime/debug.ReadBuildInfo`.
+- **Scenario:** Thursday 9 November, 16:00: Ingrid's checklist for Friday's deploy at Lantern Atoll has a new step, "14:01. LAN uplinkd: first line names the new build. Confirm."
+- **Exercise:** `logStart(l *slog.Logger)` writes INFO `program started` alone; you add `go_version`, `module` and `module_version`, from `GoVersion`, `Main.Path` and `Main.Version`, and keep the message alone when `ok` is false.
+- **Check:** One JSON line, INFO `program started`; `go_version` equals `runtime.Version()`; `module` and `module_version` equal the test binary's own build info, `lesson` and `(devel)` (`go test` never takes a version from version control); the mistake, `bi.Path`, logs `lesson.test` under `go test`, and the message says so. No check depends on a Go release.
+
+#### 1.9 One Record per Panic
+`one-record-per-panic` · code_tests · difficulty 7
+- **Objective:** Log a recovered panic with its stack from `runtime/debug.Stack` as one record, never as many lines.
+- **Scenario:** Friday 10 November, 09:30, on the lab bench: Nkem gives uplinkd the pass ID `cirrine-1/LAN`, its orbit number lost, and preparing the pass panics; the guard keeps the station flying and writes the pass's failure line, but `debug.PrintStack` sends the stack to standard error as plain lines.
+- **Exercise:** `guardPass(l, id, work)` recovers a panic in `work`, writes ERROR `pass failed` with `pass_id` and `err` (`pass <id>: panic: <value>`), then calls `debug.PrintStack()`; you add `stack`, `string(debug.Stack())`, to the record and stop printing.
+- **Check:** For the bench's ID (`runtime error: index out of range [2] with length 2`) and a write to a nil map: exactly one JSON line, ERROR `pass failed`, its `pass_id`, the whole `err`, and a `stack` that begins `goroutine ` and names the function that panicked; nothing on standard error; a pass that doesn't panic writes nothing. Caught: the stack's bytes (base64 in JSON), the stack inside `err`, a stack taken outside the deferred function, one record per line.
+
+#### 1.10 The Line Lantern Atoll Needed
 `the-line-lantern-atoll-needed` · code_tests · difficulty 7
 - **Objective:** Combine a JSON handler, typed attributes, the error and milliseconds into uplinkd's pass line.
 - **Scenario:** Friday 10 November, 14:00: the new uplinkd goes to Lantern Atoll, and Nkem replays the 02:02:39 failure to read it whole.
@@ -729,6 +743,10 @@ Follow work through a program and between programs: `runtime/trace` tasks and re
 
 ## Changes in writing and review
 
+- **Chapter 1 gained two lessons after it shipped:** 1.8, a program's first record names its
+  build, and 1.9, a recovered panic's stack goes into the pass's one failure line; The Line
+  Lantern Atoll Needed became 1.10. Their checks read the test binary's own build info and
+  the stack's first word, so they hold on any Go release.
 - **Two lines a pass.** At INFO a pass reads `pass started` and then `pass flown` or `pass
   failed`, where it starts and how it ends, so 2.9 is "Two Lines per Pass"
   (`two-lines-per-pass`).

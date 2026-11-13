@@ -3776,6 +3776,15 @@ Every program logs with `log/slog`, one record per event, to its log file.
   attributes.
 - **Groups** are written with `slog.Group`, never `Logger.WithGroup`: an attribute that a
   handler adds in `Handle` lands inside any group opened with `WithGroup`.
+- **The first record and panics** (chapter 1, from the deploy of Friday 10 November). A
+  program's first record is INFO `program started`, naming its build from
+  `debug.ReadBuildInfo`; Ingrid's deploy checklist reads it at 14:01. uplinkd prepares each
+  pass (its booking, its lines, its pass ID) inside `guardPass`, outside `uplink.go`: a panic
+  there is recovered, so the station flies on, and ends the pass with its `pass failed` line,
+  `err` `pass <id>: panic: <value>` and the whole stack under `stack`. Until that Friday the
+  guard printed the stack to standard error with `debug.PrintStack`. Nkem's bench test, Friday
+  at 09:30: the pass ID `cirrine-1/LAN`, its orbit number lost. A panic in the goroutine
+  `runPass` starts is not recovered by the guard.
 
 | Program | Message | Level | Its own attributes |
 |---|---|---|---|
@@ -3784,7 +3793,7 @@ Every program logs with `log/slog`, one record per event, to its log file.
 | | `frame received` | DEBUG | `bytes`, `hex` |
 | | `carrier lost` | WARN | `margin_db` |
 | | `pass flown` | INFO | `pass` group, `max_elev_deg`, `wait_ms`, `ack_ms` (from chapter 3) |
-| | `pass failed` | ERROR | `pass` group, `max_elev_deg`, `wait_ms`, `err` |
+| | `pass failed` | ERROR | `pass` group, `max_elev_deg`, `wait_ms`, `err`; after a panic while the pass is prepared (`guardPass`, chapter 1), `pass_id`, `err` and `stack` only |
 | | `pass skipped` | WARN | `pass` group, `reason` |
 | | `lines queued` | INFO | `lines` (on `POST /uplink`) |
 | uplinkd (headquarters) | `command sealed` | INFO | `seq` |
@@ -3796,6 +3805,7 @@ Every program logs with `log/slog`, one record per event, to its log file.
 | passplan | `pass planned` | INFO | `booking_id` |
 | | `day planned` | INFO | `passes`, `ms` |
 | pager | `alert sent` | INFO | `rule`, `station`, `kind`, `to` |
+| any (from 10 Nov) | `program started` | INFO | `go_version`, `module`, `module_version`: its first record (chapter 1) |
 | any (chapter 11) | `span` | INFO | `trace_id`, `span_id`, `parent_id`, `name`, `start`, `ms` |
 
 **Attribute keys**, the same in every program. Units are in the name; durations are whole
@@ -3816,6 +3826,8 @@ handler writes a `time.Duration` as nanoseconds (`570000000000`).
 | `hex` | a frame's bytes as lowercase hex, on DEBUG `frame received` only (chapter 2) |
 | `margin_db` | number, the radio's signal margin |
 | `err` | the error's text (`slog.Any("err", err)`) |
+| `stack` | a recovered panic's stack, `string(debug.Stack())` taken in the deferred function that recovered: one value, its line breaks written `\n` |
+| `go_version`, `module`, `module_version` | the build, from `debug.ReadBuildInfo`: `GoVersion` (`go1.27.3` in lessons), `Main.Path`, `Main.Version` (a tag such as `v1.8.0`; `(devel)` outside version control and in every test binary) |
 | `reason` | `stowed` |
 | `rule`, `station`, `kind`, `to` | the pager's alert (below) |
 | `trace_id`, `span_id`, `parent_id`, `name`, `start` | a span (chapter 11) |
@@ -4434,7 +4446,7 @@ needs as read-only files and uses only the fields it needs. `Station`, `Satellit
 
 | Ch | Names it adds (files) |
 |---|---|
-| 1 | `newLogger`, `logFlown`, `logResult`, `msAttr`, `accessLog`, `newPassLog`, `passLine` (`log.go`); given: `dropTime`, `stamp` (`clock.go`) |
+| 1 | `newLogger`, `logFlown`, `logResult`, `msAttr`, `accessLog`, `logStart`, `guardPass`, `newPassLog`, `passLine` (`log.go`); given: `dropTime`, `stamp` (`clock.go`) |
 | 2 | `levelHandler`, `programLogger`, `passGroup`, `passLogger`, `logFrame`, `levelFor` (`levels.go`) |
 | 3 | `passKey`, `withPass`, `passFrom`, `passHandler`, `passTransport`, `acceptPass`, `Line`, `follow`, `merge`, `programLog` (`context.go`, `handler.go`, `follow.go`, `line.go`); given: Season 3's `requestIDKey` and `requestIDFrom` (`request.go`), `replayNovember8` (`replay.go`) |
 | 4 | `safeHeader`, `APIKey`, `(APIKey).LogValue`, `(Key).LogValue`, `redact`, `maskEmail`, `secretPattern`, `secrets`, `scrub`, `safeLogger` (`redact.go`) |
@@ -4574,6 +4586,11 @@ func timeline(spans []Span) []string
   directly with `slog.NewRecord` and `Handle` where the record's time matters;
   `testing/slogtest.TestHandler` checks a handler of your own. `code` lessons print time-free
   text lines of at most 50 characters.
+- **Build info and stacks** (1.8, 1.9): the first record is compared with the test binary's
+  own `debug.ReadBuildInfo` (under `go test`: `Path` `lesson.test`, `Main.Path` `lesson`,
+  `Main.Version` `(devel)`, even inside a repository) and with `runtime.Version()`, never a
+  fixed release. A stack is checked for its first word, `goroutine`, and for the function
+  that panicked, which a test binary names `lesson.orbitOf`, not `main.orbitOf`.
 - **Secrets** are searched for in the whole output (the 32 hex digits, the base64, the password,
   the full address), so a secret anywhere fails the test.
 - **Files** live under `t.TempDir()`, with limits of 1 KiB or 64 KiB so rotation happens in a few
@@ -5499,8 +5516,18 @@ func flyDay(ctx context.Context, now func() time.Time, contacts []Contact, fly f
   begins `if raceOn { t.Skip("allocation counts differ under -race") }`. Without `-race`, code that formats with `fmt` or pulls with `iter.Pull` still allocates a little more when the collector runs (`planNew` up to about 0.4%; exact with `GOGC=off`), so a budget on such code allows a margin (9.8: 1.5%, its benchmark re-run on one CPU); `planDay` and `assign` count exactly. A range-over-func loop counts the same in a test only when the compiler inlines its function there: out of line, the loop's closure, its state and the variables it writes go on the heap (3 allocations for 10.1's `collect` written with `slices.Grow`), so 10.1 subtracts what `collect` makes for no passes.
 - The **old planner** (`planOld` in `planners.go`, given read-only in chapters 9 and 10; a copy in chapter 10 is 9's file byte for byte) is the 2023 passplan's planning brought to the rule and run on passplan 2's pass model: it predicts every pair into one slice, sorts that slice by station, then AOS, then ID, and assigns station by station, growing its slices as it goes and keeping each contact's dish in a map keyed by pass ID. The **new planner** (`planNew`) is per station: chapter 6's `stationPasses` (candidates merged by `MergeBy`), assigned, then the stations' contacts merged by `MergeBy` into a slice sized ahead. Both return the same contacts for the same input, and the new one sorts nothing in place. On one core it is no faster, and heavier: predicting passes is nearly all of both (91 to 96% of `planOld`'s time, 96 to 98% of its allocations), and `MergeBy` starts an `iter.Pull` for every satellite at every station (about six allocations each) and boxes every value it queues (two allocations, through `container/heap`'s `any`). For 6, 12 and 24 hours from midnight on Friday 18 May (303, 619 and 1,237 contacts), `planNew` takes up to about 15% longer and makes 2.1 to 3.3 times the allocations: about 23,600, 30,500 and 43,100 against 7,150, 12,040 and 20,970. No planner that predicts its own passes can make a fraction of `planOld`'s allocations: predicting the 1,564 pairs that share a band is 93 to 94% of them. That is chapter 9's truth on the glass ("Not faster. Heavier. That we can fix."): no later lesson or story line says passplan 2 plans faster than the old planner on one core, or allocates less. Where a story line sets passplan 2 against the old passplan's 4 minutes 39 seconds a day, the difference is the old passplan's own, older pass prediction and passplan 2's twelve planner slots, never passplan 2's planning. Chapter 10 cuts garbage around the merge: `planStationFat` is its own function (`planNew`, readable in 9.6 and 9.8, has no string keys), and chapter 6's `queue.go` and `merge.go` stay as they are, since chapter 12 gives them read-only.
 - The **dish loader line** (chapter 10), one contact per line, a day per file: AOS and LOS as `15:04:05`, the dish, the pass ID: `05:29:26 05:37:52 1 furrow-a/VSK/24529`.
-- Chapter 10's pieces: a host's report (10.2) is `CWR contacts: 76`, then one line a contact in AOS order, `cirrine-1/CWR/19862 dish 1`; the export (10.5) writes each station's dish loader lines in one write from an 8 KB buffer (Ystmark's 199 lines on take-over day, 7,811 bytes, are the longest day); a planner slot's scratch holds 512 passes (Ystmark's 439 candidates are the most), and `putScratch` keeps none over 65,536 (6.8 MB). The per-station step `planStationFat` (10.8) copies the candidates into a slice grown from nil, skips repeats with a map keyed by `fmt.Sprintf("%s %s %d", SatID, Station, AOS.Unix())`, sorts the copy and assigns it: on take-over day 1,471 allocations and 213 KB at Cape Wren, 1,789 and 251 KB at Ystmark; `planStationLean` 11 and 60 KB, 13 and 93 KB. Planning take-over day at twenty stations from a network loaded once (each station's candidates predicted, the step, the host report and the export of its dish loader lines) makes 81,657 allocations and 12.0 MB with Monday 21 May's code and 42,705 and 6.0 MB with Friday 25 May's (the debrief's "6 MB of garbage instead of 12"); of what is left, predicting passes is 99% of the allocations and 77% of the bytes. No line compares these with `planOld`.
-- A `sync.Pool` may lose its values to any collection, keeps a part for each P (a CPU the program runs on), and after a collection allocates that part again on its next use (2 allocations, `New` not called). No check needs a value back from a pool through a collection: 10.6 counts its rounds with the collector off (`debug.SetGCPercent(-1)`) and checks that a 65,536-pass scratch is kept on one CPU (`runtime.GOMAXPROCS(1)`) with the collector off, skipped under `-race`, where `Put` drops one value in four; 10.8 measures on one CPU. With a forced collection before every pool call, every check of 10.6 and 10.8 still passes but 10.6's count, which then reads the pool's own 4 allocations a round.
+- Chapter 10's pieces: a host's report (10.2) is `CWR contacts: 76`, then one line a contact in AOS order, `cirrine-1/CWR/19862 dish 1`; the export (10.5) writes each station's dish loader lines in one write from an 8 KB buffer (Ystmark's 199 lines on take-over day, 7,811 bytes, are the longest day); a planner slot's scratch holds 512 passes (Ystmark's 439 candidates are the most), and `putScratch` keeps none over 65,536 (6.8 MB). The per-station step `planStationFat` (10.10) copies the candidates into a slice grown from nil, skips repeats with a map keyed by `fmt.Sprintf("%s %s %d", SatID, Station, AOS.Unix())`, sorts the copy and assigns it: on take-over day 1,471 allocations and 213 KB at Cape Wren, 1,789 and 251 KB at Ystmark; `planStationLean` 11 and 60 KB, 13 and 93 KB. Planning take-over day at twenty stations from a network loaded once (each station's candidates predicted, the step, the host report and the export of its dish loader lines) makes 81,657 allocations and 12.0 MB with Monday 21 May's code and 42,705 and 6.0 MB with Friday 25 May's (the debrief's "6 MB of garbage instead of 12"); of what is left, predicting passes is 99% of the allocations and 77% of the bytes. No line compares these with `planOld`.
+- A `sync.Pool` may lose its values to any collection, keeps a part for each P (a CPU the program runs on), and after a collection allocates that part again on its next use (2 allocations, `New` not called). No check needs a value back from a pool through a collection: 10.6 counts its rounds with the collector off (`debug.SetGCPercent(-1)`) and checks that a 65,536-pass scratch is kept on one CPU (`runtime.GOMAXPROCS(1)`) with the collector off, skipped under `-race`, where `Put` drops one value in four; 10.10 measures on one CPU. With a forced collection before every pool call, every check of 10.6 and 10.10 still passes but 10.6's count, which then reads the pool's own 4 allocations a round.
+- **Tomás's strip** (10.8 and 10.9, Thursday 24 May, 17:10 and 17:40): a preview of take-over
+  day on the test Board, one `glance` for each of the window's 613,496 candidates. As Tomás
+  declared it (`Sat` and `Station`, uint8 places in fleet and table order; `AOS` and `LOS`,
+  int64 Unix seconds; `MaxElevDeg` float32; `Dish` uint8, 0 when dropped; `Booked` bool) a
+  `glance` is 32 bytes, aligned to 8: 6 bytes of padding after `Station` and 2 at the end,
+  drawn `12......3333333344444444555567..`, 19,631,872 bytes for the strip. His notebook's sum
+  is 24 bytes, 14,723,904 bytes; ordered by alignment, largest first, a `glance` is exactly
+  that, 4.9 MB less. Neither the compiler nor `go vet` reorders fields or reports padding.
+  The strip is the test Board's memory, not passplan 2's garbage, so no other number of
+  chapter 10 counts it.
 
 #### Struct tags (chapter 11)
 
@@ -5591,7 +5618,7 @@ hidden unless the readme sends the learner to read them. `types.go` holds the ty
 | 7 | `parseLine` (strict, `parse.go`), `lineSeeds` (`seeds.go`), `checkLine` (`checks.go`), `decodeBeacon` (`decode.go`) | `formatLine` (`telemetry.go`), `encodeBeacon` and `Beacon` (`beacon.go`), the fuzz targets, Mirela's reference parser (hidden), corpus files |
 | 8 | `waitUntil`, `checkWaitUntil` (`checks.go`), `every`, `planWithin`, `Debouncer`, `checkDebouncer` (`checks.go`), `flyDay` (`timers.go`) | `Contact`, `Schedule` (`types.go`); the earlier `timers.go`, read-only, in 8.2 and 8.7; `notifier` (`checks.go`); in 8.8 the day's contacts as a fixture, planned by a hidden test file from hidden `network.go`, `model.go` and `plan.go`; Nkem's mutants in the tests |
 | 9 | `benchPlanDay`, `benchFresh`, `benchStream`, `sameContacts`, `benchWindows` (`bench.go`) | `june28`, `stationDay`, `dayCounts`, `planned` and `planDay` (`day.go`, read-only in 9.1, 9.2, 9.4 and 9.5); `planOld` and `planNew` (`planners.go`, read-only in 9.6 and 9.8) with chapter 6's `seq.go`, `adapt.go`, `queue.go` and `merge.go`, hidden; `plan.go` (read-only in 9.1 to 9.5, hidden in 9.6 and 9.8); `network.go` and `model.go`, hidden; `Config` in `types.go` in 9.6 and 9.8 |
-| 10 | `collect`, `stationReport`, `appendContact`, `exportStations`, `getScratch`, `putScratch`, `passKey`, `dedupe`, `planStationLean` (`lean.go`) | `planStationFat` (`fat.go`, 10.8); earlier solutions read-only: `appendContact` (`loader.go`, 10.5), the pool with `getScratch`, `putScratch` and `maxScratch` (`scratch.go`, 10.8), `passKey` (`keys.go`, 10.8); `plan.go` (read-only in 10.8, hidden elsewhere); `types.go`; hidden `network.go`, `model.go`, chapter 9's `day.go` (10.1, 10.6–10.8) and chapter 8's `day_test.go` (10.2, 10.4, 10.5) |
+| 10 | `collect`, `stationReport`, `appendContact`, `exportStations`, `getScratch`, `putScratch`, `passKey`, `dedupe`, `planStationLean` (`lean.go`); `main`'s marks (`main.go`, 10.8); `glance`'s field order (`glance.go`, 10.9) | `planStationFat` (`fat.go`, 10.10); earlier solutions read-only: `appendContact` (`loader.go`, 10.5), the pool with `getScratch`, `putScratch` and `maxScratch` (`scratch.go`, 10.10), `passKey` (`keys.go`, 10.10); `plan.go` (read-only in 10.10, hidden in 10.1, 10.2 and 10.4 to 10.7); `types.go`; hidden `network.go`, `model.go`, chapter 9's `day.go` (10.1, 10.6, 10.7, 10.10) and chapter 8's `day_test.go` (10.2, 10.4, 10.5); in 10.8 and 10.9 only Tomás's `glance` (`glance.go`, read-only in 10.8), and in 10.8 `mark` and `candidates` (`main.go`) |
 | 11 | `fieldLines`, `tagLines`, `describe`, `checkRule`, `measure`, `applyDefaults`, `Validate` (`validate.go`) | `Config`, `HostConfig`, `PipelineConfig` (`types.go`); `main`, with 11.2's `Note` (`main.go`, in 11.1 and 11.2); from 11.6, `checkRule` cutting each rule at `=` with the `min` and `max` messages and `misfit`, in the editable file; `setText` (`defaults.go`) in 11.8; in 11.10, read-only, `checkRule`, `misfit` and `measure` (`rules.go`), `applyDefaults` and `setText` (`defaults.go`) and the hosts' forms as first sent, `hostForms` and `form` (`forms.go`) |
 | 12 | `planStation`, `Plan`, `handover`, `replanFrom`, `(*Replanner).Run`, `heard`, `takeOver` (`planner.go`, `replan.go`) | everything above, read-only (`network.go` and `model.go` hidden): `plan.go` (with `stowedDuring`), 4.8's `seq.go`, 5.7's `adapt.go`, chapter 6's `queue.go` and `merge.go`, `group.go`, `publish.go`, `timers.go`; `passmodel.go` (`passModel`, the model `planStation` asks, which tests replace); `Stow`, `Schedule`, `Config` and `Event` in `types.go`; the rest of the `Replanner` (`newReplanner`, `publish`) in `replan.go` from 12.6; the earlier `planner.go`, read-only, in 12.6, 12.7 and 12.9; answer keys in a hidden `ref_test.go` (all but 12.6) |
 
