@@ -1632,12 +1632,12 @@ a stick holding the maker's simulator. They speak a protocol of raw bytes over a
 connection, and Apogee drives them from Port Ellery, across the island's line to the mainland,
 which drops in every storm. You write **dishd**, the program that talks to them, then a
 station server for the hut that keeps every recording until headquarters collects it, built on
-a bare socket so you see what every web request of Season 3 really was.
+a bare socket so you see what every web request of Season 3 really was, and, the week before the finale, a live view that hears each pass as the recorder sends it, a datagram at a time.
 
-Story time runs from Monday 6 March to Tuesday 20 June 2028: nine chapters, about a week each,
+Story time runs from Monday 6 March to Tuesday 20 June 2028: ten chapters, about a week each,
 with installation weeks between some of them. Sunniva carries the season; Nkem reviews every
 change from Port Ellery; Tomás flies up for Dish 1's calibration; Ingrid runs Ystmark's passes
-from the Fishbowl; Mirela reviews the station server; Yusra and Hollis bring the customers'
+from the Fishbowl; Mirela reviews the station server and the live view's answers; Yusra and Hollis bring the customers'
 losses. No new people, places, satellites or customers are introduced.
 
 #### Ystmark in spring
@@ -1681,14 +1681,15 @@ orbit numbers continue Season 3's (Furrow-A 15.2 a day, Cirrine-1 14.92).
 | 6 | Mon 8 May | the hut, after the big storm | Sunniva, Tuesday 9 May: "Link down 14 min. Dish 2 waiting on your code. Coffee low." | From 07:22 to 07:36 the island had no line at all. dishd gave up and never dialed again; Ingrid restarted it at 07:51, too late for Cirrine-1's 07:28 pass (`cirrine-1/YST/13676`). Tomás's 0.35° calibration jog had left dishd at 07:22:04, two seconds before the line went; the restarted dishd sent it again under a new number, so Dish 2 moved twice and was 0.70° off for Furrow-A's 07:52 pass (`furrow-a/YST/18218`), which came down at a sixteenth of its strength. Friday 12 May at 10:00 Sunniva pulls the line on purpose, in the middle of a jog |
 | 7 | Mon 22 May | the hut | Sunniva: on 9 May the fiber stayed down until 19:40; recordings had nowhere to wait but the recorder's small disk, which filled at 13:20 and lost Furrow-B's 13:21 pass. Hollis: "LOST FURROW-B 13:21. FIELD 7. WHY." Sunniva wants a station server in the hut that keeps every recording until headquarters collects it. Nkem: build it on the socket you know | The station server's first requests must be read exactly, and the crooked ones refused, never guessed at |
 | 8 | Mon 5 Jun | the hut | Hollis, through Yusra: Furrowlight's June campaign, ten booked Furrow passes a day over Ystmark. The recorder streams each pass to the station server as it comes down, its CRC last. Mirela reviews the length rules on Wednesday | On Tuesday 6 June the recorder restarted in the middle of Furrow-A's 08:02 pass (`furrow-a/YST/18644`): a cut stream must never be kept as a whole recording |
-| 9 | Mon 19 Jun, then Tue 20 Jun | the hut; the Fishbowl on the Board | Ingrid and Yusra: headquarters' collector must hear of each recording at once and fetch it over one open line. On Tuesday 20 June the station server takes every pass from 06:00 | Furrow-A's 06:32 pass (`furrow-a/YST/18856`, LOS 06:40:35) is the first Furrowlight pass through it; its image must reach Furrowlight within a minute of LOS, as the booking service promises |
+| 9 | Mon 12 Jun | the hut; Ingrid's screen in the Fishbowl | Ingrid: the Fishbowl hears nothing of a Furrow pass until its recording lands, and on 6 June it learned of the recorder's restart from a cut upload. She wants every pass's frames on her screen as they come down, and the recorder asked, whenever they stop, what it is doing. The recorder gets a live port that speaks UDP; you write the live view at Port Ellery. Monday's first test is Pipit-2's 06:36 pass (`pipit-2/YST/16696`) | Over the island's line a datagram can be lost, come twice or overtake another, and nothing says so. Friday 16 June, Furrow-A's 07:52 pass (`furrow-a/YST/18796`, LOS 08:00:51) is the first shown whole: three frames lost on the line, none shown twice, and at 08:00:56 the recorder answers `IDLE` at the first try |
+| 10 | Mon 19 Jun, then Tue 20 Jun | the hut; the Fishbowl on the Board | Ingrid and Yusra: headquarters' collector must hear of each recording at once and fetch it over one open line. On Tuesday 20 June the station server takes every pass from 06:00 | Furrow-A's 06:32 pass (`furrow-a/YST/18856`, LOS 06:40:35) is the first Furrowlight pass through it; its image must reach Furrowlight within a minute of LOS, as the booking service promises |
 
 The opening (Monday 6 March) shows Ystmark in one image (the sun back for three weeks, two
 radomes on a ridge, −18 °C), hands over the badge, introduces Sunniva (station chief), Nkem
 (reviewer, at Port Ellery), Tomás (coming up in March), the crate and the island's line, and
 sends the learner to the simulator on the hut's bench: the old controllers come out on the 20th.
 
-The finale (chapter 9, Tuesday 20 June): Furrow-A's recording streams into the station server
+The finale (chapter 10, Tuesday 20 June): Furrow-A's recording streams into the station server
 during the pass; the collector at Port Ellery hears of it on the feed at 06:40:36, has every
 byte and its CRC by 06:40:38, and Furrowlight's webhook from the booking service goes out at
 06:40:39. Ingrid watches the Board. Sunniva: "Midnight sun. Both dishes. Every byte. Coffee for
@@ -1719,12 +1720,13 @@ alone.
   dish every second (below). Sunniva keeps a terminal open on it in the hut.
 - **The recorder** (a word from Season 2): the receiver's recording program in the hut's rack,
   which records each pass as it comes down. It is a Go program; it talks to the station server
-  with `net/http`'s client.
-- **The station server** (chapters 7 to 9): the hut's server that keeps every finished
+  with `net/http`'s client and, from Monday 12 June, to the live view over its live port (below).
+- **The station server** (chapters 7, 8 and 10): the hut's server that keeps every finished
   recording until headquarters collects it, and tells headquarters when one arrives. It has no
   program name; readmes say "the station server".
 - **The collector**: dlinkd's part at Port Ellery that follows the station server's feed and
   fetches each recording. A Go program using `net/http`'s client.
+- **The live view** (chapter 9): the program at Port Ellery that shows Ingrid each Ystmark pass as it comes down, every frame the recorder sends from its **live port** (below), in order and each once, and asks the recorder how it is when the frames stop. It has no program name; readmes say "the live view", and "the live port" for the recorder's UDP port.
 
 #### The controller protocol
 
@@ -2382,7 +2384,7 @@ leaves is noticed at the next write; one that falls 16 lines behind is dropped (
 closed) and its feed ends with the last chunk, so it reconnects and reads `/recordings`. When the
 server stops, every feed ends with its last chunk.
 
-**Stopping** (`Shutdown(ctx)`, chapter 9): close the listener, so no new connection is
+**Stopping** (`Shutdown(ctx)`, chapter 10): close the listener, so no new connection is
 accepted; close connections waiting between requests; end every feed with its last chunk
 (`Store.Close`); let requests in flight finish their answer, then close their connections
 instead of reading another request; when all are done, return nil. If ctx ends first, close
@@ -2474,7 +2476,7 @@ func bodyLength(method string, h Header, max int64) (int64, error) // -1 for chu
 func checkCRC(body []byte, h, trailer Header) (uint32, error)
 func (s *Server) put(req *Request) answer
 
-// chapter 9
+// chapter 10
 func statusLine(code int) string
 func writeResponse(w io.Writer, now time.Time, status int, fields []Field, body []byte) error
 func writeChunk(w *bufio.Writer, p []byte) error
@@ -2484,17 +2486,29 @@ func (s *Server) feed(bw *bufio.Writer, lines <-chan string) error
 func (s *Server) route(req *Request) answer
 func (s *Server) Serve(ln net.Listener) error
 func (s *Server) serveConn(c net.Conn)
-func closing(req *Request) bool // given from 9.5 (conn.go): Connection: close, any letter case
+func closing(req *Request) bool // given from 10.5 (conn.go): Connection: close, any letter case
 func (s *Server) Shutdown(ctx context.Context) error
 ```
 
-`writeResponse` is given read-only in chapters 7 and 8 and written in chapter 9, as
+`writeResponse` is given read-only in chapters 7 and 8 and written in chapter 10, as
 `encodeFrame` is given in chapter 2 and written in chapter 3. In chapters 7 and 8 the given
 `serveConn` answers one request per connection and closes, and the given route answers every
 good request with the list. A chapter 8 lesson gives only what earlier lessons built, so no
 editable file shows a later lesson's answer: chunked bodies reach the server from 8.4 (before,
 the given `bodyLength` answers Transfer-Encoding with 501), the CRC from 8.8, and until 8.9 a
 given `put` keeps any complete body and answers 201.
+
+#### The live port (chapter 9)
+
+From Monday 12 June the recorder has a **live port**: one UDP socket in the hut. It sends each pass's telemetry from there to the live view at Port Ellery, and answers questions there. Everything on it is ASCII, one message per datagram, with no line ending after the last line: a datagram's edges come with it.
+
+- **Frames.** During a pass a satellite's housekeeping comes down once a second (Pipit-2's and the Furrows'), each frame numbered one past the last the satellite sent. The recorder sends each frame on as the bible's telemetry line as it records the pass. Each second's lines go out in as few datagrams as hold them (`pack`): whole lines in order, joined by LF, none over 512 bytes (`maxDatagram`). Nothing is sent twice or resent. A datagram lost on the line stays lost; the whole pass still reaches the station server in its recording.
+- **Questions.** A datagram `STATUS <n>` (n from 1 to 4294967295, the asker's number) gets one datagram back, to the address it came from: `STATUS <n> RECORDING <pass ID>` while a pass is coming down, `STATUS <n> IDLE` otherwise. The recorder answers every question it receives, a repeated number included, and ignores anything else.
+- **Why datagrams.** On a TCP connection one lost packet holds back every later byte until it is resent: at least a round trip of the island's line, and seconds over the backhaul. A live screen would freeze, then show old frames in a rush; a lost datagram costs only its own second.
+- **Why 512 bytes.** A datagram bigger than one packet of the line (about 1,500 bytes) travels in fragments, and losing any one loses all of it; 512 bytes fit well inside one packet on any line the station uses. Tomás: "A jigsaw in three envelopes: lose one and there's no picture." macOS also refuses to send a UDP datagram over 9,216 bytes by default (`sendto: message too long`); no lesson sends one.
+- **The live view** has two sockets: `Frames`, where the recorder sends, and `Questions`, which asks and receives the answers, so the two never mix. It reads each datagram into 513 bytes: one that fills them is over 512 and is dropped (`ErrTooBig`, "datagram over 512 bytes"); an empty datagram is a 0-byte datagram. It takes frames and answers only from the recorder's live port, comparing addresses by `String()`; an address can be forged, so this keeps out strays and mistakes, not liars. It shows a frame only when its number is past the last one shown (`Tracker`): repeats and older frames are dropped, and the numbers a frame jumps over count as missed. When no datagram has come for `Quiet` (5 s), the pass has gone quiet, and it asks the recorder its next question, numbered from 1 each run: each try waits `Wait` (1 s, above the backhaul's 0.7 s round trip), at most `Tries` (3), asking again under the same number; an answer to another number, or from another address, is skipped and the try's deadline stays; no answer after the last try is `silent`. It writes each frame shown, then `quiet after 84926: 8 shown, 2 missed, 3 dropped; recorder IDLE`, or `no frames; recorder IDLE`.
+- **The week's numbers.** Furrow-A numbers frames as it sends them, about 8,000 a day across the network: Monday 12 June 07:38:02, 52817; Wednesday 08:32:10, 68841; Thursday 11:20:04, 77712; Friday 07:56:00, 84635, and 84917 to 84926 for 08:00:42 to 08:00:51. Furrow-B's 31877 to 31885 are the nine it owed at 08:06:10 on Tuesday. Pipit-2's frame at 06:37:15 on Monday is 30412. A Furrow frame's line is 72 bytes (Pipit-2's 70): seven fill 510 bytes, and Tuesday's nine in one datagram made 656.
+- **Types and signatures** (as given in `live-in-the-fishbowl`'s starter): the `Tracker` and `Live` structs (`tracker.go`, `live.go`); `const maxDatagram = 512`; `var ErrTooBig = errors.New("datagram over 512 bytes")`; `readDatagram(pc net.PacketConn) ([]byte, net.Addr, error)`; `pack(lines []string) ([][]byte, error)`; `(t *Tracker) Accept(seq uint32) bool`; `question(n uint32) []byte` (given from 9.6); `answerTo(n uint32, d []byte, from, recorder net.Addr) (string, bool)`; `readAnswer(pc net.PacketConn, recorder net.Addr, n uint32) (string, error)` (given from 9.6); `ask(pc net.PacketConn, recorder net.Addr, n uint32, wait time.Duration, tries int) (string, error)`; `(l *Live) receive() ([]byte, error)`, `seqOf(line string) (uint32, bool)` and `lastLine(t Tracker, answer string) string` (given in 9.9); `(l *Live) Watch(out io.Writer) error`.
 
 #### The code, by chapter
 
@@ -2508,7 +2522,8 @@ given `put` keeps any complete body and answers 201.
 | 6 | `redial`, `lost`, `learn`, `number`, `resume`, `Send`, `Drain` (`link.go`) | the client, `jogBody`, `redialDelay` (from 6.2), `settle`, `connect` (from 6.8) | `sim.go` |
 | 7 | `readLine`, `parseRequestLine`, `readHeader`, `contentLength`, `readRequest` (`request.go`) | `Header`, `Request`, `RequestError`, `errLineTooLong`, `versionShaped`, `isToken` and `isFieldValue`, given in the editable `request.go`; `writeResponse`, `dateLayout`, `Store`, `validPassID`, `Server`, `serveConn` (`response.go`, `store.go`, `server.go`) | |
 | 8 | `readBody`, `chunkSize`, `readChunked`, `bodyLength`, `checkCRC`, `put` (`body.go`, `routes.go`) | `request.go` and chapter 7's files | |
-| 9 | `statusLine`, `writeResponse`, `writeChunk`, `endChunks`, `recording`, `feed`, `serveConn`, `Shutdown`, `route` (`response.go`, `server.go`, `routes.go`) | `request.go`, `body.go`, `store.go`, and `closing` (`conn.go`, from 9.5) | |
+| 9 | `readDatagram` (`datagram.go`), `pack` (`pack.go`), `Tracker`'s `Accept` (`tracker.go`), `answerTo` (`answer.go`), `ask` (`ask.go`), `Live`'s `Watch` (`watch.go`) | `maxDatagram` and `ErrTooBig` (`datagram.go`), `Tracker` (`tracker.go`), `question` and `readAnswer` (`question.go`, from 9.6), `Live`, `receive`, `seqOf` and `lastLine` (`live.go`, 9.9) | |
+| 10 | `statusLine`, `writeResponse`, `writeChunk`, `endChunks`, `recording`, `feed`, `serveConn`, `Shutdown`, `route` (`response.go`, `server.go`, `routes.go`) | `request.go`, `body.go`, `store.go`, and `closing` (`conn.go`, from 10.5) | |
 
 #### How lessons test the wire
 
@@ -2561,21 +2576,22 @@ given `put` keeps any complete body and answers 201.
   that dials the test listener, so the Host line reads `127.0.0.1`.
 - Each test ends by closing every listener and connection it opened and waiting for the
   goroutines it started, so nothing leaks into the next test.
+- **Datagrams** (chapter 9) stay on real sockets from `net.ListenPacket("udp", "127.0.0.1:0")`, never in a bubble: a goroutine waiting on a socket isn't durably blocked, so the bubble's clock would never move. Loss, repeats and reordering come from the test's own sends; loopback itself loses nothing and keeps their order (checked on Go 1.27.3: a thousand datagrams in a row arrive whole and in order, a datagram to a closed port vanishes without an error, and a short buffer cuts a datagram with no error). Questions are counted by a wrapper that records each WriteTo. A check that an answer arrives within a try asserts only what any timing allows. Tests use Wait 50 ms and Quiet 100 ms.
 
 **Topics added this season** (front matter): `networking`. Lessons keep using the older ones
 (`bytes`, `context`, `errors`, `goroutines`, `http`, `mutexes`, `streams`, `testing`, `time`...).
 
 **New field guide words** (world words only; Go, network and HTTP words are taught in
 readmes): backhaul, banner, beamwidth, collector, dish controller, dishd, feed, fiber, firmware,
-jog, midnight sun, polar night, recorder, recording, simulator, station server, the hut, the
+jog, live port, live view, midnight sun, polar night, recorder, recording, simulator, station server, the hut, the
 manual, watch port, wind lock. Carried over and needed again: AOS, LOS, pass, pass ID, radome,
-stow, CRC, sequence number, X-band, S-band, UTC, the Board, the Fishbowl.
+stow, CRC, sequence number, telemetry, X-band, S-band, UTC, the Board, the Fishbowl.
 
 **Name checks** to run before the season ships: `dishd` (a quick search on 6 November 2026 found
 no program of that exact name; similar names are unrelated), and the header name `Apogee-Crc32`,
 which uses the invented company's name as Season 3's headers did. `YST-1` and `YST-2` are a
 station code and a dish number, the simulator and the maker are never named, and "the hut" and
-"the station server" are plain words. No new people, places, satellites or customers.
+"the station server" are plain words. "The live view" and "the live port" (web search, 13 November 2026): nothing in ground-station or telemetry software goes by either; the one-word "LiveView" names unrelated products, and the world writes both as lowercase plain phrases with "the", like "the hut", so they stay. No new people, places, satellites or customers.
 
 ### Season 5: keeping secrets
 
@@ -2591,9 +2607,10 @@ key in the network replaced, at every station, without missing a single pass. Yu
 the customers' wishes, Tomás the radio, Ingrid the passes, Sunniva and Paz their stations, and
 Nkem asks the whiteboard questions.
 
-Story time runs from Monday 10 July to Tuesday 24 October 2028: twelve chapters: seven of about
-a week, four (chapters 6, 9, 10 and 12) of about two, and chapter 11 of an afternoon and a night
-(Friday 6 to Saturday 7 October). No new people, places, satellites or customers
+Story time runs from Monday 10 July to Friday 3 November 2028: thirteen chapters: seven of about
+a week, four (chapters 6, 9, 10 and 12) of about two, chapter 11 of an afternoon and a night
+(Friday 6 to Saturday 7 October), and chapter 13, the epilogue after the overlap ends, of a week
+and a half (Wednesday 25 October to Friday 3 November). No new people, places, satellites or customers
 are introduced. Customers speak through Yusra ("TL;DR: ...") and Furrowlight through Hollis's
 capitals. The Cape Wren contractor (the bible's "a contractor visits monthly") stays unnamed.
 
@@ -2613,6 +2630,7 @@ capitals. The Cape Wren contractor (the bible's "a contractor visits monthly") s
 | 10 | Mon 25 Sep, to Fri 6 Oct | Port Ellery and every station | Tomás shows that uplinkd's traffic to Lantern Atoll crosses another company's network as plain HTTP. Mirela: TLS 1.3 everywhere, both ends proven by Apogee's certificates | Rotation Day's keys will travel this path. By Friday 6 October every station speaks TLS 1.3 with both ends proven, and a sealed Cirrine-1 command crosses it to Ystmark untouched |
 | 11 | Fri 6 Oct, to Sat 7 Oct | Yusra's desk; Brinewatch's maintenance window | Brinewatch can install Rotation Day's new API key and webhook secret only in its monthly window (the first Saturday of the month, 06:00 to 08:00 UTC) and only the way its older systems allow. Its first two secrets went out XORed with a 256-byte pad its courier brought in November 2027, both from the pad's first byte | Miss the window, and on Rotation Day Brinewatch is locked out of the booking service or keeps an old secret. The pad is retired; Brinewatch's 2021 RSA key (1,024 bits) is refused; its new 3,072-bit keys arrive by 17:30; at 06:00 on Saturday both secrets go out locked to its receiving key, and Brinewatch opens them |
 | 12 | Mon 9 Oct; Rotation Day Tue 17 Oct; overlap ends Tue 24 Oct | the Fishbowl | Ingrid runs Rotation Day like a pass, from the Cirrine-1 pass that crosses midnight to Furrow-A over Salar Quieto at 14:02 | Every key in the network replaced, at every station, without missing a single pass. At 10:12 the Cape Wren contractor reports that the old station computer she took away for recycling still holds its disk, and with it the key of certificate 1005 |
+| 13 | Wed 25 Oct, to Fri 3 Nov | Yusra's desk, Mirela's desk, the Fishbowl | Cirrine's yearly review passes Rotation Day with one question, which Yusra forwards: could someone holding one engineer's console password stow a dish at Ystmark during Cirrine-1's pass? It could | From Friday 3 November at 16:00 the console asks for a password and a code from the engineer's phone, or one recovery code; reset links keep only a digest, last 30 minutes and work once; ten wrong codes in a row lock an account's codes until a reset |
 
 The opening (Monday 10 July) hands over the new badge, shows Cirrine's three conditions and
 Rotation Day's date, introduces Mirela (this season's reviewer), Yusra and Tomás, and sends the
@@ -2626,6 +2644,17 @@ October `k-2028-07` retires and the second revocation list names every old certi
 signs the log: "Every key replaced. Every pass flown. It failed closed every time we asked it
 to." The debrief points at Season 6: in November the learner carries the pager again, and
 Lantern Atoll's generator has started to sound different.
+
+The epilogue (chapter 13, Wednesday 25 October to Friday 3 November) closes the season after its
+climax. Thursday 26 October: the reset file still holds every token as it was sent, its oldest link
+(March 2027) still works, a link Nkem used in May works again, and the reset form answers "no account
+named" to strangers. Tuesday 31 October: Ingrid's phone runs 20 seconds slow. Wednesday 1 November:
+Mirela reads a code over Nkem's shoulder, and Ingrid asks why six digits are fine now. Thursday 2
+November: Sunniva's phone falls into a snowdrift at Ystmark (snow 40 cm; "Found in April, maybe"),
+and Sunniva signs in from the sheet. Friday 3 November, 16:00: the console asks every engineer for a
+password and a code; Mirela's password without her phone is refused ("LGTM. It failed closed.");
+Yusra to Cirrine: "TL;DR: a stolen password alone now opens nothing." The debrief ends where Season 6
+begins: on Monday at 08:00, Mirela hands the learner the pager.
 
 #### New systems and things
 
@@ -2669,6 +2698,9 @@ temporary sibling and a rename (Season 2's way).
 | Brinewatch's pad (to 6 Oct 2028) | random | 256 bytes | on a USB stick | Brinewatch and Apogee, one copy each; Apogee's wiped 7 Oct |
 | Brinewatch's RSA keys (receiving, signing) | Brinewatch's own, 6 Oct 2028 | 3,072 bits; ciphertexts and signatures 384 bytes | PEM `PUBLIC KEY` blocks (PKIX); fingerprint `sha256:` + 64 hex of the PKIX bytes | Brinewatch (private); Apogee (public) |
 | bookingd token key, webhook secrets, API keys (Season 3) | random | as Season 3 | as Season 3 | replaced on Rotation Day; Brinewatch's new API key and webhook secret reach it on 7 October locked to its RSA receiving key (chapter 11); no lesson covers the others |
+| Reset token | `rand.Text()` | 26 characters (130 bits) | in the emailed link; the console keeps its SHA-256 in hex and an expiry 30 minutes on | the link; one pending reset per account |
+| Code secret (TOTP) | random | 20 bytes (160 bits) | set up once in the engineer's authenticator app | the phone and the console, whole (it can't be a digest) |
+| Recovery code | `rand.Text()` | 26 characters, eight a sheet | printed once; the console keeps each one's SHA-256 in hex | the engineer's sheet |
 
 Ed25519 keys are always Ed25519 (`crypto/ed25519`). The only RSA keys are Brinewatch's (chapter 11), and no lesson generates one: the tests' four were made once with `rsa.GenerateKey` (Go 1.27.3) and are embedded as PKCS #8 PEM. ML-KEM-768
 sizes (chapter 8): encapsulation key 1,184 bytes, ciphertext 1,088 bytes, shared key 32 bytes,
@@ -2702,6 +2734,9 @@ Go 1.27.3.
 | Brinewatch's test pad | 256 bytes: the SHA-256 of `brinewatch pad 0` to `brinewatch pad 7`, one after another |
 | Brinewatch's new secrets (test values) | API key `brinewatch.20281017a1b2c3d4e5f60718293a4b5c`; webhook secret ASCII `brinewatch webhook secret 2028-10` (the old ones are Season 3's) |
 | Short codes (lesson 11.2) | texts `brinewatch <n>`: 2 bytes, 48 and 307 share `bc8c` (308 tries); 3 bytes, 20 and 4774 share `f9f338` (4,775 tries); matching text 0's code: 2 bytes at text 96636, 3 bytes none in 100,000 |
+| TOTP vectors (13.4, 13.5) | key ASCII `12345678901234567890` (the RFCs'); RFC 4226 counters 0–9 → `755224 287082 359152 969429 338314 254676 287922 162583 399871 520489`; RFC 6238 SHA-1 at 59, 1111111109, 1111111111, 1234567890, 2000000000 and 20000000000 s → `287082 081804 050471 005924 279037 353130` (the RFC's eight digits, cut to six) |
+| Phone test secrets (chapter 13) | 20 ASCII bytes each: `mirela's phone, 2028`, `ingrid's phone, 2028`, `nkem's phone in 2028`, `sunniva's phone 2028`; Mirela's codes for the steps around 2028-10-30T10:00:00Z (step 61883760): `462810`, `687056`, `173810` |
+| Chapter 13's passwords | `fails closed, always` (Mirela), `wind 64, gusts 81` (Sunniva), `fishbowl` (kiosk); after the test reset `two proofs, always`; 13.9's tests derive with a 1,000-round stand-in for PBKDF2 |
 
 Since Go 1.26, `ecdh` key generation ignores a reader passed to it, so a fixed "random"
 reader never makes fixed keys: fixed keys come from `NewKeyFromSeed` (Ed25519) and
@@ -3152,6 +3187,34 @@ in force at AOS: `04:12:05 pipit-1 PEL flown k-2028-10 1102`,
 `23:52:10 cirrine-1 YST flown k-2028-07+k-2028-10 1001`. A miss names its first refusal:
 `09:14:20 brine-3 LAN missed: certificate 1004 is revoked`. The real day: 10 flown, 0 missed.
 
+#### More than a password (chapter 13)
+
+- **Reset links.** The console emails a link holding a `rand.Text()` token and keeps one pending
+  `Reset{Hash, Expires}` per account: `Hash` is the token's hex SHA-256 (`tokenDigest`), `Expires` 30
+  minutes after the start (`resetFor`), on an injected clock; a new request replaces the pending one.
+  `Redeem` accepts a token before `Expires` (refused from it), compares digests with
+  `subtle.ConstantTimeCompare`, and deletes the reset only on success. Every refusal is
+  `errInvalidReset` (`invalid or expired reset link`), unwrapped, and changes nothing. The form answers
+  every name `If that account exists, a reset link is on its way.` (`resetSent`) and queues mail
+  (`send`) only for an account that exists (`known`).
+- **Codes (TOTP).** RFC 6238 over RFC 4226: HMAC-SHA-1 of the count of 30-second steps since 1970
+  (`timeStep`), as 8 big-endian bytes; dynamic truncation; six digits with leading zeros (`hotp`,
+  `totp`). Each engineer's authenticator app and the console share 20 random bytes, set up once; the
+  console keeps the secret whole and guards it like a key. `(*Codes).Check` accepts the codes of the
+  step before, the current step and the step after, in constant time, only for a step above the last
+  one it accepted for that user, and then records it. An account without a secret has no code.
+- **Recovery codes.** A sheet of eight (`sheetSize`) `rand.Text()` codes, printed once; the console keeps
+  only their hex SHA-256 (`Recovery.unused`). Each code works once, and a new sheet replaces the old one.
+- **The gate.** From Friday 3 November 2028, 16:00 UTC, `SignIn` checks the password with
+  `Console.Check`, then refuses an account with ten wrong codes in a row (`maxMisses`), then takes a code
+  from the phone or else one recovery code; every refusal is `errInvalidSignIn` (`invalid user, password
+  or code`). A wrong password spends nothing and counts no miss; a right code clears the count.
+  `ResetPassword` redeems the link, saves a new record, ends the account's sessions and clears its
+  misses; it signs nobody in. The kiosk's shared account has neither a phone nor a sheet, so from 16:00
+  it signs nobody in.
+- **Declarations.** `Reset`, `Resets`, `Codes`, `Recovery` and `Gate` are as `reset.go`, `codes.go`,
+  `recovery.go` and `gate.go` give them in 13.9.
+
 #### The code, by chapter
 
 Each lesson is its own `package main` (module `lesson`). A lesson gives the earlier pieces it
@@ -3172,6 +3235,7 @@ needs as read-only files under these names, and uses only the fields it needs. `
 | 10 | `newClient`, `serverConfig`, `harden`, `requireClients`, `clientConfig`, `caller`, `Queue`, `stationHandler`, `dialController`, `uplinkClient`, `stationServer`, `send` (`tlsconf.go`, `station.go`) |
 | 11 | `Pad`, `(*Pad).Seal`, `shortCode`, `firstMatch` (lesson-only, `main.go`); `readRSA`, `encryptTo`, `decryptWith`, `signRequest`, `checkRequest`, `keyFingerprint`, `Request`, `apiKeyLabel`, `webhookLabel` (`brinewatch.go`); `handOver` (`main.go`) |
 | 12 | `accepts`, `signingKey`, `loadKeyCommand`, `revoke`, `isRevoked`, `withRevocations`, `switchTime` (`rotate.go`), `(*Satellite).Receive` and `load` (`satellite.go`), `Slot`, `Day`, `(Day).Passes`, `(Day).Connect`, `(Day).Ping`, `handshake`, `Report`, `runDay` (`day.go`, `main.go`) |
+| 13 | `resetFor`, `resetSent`, `errInvalidReset`, `Reset`, `Resets`, `tokenDigest`, `(*Resets).Start`, `(*Resets).Redeem`, `(*Resets).Request` (`reset.go`); `stepSeconds`, `hotp`, `timeStep`, `totp` (`totp.go`); `Codes`, `(*Codes).Check` (`codes.go`); `sheetSize`, `Recovery`, `(*Recovery).Issue`, `(*Recovery).Use` (`recovery.go`); `maxMisses`, `errInvalidSignIn`, `Gate`, `(*Console).admit`, `(*Console).setPassword`, `(*Console).signOut` (`gate.go`); `(*Gate).SignIn`, `(*Gate).ResetPassword` (`main.go`). Chapter 4's `Console`, its methods and the record helpers are given unchanged |
 
 Signatures every chapter after the one that defines them uses exactly:
 
@@ -3234,6 +3298,15 @@ func revoke(ca Issuer, number int64, entries []x509.RevocationListEntry, now tim
 func isRevoked(crlDER []byte, ca, cert *x509.Certificate, now time.Time) (bool, error)
 func withRevocations(cfg *tls.Config, current func() []byte, ca *x509.Certificate, now func() time.Time)
 func switchTime(passes []Pass, station string, from time.Time) (time.Time, error)
+func tokenDigest(token string) string
+func (r *Resets) Redeem(user, token string) error
+func (r *Resets) Request(user string) string
+func hotp(secret []byte, counter uint64) string
+func totp(secret []byte, t time.Time) string
+func (c *Codes) Check(user, code string) bool
+func (r *Recovery) Use(user, code string) bool
+func (g *Gate) SignIn(user, pw, code string) (string, error)
+func (g *Gate) ResetPassword(user, token, pw string) error
 ```
 
 `Satellite` (the flight software's stand-in) holds `ID`, `Keys map[string]SatKeys` (by key ID;
@@ -3252,11 +3325,11 @@ installs the keys a LOAD_KEY carries (`load`). `Guard` holds `last map[string]ui
   has odds below 2^-90. RSA-OAEP and RSA-PSS are randomized, so tests open or verify their output and never compare its bytes.
 - **The attacker is the test.** One lesson in every chapter shows the mistake the chapter
   guards against, in Mirela's voice, before the right way: lessons 1.1, 2.2, 3.1, 4.1, 5.1,
-  6.1, 7.1, 8.4 (after two lessons of basics), 9.1, 10.1, 11.1 and 12.1. The starter holds the
+  6.1, 7.1, 8.4 (after two lessons of basics), 9.1, 10.1, 11.1, 12.1 and 13.1. The starter holds the
   mistake, and the read-only test plays the person who exploits it (predicts the nonce, forges
   the CRC, extends the hash, cracks the table, signs for another satellite, flips the
   counter-mode bytes, forges the shared-secret receipt, sits in the middle, presents a
-  same-named certificate, impersonates a server, reads one pad-sealed secret from another, or arrives a second after midnight). The
+  same-named certificate, impersonates a server, reads one pad-sealed secret from another, arrives a second after midnight, or pastes a digest from a copy of the reset file). The
   solution makes the attack fail.
 - **Reading the code.** Where right and wrong code give the same answers (constant-time
   comparison, no `math/rand`, extract once), the test parses the learner's file with
@@ -3282,7 +3355,7 @@ console, Cirrine's contract, Rotation Day, random bytes, nonce, fingerprint (dig
 password record, iteration count, master key, key ID, derived key, sealed command, associated
 data, tag, receipt, public key, private key, key agreement, share, the middle (a machine in the
 middle), forward secrecy, certificate, certificate authority, root, intermediate, chain,
-revocation list, overlap, retire, revoke, TLS, mutual TLS, post-quantum, pad, birthday bound, RSA, OAEP, PSS, API key, webhook secret, Brinewatch.
+revocation list, overlap, retire, revoke, TLS, mutual TLS, post-quantum, pad, birthday bound, RSA, OAEP, PSS, API key, webhook secret, Brinewatch, reset link, authenticator app, TOTP, dynamic truncation, recovery code.
 
 **Name checks** to run before the season ships: `Apogee Root CA 2028`, `Apogee Stations CA
 2028`, `apogee.internal` (a reserved top-level domain, so only the company name matters), and
@@ -6282,7 +6355,7 @@ is jobloom/gosmos#18; how each season is told is `docs/storytelling.md`.
 | 3 · Open for Business | Web Services in Go | Nov 2027–Feb 2028 | Customers book passes through Apogee's own service, which you build | #11 |
 | Project | Build the Board | Feb 2028 | The Board on every screen in the building | #12 |
 | 4 · Down to the Wire | Networking from the Socket Up | Mar–Jun 2028 | Ystmark's new dish controllers, and a web server from nothing but a socket | #13 |
-| 5 · Keeping Secrets | Cryptography in Go | Jul–Oct 2028 | Cirrine's commands, readable by Cirrine alone, and Rotation Day | #14 |
+| 5 · Keeping Secrets | Cryptography in Go | Jul–Nov 2028 | Cirrine's commands, readable by Cirrine alone, and Rotation Day | #14 |
 | 6 · On Call | Logging, Metrics and Profiling | Nov 2028–Feb 2029 | The 02:46 page from Lantern Atoll, and the slow leak behind it | #15 |
 | 7 · Scale | Go at Scale | Mar–Jun 2029 | Twenty stations, eighty satellites, and passplan's rewrite | #16 |
 | Capstone | Pass Day, Live | Jul 2029 | The whole ground segment, rehearsed for a week | #17 |

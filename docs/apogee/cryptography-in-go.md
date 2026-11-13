@@ -5,7 +5,7 @@ condition: nobody but Cirrine and Apogee may read its commands. Mirela leads the
 learner learns each tool of Go's standard library by protecting something real, up to Rotation
 Day, when every key in the network is replaced without missing a pass.
 
-**Authoring status:** all twelve chapters are implemented as 96 lessons. Chapter 1 was read in
+**Authoring status:** all thirteen chapters are implemented as 105 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this
 plan two chapters at a time and every chapter independently reviewed. The world, the
 characters and the writing rules are in `story.md`, whose section "Season 5: keeping secrets"
@@ -46,8 +46,9 @@ and review" at the end.
 | 10 | Every Connection Encrypted | `every-connection-encrypted` | Serve and dial with `crypto/tls`: your own roots, TLS 1.3 only, mutual TLS, authorization by certificate, and TLS on a raw socket. | 9 |
 | 11 | Brinewatch's Older Keys | `brinewatchs-older-keys` | Work safely with older cryptography: one-time pads and why reuse leaks, the birthday bound on truncated digests, RSA public keys from PEM with a type switch, and `crypto/rsa`'s OAEP encryption and PSS signatures. | 8 |
 | 12 | Rotation Day | `rotation-day` | Rotate keys with versions and overlap, revoke at once with revocation lists and `VerifyConnection`, and run a whole day of passes through the change. | 8 |
+| 13 | More Than a Password | `more-than-a-password` | Keep reset tokens from `rand.Text` as digests that expire on an injected clock and work once, answer every name alike, build RFC 6238 codes from `crypto/hmac` and SHA-1, accept a step either side but no code twice, keep one-time recovery codes as digests, and sign in with a password and a code. | 9 |
 
-96 lessons: 7 code, 73 code_tests and 16 quizzes (83.3% hands-on). Difficulty rises from 6 to
+105 lessons: 7 code, 81 code_tests and 17 quizzes (83.8% hands-on). Difficulty rises from 6 to
 10. Every chapter shows the mistake it guards against before the right way: the starter holds
 the mistake and the read-only test plays whoever exploits it. No test depends on random
 output: tests check sizes, round trips and refusals, or fixed vectors from the bible. Every
@@ -819,6 +820,75 @@ switch between passes, and run the whole day.
 - **Exercise:** `runDay(d Day) Report` is a stub; using the season's helpers (given), you walk the day in time order: seal each command with the key `signingKey` picks when it is sealed, deliver it to the satellite stand-in 5 seconds later, connect to each station with the certificate in force (switching at its `switchTime`), apply revocation list 1 at 10:12, and report each pass as the bible's report lines say.
 - **Check:** the real day → `Report{Flown: 10, Missed: 0}` and its ten lines, the midnight pass's being `23:52:10 cirrine-1 YST flown k-2028-07+k-2028-10 1001`; every station's passes after its switch show its 11xx certificate; Ingrid's rehearsal day, where Lantern Atoll never switched and list 1 also revokes 1004 at 05:00 → `Flown: 9, Missed: 1` and `09:14:20 brine-3 LAN missed: certificate 1004 is revoked`; the run ends well under a second.
 
+## Chapter 13 · More Than a Password
+
+`more-than-a-password` · 9 lessons
+
+Issue password reset tokens with `rand.Text` and keep only their SHA-256, expire them on an injected clock and spend them once, answer every name alike, make RFC 6238 codes with `crypto/hmac`, SHA-1 and dynamic truncation, accept a step either side and no code twice, and keep one-time recovery codes as digests.
+
+#### 13.1 A Reset File Worth Stealing
+`a-reset-file-worth-stealing` · code_tests · difficulty 9
+- **Objective:** Keep only the SHA-256 of a password reset token from `rand.Text`, and check a link by comparing digests with `subtle.ConstantTimeCompare`.
+- **Scenario:** Wednesday 25 October: before any new lock, Mirela checks the console's back door, the reset link, and finds every pending token in the reset file exactly as it was emailed: "In July a laptop left with a copy of the user file. Assume the next one holds this file."
+- **Exercise:** `(r *Resets) Start(user string) string` keeps the token itself as the reset's `Hash`, and `(r *Resets) Redeem(user, token string) error` compares it with `!=`; you keep `tokenDigest(token)` (given) and compare `tokenDigest(token)` with the kept `Hash` in constant time.
+- **Check:** `TestBackupResetsNobody`: holding a copy of `r.pending`, the test pastes each kept `Hash` into a link and every one is refused (the starter resets both accounts), while the real tokens still work; the kept `Hash` is `tokenDigest` of a 26-character `rand.Text` token and `Expires` is 30 minutes on; a changed character, another token, no token and an account with no reset → `errInvalidReset`; `TestConstantTime` parses `main.go`: `subtle.ConstantTimeCompare` or `hmac.Equal`, and no `==` or `!=` between the digests.
+
+#### 13.2 Thirty Minutes, Once
+`thirty-minutes-once` · code_tests · difficulty 9
+- **Objective:** Expire a reset token on an injected clock and spend it on first use, with one error for every refusal.
+- **Scenario:** Thursday 26 October: a link emailed in March 2027 still works, and one Nkem used in May works a second time. Mirela: "A reset link is a password sent by email. It works once, for half an hour, then never."
+- **Exercise:** `Redeem` (13.1's) ignores `Expires` and keeps the reset after use; you refuse it from `Expires` on, by `r.now()`, and delete it once a token is accepted, refusing with `errInvalidReset` itself and changing nothing on a refusal.
+- **Check:** at once and at 09:29:59 → nil; at 09:30:00 exactly and the next day → `errInvalidReset` (the starter accepts both); a second use → refused, as is Nkem's token tried for `intruder`; three wrong tokens, one of them the kept digest, leave the link working; a second `Start` makes the first link fail; every refusal is `errInvalidReset` unwrapped.
+
+#### 13.3 Every Name, One Answer
+`every-name-one-answer` · code_tests · difficulty 8
+- **Objective:** Give the same answer whether or not an account exists, and send mail only to accounts that do.
+- **Scenario:** Thursday afternoon: Mirela types twenty names into the reset form, which answers `reset link sent` to some and `no account named` to the rest. "It has read me our staff list."
+- **Exercise:** `(r *Resets) Request(user string) string` answers differently for unknown names; you return `resetSent` for every name and call `r.Start` and `r.send` only when `r.known(user)` is true.
+- **Check:** `TestFormListsNoOne`: nine names, four of them accounts, all get the one answer `resetSent` (the starter's differ); names without accounts queue no mail and keep no reset; `nkem` gets exactly one email, whose token redeems.
+
+#### 13.4 Six Digits From a Secret
+`six-digits-from-a-secret` · code_tests · difficulty 9
+- **Objective:** Make an RFC 4226 code with `crypto/hmac` and SHA-1: an HMAC of the 8-byte big-endian counter, dynamic truncation, six digits.
+- **Scenario:** Monday 30 October: Mirela's plan for Friday is an authenticator app on every engineer's phone sharing a 20-byte secret with the console; `totp` (given) feeds it the count of 30-second steps since 1970, as RFC 6238 says.
+- **Exercise:** `hotp(secret []byte, counter uint64) string` returns `"000000"`; you write `hmac.New(sha1.New, secret)` over `binary.BigEndian.AppendUint64(nil, counter)`, take the offset from the last byte's low 4 bits, clear the top bit, and format the number modulo 1,000,000 with `%06d`.
+- **Check:** RFC 4226 Appendix D's ten codes for counters 0–9 (`755224` … `520489`); RFC 6238 Appendix B's six SHA-1 vectors through `totp`, cut to six digits (`287082`, `081804`, `050471`, `005924`, `279037`, `353130`), which catch a lost leading zero; Mirela's phone at 2028-10-30T10:00:00Z → `687056`, 30 s before → `462810`, 30 s after → `173810`; a thousand codes are six digits each. Static truncation, an uncleared top bit and SHA-256 all fail.
+
+#### 13.5 A Step Either Side
+`a-step-either-side` · code_tests · difficulty 9
+- **Objective:** Accept the codes of the step before and the step after as well as the current one, and no more.
+- **Scenario:** Tuesday 31 October: Ingrid's phone runs 20 seconds behind the console's, so the draft check, which takes only the current step's code, refuses her twice.
+- **Exercise:** `(c *Codes) Check(user, code string) bool` compares only `totp(secret, c.now())`; you loop from `timeStep(c.now())` minus one to plus one, comparing each step's `hotp` code in constant time, and keep the draft's refusal for an account without a secret.
+- **Check:** a phone 20 s behind and one 20 s ahead are accepted (the starter refuses the first); Ingrid's 07:31:05 code is accepted from 07:30:30 to 07:31:59 and refused at 07:30:29 and 07:32:00; the RFC's six codes at their own times; Mirela's code for Ingrid, no code, seven digits and, for the kiosk, which has no secret, the codes an empty secret makes → false.
+
+#### 13.6 Read Over a Shoulder
+`read-over-a-shoulder` · code_tests · difficulty 9
+- **Objective:** Refuse a code used twice by remembering, per account, the last step accepted.
+- **Scenario:** Wednesday 1 November: Mirela reads a code over Nkem's shoulder and types it 40 seconds later, and the check accepts it again. "Anything I can read over a shoulder must work once."
+- **Exercise:** `Codes` gains `last map[string]uint64`; you make `Check` skip every step not above `c.last[user]` and record the step of the code it accepts.
+- **Check:** Nkem's code at 10:15:05, then again at 10:15:45 → refused (the starter accepts it), and the next step's code at 10:15:50 → accepted; a fast phone's next-step code counts once, and the current step's code after it is refused (this catches recording `now` instead of the step); a refused code leaves `last` at 0 and the right code still works; Mirela's and Nkem's steps are kept apart.
+
+#### 13.7 Quick Check: Six-Digit Codes
+`quick-check-six-digit-codes` · quiz · difficulty 8
+- **Objective:** Check what makes six-digit codes acceptable, why the window is one step either side, and why the console keeps the secret itself.
+- **Scenario:** Wednesday afternoon, Ingrid with her phone: "Six digits again. In July you told me six digits weren't basically as good as the tokens."
+- **Exercise:** Three questions, about the plan she copied into her checklist.
+- **Check:** each code counts only beside the right password, within its 90 seconds and once, unlike the old six-digit codes, which were the whole secret; the window covers drifting clocks and typing time, and each extra step is one more code a guess could match; the console must make the same codes as the phone, so it keeps the secret whole.
+
+#### 13.8 Codes for a Lost Phone
+`codes-for-a-lost-phone` · code_tests · difficulty 9
+- **Objective:** Issue one-time recovery codes from `rand.Text` and keep only their digests.
+- **Scenario:** Thursday 2 November, Sunniva from Ystmark: "Phone in a snowdrift. Snow 40 cm. Found in April, maybe." Every engineer gets a sheet of eight recovery codes, each good for one sign-in in place of a code.
+- **Exercise:** `(r *Recovery) Issue(user string) []string` stores the codes themselves and `(r *Recovery) Use(user, code string) bool` never spends one; you keep each code's `tokenDigest`, and remove the matching digest, found in constant time, with `slices.Delete`.
+- **Check:** eight different 26-character codes, and in `r.unused` exactly their digests (the starter keeps the codes); each value copied from `r.unused` is refused as a code; every code works once, in any order; a code works only for its own account, and trying it on another doesn't spend it; a new sheet retires the old one.
+
+#### 13.9 The Console Asks Twice
+`the-console-asks-twice` · code_tests · difficulty 10
+- **Objective:** Sign in with a password and a code or one recovery code, and reset a password, failing closed in the right order.
+- **Scenario:** Friday 3 November, 15:30: at 16:00 the console stops taking a password alone, and Mirela wants the whole door in `Gate`, with the reset beside it.
+- **Exercise:** chapter 4's console, the reset links, `Codes`, `Recovery` and `gate.go` (`admit`, `setPassword`, `signOut`, `maxMisses`, `errInvalidSignIn`) are given; you write `(g *Gate) SignIn(user, pw, code string) (string, error)`: `Check` the password, refuse an account with ten wrong codes in a row, take a code from `g.codes` or else `g.recovery`, count a miss for a wrong code, clear the misses and `admit`; and `(g *Gate) ResetPassword(user, token, pw string) error`: `Redeem`, `setPassword`, `signOut`, clear the misses.
+- **Check:** the password alone, with a wrong code or with Sunniva's recovery code → refused and no session; password and the phone's code → a token whose digest maps to mirela, the same code 10 s later → refused, the next step's → accepted; Sunniva's recovery codes work once each; the kiosk, with neither phone nor sheet, is refused even with an empty secret's codes; wrong passwords spend no code and count no miss; 9 misses then the right code → in, 10 → refused for codes and recovery codes alike, and a right code restarts the count; a reset ends the old session, saves one record, refuses the old password and the new one without a code, accepts the new one with a code, refuses its link a second time, and unlocks the account, where the recovery code tried while it was locked still works; refused resets (no token, the kept digest, another account) change nothing. The tests give the console a 1,000-round stand-in for PBKDF2.
+
 ## Changes in writing and review
 
 - **Security claims** are exact and never overstated: a changed byte gives a digest that looks
@@ -845,3 +915,4 @@ switch between passes, and run the whole day.
 - **Given code** keeps the text the learner last saw, including `KeyVersion`'s comments and the
   sentinels chapter 6's `seal.go` declares again (`ErrUnknownKey`, `ErrReplay`, `ErrForged`).
 - **Chapter 11** was added after the season was written, between Every Connection Encrypted and Rotation Day (now chapter 12), in the weekend between them. No lesson generates an RSA key: the four test keys were made once with `rsa.GenerateKey` and are embedded as PEM in each RSA lesson's `keys_test.go`, byte for byte the same. 11.4 also refuses a 2,047-bit key, so a check by `Size()*8` fails.
+- **Chapter 13** was added after the season was written, after Rotation Day, as its epilogue (Wednesday 25 October to Friday 3 November 2028), so nothing moved. It continues chapter 4's console with new declarations only (`Resets`, `Codes`, `Recovery`, `Gate` and the console's `admit`, `setPassword` and `signOut`); `Console`, its methods and the record helpers are given as 4.8 has them. Codes follow RFC 6238 with HMAC-SHA-1, 30-second steps and six digits, tested with the RFCs' own vectors (RFC 4226 Appendix D; RFC 6238 Appendix B cut to six digits). The gate adds one rule beyond the plan: ten wrong codes in a row after a right password lock an account to codes until a reset, so six digits can't be guessed online.
