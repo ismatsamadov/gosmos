@@ -5,7 +5,7 @@ condition: nobody but Cirrine and Apogee may read its commands. Mirela leads the
 learner learns each tool of Go's standard library by protecting something real, up to Rotation
 Day, when every key in the network is replaced without missing a pass.
 
-**Authoring status:** all eleven chapters are implemented as 88 lessons. Chapter 1 was read in
+**Authoring status:** all twelve chapters are implemented as 96 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this
 plan two chapters at a time and every chapter independently reviewed. The world, the
 characters and the writing rules are in `story.md`, whose section "Season 5: keeping secrets"
@@ -44,9 +44,10 @@ and review" at the end.
 | 8 | Agreeing on a Secret | `agreeing-on-a-secret` | Agree on keys with `crypto/ecdh` X25519, authenticate the shares, derive session keys, keep forward secrecy, and encapsulate with `crypto/mlkem`. | 8 |
 | 9 | Who Are You, Server? | `who-are-you-server` | Build a private certificate authority with `crypto/x509` and `encoding/pem`, issue certificates, and verify chains, names, usages and validity. | 8 |
 | 10 | Every Connection Encrypted | `every-connection-encrypted` | Serve and dial with `crypto/tls`: your own roots, TLS 1.3 only, mutual TLS, authorization by certificate, and TLS on a raw socket. | 9 |
-| 11 | Rotation Day | `rotation-day` | Rotate keys with versions and overlap, revoke at once with revocation lists and `VerifyConnection`, and run a whole day of passes through the change. | 8 |
+| 11 | Brinewatch's Older Keys | `brinewatchs-older-keys` | Work safely with older cryptography: one-time pads and why reuse leaks, the birthday bound on truncated digests, RSA public keys from PEM with a type switch, and `crypto/rsa`'s OAEP encryption and PSS signatures. | 8 |
+| 12 | Rotation Day | `rotation-day` | Rotate keys with versions and overlap, revoke at once with revocation lists and `VerifyConnection`, and run a whole day of passes through the change. | 8 |
 
-88 lessons: 6 code, 68 code_tests and 14 quizzes (84.1% hands-on). Difficulty rises from 6 to
+96 lessons: 7 code, 73 code_tests and 16 quizzes (83.3% hands-on). Difficulty rises from 6 to
 10. Every chapter shows the mistake it guards against before the right way: the starter holds
 the mistake and the read-only test plays whoever exploits it. No test depends on random
 output: tests check sizes, round trips and refusals, or fixed vectors from the bible. Every
@@ -692,7 +693,69 @@ connection.
 - **Exercise:** `send`, `stationHandler` and `Queue` are given; you write `uplinkClient(roots *x509.CertPool, host string, cert tls.Certificate, now func() time.Time) *http.Client` and `stationServer(leaf, inter *x509.Certificate, key ed25519.PrivateKey, roots *x509.CertPool, now func() time.Time) *tls.Config` with everything this chapter required.
 - **Check:** a sealed line for cirrine-1 arrives byte for byte in Ystmark's queue and still opens in the satellite stand-in, while the station holds no seal key; TLS 1.3 agreed; refused: an impostor station, an impostor uplinkd, a TLS 1.2 client, and passplan posting a command; no request takes over 1 s.
 
-## Chapter 11 · Rotation Day
+## Chapter 11 · Brinewatch's Older Keys
+
+`brinewatchs-older-keys` · 8 lessons
+
+XOR with a one-time pad and see why a pad used twice leaks, find two inputs whose truncated SHA-256 digests match at the birthday bound, read RSA public keys from PEM with a type switch and refuse keys under 2048 bits, encrypt with `rsa.EncryptOAEP` and a label, sign with `rsa.SignPSS`, and hand over secrets only after a signed request checks out.
+
+#### 11.1 A Pad Used Twice
+`a-pad-used-twice` · code_tests · difficulty 9
+- **Objective:** XOR a message with a one-time pad, using each pad byte once and refusing a message the pad can't cover.
+- **Scenario:** Friday 6 October: Brinewatch wants Rotation Day's new secrets XORed with the 256-byte pad its courier brought in November 2027, and Mirela finds that its API key (November) and webhook secret (January) both used the pad from its first byte.
+- **Exercise:** `(p *Pad) Seal(msg []byte) ([]byte, error)` XORs every message with the pad from byte 0; you XOR with the next unused bytes, add them to `p.used`, and refuse a longer message with `pad has 7 bytes left, need 25`, spending nothing.
+- **Check:** `TestSomeoneKeptBoth`: knowing November's secret, the test XORs both sealed secrets with it and must not read January's (the starter gives `brinewatch webhook secret`); three seals of 32 zero bytes come out as the pad's bytes from 0, 32 and 64; Brinewatch's copy opens both secrets in order; a 50-byte pad takes the 43-byte API key, refuses 25 bytes with the exact text, then still takes 7 and refuses 1 more.
+
+#### 11.2 How Soon Two Match
+`how-soon-two-match` · code · difficulty 8
+- **Objective:** Find two inputs whose truncated SHA-256 digests match, with a map of the codes seen, and see the birthday bound: about the square root of the number of codes.
+- **Scenario:** Brinewatch's security office will read its keys' fingerprints to Yusra by phone, and its tool shows only six hex digits; Tomás remembers that 23 people in a room probably share a birthday.
+- **Exercise:** `firstMatch(n, limit int) (a, b int, ok bool)` compares the `shortCode` of each text `brinewatch <i>` with text 0's only; you keep every code in a map and stop at the first repeat.
+- **Check:** `2 bytes: 48 and 307 share bc8c, 308 tries` / `3 bytes: 20 and 4774 share f9f338, 4775 tries` (the starter prints `0 and 96636 share b582, 96637 tries` and `no two match in 100000 tries`).
+
+#### 11.3 Quick Check: Pads and Short Codes
+`quick-check-pads-and-short-codes` · quiz · difficulty 8
+- **Objective:** Check what a reused pad leaks, how soon short codes collide and what makes a pad safe.
+- **Scenario:** Friday 15:40: Yusra's three questions before she writes to Brinewatch's security office.
+- **Exercise:** Three questions, about the two old emails shown in the readme.
+- **Check:** XORing two messages sealed with the same pad bytes gives the two secrets XORed together, so knowing one reveals the other; two of 16.7 million six-hex-digit codes probably match after about 4,800 keys; a pad hides a message completely only if its bytes are random, as many as the message's and used once.
+
+#### 11.4 A Key From 2021
+`a-key-from-2021` · code_tests · difficulty 9
+- **Objective:** Read an RSA public key from PEM with `x509.ParsePKIXPublicKey` and a type switch, refusing other kinds of key and RSA keys under 2048 bits.
+- **Scenario:** Friday 16:10: with the pad retired, Brinewatch emails the public key its systems have used since 2021, and Mirela counts 1,024 bits.
+- **Exercise:** `readRSA(pemText []byte) (*rsa.PublicKey, error)` asserts `*rsa.PublicKey` and keeps any size; you switch on the type, refuse under 2048 bits by `N.BitLen()`, and name Ed25519, X25519 and any other type (`%T`) in the errors.
+- **Check:** Brinewatch's 3,072-bit keys and the impostor's 2,048-bit key are accepted; the 2021 key gives `want at least 2048 bits, got 1024`; a 2,047-bit key gives `want at least 2048 bits, got 2047` (catches `Size()*8`); Apogee's receipt key gives `want an RSA key, got Ed25519`, PEL's backhaul share `want an RSA key, got X25519`, a P-256 key `want an RSA key, got *ecdsa.PublicKey`; a PRIVATE KEY block, two blocks, a cut key and nothing give errors.
+
+#### 11.5 Readable by Brinewatch Alone
+`readable-by-brinewatch-alone` · code_tests · difficulty 9
+- **Objective:** Encrypt and decrypt with RSA-OAEP, SHA-256 and a label: `rsa.EncryptOAEP` and `rsa.DecryptOAEP`.
+- **Scenario:** Friday 17:30: Brinewatch's new 3,072-bit receiving key passes, and its new API key and webhook secret must leave locked so only its private half opens them.
+- **Exercise:** `encryptTo(pub *rsa.PublicKey, secret []byte, label string) ([]byte, error)` and `decryptWith(priv *rsa.PrivateKey, ciphertext []byte, label string) ([]byte, error)` are stubs; you lock with `rsa.EncryptOAEP(sha256.New(), rand.Reader, …)` and open with `rsa.DecryptOAEP`, the label as bytes.
+- **Check:** each secret becomes 384 bytes, without the secret in it, which Brinewatch's stand-in opens with `DecryptOAEP` and the label; `decryptWith` opens the test's own; two lockings differ and both open; the webhook secret's ciphertext under the API key's label fails on both sides; the signing key, one changed byte and 383 bytes give errors; 318 bytes lock, 319 give an error.
+
+#### 11.6 Signed Twice, Never Alike
+`signed-twice-never-alike` · code_tests · difficulty 9
+- **Objective:** Sign a SHA-256 digest with RSA-PSS and verify it: `rsa.SignPSS` and `rsa.VerifyPSS`.
+- **Scenario:** Brinewatch's security office will approve the handover with a line signed by its new signing key, whose whole fingerprint Yusra has read back by phone; to try it, Mirela plays Brinewatch.
+- **Exercise:** `signRequest(priv *rsa.PrivateKey, req []byte) ([]byte, error)` and `checkRequest(pub *rsa.PublicKey, req, sig []byte) error` are stubs (the check accepts anything); you sign and verify the request's SHA-256 digest with `crypto.SHA256` and `nil` options.
+- **Check:** a 384-byte signature that `VerifyPSS` accepts; two signatures of one request differ and both check; a signature with a hash-length random part (Brinewatch's tool) checks; refused: the request changed after signing, a signature by the receiving key, a PKCS #1 v1.5 signature, 383 bytes, none.
+
+#### 11.7 Quick Check: Which Key Fits
+`quick-check-which-key-fits` · quiz · difficulty 9
+- **Objective:** Check when RSA, Ed25519 or X25519 fits.
+- **Scenario:** Friday 19:20: Nkem's three whiteboard questions, one at a time.
+- **Exercise:** Three questions, about the three kinds of key pair shown in the readme.
+- **Check:** a fresh secret for every backhaul session takes X25519 with new keys each time (RSA to a lasting key loses forward secrecy); Apogee's receipts stay Ed25519, as strong as 3,072-bit RSA with 64-byte signatures and 32-byte keys; Brinewatch's handover uses RSA because its systems speak only RSA, which holds up with OAEP, PSS and 3,072 bits.
+
+#### 11.8 The Saturday Handover
+`the-saturday-handover` · code_tests · difficulty 10
+- **Objective:** Hand secrets to a customer's RSA key only after its signed request checks out and names that key by its whole fingerprint, failing closed.
+- **Scenario:** Saturday 7 October, 06:00 UTC: Brinewatch's maintenance window opens, and its signed request arrives with the new receiving key beside it.
+- **Exercise:** `readRSA`, `encryptTo`, `checkRequest`, `keyFingerprint`, `Request` and the two labels are given in `brinewatch.go`; you write `handOver(signKey *rsa.PublicKey, r Request, apiKey, webhook []byte) ([]string, error)`: check the signature, read the key, require exactly `brinewatch handover <fingerprint>`, then lock each secret under its label as the lines `api-key <hex>` and `webhook-secret <hex>`.
+- **Check:** Brinewatch's stand-in opens both lines with its receiving key and each line's label; swapped between the lines, neither opens; refused, with no lines: a request signed by the impostor or with the receiving key, changed on the way to name the impostor's key, with the impostor's key swapped in beside it, naming the key by six hex digits, or naming the 2021 key.
+
+## Chapter 12 · Rotation Day
 
 `rotation-day` · 8 lessons
 
@@ -700,56 +763,56 @@ Accept old and new key versions through an overlap, sign with the newest, send n
 under old ones, revoke with `x509.CreateRevocationList` and `VerifyConnection`, schedule each
 switch between passes, and run the whole day.
 
-#### 11.1 The Midnight Switch
+#### 12.1 The Midnight Switch
 `the-midnight-switch` · code_tests · difficulty 9
 - **Objective:** Accept a key and its successor side by side through an overlap window.
 - **Scenario:** Monday 9 October, in Mirela's rehearsal: a command sealed with `k-2028-07` at 23:59:58 reaches Cirrine-1 at 00:00:03, is refused, and the pass is lost.
 - **Exercise:** `accepts(ring []KeyVersion, id string, now time.Time) bool` accepts only the version that would sign at `now`, a hard switch; you follow the bible's rules: every version in the ring is accepted until its `Retire` unless revoked, the next one even before its `Activate`.
 - **Check:** `k-2028-07` at 2028-10-17T00:00:03Z → true (the starter says false); `k-2028-10` on 9 October → true (the starter says false); `k-2028-07` at exactly 2028-10-24T00:00:00Z → false and one second earlier → true; a revoked version → false at any time; an ID not in the ring → false.
 
-#### 11.2 Sign With the Newest
+#### 12.2 Sign With the Newest
 `sign-with-the-newest` · code_tests · difficulty 9
 - **Objective:** Choose the signing key by time: the newest activated version that isn't retired or revoked.
 - **Scenario:** uplinkd must switch to `k-2028-10` at exactly 00:00:00 on Rotation Day, and never seal with a revoked key.
 - **Exercise:** `signingKey(ring []KeyVersion, now time.Time) (KeyVersion, error)` returns the first version in the slice; you pick by `Activate` as the bible's rules say, and return `no key to sign with at <time>` when none fits.
 - **Check:** 2028-10-16T23:59:59Z → `k-2028-07`; 2028-10-17T00:00:00Z → `k-2028-10`; with `k-2028-10` revoked, on 20 October → `k-2028-07` and on 25 October → the error; the ring in any order gives the same answers.
 
-#### 11.3 Quick Check: Overlap
+#### 12.3 Quick Check: Overlap
 `quick-check-overlap` · quiz · difficulty 8
 - **Objective:** Check the rules of overlap, retirement and revocation.
 - **Scenario:** Ingrid's three questions for Rotation Day's checklist.
 - **Exercise:** Three questions.
 - **Check:** Verifiers get the new key before signers start using it; a receipt key stays published after it stops signing, so old receipts still verify; a retired key is refused from its retire instant, a revoked one at once.
 
-#### 11.4 New Keys Before the Day
+#### 12.4 New Keys Before the Day
 `new-keys-before-the-day` · code_tests · difficulty 10
 - **Objective:** Send a new key version to a satellite inside a command sealed under its current key.
 - **Scenario:** The week of 9 October: every satellite must hold `k-2028-10` before Rotation Day, and the new keys may never cross the air readable.
 - **Exercise:** `loadKeyCommand(ring *KeyRing, satID string, seq uint64, next KeyVersion) (string, error)` returns `""`; you derive the satellite's new sign and seal keys from `next` and seal `LOAD_KEY|<id>|<sign hex>|<seal hex>` with `sealCommand` under the current version.
 - **Check:** the stand-in satellite opens it and then accepts a command sealed with `k-2028-10`, and still accepts `k-2028-07`; neither new key appears in the line, in hex or raw; a LOAD_KEY sealed under a key the satellite doesn't hold → refused and nothing loaded; a second LOAD_KEY with an old sequence number → `ErrReplay`.
 
-#### 11.5 A List of the Revoked
+#### 12.5 A List of the Revoked
 `a-list-of-the-revoked` · code_tests · difficulty 10
 - **Objective:** Publish revocations in a signed list with `x509.CreateRevocationList`, and check certificates against it.
 - **Scenario:** Tuesday 17 October, 10:12 UTC: the Cape Wren contractor reports that the old station computer she took away for recycling still holds its disk, and with it the key of certificate 1005.
 - **Exercise:** `revoke(ca Issuer, number int64, entries []x509.RevocationListEntry, now time.Time) ([]byte, error)` and `isRevoked(crlDER []byte, ca, cert *x509.Certificate, now time.Time) (bool, error)` are stubs; you create the list (`ThisUpdate` now, `NextUpdate` 7 days later), and when checking, parse it, verify it with `CheckSignatureFrom`, check that it is current, and compare serial numbers.
 - **Check:** list 1 revokes 1005 and not 1105; a list signed by the impostor CA → error, never "not revoked"; a list one second past its `NextUpdate` → error, and at `NextUpdate` exactly → still current; list number 1.
 
-#### 11.6 Refused at the Handshake
+#### 12.6 Refused at the Handshake
 `refused-at-the-handshake` · code_tests · difficulty 10
 - **Objective:** Refuse revoked peers during the TLS handshake with `VerifyConnection`.
 - **Scenario:** uplinkd's connections to Cape Wren must fail the moment certificate 1005 is listed, though its chain still verifies.
 - **Exercise:** `withRevocations(cfg *tls.Config, current func() []byte, ca *x509.Certificate, now func() time.Time)` does nothing; you set `VerifyConnection` to check the peer's leaf with `isRevoked` against `current()`, answering `certificate 1005 is revoked`.
 - **Check:** a server presenting 1105 → connects; 1005 → the handshake fails with that error; a list with a bad signature → every handshake fails; the list changes between two connections and the second sees the new one.
 
-#### 11.7 Between Two Passes
+#### 12.7 Between Two Passes
 `between-two-passes` · code_tests · difficulty 9
 - **Objective:** Find a station's first quiet gap in a day of passes, with sorting and `time` arithmetic.
 - **Scenario:** Ingrid's rule for Rotation Day: a station changes certificates only in 10 quiet minutes, 5 clear of any pass on either side.
 - **Exercise:** `switchTime(passes []Pass, station string, from time.Time) (time.Time, error)` returns `from`; you sort that station's passes by AOS and return the bible's earliest fitting start.
 - **Check:** Rotation Day's passes → YST, SQT and CWR at 01:00:00, PEL at 01:12:10, LAN at 01:15:40 (the starter switches PEL and LAN during a pass); passes in any order, mixed with other stations'; a station with no passes → `from`; a station booked every 20 minutes for a day → `no 10-minute gap for … before …`.
 
-#### 11.8 Rotation Day, Hour by Hour
+#### 12.8 Rotation Day, Hour by Hour
 `rotation-day-hour-by-hour` · code_tests · difficulty 10
 - **Objective:** Run a whole day of passes through a key and certificate rotation, failing closed and missing nothing.
 - **Scenario:** Tuesday 17 October: Ingrid runs Rotation Day like a pass, from the Cirrine-1 pass that crosses midnight to Furrow-A over Salar Quieto at 14:02.
@@ -781,3 +844,4 @@ switch between passes, and run the whole day.
   2103 on Rotation Day), so 9.8 issues eight certificates.
 - **Given code** keeps the text the learner last saw, including `KeyVersion`'s comments and the
   sentinels chapter 6's `seal.go` declares again (`ErrUnknownKey`, `ErrReplay`, `ErrForged`).
+- **Chapter 11** was added after the season was written, between Every Connection Encrypted and Rotation Day (now chapter 12), in the weekend between them. No lesson generates an RSA key: the four test keys were made once with `rsa.GenerateKey` and are embedded as PEM in each RSA lesson's `keys_test.go`, byte for byte the same. 11.4 also refuses a 2,047-bit key, so a check by `Size()*8` fails.
