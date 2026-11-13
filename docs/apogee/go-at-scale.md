@@ -1,6 +1,6 @@
 # Go at Scale: syllabus
 
-**Authoring status:** all twelve chapters are implemented as 102 lessons. Chapter 1 was read in
+**Authoring status:** all twelve chapters are implemented as 104 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–12 were written from this plan
 a chapter or two at a time, and every chapter was independently reviewed. Chapters 2–12 were then
 read in the app in light and dark, in six parts. Every pass comes from the orbit model
@@ -44,11 +44,11 @@ number are in `story.md`, section "Season 7: scale".
 | 7 | Fuzzing the Parsers | `fuzzing-the-parsers` | Fuzz with `testing.F`: seed corpora and corpus files, properties instead of answers, NaN and other surprises, byte-slice inputs and round trips. | 8 |
 | 8 | A Day in a Millisecond | `a-day-in-a-millisecond` | Test timers, tickers, deadlines and debouncing in fake time with `testing/synctest`, `synctest.Wait`, and checks you write yourself. | 8 |
 | 9 | Benchmarks That Tell the Truth | `benchmarks-that-tell-the-truth` | Write benchmarks with `b.Loop`, run them with `testing.Benchmark`, keep setup out, report metrics and allocations, and compare versions fairly. | 8 |
-| 10 | Fewer Allocations | `fewer-allocations` | Measure with `testing.AllocsPerRun` and remove allocations: room made ahead, `strings.Builder`, appending into reused buffers, `sync.Pool`, struct keys. | 8 |
+| 10 | Fewer Allocations | `fewer-allocations` | Measure with `testing.AllocsPerRun` and remove allocations: room made ahead, `strings.Builder`, appending into reused buffers, `sync.Pool`, struct keys, and fields ordered so a struct carries no padding. | 10 |
 | 11 | Reading Struct Tags | `reading-struct-tags` | Read types, kinds, fields, values and tags with `reflect`, set fields through a pointer, and know when reflection isn't worth it. | 10 |
 | 12 | A Hundred Pass Days | `a-hundred-pass-days` | Put it all together in passplan 2: lazy stations in bounded slots, a hand-over between planners, replans that change only what's new, the newest run winning, a hundred days under load, and take-over day. | 9 |
 
-102 lessons: 8 code, 77 code_tests and 17 quizzes (83.3% hands-on). Difficulty rises from 7
+104 lessons: 9 code, 78 code_tests and 17 quizzes (83.7% hands-on). Difficulty rises from 7
 to 10. Calibration starts with chapter 1; later chapters are written only after it has been
 imported and read in the app, and after the shared files (`network.go`, `model.go`,
 `plan.go`) have been checked against the bible's reference numbers. Concurrency checks are
@@ -658,11 +658,13 @@ that two versions agree before comparing them, and compare them with sub-benchma
 
 ## Chapter 10 · Fewer Allocations
 
-`fewer-allocations` · 8 lessons
+`fewer-allocations` · 10 lessons
 
 Measure allocations with `testing.AllocsPerRun` and remove them without changing results: room
 made ahead with `make`, `strings.Builder`, appending numbers and times into a byte slice, one
-buffer reused, `sync.Pool` for scratch space, and struct keys instead of formatted ones.
+buffer reused, `sync.Pool` for scratch space, and struct keys instead of formatted ones; then
+find a struct's padding with `unsafe.Offsetof`, `Sizeof` and `Alignof`, and order its fields
+so a slice of it carries none.
 
 #### 10.1 Make Room First
 `make-room-first` · code_tests · difficulty 8
@@ -713,7 +715,21 @@ buffer reused, `sync.Pool` for scratch space, and struct keys instead of formatt
 - **Exercise:** `dedupe(passes)` keys its map by a formatted string; you key it by `passKey{SatID, Station, AOS}` (AOS in Unix seconds).
 - **Check:** 2 April's 286 candidates, then all again or each twice in a row → the 286 once, in first-seen order; the 286 repeated lookups add no allocation (`dedupe` on the 286 twice against once; the starter adds 1,144; skipped under `-race`); Brine-3 and Pipit-3 over Port Ellery at 10:29:34 on 8 April, and Pipit-3 over Tirrin Rock and Ystmark at 07:08:09 on 17 May → both kept.
 
-#### 10.8 Half the Garbage
+#### 10.8 Where the Padding Goes
+`where-the-padding-goes` · code · difficulty 8
+- **Objective:** Find a struct's padding with `unsafe.Offsetof`, `unsafe.Sizeof` and `unsafe.Alignof`.
+- **Scenario:** Thursday 24 May, 17:10: Tomás's preview of take-over day on the test Board draws the window's 613,496 candidates from one `glance` value each; his battered notebook adds its seven fields up to 24 bytes, 14.7 MB, but the strip's slice takes 19.6 MB.
+- **Exercise:** `glance.go` (read-only) declares `glance` as Tomás wrote it: `Sat`, `Station` (uint8), `AOS`, `LOS` (int64), `MaxElevDeg` (float32), `Dish` (uint8), `Booked` (bool); `main` draws its bytes with `mark`, each field's number on its bytes and a dot for padding, and marks only `Sat`; you mark the other six with their offsets and sizes.
+- **Check:** `12......3333333344444444555567..`, `32 bytes, aligned to 8` and `613496 candidates: 19631872 bytes`; the starter draws `1` and 31 dots.
+
+#### 10.9 Largest Fields First
+`largest-fields-first` · code_tests · difficulty 8
+- **Objective:** Order a struct's fields by alignment, largest first, so it carries no padding, and know when that matters: many values in a slice.
+- **Scenario:** Thursday 17:40: Nkem looks at your picture and asks, "Same seven fields. Which order needs no dots?"
+- **Exercise:** `glance.go` is editable; you reorder its fields, keeping each name, type and comment. The readme's note: neither the compiler nor `go vet` reorders fields or reports padding.
+- **Check:** `unsafe.Sizeof(glance{})` is 24, its fields' sum (the starter 32, its offsets in the message; the four 1-byte fields first with `MaxElevDeg` after the 8-byte ones, also 32); the same seven fields with the same types and no others; any order without a gap passes. The strip then takes 14.7 MB, 4.9 MB less.
+
+#### 10.10 Half the Garbage
 `half-the-garbage` · code_tests · difficulty 9
 - **Objective:** Combine the chapter's techniques to halve a hot function's allocations without changing its output.
 - **Scenario:** Friday 25 May: before the third wave, Nkem's target is the planner's per-station step at half its garbage.
@@ -871,6 +887,9 @@ the newest run winning, stows that come and go, a hundred days under load, and t
 
 ## Changes in writing and review
 
+- **Chapter 10 gained two lessons after it shipped:** 10.8 and 10.9 find and remove the
+  padding in Tomás's `glance`, 32 bytes to 24 over 613,496 candidates; Half the Garbage became
+  10.10. The strip is the test Board's, so the chapter's garbage numbers stand.
 - **Chapter 9 reports what it measured.** On one core, passplan 2 plans 18 May in about the old
   planner's time and makes two to three times its allocations: 3.3 times over 6 hours, 2.1 over
   24. Predicting passes is nearly all of the old planner's work, and chapter 6's merge allocates
@@ -880,7 +899,7 @@ the newest run winning, stows that come and go, a hundred days under load, and t
 - **Chapter 10's numbers** come from planning take-over day at twenty stations with the network
   built once: 12.0 MB of garbage and 81,657 allocations before, 6.0 MB and 42,705 after, nearly
   half, and prediction makes most of the rest. 10.6's pool checks count with the collector off,
-  and 10.6 and 10.8 run on one CPU, so a collection or a moved goroutine can't fail a correct
+  and 10.6 and 10.10 run on one CPU, so a collection or a moved goroutine can't fail a correct
   pool.
 - **Take-over day** (12.9) starts with run 1 replanning a copy of the old planner's schedule from
   the cut-over. Planning from scratch would put `cirrine-4/ILV/01069` on Ilvane Spit's dish 2 at

@@ -1,6 +1,6 @@
 # Networking from the Socket Up: syllabus
 
-**Authoring status:** all nine chapters are implemented as 78 lessons. Chapter 1, which also
+**Authoring status:** all ten chapters are implemented as 87 lessons (chapter 9 was added later, in the free week before the finale, which became chapter 10). Chapter 1, which also
 wrote the shared simulator (`sim.go`, hidden and byte-identical in every lesson that uses it),
 was read in the app in light and dark before the rest was written; chapters 2–9 were written
 from this plan two chapters at a time and each pair independently reviewed. The lessons in
@@ -30,12 +30,13 @@ every byte, type, message and number used here.
 | 6 | When the Line Drops | `when-the-line-drops` | Reconnect with capped, jittered backoff, tell a lost line from a refusal, number commands and settle a command in flight so none runs twice. | 9 |
 | 7 | Requests from Scratch | `requests-from-scratch` | Read an HTTP/1.1 request by hand: CR LF lines with limits, the request line, header fields, Host and Content-Length, and the right status for malformed input. | 9 |
 | 8 | Bodies and Chunks | `bodies-and-chunks` | Read request bodies exactly: Content-Length, chunked transfer encoding and trailers, cut streams, size limits, binary data and a CRC that comes last. | 9 |
-| 9 | Answers from Scratch | `answers-from-scratch` | Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persistent connections, chunked streams and a clean shutdown, read by Go's own client. | 9 |
+| 9 | Without a Connection | `without-a-connection` | Send and read datagrams with net.ListenPacket, WriteTo and ReadFrom: one read per datagram, a size limit, sequence numbers against loss, repeats and reordering, and questions answered within a deadline or asked again. | 9 |
+| 10 | Answers from Scratch | `answers-from-scratch` | Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persistent connections, chunked streams and a clean shutdown, read by Go's own client. | 9 |
 
-78 lessons: 4 code, 60 code_tests and 14 quizzes (82% hands-on). Calibration starts with chapter
+87 lessons: 5 code, 66 code_tests and 16 quizzes (82% hands-on). Calibration starts with chapter
 1; later chapters are written only after it has been imported and read in the app. Difficulty
 rises from 6 to 10. Every connection is a `net.Pipe` or a listener on 127.0.0.1 with a port the
-system picks; every test sets deadlines, so a mistake fails within a second or two. Chapters 4
+system picks, and every datagram socket comes from `net.ListenPacket` on 127.0.0.1 the same way; every test sets deadlines, so a mistake fails within a second or two. Chapters 4
 and 6 test time on the line inside `synctest.Test` over `net.Pipe`; clocks and random sources are
 injected; no real sleep exceeds 50 ms and no test touches real learner files.
 
@@ -570,69 +571,138 @@ Read request bodies exactly: Content-Length, chunked transfer encoding and trail
 - **Exercise:** `(s *Server) put(req *Request) answer` answers 201 to everything; you check the pass ID (404 `no such path`) and the CRC, keep the body with s.Store.Put, and answer 201 with Location, Apogee-Crc32 and `stored <pass ID> <n> bytes`, or 409 `<pass ID> already stored`.
 - **Check:** Through Go's client: a chunked upload of furrow-a/YST/18856 (4096 bytes, trailer a2912082) gives 201 with those fields, and `/recordings` lists it; the same upload again gives 409; a Content-Length upload of cirrine-1/YST/13676 gives 201; a wrong CRC gives 400 and keeps nothing; a bad pass ID gives 404; a cut stream keeps nothing. The mistake: putting the body in the store before checking its CRC.
 
-## Chapter 9 · Answers from Scratch
+## Chapter 9 · Without a Connection
+
+`without-a-connection` · 9 lessons
+
+Send and read datagrams with net.ListenPacket, WriteTo and ReadFrom: one read per datagram, a size limit, sequence numbers against loss, repeats and reordering, and questions answered within a deadline or asked again.
+
+#### 9.1 A Datagram from the Hut
+`a-datagram-from-the-hut` · code · difficulty 8
+- **Objective:** Open UDP sockets on 127.0.0.1 with net.ListenPacket, send a datagram with WriteTo, and read it and its sender with ReadFrom.
+- **Scenario:** Monday 12 June, 06:30: during each pass the recorder will now send Port Ellery the satellite's telemetry for the live view you write, and Pipit-2's 06:36 pass is the first test. Sunniva: "Recorder sending. Anyone listening?"
+- **Exercise:** `main` opens the live view's socket, `view`, and the recorder's, `rec`, and sends and reads nothing; you send `frame` from `rec` to `view.LocalAddr()` with WriteTo, read it on `view` with ReadFrom, and compare the sender's `String()` with `rec.LocalAddr()`'s.
+- **Check:** `70 bytes, from the recorder: true` / `"pipit-2 30412 2028-06-12T06:37:15Z batt_v=8.04 temp_c=9.5 mode=NOMINAL"`. The starter prints `0 bytes, from the recorder: false` / `""`. A note: WriteTo never learns whether a datagram arrived.
+
+#### 9.2 One Read, One Datagram
+`one-read-one-datagram` · code_tests · difficulty 8
+- **Objective:** Read one datagram per ReadFrom into a slice one byte longer than the largest accepted, so a datagram the read cut short is recognized and refused.
+- **Scenario:** Monday, 07:38, Furrow-A's pass: every line on Ingrid's screen ends at `mode`, because the live view's read has room for 64 bytes and a frame is 72.
+- **Exercise:** `readDatagram(pc net.PacketConn) ([]byte, net.Addr, error)` reads into 64 bytes; you read into `maxDatagram+1` and return nil, the sender and ErrTooBig (`datagram over 512 bytes`) for anything over 512.
+- **Check:** Three frames sent as three datagrams come back as three reads, each whole, from the recorder; 512 bytes come back whole; 513 and 600 bytes give ErrTooBig with the sender, and the frame sent after them comes back whole, since a cut datagram's rest is gone; an empty datagram gives 0 bytes and nil. The mistake: a 512-byte slice, which can't tell a whole datagram from a cut one.
+
+#### 9.3 Small Enough to Arrive
+`small-enough-to-arrive` · code_tests · difficulty 8
+- **Objective:** Keep datagrams small and self-contained: pack whole lines into datagrams of at most 512 bytes, separators counted.
+- **Scenario:** Tuesday 13 June, 08:06, Furrow-B's pass: the recorder fell nine seconds behind and sent the nine frames it owed as one 656-byte datagram, which the live view refused. Tomás: "A jigsaw in three envelopes: lose one and there's no picture."
+- **Exercise:** the recorder's `pack(lines []string) ([][]byte, error)` puts every line in one datagram; you start a new datagram whenever the next line and its newline would pass maxDatagram, make no datagrams of no lines, and refuse a single line over it with an error wrapping ErrTooBig.
+- **Check:** The nine 72-byte frames give 7 lines (510 bytes) and 2 (145); 255+1+256 bytes give one datagram and 256+1+256 two; one 512-byte line gives one; no lines give none; a 513-byte line gives ErrTooBig; the packed datagrams sent over loopback are each read whole by readDatagram, the nine frames in order. The mistakes: not counting the newline, and cutting every 512 bytes as on a stream, which splits a frame.
+
+#### 9.4 Quick Check: Datagrams
+`quick-check-datagrams` · quiz · difficulty 8
+- **Objective:** Check what one datagram is and what sending one promises.
+- **Scenario:** Tuesday afternoon, Nkem's three questions from Port Ellery, one at a time.
+- **Exercise:** Answer three questions.
+- **Check:** A second ReadFrom with a 64-byte slice gets the next datagram's first 64 bytes, the cut part of the first being gone; a WriteTo without an error says only that the datagram left; whole lines per datagram mean a lost datagram costs only its own frames.
+
+#### 9.5 Every Frame Once
+`every-frame-once` · code_tests · difficulty 8
+- **Objective:** Use sequence numbers to show frames in order and once each, dropping repeats and late frames and counting the numbers jumped over.
+- **Scenario:** Wednesday 14 June, Furrow-A's 08:31 pass: Ingrid's screen showed the battery at 7.86, 7.85, 7.86, two datagrams having changed places on the island's line and one having come twice. Nkem: "What does the screen show if this datagram arrives twice?"
+- **Exercise:** `(t *Tracker) Accept(seq uint32) bool` shows every frame; you show only the first frame or one numbered past `t.Last`, counting Shown and the numbers jumped over in Missed, and count the rest in Dropped.
+- **Check:** Five in order are all shown; a repeat is dropped; 68841, 68843, 68842, 68844 show 68841, 68843 and 68844 with one missed and one dropped; a jump of four counts three missed; a first frame of any number misses nothing; frame 0 twice is shown once; an old frame, a repeat and a late one are all dropped. The mistakes: dropping only an exact repeat, which lets a late frame move the screen back, and taking Last 0 for "nothing shown yet".
+
+#### 9.6 Only the Recorder's Answer
+`only-the-recorders-answer` · code_tests · difficulty 9
+- **Objective:** Accept a datagram as a question's answer only when it comes from the expected address and carries the question's number.
+- **Scenario:** Thursday 15 June: the recorder answers on its live port, `STATUS 7` getting `STATUS 7 RECORDING furrow-a/YST/18781`. Mirela: "Anyone can send the live view anything. Show me the answer you refuse."
+- **Exercise:** `answerTo(n uint32, d []byte, from, recorder net.Addr) (string, bool)` accepts nothing; you compare the addresses' `String()` and require `STATUS <n>`, a space and some text, returning the text. The given `question` and `readAnswer` (which reads until answerTo accepts) are read-only.
+- **Check:** The recorder's RECORDING and IDLE answers, from its address given as another value, and question 4294967295's are accepted; refused: the same answer from another port, `STATUS 6 IDLE`, `STATUS 70 IDLE`, `STATUS 7` alone and a frame; over loopback readAnswer skips a stray's answer and question 6's and returns question 7's. The mistakes: comparing addresses with `==`, which compares pointers, and matching `STATUS 7` without its space. A note: an address can be forged, so this keeps out strays, not liars.
+
+#### 9.7 Ask Again
+`ask-again` · code_tests · difficulty 9
+- **Objective:** Ask a question over UDP with a deadline on each try, asking again under the same number when the deadline passes, up to a set number of tries.
+- **Scenario:** Thursday, 11:20, Furrow-A's pass: Ingrid's question to the recorder was lost on the island's line, and after a second the live view gave up. Ingrid: "Lost question. Ask again."
+- **Exercise:** `ask(pc net.PacketConn, recorder net.Addr, n uint32, wait time.Duration, tries int) (string, error)` sends once and waits once; you loop up to `tries` times, each try sending `question(n)` with a fresh read deadline, trying again only on os.ErrDeadlineExceeded and returning any other error at once.
+- **Check:** With wait 50 ms and 3 tries against a stand-in recorder: an answer at once is returned; with the first question lost, the next try's answer; with the first answer held until the second question arrives, that late answer; a silent recorder gives a deadline error after exactly three questions and at least 150 ms; one try sends one question; a closed socket gives net.ErrClosed. Every question sent must be `STATUS 7`, counted by a wrapper that records each WriteTo. The mistakes: a new number for each try, which skips the late answer, and one deadline for every try.
+
+#### 9.8 Quick Check: Lost and Late
+`quick-check-lost-and-late` · quiz · difficulty 8
+- **Objective:** Reason about late frames, questions asked again and answers to older questions.
+- **Scenario:** Thursday evening, Ingrid's checks before Friday's passes: "Three questions. Answers by 07:30."
+- **Exercise:** Answer three questions.
+- **Check:** Of 68841, 68843 and 68842, the screen shows 68841 and 68843; a question asked again keeps its number so a late answer to the first try counts; `STATUS 6 IDLE` while question 7 waits is skipped, and 7's deadline stays where it was.
+
+#### 9.9 Live in the Fishbowl
+`live-in-the-fishbowl` · code_tests · difficulty 9
+- **Objective:** Combine the chapter: read a datagram stream until it goes quiet, show its frames in order and once, then ask a question with retries and report.
+- **Scenario:** Friday 16 June, 07:52: Furrow-A's pass is the first with the whole live view in the Fishbowl.
+- **Exercise:** `(l *Live) Watch(out io.Writer) error` prints whole datagrams until any error; you call the given `receive` (which skips strays and datagrams over 512 bytes) until it fails with a deadline, returning any other error, print each line whose `seqOf` number a Tracker accepts, then ask the recorder question `l.asked+1` with `l.Wait` and `l.Tries` and print `lastLine(t, answer)`, the answer being `silent` when every try timed out.
+- **Check:** Over loopback with Quiet 100 ms, Wait 50 ms and 3 tries: Friday's last ten seconds, with a repeated datagram, one overtaken, one lost, a stray's forged frame and a 600-byte stray, give eight frames in order and `quiet after 84926: 8 shown, 2 missed, 3 dropped; recorder IDLE`; frames that stop mid-pass with the first question lost end `recorder RECORDING furrow-a/YST/18796`; a silent recorder ends `recorder silent` after three questions; no frames give `no frames; recorder IDLE`; two passes ask questions 1 and 2. The mistakes: a Tracker per datagram, which shows a repeated datagram again, and returning the silent recorder's deadline as an error.
+
+## Chapter 10 · Answers from Scratch
 
 `answers-from-scratch` · 9 lessons
 
 Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persistent connections, chunked streams and a clean shutdown, read by Go's own client.
 
-#### 9.1 A Status Line
+#### 10.1 A Status Line
 `a-status-line` · code · difficulty 8
 - **Objective:** Write a status line: the version, the code and its reason, ended by CR LF.
 - **Scenario:** Monday 19 June: the station server's answers came from a helper until now, and this week you write them yourself.
 - **Exercise:** `statusLine(code int) string` returns `"HTTP/1.1 200 OK\r\n"` for every code; you look the reason up in the given `reasons` table, and `main` prints four with `%q`.
 - **Check:** `"HTTP/1.1 200 OK\r\n"` / `"HTTP/1.1 201 Created\r\n"` / `"HTTP/1.1 404 Not Found\r\n"` / `"HTTP/1.1 413 Request Entity Too Large\r\n"`. The starter prints the first line four times.
 
-#### 9.2 Head, Blank Line, Body
+#### 10.2 Head, Blank Line, Body
 `head-blank-line-body` · code_tests · difficulty 9
 - **Objective:** Write an answer's head, a blank line and its body through one buffered writer, flushed once.
 - **Scenario:** The collector at Port Ellery reads these bytes over the island's line, so the station server must send them exactly and all at once.
 - **Exercise:** `writeResponse(w io.Writer, now time.Time, status int, fields []Field, body []byte) error` writes only the status line; you add Date from now in dateLayout, the fields in order, the blank line and the body through one bufio.Writer, returning Flush's error.
 - **Check:** The bible's 201 byte for byte at 06:40:36 UTC; http.ReadResponse reads the same bytes back as 201 with its body; a now in another time zone gives the same Date in GMT; a failing writer's error is returned; a counting writer sees one Write. The mistakes: no blank line, and Date in local time.
 
-#### 9.3 Quick Check: Status Lines
+#### 10.3 Quick Check: Status Lines
 `quick-check-status-lines` · quiz · difficulty 9
 - **Objective:** Check the shape of an answer on the wire.
 - **Scenario:** Nkem's questions before Go's own client meets the station server.
 - **Exercise:** Answer three questions.
 - **Check:** The reason phrase is for people, and a client reads the code; the blank line ends the head; without Content-Length or chunks a client can only read until the connection closes, and can't tell a cut answer from a whole one.
 
-#### 9.4 The Head Without the Body
+#### 10.4 The Head Without the Body
 `the-head-without-the-body` · code_tests · difficulty 9
 - **Objective:** Answer HEAD with GET's status and fields, Content-Length included, and no body.
 - **Scenario:** Before fetching an 11 GB recording over the line, the collector asks how big it is.
 - **Exercise:** `(s *Server) recording(req *Request) answer` returns the body for HEAD too; you keep every field, Content-Length the full size, and leave the body nil for HEAD.
 - **Check:** GET of furrow-a/YST/18856 through Go's client gives 200, 4096 bytes, application/octet-stream and Apogee-Crc32 a2912082; HEAD gives ContentLength 4096 through Go's client and nothing after the blank line on a raw connection; an unknown recording gives 404 to both. The mistake: Content-Length 0 on HEAD.
 
-#### 9.5 Keep the Line Open
+#### 10.5 Keep the Line Open
 `keep-the-line-open` · code_tests · difficulty 9
 - **Objective:** Serve several requests on one connection: read the next after a successful answer, and close after an error, after `Connection: close`, or when the line sits idle.
 - **Scenario:** Over the backhaul each new connection costs a 0.7 s round trip, and the collector makes three requests for every recording.
 - **Exercise:** `(s *Server) serveConn(c net.Conn)` answers one request and closes; you loop: wait for the next request's first byte for at most Idle, read and answer it, and go on only after a 2xx answer to a request without `Connection: close`.
 - **Check:** Go's client's GET, HEAD and list GET use one accepted connection; a request with `Connection: close` gets it back and the stream ends; a 404 closes the connection; a raw connection silent after its first answer is closed within a second at Idle 50 ms. The mistake: going on after an error answer, whose request may still have a body on the line.
 
-#### 9.6 Answer in Pieces
+#### 10.6 Answer in Pieces
 `answer-in-pieces` · code_tests · difficulty 10
 - **Objective:** Write a chunked answer: each piece as its hex size, its bytes and CR LF, flushed at once, then the zero chunk.
 - **Scenario:** The collector will keep one request open on `/feed` and hear of each recording the moment it lands, instead of asking every few seconds.
 - **Exercise:** `writeChunk(w *bufio.Writer, p []byte) error` and `endChunks(w *bufio.Writer) error` are empty, and `(s *Server) feed(bw *bufio.Writer, lines <-chan string) error` writes nothing after the head; you write each line as one flushed chunk and the zero chunk when lines closes.
 - **Check:** Go's client sees TransferEncoding chunked and ContentLength −1 and reads the first line before the test sends the second; after the channel closes the body ends without error; pieces of 4096 and 1 bytes get sizes `1000` and `1`; a collector that leaves makes feed return the write's error. The mistake: no flush, so each line waits in the buffer for the next.
 
-#### 9.7 Quick Check: Open Lines
+#### 10.7 Quick Check: Open Lines
 `quick-check-open-lines` · quiz · difficulty 9
 - **Objective:** Reason about persistent connections and streamed answers.
 - **Scenario:** Ingrid's questions before the station server takes every pass.
 - **Exercise:** Answer three questions.
 - **Check:** A client can reuse a connection only when it knows where each answer ends; a request's body must be read whole before the next request; the zero chunk tells a client a streamed answer ended, and its absence that it was cut.
 
-#### 9.8 Stop Without Cutting
+#### 10.8 Stop Without Cutting
 `stop-without-cutting` · code_tests · difficulty 10
 - **Objective:** Stop a server without cutting work: refuse new connections, close idle ones, end the feeds and let requests in flight finish, within a limit.
 - **Scenario:** The station server's first update is due during Tuesday's passes, and it must never cut an upload.
 - **Exercise:** `(s *Server) Shutdown(ctx context.Context) error` closes only the listener; you also close connections waiting between requests, call s.Store.Close, wait for requests in flight, and when the context ends first, close everything and return its error.
 - **Check:** An upload in flight when Shutdown starts gets 201 and is kept, then Shutdown returns nil; a kept-alive idle connection closes at once; a feed ends with its zero chunk; a new dial is refused; an upload that never finishes, with a 100 ms context, gives context.DeadlineExceeded and its connection closed; Serve returns nil. The mistake: closing every connection at once, which cuts the upload.
 
-#### 9.9 The Collector Comes Calling
+#### 10.9 The Collector Comes Calling
 `the-collector-comes-calling` · code_tests · difficulty 10
 - **Objective:** Put every route in one place and run the whole station server against Go's own clients.
 - **Scenario:** Tuesday 20 June, midsummer: Furrow-A's 06:32 pass is the first Furrowlight pass through the station server, and its image must reach Furrowlight within a minute of LOS.
@@ -659,9 +729,10 @@ Write HTTP/1.1 answers by hand: status lines, headers and bodies, HEAD, persiste
   `4096, 4096`, which Mirela's crooked client sends.
 - **Chapter 8** A request whose last transfer coding isn't `chunked` gets 400, as RFC 9112
   requires; a coding before a final `chunked` stays 501. Chunk sizes of 1 to 16 hex digits are
-  the station server's limit, not HTTP's. `Request.Close` is left out: chapter 9's `closing`
-  helper, given from 9.5, decides when to hang up.
+  the station server's limit, not HTTP's. `Request.Close` is left out: chapter 10's `closing`
+  helper, given from 10.5, decides when to hang up.
 - **Passes** all come from one orbit model; Pipit-2's orbit was fitted for this season, and
   passes that model contradicted moved to real ones. Chapters 3, 4 and 6 keep their passes at
   the model's times: Cirrine-1's 07:02, 03:43 and 07:28 and Furrow-A's 07:52, so 3.9 opens at
   06:50.
+- **Chapter 9**, Without a Connection, was added after the course shipped, in the free week before the finale (Monday 12 to Friday 16 June 2028), which became chapter 10. Its lessons run on real loopback datagram sockets, outside bubbles: a goroutine waiting on a socket isn't durably blocked, so synctest's clock couldn't move. Loss, repeats and reordering come from the test's own sends; questions are counted by a wrapper that records each WriteTo; a check that an answer arrives within a try asserts only what any timing allows; and the final's Quiet is 100 ms, so a busy Mac can't end a pass between two queued datagrams.

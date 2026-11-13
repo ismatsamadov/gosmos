@@ -5,7 +5,7 @@ Season 3 of Apogee, November 2027 to February 2028. Customers book passes by ema
 learner moves from reading a single request to a tested service that authenticates, limits,
 calls customers back and restarts in the middle of a live pass without dropping anything.
 
-**Authoring status:** all eleven chapters are implemented as 97 lessons. Chapter 1 was read in
+**Authoring status:** all thirteen chapters are implemented as 115 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this
 plan two chapters at a time and each pair independently reviewed. The world, the characters and
 the writing rules are in `story.md`, whose section "Season 3: open for business" fixes every
@@ -42,9 +42,11 @@ test cases, and the larger changes are listed under "Changes in writing and revi
 | 8 | Who's Asking | `whos-asking` | Authenticate callers with hashed API keys and HMAC-signed tokens, compare in constant time, and authorize per customer. | 10 |
 | 9 | Fair Use | `fair-use` | Limit each customer with a token bucket on an injected clock, answer 429 with Retry-After, and set server and request timeouts. | 8 |
 | 10 | Calling Customers Back | `calling-customers-back` | Deliver signed webhooks with backoff, jitter and retries, verify them on arrival, and make a create safe to retry. | 10 |
-| 11 | Launch Day | `launch-day` | Shut a server down gracefully, carry contexts into every handler, keep pending work across a restart, and test the whole service. | 9 |
+| 11 | Signed In | `signed-in` | Sign people in with cookies and server-side sessions, refuse other sites' forms with `http.CrossOriginProtection`, let one trusted origin call the API with CORS, and send a browser's security headers. | 9 |
+| 12 | Launch Day | `launch-day` | Shut a server down gracefully, carry contexts into every handler, keep pending work across a restart, and test the whole service. | 9 |
+| 13 | The First Week Open | `the-first-week-open` | Read uploads from `multipart` forms within a limit and judge their bytes with `http.DetectContentType`, resume downloads with `http.ServeContent`, sign download links that expire, refuse webhook addresses inside a network in a `net.Dialer`'s `Control` hook, keep redirects on the site, and count a monthly plan on an injected clock. | 9 |
 
-97 lessons: 4 code, 78 code_tests and 15 quizzes (84.5% hands-on). Calibration starts with
+115 lessons: 4 code, 94 code_tests and 17 quizzes (85.2% hands-on). Calibration starts with
 chapter 1; later chapters are written only after it has been imported and read in the app.
 Difficulty rises from 4 to 10. Every server listens on 127.0.0.1 on a port the system picks;
 clocks and random sources are injected; no test reaches the network, sleeps more than 50 ms or
@@ -746,7 +748,76 @@ retries on injected waits, and idempotency keys that make a retried booking safe
 - **Exercise:** `(*Notifier).Landed(ctx context.Context, l Landing) error` returns nil; you find the booking in the store and its customer by satellite, build the `data.landed` event with the next `evt-` ID, and deliver it with the `Sender`.
 - **Check:** Furrowlight's test receiver gets one event with the booking's fields and a valid signature; a receiver failing once gets it on attempt 2 with the same ID; an unknown booking → an error and nothing sent; IDs count `evt-000001`, `evt-000002`.
 
-## Chapter 11 · Launch Day
+## Chapter 11 · Signed In
+
+`signed-in` · 9 lessons
+
+Browsers: a session cookie with `HttpOnly`, `Secure`, `SameSite`, `Path` and `MaxAge`, a server-side session behind it with an ID from `crypto/rand.Text` that ends 30 minutes after its last use, reading it back with `r.Cookie`, signing out on both sides, `http.CrossOriginProtection` against other sites' forms, CORS for one trusted origin, and the headers that tell a browser how to treat a page.
+
+#### 11.1 The Cookie's Fine Print
+`the-cookies-fine-print` · code_tests · difficulty 8
+- **Objective:** Set a cookie with `http.SetCookie` and the attributes that limit it: `Path`, `MaxAge` in seconds, `HttpOnly`, `Secure` and `SameSite`.
+- **Scenario:** Friday 21 January, 15:00 UTC: before a single cookie leaves the service, Mirela wants to know who can read it, where the browser sends it, and for how long.
+- **Exercise:** `sessionCookie(id string) *http.Cookie` in `cookie.go` returns a bare `session` cookie; you add `Path: "/account"`, a `MaxAge` of `sessionLife` in seconds, `HttpOnly`, `Secure` and `SameSite: http.SameSiteLaxMode`.
+- **Check:** Each field; `http.SetCookie` writes `session=<id>; Path=/account; Max-Age=1800; HttpOnly; Secure; SameSite=Lax`. The mistake: `MaxAge: 30`, minutes where seconds are counted.
+
+#### 11.2 A Session Behind the Cookie
+`a-session-behind-the-cookie` · code_tests · difficulty 9
+- **Objective:** Keep a server-side session behind the cookie: an ID from `crypto/rand.Text`, an end on an injected clock, renewed by every use.
+- **Scenario:** In the draft a session's ID is the customer's ID, and Nkem asks what the page shows when Hollis edits his cookie to say `cirrine`.
+- **Exercise:** `(*Sessions).Start(customer string) string` returns the customer's ID and `Lookup(id string) (string, bool)` trusts any ID; you keep a `session` in `s.byID` under a `rand.Text()` ID, ending `sessionLife` after `s.now()`, and in `Lookup` renew a live session, delete an ended one and refuse unknown IDs, all under `s.mu`.
+- **Check:** IDs of at least 26 characters from `A`–`Z` and `2`–`7`, two different; `Lookup("cirrine")`, `Lookup("furrowlight")` and `Lookup("")` → false; 29m59s after `Start` → live, exactly 30 minutes → ended and deleted; used at 15:50 and 16:15 → live, at 16:45 → ended; 50 browsers at once → 50 different IDs, each found. The mistakes: `now.After(end)`, which keeps a session alive at its last instant, and a renewal never stored back in the map.
+
+#### 11.3 Signed In or Sent Back
+`signed-in-or-sent-back` · code_tests · difficulty 8
+- **Objective:** Read a cookie with `r.Cookie` and treat `http.ErrNoCookie` as a browser that isn't signed in.
+- **Scenario:** Yusra signs in with Apogee's key to try the page on her test booking `bk-4784`, Pipit-1 over Port Ellery on Monday, and the page sends her back to the sign-in form.
+- **Exercise:** `(*Account).signedIn(r *http.Request) (string, Customer, bool)` says nobody is signed in; you read the `session` cookie, look it up in `a.Sessions` and `a.Customers`, and return the cookie's value, the customer and true. The read-only `page` answers 303 to `/account/sign-in` on false and renews the cookie otherwise.
+- **Check:** Through `page`: Yusra's cookie → 200 with `bk-4784` only and the cookie renewed under her ID; the same after a `units=km` cookie; no cookie, another cookie only, an unknown ID, `session=apogee`, an empty value and a session of a customer the page doesn't know → 303; Hollis 30 minutes after his last visit → 303. The mistakes: reading the whole `Cookie` header, a nil cookie (the test reports the panic), and returning the customer's ID where the session's belongs.
+
+#### 11.4 Signing Out for Real
+`signing-out-for-real` · code_tests · difficulty 8
+- **Objective:** Sign out on both sides: end the session on the service, and clear the browser's cookie with `Max-Age=0` under the same name and path.
+- **Scenario:** Mirela signs out, puts her old cookie back by hand and reloads: Apogee's bookings are back.
+- **Exercise:** `(*Account).signOut` only redirects to `/account/sign-in`; before that you end the cookie's session with `a.Sessions.End` and send `sessionCookie("")` with `MaxAge: -1`.
+- **Check:** 303 to `/account/sign-in`; `Lookup` of the old ID → false, and `page` with the old cookie pasted back → 303; a session cookie with `Path=/account`, an empty value and `Max-Age=0`; Yusra's and Hollis's sessions still live; no cookie → 303 and no panic. The mistakes: clearing only the cookie, a clearing cookie with `Path=/`, and the cookie set after `http.Redirect`.
+
+#### 11.5 Forms From Other Sites
+`forms-from-other-sites` · code_tests · difficulty 9
+- **Objective:** Refuse cross-site request forgery with `http.CrossOriginProtection`, and see why a cookie, which the browser sends by itself, makes it possible.
+- **Scenario:** Mirela's page on her laptop has one button, "See Furrow-A's new image", over a form that posts to `/account/bookings/bk-4776/cancel`: Furrowlight's booking of Furrow-B over Salar Quieto on Monday.
+- **Exercise:** `noCrossOrigin(h http.Handler) http.Handler` returns `h`; you return it behind a new `http.CrossOriginProtection`.
+- **Check:** Through `noCrossOrigin(a.routes())` with Hollis's cookie: a cross-site form, a same-site form and an older browser's form with a foreign `Origin` → 403 and `bk-4776` kept; the page's own form, an older browser's same-origin form and a program with neither header → 303 and the booking canceled; `GET /account/` from a link elsewhere → 200; the sign-in form posted from elsewhere → 403 and no cookie. The mistake: checking `Sec-Fetch-Site: cross-site` by hand, which misses the same site and older browsers.
+
+#### 11.6 One Trusted Origin
+`one-trusted-origin` · code_tests · difficulty 9
+- **Objective:** Let one trusted origin call the API from a browser with CORS: answer its preflight `OPTIONS`, set `Access-Control-Allow-Origin`, `-Methods` and `-Headers`, and add `Vary: Origin` to every answer.
+- **Scenario:** Yusra's TL;DR: "Furrowlight's planning page wants Monday's passes straight from the API." Its script at `https://plan.furrowlight.example` calls `GET /passes` with a token, and the browser hides every answer.
+- **Exercise:** `cors(origin string) func(http.Handler) http.Handler` passes everything on; you add `Vary: Origin` and, for exactly `origin`, set `Access-Control-Allow-Origin`; its `OPTIONS` gets 204, `Access-Control-Allow-Methods: GET, POST, DELETE` and `Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key` without reaching `next`.
+- **Check:** Against a stand-in API that refuses requests without a token: the planning page's preflight → 204 with the three headers and `Vary`, never reaching the API; its `GET /passes` → the API's 200 with `Access-Control-Allow-Origin`; `https://elsewhere.example`, `http://plan.furrowlight.example`, `https://plan.furrowlight.example.elsewhere.example` and `https://www.furrowlight.example` → no CORS header and the API's answers otherwise unchanged; a program without `Origin` → untouched but for `Vary`. The mistakes: `*`, echoing any `Origin`, a prefix match, and a preflight passed on to the API.
+
+#### 11.7 Quick Check: Other Sites
+`quick-check-other-sites` · quiz · difficulty 8
+- **Objective:** Tell apart what guards a cookie's page and what CORS does.
+- **Scenario:** Nkem's three questions before the page goes to the beta.
+- **Exercise:** Three questions.
+- **Check:** The browser sends a cookie by itself but a token only where a page's code puts it, so only the account page needs a guard against other sites' forms; CORS decides which pages' scripts may read answers, not which requests arrive; `Vary: Origin` keeps a cache from handing one origin's answer to another.
+
+#### 11.8 Four Headers for the Page
+`four-headers-for-the-page` · code_tests · difficulty 8
+- **Objective:** Set a browser's security headers on every answer in middleware: `Content-Security-Policy` with `frame-ancestors`, `Strict-Transport-Security`, `X-Content-Type-Options` and `Referrer-Policy`.
+- **Scenario:** Mirela's last list for the page: another site's frame, a guessed type, an address that leaks in a link, and a visit that starts over plain HTTP.
+- **Exercise:** `securityHeaders(next http.Handler) http.Handler` returns `next`; before calling `next` you set `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`, `Strict-Transport-Security: max-age=31536000`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`.
+- **Check:** Through `securityHeaders(noCrossOrigin(a.routes()))`: the signed-in page (200), the page signed out (303), the sign-in form (200), a wrong key (401), a form from another site (403) and an unknown address (404) all carry the four, with the policy's directives in any order. The mistake: setting them after `next`, when the answer has gone.
+
+#### 11.9 Hollis Signs In
+`hollis-signs-in` · code_tests · difficulty 9
+- **Objective:** Put each guard where it belongs: the page's guards around the page and CORS around the API, in an order that gives refusals the headers too.
+- **Scenario:** Friday 18:00 UTC: Hollis is waiting to sign in, and Yusra wants the page in the beta tonight.
+- **Exercise:** `site(api http.Handler, a *Account, origin string) http.Handler` splits `/account/` from the API with a mux but guards nothing; you put the account routes behind `securityHeaders`, `noStore` and `noCrossOrigin`, in that order, and the API behind `cors(origin)`.
+- **Check:** Against a stand-in API: Hollis signs in with Furrowlight's key and sees `bk-4776` and `bk-4783` but not `bk-4781` or `bk-4784`, and every page answer carries the four headers and `no-store`; Mirela's cross-site cancel → 403 with the headers, and the booking is kept; Yusra cancels her Pipit booking from the page; the planning page's preflight, `GET /passes` and cross-origin `POST /bookings` with a token → 204, 200 and 201; the account page never sends `Access-Control-Allow-Origin`; `PUT /passes` → the API's own 405; after signing out, the old cookie → 303. The mistakes: `noCrossOrigin` around the API (the planning page's booking gets 403), `cors` around the page, and the headers inside `noCrossOrigin` (its 403 lacks them).
+
+## Chapter 12 · Launch Day
 
 `launch-day` · 9 lessons
 
@@ -754,68 +825,142 @@ Stopping well: `http.Server.Shutdown`, `http.ErrServerClosed`, running until a c
 draining before shutdown, base contexts that reach every handler, an outbox that survives a
 restart, and one test of the whole service.
 
-#### 11.1 Stop Taking New Calls
+#### 12.1 Stop Taking New Calls
 `stop-taking-new-calls` · code_tests · difficulty 9
 - **Objective:** Stop a server with `Shutdown`, which closes its listener and waits for requests in flight.
 - **Scenario:** Ingrid's launch checklist has a line nobody has tried yet: "restart bookingd during a pass".
 - **Exercise:** `stop(srv *http.Server, within time.Duration) error` calls `srv.Close()`; you call `Shutdown` with a context that ends after `within`.
 - **Check:** A request in flight when `stop` starts finishes with 200, and `stop` returns nil after it; a new connection after `stop` is refused; a request that outlives `within` → `context.DeadlineExceeded`. The mistake: `Close`, which cuts the request in flight.
 
-#### 11.2 Closed Is Not Failed
+#### 12.2 Closed Is Not Failed
 `closed-is-not-failed` · code_tests · difficulty 9
 - **Objective:** Treat `http.ErrServerClosed` from `Serve` as a clean stop and anything else as a failure.
 - **Scenario:** The rehearsal's log says `bookingd failed: http: Server closed` every time someone stopped it on purpose, and the pager woke Nkem twice.
 - **Exercise:** `serve(srv *http.Server, ln net.Listener) error` returns whatever `Serve` returns; you return nil for `http.ErrServerClosed`, found with `errors.Is`.
 - **Check:** `Serve` then `Shutdown` → nil; `Serve` on a listener already closed → that error. The mistake: comparing error strings.
 
-#### 11.3 Run Until Told to Stop
+#### 12.3 Run Until Told to Stop
 `run-until-told-to-stop` · code_tests · difficulty 9
 - **Objective:** Run a server until a context ends, then shut it down within a limit, from one function that both `main` and the tests call.
 - **Scenario:** On launch day the deploy tool stops the service with a signal, and `main` turns it into a cancelled context with `signal.NotifyContext`.
 - **Exercise:** `run(ctx, ln, app, t)` serves and returns at once; you serve in a goroutine, wait for `ctx.Done()` or a `Serve` failure, then shut down within `t.Shutdown` and return the result.
 - **Check:** Requests answered while `ctx` lives; cancel → `run` returns nil within a second; a request in flight at cancel finishes; a failure of `Serve`, its listener closed underneath it, is returned without waiting for `ctx`.
 
-#### 11.4 Quick Check: Shutdown
+#### 12.4 Quick Check: Shutdown
 `quick-check-shutdown` · quiz · difficulty 9
 - **Objective:** Reason about the order of a clean stop.
 - **Scenario:** Ingrid's go/no-go questions for the launch rehearsal.
 - **Exercise:** Three questions.
 - **Check:** `Shutdown` refuses new connections at once and waits for the ones still answering; `Serve` returns `ErrServerClosed` as soon as `Shutdown` begins, so `main` must wait for `Shutdown` itself; `signal.NotifyContext` turns a signal into a cancelled context.
 
-#### 11.5 Draining, Not Down
+#### 12.5 Draining, Not Down
 `draining-not-down` · code_tests · difficulty 9
 - **Objective:** Announce that a server is going away before it stops: a health check that answers 503 while every other request still succeeds.
 - **Scenario:** Yusra's guide tells customers' programs to check `/health` before sending a batch of bookings; during a restart they should wait, not start a batch that gets cut in half.
 - **Exercise:** `run` shuts down as soon as `ctx` ends; you set the service's `draining` flag first, keep serving for `t.Drain`, then shut down, and `health` answers 503 `{"status":"draining"}` while the flag is set.
 - **Check:** Before cancel, `/health` → 200; within a 300 ms drain after cancel, `/health` → 503 `draining` while `/stations` → 200; `run` returns after the drain and the shutdown. The mistake: setting the flag after `Shutdown`, when no request can see it.
 
-#### 11.6 Contexts All the Way Down
+#### 12.6 Contexts All the Way Down
 `contexts-all-the-way-down` · code_tests · difficulty 10
 - **Objective:** Give every handler's context a base that `run` cancels when shutdown runs out of time, so slow work stops instead of holding the old process.
 - **Scenario:** In rehearsal, one `GET /passes` stuck behind a slow disk held the old process for the whole twenty seconds.
 - **Exercise:** In `run`, handlers' contexts come from the server's default; you set `srv.BaseContext` to a context that `run` cancels when `Shutdown`'s deadline passes, then `Close` the server and return `shutdown: context deadline exceeded`.
 - **Check:** A store blocked on its context ends soon after the shutdown limit, and `run` returns an error for which `errors.Is(err, context.DeadlineExceeded)`; the store saw its context cancelled; with no slow request, `run` returns nil. The mistake: cancelling the base context before `Shutdown`, which cuts requests that would have finished.
 
-#### 11.7 The Outbox Survives
+#### 12.7 The Outbox Survives
 `the-outbox-survives` · code_tests · difficulty 9
 - **Objective:** Keep pending work in a file saved on every change, and pick it up again after a restart.
 - **Scenario:** Cirrine's receiver was down when the 13:40 image landed, and its retries must not die with the process at 14:05.
 - **Exercise:** `Outbox` keeps deliveries in memory only; you save `outbox.json` through `replaceFile` on every change, and `OpenOutbox(path)` loads it and continues event IDs from `next_event`.
 - **Check:** Two deliveries added, then reopened → both pending with their attempts and `next_at`; a delivered event leaves the file; after a reopen with nothing pending, the next ID still continues (`evt-000118` after 117); a missing file → empty, with next 1; a broken file → an error.
 
-#### 11.8 One Test for Everything
+#### 12.8 One Test for Everything
 `one-test-for-everything` · code_tests · difficulty 10
 - **Objective:** Write one test that drives the whole service through `httptest`, the way a customer's program would.
 - **Scenario:** Monday 31 January, the full rehearsal: Nkem wants one test that would have caught every bug of the season.
 - **Exercise:** `checkService(t *testing.T, base string)` in `check.go` is empty; over HTTP you check `/health`, get tokens for Furrowlight and Brinewatch, list a week of passes, book one with an `Idempotency-Key` and send it again, check that Brinewatch can't see it, and send requests until a 429.
 - **Check:** Your test passes against the assembled service (`newApp`, read-only) and fails, in a re-executed test binary, against each of four planted services: one that ignores idempotency keys, so the repeat gets 409 instead of the first answer, one that shows every customer's bookings, one that never limits, one that answers errors as plain text.
 
-#### 11.9 Open for Business
+#### 12.9 Open for Business
 `open-for-business` · code_tests · difficulty 10
 - **Objective:** Restart a whole service in the middle of traffic without dropping a request, a booking or an event.
 - **Scenario:** Tuesday 1 February, 14:05 UTC: Furrow-A is over Salar Quieto, customers are booking, and one wrong word in the guide forces a restart.
 - **Exercise:** `run` stops the server but leaves the notifier running and never resumes the outbox; you stop in the bible's order (drain, shut down, stop the notifier, which saves the outbox) and start the notifier from the outbox.
 - **Check:** The first process: bookings made, a request in flight at the stop that finishes, Cirrine's `evt-000117` saved with its attempts. The second process, from the same folder: the bookings intact and the next ID continuing, Cirrine's event delivered with the same ID, and the 14:13:02 landing delivered to Furrowlight on its first attempt as `evt-000118`. The whole run takes a few seconds at most.
+
+## Chapter 13 · The First Week Open
+
+`the-first-week-open` · 9 lessons
+
+The first customers' week: file uploads read from `multipart` forms within a limit and sniffed
+with `http.DetectContentType`, ranged downloads that resume through `http.ServeContent`, download
+links signed with HMAC that expire, webhooks refused inside the network by a `net.Dialer`'s
+`Control` hook, redirects that stay on the site, and a monthly plan on an injected clock.
+
+**Story:** Wednesday 2 to Friday 4 February 2028, the first week open, at the backend desks, between Launch Day and the Board project. Real customers do what the beta never did. Cirrine attaches Cirrine-1's 1.9 GB software image as a command file and Furrowlight sends a PDF; Hollis's download of Tuesday's 10.9 GB image breaks four times, and his field team needs a link without a key; Tomás, on call for launch week, finds Brinewatch's events in his weather service's log; Mirela writes a phishing email of her own through Yusra's `/go` links; Brinewatch reaches 11 of the 12 bookings its plan allows in February. Friday's 17:00 deploy ships the week.
+
+#### 13.1 Forms That Carry Files
+`forms-that-carry-files` · code_tests · difficulty 9
+- **Objective:** Read one file out of a `multipart/form-data` body with `r.MultipartReader()` and `NextPart`, behind `http.MaxBytesReader`.
+- **Scenario:** Wednesday 2 February, 09:10: Cirrine's engineer attached Cirrine-1's whole software image, 1.9 GB, to Thursday's booking instead of its command file, and the draft read every byte into memory.
+- **Exercise:** `readCommands(w http.ResponseWriter, r *http.Request) ([]byte, error)` returns the whole body; you cap the body at `maxBodyBytes` and return the bytes of the part named `file`, errors as they come, and `http.ErrMissingFile` when no part has that name.
+- **Check:** Cirrine's form, a `note` part first → exactly the command file; a 65,000-byte file → all of it; a text/plain body → `http.ErrNotMultipart`; a form with only a note → `http.ErrMissingFile`; the 1.9 GB form, made as it is read → a `*http.MaxBytesError` with at most 65,537 bytes read. `r.FormFile` passes too. The mistakes: the limit set after `MultipartReader`, which reads the body it found, and an `io.LimitReader` on the part, which stops without saying the body was too large.
+
+#### 13.2 The Bytes, Not the Label
+`the-bytes-not-the-label` · code_tests · difficulty 9
+- **Objective:** Judge an upload by its bytes with `http.DetectContentType`, not by the `Content-Type` its sender wrote.
+- **Scenario:** Wednesday, 15:00: Furrowlight's command file for Friday's 14:36 pass over Salar Quieto (`bk-4921`) is a PDF of the command list, labeled `text/plain` like everything its script sends.
+- **Exercise:** `checkCommands(data []byte) error` accepts every file; you return a 415 `unsupported_media_type`, `command file must be plain text, not <type>`, unless the sniffed type is exactly `text/plain; charset=utf-8`. The read-only `upload` handler reads, checks and keeps the file.
+- **Check:** A command list, and one with a UTF-8 byte-order mark → nil; a PDF, a web page, XML, a zip, a PNG, UTF-16 text and raw bytes → 415 naming each sniffed type; through `upload`, a PDF labeled `text/plain` → 415 and nothing kept, the list labeled `application/octet-stream` → 204 and kept. The mistakes: `text/` as a prefix (HTML and XML get through), a comparison with `text/plain` alone (every list refused), `text/plain` as a prefix (UTF-16 gets through).
+
+#### 13.3 Pick Up Where It Stopped
+`pick-up-where-it-stopped` · code_tests · difficulty 9
+- **Objective:** Serve a file with `http.ServeContent`, which answers `Range` with 206 and `Content-Range`, and `If-Range` by the file's modification time.
+- **Scenario:** Thursday 3 February, 08:10. Hollis: "FURROW-A 0201 1402: FOUR TRIES, NEVER WHOLE." Every retry of Tuesday's 10,912,500,000-byte image got the whole file again.
+- **Exercise:** `sendFile(w http.ResponseWriter, r *http.Request, file *os.File)` copies the whole file with `io.Copy`; you answer with `http.ServeContent` and the name and modification time from `file.Stat()`. The read-only `download` handler finds the caller's landed file.
+- **Check:** Against a 64 KiB stand-in landed at 14:13:02: the whole file with `Accept-Ranges: bytes` and `Last-Modified`; `Range: bytes=40000-` → 206, `Content-Range: bytes 40000-65535/65536`, and the two parts make the image; `bytes=65536-` → 416; `If-Range` with the image's own date → 206, with an older one → 200 and the whole file; a booking whose pass hasn't flown → 404 `no file for bk-4921 yet`. The mistake: a zero or wall-clock modification time, which never matches `If-Range`.
+
+#### 13.4 A Link That Runs Out
+`a-link-that-runs-out` · code_tests · difficulty 9
+- **Objective:** Check a download link signed with HMAC-SHA256 over its path and expiry: the signature in constant time with `hmac.Equal`, then the expiry.
+- **Scenario:** Thursday, 11:00: Hollis wants Furrowlight's field team, agronomists with laptops and no API key, to fetch Tuesday's image; a link from `POST /bookings/{id}/link` works for 24 hours.
+- **Exercise:** `checkLink(path, expires, sig string, key []byte, now time.Time) error` accepts any link; you recompute `linkSig`, compare in constant time, and return `errBadLink` for a changed or malformed link and `errLinkExpired` from the expiry's second on.
+- **Check:** Hollis's link on Thursday and one second before expiry → nil; at its expiry and on Saturday → `link expired`; its expiry moved on (also when read after the real expiry), bk-4912's signature on bk-4913's path, another key, no or non-hex signature, a non-numeric or missing expiry → `invalid link`; `go/parser` finds `hmac.Equal` (or `subtle.ConstantTimeCompare`) in `checkLink`; through the handlers, the minted `/files/bk-4912?expires=1833274800&sig=…` downloads whole and from byte 40000, and is refused when edited and on Friday at 11:00.
+
+#### 13.5 Quick Check: Files and Links
+`quick-check-files-and-links` · quiz · difficulty 9
+- **Objective:** Reason about resumes, body limits and what a link's signature covers.
+- **Scenario:** Thursday afternoon: Nkem's three questions before the field team gets its first link.
+- **Exercise:** Three questions.
+- **Check:** A 200 to a resume is the whole file, so the client starts again from it; `http.MaxBytesReader` ends the read at 64 KiB with an error the service answers with 413; an expiry outside the signature could be moved on by anyone holding the link.
+
+#### 13.6 Webhooks Stay Outside
+`webhooks-stay-outside` · code_tests · difficulty 10
+- **Objective:** Refuse to connect to loopback, private, link-local and unspecified addresses from a `net.Dialer`'s `Control` hook, which sees the address actually dialed.
+- **Scenario:** Thursday, 15:00: Tomás, on call this week, finds Brinewatch's events in his weather service's log; Brinewatch gave its receiver's inside address, `http://10.20.0.31/apogee-events`, which inside Apogee's network is the weather service.
+- **Exercise:** `checkDial(network, address string, _ syscall.RawConn) error` allows everything; you parse the address with `netip.ParseAddrPort` and return an error wrapping `errInside` for an inside address or one that doesn't parse. The read-only `webhookClient` installs it.
+- **Check:** 203.0.113.7, 198.51.100.20, 172.32.0.1 and 2001:db8::7 → nil; 10.20.0.31, 172.16.5.4, 172.31.255.254, 192.168.1.20, 127.0.0.1, 127.8.9.10, ::1, 169.254.169.254, fe80::1, fd12:3456::7, 0.0.0.0, :: and `weather-service:80` → `errInside`; `webhookClient` posting to a test server at 127.0.0.1 and to `localhost` (resolved from the Mac's hosts file) → `errInside`, and the server gets no request. The mistakes: string prefixes (172.32.0.1 is outside), IPv6 forgotten, 0.0.0.0, which reaches this very machine, and a parse error let through.
+
+#### 13.7 Only Our Own Pages
+`only-our-own-pages` · code_tests · difficulty 9
+- **Objective:** Keep a redirect's `next` to a path on the same site: parsed with `url.Parse`, starting with one `/`, with no `\`.
+- **Scenario:** Friday 4 February, 08:30: Mirela forwards an email she wrote herself whose link, `/go?next=https://apogee-bookings.example/renew`, starts with the booking service's own address and ends on a page that asks for the API key.
+- **Exercise:** `localPath(next string) bool` accepts everything; you accept only a `next` that parses, starts with `/` but not `//`, and holds no backslash. The read-only `goNext` redirects to it with 303, or to `/guide/`, and logs where it sent the browser.
+- **Check:** `/guide/files.html`, a page with a query and a fragment, and `/account/` → themselves; an empty `next`, Mirela's link, `//…`, `///…`, `/\…`, `\\…`, a tab or a line break between the slashes, `https:/…`, `javascript:` and `guide/files.html` → `/guide/`; no log line names Mirela's site. The mistakes: a leading `/` alone, and an empty host after parsing, which lets `/\…` and `https:/…` through.
+
+#### 13.8 A Plan for the Month
+`a-plan-for-the-month` · code_tests · difficulty 9
+- **Objective:** Count usage per customer per calendar month on an injected clock, refuse past the plan with a clear 403, and start again at the month boundary in UTC.
+- **Scenario:** Friday, 11:00. Yusra: "TL;DR: Brinewatch has made 11 of the 12 bookings its plan allows in February, and asks what number 13 gets."
+- **Exercise:** `(*usage).take(customer string, plan int, now time.Time) error` counts nothing; you start a new count when `now`, in UTC, is in another month than `u.Month`, refuse a used-up plan with 403 `quota_exceeded`, `plan of 12 bookings a month used up: the count starts again at 2028-03-01T00:00:00Z`, and otherwise count. The read-only `Quota` keeps the count in `usage.json` and skips customers without a plan.
+- **Check:** Brinewatch's 12th counted and its 13th refused; at 2028-02-29T23:59:59Z refused, at 2028-03-01T00:00:00Z counted from 1; Cirrine's 41st refused with its own plan, and counted beside Brinewatch's full plan; a clock at 21:30 UTC−3 on 29 February → March; February 2029 → a new count; December's refusal names 2029-01-01; through `Quota`, the 13th still refused after reopening the file, Apogee's 100 bookings never counted, and 50 bookings at once with 30 of 40 made → exactly 10. The mistakes: `>` for `>=`, a month without its year, the clock's own zone, a reset date from `now.AddDate`.
+
+#### 13.9 One Week Open
+`one-week-open` · code_tests · difficulty 10
+- **Objective:** Put each of the week's features behind the guard it needs, beside the API and inside its middleware.
+- **Scenario:** Friday, 16:00: the week's work goes out in tonight's deploy, and Nkem wants it served as one handler.
+- **Exercise:** `firstWeek(app *App, f *Files, q *Quota, l *log.Logger) http.Handler` registers the new routes unguarded inside the service's middleware; you put the upload, download and link routes behind `s.private`, wrap `s.Store` in `metered` with `q`, and give the notifier's `Sender` the client from `webhookClient()`.
+- **Check:** Through `httptest.NewServer` at Friday 16:00 with the assembled service: Furrowlight's command file for `bk-4933` → 204 and kept, without a token → 401, a PDF → 415; `bk-4912`'s file from byte 60000 → 206; a link until Saturday 16:00, fetched with no token → 200 and with a range → 206, its expiry moved on → 403; `/go` to Mirela's site → `/guide/`; Brinewatch's 12th February booking → 201 `bk-4937`, its 13th → 403 `quota_exceeded`, and `usage.json` at 12; a delivery to Brinewatch's old inside address → `ErrUndelivered` wrapping `errInside`, with no request reaching the stand-in weather service; `/stations` still answered, and the upload in the access log.
 
 ## Changes in writing and review
 
@@ -843,9 +988,11 @@ restart, and one test of the whole service.
   reads its status; `Sender` holds the customers. 10.7 also tests a stop that comes while an
   attempt is in flight, and 10.9 asks for `claim` rather than the whole `idempotent`
   middleware, which runs about forty lines.
-- **Chapter 11** Cirrine's launch-day event comes from Cirrine-1's 13:30 pass over Ystmark,
+- **Chapter 12** Cirrine's launch-day event comes from Cirrine-1's 13:30 pass over Ystmark,
   whose file lands at 14:04:57 over Ystmark's slow backhaul. 11.6's stuck request is a
   `POST /bookings` saving behind the slow disk, the one request that touches it. The notifier
   keeps or drops a delivery by its outcome, `Notifier.Start` and `Stop` and the outbox's
   methods are part of the API, and 11.8's request helper is called `request`.
 - **Spelling** is American throughout, `canceled` included.
+- **Chapter 11** was added after the season shipped. It takes Friday 21 January's afternoon, the only story time between chapter 10's Friday and Launch Day's Monday, and adds new declarations only: no given text of another chapter changes, and Launch Day's lessons leave the account page out of `newApp`.
+- **Chapter 13** was added after the season shipped, as its epilogue: Wednesday 2 to Friday 4 February 2028, after Launch Day's finale and before the Board project. It adds new declarations and files only; no given text of another chapter changes, and 13.9 wraps Launch Day's `newApp` instead of changing it. The plan counts bookings made in a calendar month and keeps them in `usage.json`, so a restart forgets nothing.

@@ -1,6 +1,6 @@
 # Files, Data and the Command Line: syllabus
 
-**Authoring status:** all ten chapters are implemented as 90 lessons. Chapter 1 passed its
+**Authoring status:** all eleven chapters are implemented as 99 lessons; chapter 10 was added later, between Files That Travel With the Program and The Top of the Road. Chapter 1 passed its
 calibration checks before the rest was written; chapters 3–10 were written from this plan
 two chapters at a time and each pair independently reviewed. The lessons in
 `courses/apogee.sqlite` are the source of truth: writing and review changed details such as
@@ -12,7 +12,7 @@ Season 2 of Apogee, July to October 2027. The van heads up the Quebrada Añil wi
 - **Title:** Files, Data and the Command Line
 - **Slug:** `files-data-command-line` · **Kind:** Course
 - **Short description:** Build gctl, the team's offline command-line tool, on the test van's climb to Salar Quieto.
-- **Description:** The test van climbs the Quebrada Añil to recalibrate Salar Quieto's dishes, with days at a time and no signal. With Paz in the van and Nkem reviewing the code, you build gctl from files alone: whole files, folders and safe saves; readers and writers; logs read line by line; bookings in JSON and spreadsheets in CSV, odd ones included; times that mean the same instant everywhere; one command with flags, subcommands and exit statuses; and a station table that travels inside the program. At the top of the road, a whole calibration day runs from gctl and files alone. Standard library only, with every test on isolated files and streams.
+- **Description:** The test van climbs the Quebrada Añil to recalibrate Salar Quieto's dishes, with days at a time and no signal. With Paz in the van and Nkem reviewing the code, you build gctl from files alone: whole files, folders and safe saves; readers and writers; logs read line by line; bookings in JSON and spreadsheets in CSV, odd ones included; times that mean the same instant everywhere; one command with flags, subcommands and exit statuses; a station table that travels inside the program; and parcels in XML, zip and tar, unpacked safely. At the top of the road, a whole calibration day runs from gctl and files alone. Standard library only, with every test on isolated files and streams.
 
 ## At a glance
 
@@ -27,9 +27,10 @@ Season 2 of Apogee, July to October 2027. The van heads up the Quebrada Añil wi
 | 7 | What Time Is It, Exactly? | `time-exactly` | Parse and format explicit layouts, offsets and durations without depending on the Mac’s zone files. | 9 |
 | 8 | Flags and Subcommands | `flags-and-subcommands` | Build testable commands with explicit arguments, streams and exit statuses. | 9 |
 | 9 | Files That Travel With the Program | `files-with-the-program` | Embed fixed resources and work against fs.FS, including test-only in-memory filesystems. | 9 |
-| 10 | The Top of the Road | `the-top-of-the-road` | Compose the season’s helpers into an offline calibration tool tested through complete sessions. | 9 |
+| 10 | Parcels From Salar Quieto | `parcels-from-salar-quieto` | Decode and encode XML with struct tags, read zip and gzip'd tar archives, and unpack them with checked names, an os.Root and a cap on every file. | 9 |
+| 11 | The Top of the Road | `the-top-of-the-road` | Compose the season’s helpers into an offline calibration tool tested through complete sessions. | 9 |
 
-90 lessons. Calibration starts with chapter 1; later chapters are authored only after it has been imported and read in the app. Difficulty rises from 3 to 8. Every test uses an injected stream, fstest.MapFS or t.TempDir; no test touches real learner files. Times use UTC or time.FixedZone.
+99 lessons. Calibration starts with chapter 1; later chapters are authored only after it has been imported and read in the app. Difficulty rises from 3 to 8. Every test uses an injected stream, fstest.MapFS or t.TempDir; no test touches real learner files. Times use UTC or time.FixedZone.
 
 ## Chapter 1 · A Schedule on a Stick
 
@@ -652,69 +653,140 @@ Embed fixed resources and work against fs.FS, including test-only in-memory file
 - **Exercise:** Implement loadResources(fsys, override).
 - **Check:** Default data, valid override and surfaced override errors.
 
-## Chapter 10 · The Top of the Road
+## Chapter 10 · Parcels From Salar Quieto
+
+`parcels-from-salar-quieto` · 9 lessons
+
+Decode and encode XML with struct tags, read zip and gzip'd tar archives, and unpack them with checked names, an os.Root and a cap on every file.
+
+**Story:** Friday 15 to Sunday 17 October 2027, the last weekend at 3,700 m before Monday's climb. A stick comes down the road from Salar Quieto with two parcels from La Grande's dish controller: its settings as a zip, its log since July as a gzip'd tar. Calibration day will replace La Grande's correction, so Paz wants the old one safe on the stick; Nkem reviews the XML, and Mirela sends test parcels that try to write outside the folder or swell past the cap.
+
+#### 10.1 Read the Manifest
+`read-the-manifest` · code_tests · difficulty 7
+- **Objective:** Map XML onto a struct with element, `,attr`, `a>b` and `,chardata` tags.
+- **Scenario:** La Grande's controller sends a parcel whose manifest.xml lists what it holds.
+- **Exercise:** Tag the supplied Manifest and Entry fields.
+- **Check:** Version from an attribute, dish and time from elements, each file's name and size from nested elements; the unknown `<firmware>` skipped.
+
+#### 10.2 What the Decoder Skips
+`what-the-decoder-skips` · code_tests · difficulty 7
+- **Objective:** Check required elements after xml.Unmarshal, which skips unknown elements and leaves missing ones at zero.
+- **Scenario:** Nkem asks what gctl reads when `<dish>` is missing.
+- **Exercise:** Complete the checks in readManifest.
+- **Check:** Unknown element accepted; missing or empty dish, missing time, no files and correction.xml by mistake refused by name; broken XML refused.
+
+#### 10.3 The Correction in XML
+`the-correction-in-xml` · code · difficulty 7
+- **Objective:** Write XML with an XMLName field, xml.MarshalIndent and xml.Header.
+- **Scenario:** On Thursday La Grande's controller takes its new correction only in the shape of the parcel's correction.xml.
+- **Exercise:** Name the root, indent by two spaces and print the header first.
+- **Check:** Output equal to the parcel's correction.xml, byte for byte.
+
+#### 10.4 Quick Check: XML
+`quick-check-xml` · quiz · difficulty 7
+- **Objective:** Predict how tags decode, what decoding does with unknown and missing elements, and what MarshalIndent writes.
+- **Scenario:** Nkem reviews the XML code at Friday's late signal.
+- **Exercise:** Answer three questions about a Stow type.
+- **Check:** `,attr` reads an attribute matched exactly; unknown elements skipped and missing ones zero, with no error; the header comes from xml.Header.
+
+#### 10.5 Open the Parcel
+`open-the-parcel` · code_tests · difficulty 7
+- **Objective:** Read one file out of a zip archive with zip.OpenReader, File and Open.
+- **Scenario:** gctl must open lg-settings-2027-10-15.zip itself instead of a copy Paz took out by hand.
+- **Exercise:** Implement parcelManifest(path).
+- **Check:** The manifest from a parcel in t.TempDir, first or last in it; no manifest, a manifest without a dish, a file that is not a zip and a missing parcel refused.
+
+#### 10.6 Names That Stay Inside
+`names-that-stay-inside` · code_tests · difficulty 7
+- **Objective:** Refuse archive names that would leave the target folder with filepath.IsLocal.
+- **Scenario:** Mirela sends test parcels whose names point outside.
+- **Exercise:** Implement checkNames(files).
+- **Check:** Absolute, `..` and wandering-then-climbing names refused by name, the first of two; names that wander but stay inside and file names with two dots accepted.
+
+#### 10.7 The Log Parcel
+`the-log-parcel` · code_tests · difficulty 7
+- **Objective:** Read a gzip'd tar with compress/gzip and archive/tar, capping each file with io.LimitReader.
+- **Scenario:** The controller log since July comes as a .tar.gz; Mirela warns that zeros pack a thousandfold.
+- **Exercise:** Implement readLogs(r, limit).
+- **Check:** Every file's text; an empty parcel; exactly the limit kept, one byte more refused by name; 32 MiB of zeros refused after reading a small part of the parcel; plain text and a cut-off parcel refused.
+
+#### 10.8 Unpack Under a Root
+`unpack-under-a-root` · code_tests · difficulty 7
+- **Objective:** Write files only inside one folder through os.Root, under the size cap.
+- **Scenario:** Mirela asks what happens when the stick's folder already holds a link leading out.
+- **Exercise:** Complete unpackFile(root, f, limit).
+- **Check:** Nested files with exact bytes; a link out of the folder and a climbing name refused with nothing written outside; exactly the limit kept, a swollen file stopped one byte past it.
+
+#### 10.9 Unpack the Whole Parcel
+`unpack-the-whole-parcel` · code_tests · difficulty 8
+- **Objective:** Combine zip reading, name checks, os.Root, size caps and the manifest into one safe unpacking.
+- **Scenario:** Sunday night, before Monday's climb, Paz wants La Grande's settings on the stick so the old correction can be put back.
+- **Exercise:** Implement unpackParcel(path, dir) with the supplied helpers.
+- **Check:** Manifest and files from a good parcel; an unsafe name writes nothing; a link refused with nothing outside; every file capped; no manifest, a bad manifest, a non-zip and a missing parcel refused; the current folder untouched.
+
+## Chapter 11 · The Top of the Road
 
 `the-top-of-the-road` · 9 lessons
 
 Compose the season’s helpers into an offline calibration tool tested through complete sessions.
 
-#### 10.1 One Configuration File
+#### 11.1 One Configuration File
 `one-configuration-file` · code_tests · difficulty 7
 - **Objective:** Load strict configuration with defaults.
 - **Scenario:** Paz prepares the van before the final climb.
 - **Exercise:** Implement loadConfig(r).
 - **Check:** Defaults, overrides, unknown fields and extra JSON values.
 
-#### 10.2 Choose the Input Format
+#### 11.2 Choose the Input Format
 `choose-the-input-format` · code_tests · difficulty 7
 - **Objective:** Dispatch CSV and JSON decoders explicitly.
 - **Scenario:** The van receives both booking formats.
 - **Exercise:** Implement readBookings(r, format).
 - **Check:** Both formats, unsupported format and propagated errors.
 
-#### 10.3 Validate Before Booking
+#### 11.3 Validate Before Booking
 `validate-before-booking` · code_tests · difficulty 7
 - **Objective:** Reject invalid records before writing any output.
 - **Scenario:** An impossible station code must not enter the day's plan.
 - **Exercise:** Implement validateBookings(bookings, stations).
 - **Check:** Missing IDs, times and stations; valid batch.
 
-#### 10.4 Sort the Calibration Day
+#### 11.4 Sort the Calibration Day
 `sort-the-calibration-day` · code_tests · difficulty 7
 - **Objective:** Order normalized passes without changing input.
 - **Scenario:** Paz needs a stable plan at the top of the road.
 - **Exercise:** Implement orderedPasses(passes).
 - **Check:** UTC ordering, deterministic ties and input preserved.
 
-#### 10.5 Save Only a Complete Report
+#### 11.5 Save Only a Complete Report
 `save-only-a-complete-report` · code_tests · difficulty 7
 - **Objective:** Use atomic replacement for final exports.
 - **Scenario:** A failed final save must preserve yesterday's plan.
 - **Exercise:** Implement saveDay(path, report).
 - **Check:** Exact report, replacement and cleanup on failure.
 
-#### 10.6 Quick Check: The Whole Tool
+#### 11.6 Quick Check: The Whole Tool
 `quick-check-the-whole-tool` · quiz · difficulty 7
 - **Objective:** Choose safe boundaries for formats, streams and disk writes.
 - **Scenario:** Nkem reviews the final wiring before departure.
 - **Exercise:** Answer questions about validation and file replacement.
 - **Check:** Validate before writing; stderr for failure; temporary sibling before rename.
 
-#### 10.7 A Golden Session
+#### 11.7 A Golden Session
 `a-golden-session` · code_tests · difficulty 7
 - **Objective:** Check complete command output against a fixture.
 - **Scenario:** Ingrid wants the van's exact report checked before the trip.
 - **Exercise:** Implement the run function under a supplied golden test.
 - **Check:** Stable stdout, diagnostics and exit status across fixtures.
 
-#### 10.8 Failures from End to End
+#### 11.8 Failures from End to End
 `failures-from-end-to-end` · code_tests · difficulty 7
 - **Objective:** Preserve errors and avoid partial success at command boundaries.
 - **Scenario:** A broken stick must produce an explanation, not an empty plan.
 - **Exercise:** Complete error paths in run.
 - **Check:** Bad flags, bad data, failed output and missing resources.
 
-#### 10.9 La Grande Points True
+#### 11.9 La Grande Points True
 `la-grande-points-true` · code_tests · difficulty 8
 - **Objective:** Finish the offline gctl calibration-day flow.
 - **Scenario:** Paz reaches Salar Quieto and needs the whole day run from files.
@@ -751,6 +823,6 @@ Where the lessons as built differ from the entries above:
 - **9.6, 9.7, 9.9** The learner's `fstest.MapFS` is `fixtureFS()` in `fixtures.go`;
   `templateFS` checks the folder with `fs.Stat` before `fs.Sub`; `loadResources` falls back to
   the built-in `calibration.json` only when the stick has none.
-- **10.5, 10.7–10.9** `saveDay(path, report func(io.Writer) error)`; chapter 10's gctl has the
+- **11.5, 11.7–11.9** `saveDay(path, report func(io.Writer) error)`; chapter 10's gctl has the
   `day` command only, checked by golden sessions; 10.8's error paths are in `planDay`; 10.9 is
   `runDay(dir, format, stdout)`.
