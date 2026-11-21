@@ -150,8 +150,9 @@ final class CodeTextView: NSTextView {
 
     // MARK: Quick Help
 
-    // Option-click asks about the code under the pointer, as in Xcode; Option-drag still
-    // selects a rectangle.
+    // Option-click asks about the code under the pointer, as in Xcode. It is decided as the
+    // button goes down, so an Option-drag that starts on a word asks about that word too; one
+    // that starts anywhere else is the text view's own.
     override func mouseDown(with event: NSEvent) {
         if let onOptionClick, event.clickCount == 1,
            event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .option,
