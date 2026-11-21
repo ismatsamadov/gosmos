@@ -119,8 +119,9 @@ covered by Swift Testing tests.
   from stdout, with a 10-second timeout, so nothing is written to the lesson folder. A syntax
   error comes back as gofmt's messages, naming the file.
 - **Code runs**: your saved code is written to
-  `~/Library/Caches/Gosmos/work/<library>/<lesson>/`. `go run` or `go test` runs there, and
-  the output is compared or the tests are read. A review redo works from the starter code in
+  `~/Library/Caches/Gosmos/work/<library>/<lesson>/`. `go build` and then the program, or
+  `go test`, runs there, so a compile error and a failing program are told apart, and the
+  output is compared or the tests are read. A review redo works from the starter code in
   `work/review/<library>/<lesson>/` and is never saved.
 
 **Gosmos** is the SwiftUI app.
