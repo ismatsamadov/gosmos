@@ -196,7 +196,8 @@ internet. macOS 27 runs only on Apple silicon, so one darwin/arm64 toolchain is 
 - **In the bundle**: `app/scripts/bundle.sh` copies the Go in `GO_ROOT` (by default the one
   `go env GOROOT` names: Go 1.27.3 from Homebrew, 270 MB) to `Contents/Resources/Go`, with its
   LICENSE, and leaves out what building, running, testing and formatting standard-library
-  code never uses. That makes it 146 MB, and the app 171 MB (a 55 MB zip).
+  code never uses. That makes it 146 MB, and the app about 191 MB (a 61 MB zip), with the
+  courses (19 MB), the app's own program (16 MB) and the Go reference (9 MB).
 
   | Left out | Size | Why it can go |
   |---|---|---|
