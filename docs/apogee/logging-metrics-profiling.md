@@ -2,11 +2,11 @@
 
 **Authoring status:** all eleven chapters are implemented as 90 lessons. Chapter 1 was read in
 the app in light and dark before the rest was written; chapters 2–11 were written from this plan
-two chapters at a time and every chapter independently reviewed. Chapters 2–11 were then read
-in the app in light and dark, two chapters at a time. Every pass comes from the orbit model the
-earlier seasons use, and chapter 9 plans on the settled one Season 7 plans with. The lessons in `courses/apogee.sqlite` are the
-source of truth, and the larger changes from this plan are listed under "Changes in writing and
-review" at the end.
+two chapters at a time and every chapter independently reviewed. Chapters 2–11 were then read in
+the app in light and dark, two chapters at a time. Every pass comes from the orbit model the
+earlier seasons use, and chapter 9 plans on the settled one Season 7 plans with. The lessons in
+`courses/apogee.sqlite` are the source of truth, and the larger changes from this plan are
+listed under "Changes in writing and review" at the end.
 
 Season 6 of Apogee, November 2028 to February 2029. The learner joins the on-call rota, and on
 their second night the pager wakes them at 02:46: one pass in five at Lantern Atoll is failing,
