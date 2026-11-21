@@ -148,6 +148,18 @@ import Testing
         #expect(GoRunner.readablePaths(raw, folder: folder) == "main_test.go:37:7: not enough arguments\nmain.go:3:1: syntax error")
     }
 
+    /// A folder reached through a symlink, as $TMPDIR's /var is /private/var: go names the real
+    /// path, of which the folder's own path is the end.
+    @Test func outputNamesTheLessonsFilesThroughASymlink() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("gosmos-tests-link-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let real = GoRunner.realPath(folder.path)
+        try #require(real != folder.path, "\(folder.path) is reached through no symlink")
+        let raw = "\(real)/main.go:3:1: syntax error\n\(folder.path)/main_test.go:7:2: undefined: x"
+        #expect(GoRunner.readablePaths(raw, folder: folder) == "main.go:3:1: syntax error\nmain_test.go:7:2: undefined: x")
+    }
+
     @Test func normalizeOutput() {
         #expect(GoRunner.normalizeOutput("a  \r\nb\t\n\n") == GoRunner.normalizeOutput("a\nb"))
         #expect(GoRunner.normalizeOutput("a\n b") != GoRunner.normalizeOutput("a\nb"))
