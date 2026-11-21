@@ -62,6 +62,7 @@ public final class CodeBuffers {
     private let remember: @MainActor (_ name: String, _ unsettled: Bool) -> Void
     @ObservationIgnored private var saver: CodeSaver?
     @ObservationIgnored private var loading: Task<Void, Never>?
+    @ObservationIgnored private var flushing: Task<Bool, any Error>?
 
     /// `saved` is your code from code_file, and `unsettled` names the files left in conflict
     /// when the app last quit. `goVersion` gives the Go version for a new folder's go.mod;
@@ -152,9 +153,21 @@ public final class CodeBuffers {
 
     /// Saves now, one save at a time: each file is compared with the lesson folder first, so
     /// an edit made in another editor is taken in rather than overwritten. A save asked for
-    /// during the load waits for it. Returns false while a conflict waits for your answer.
+    /// during the load waits for it, and one asked for during another save waits for that one
+    /// to land, a conflict it found included. Returns false while a conflict waits for your
+    /// answer.
     @discardableResult
     public func flush() async throws -> Bool {
+        let previous = flushing
+        let task = Task { () async throws -> Bool in
+            _ = try? await previous?.value
+            return try await self.flushNow()
+        }
+        flushing = task
+        return try await task.value
+    }
+
+    private func flushNow() async throws -> Bool {
         if !isLoaded, let loading { await loading.value }
         guard let saver else {
             // No folder (the load failed): your text still goes into code_file.
@@ -172,11 +185,12 @@ public final class CodeBuffers {
         for buffer in editable {
             switch outcomes[buffer.name] {
             case .adopted(let disk)?:
-                // The other editor's version. If you typed meanwhile, both sides changed: the
-                // saver already counts that version as saved, so it must ask before it writes.
+                // The other editor's version. If you typed meanwhile on top of your earlier text,
+                // both sides changed: the saver already counts that version as saved, so it must
+                // ask before it writes. Typing on top of that very version is just yours.
                 if buffer.text == texts[buffer.name] || buffer.text == disk {
                     buffer.fill(disk)
-                } else {
+                } else if texts[buffer.name] != disk {
                     try await saver.markConflict(buffer.name)
                     if conflict == nil { conflict = buffer.name }
                     settled = false
