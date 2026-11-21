@@ -148,15 +148,11 @@ import Testing
         #expect(GoRunner.readablePaths(raw, folder: folder) == "main_test.go:37:7: not enough arguments\nmain.go:3:1: syntax error")
     }
 
-    /// A folder reached through a symlink, as $TMPDIR's /var is /private/var: go names the real
-    /// path, of which the folder's own path is the end.
-    @Test func outputNamesTheLessonsFilesThroughASymlink() throws {
-        let folder = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("gosmos-tests-link-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let real = GoRunner.realPath(folder.path)
-        try #require(real != folder.path, "\(folder.path) is reached through no symlink")
-        let raw = "\(real)/main.go:3:1: syntax error\n\(folder.path)/main_test.go:7:2: undefined: x"
+    /// A folder reached through a symlink, as /tmp is /private/tmp: go names the real path, of
+    /// which the folder's own path is the end.
+    @Test func outputNamesTheLessonsFilesThroughASymlink() {
+        let folder = URL(fileURLWithPath: "/tmp/gosmos-tests-work/lesson")
+        let raw = "/private/tmp/gosmos-tests-work/lesson/main.go:3:1: syntax error\n/tmp/gosmos-tests-work/lesson/main_test.go:7:2: undefined: x"
         #expect(GoRunner.readablePaths(raw, folder: folder) == "main.go:3:1: syntax error\nmain_test.go:7:2: undefined: x")
     }
 
@@ -315,7 +311,7 @@ import Testing
 
     /// An update can bring a new version of a lesson. A file the app wrote and you never edited
     /// takes the new text, and goes when the lesson no longer has it; an edit of yours, and a
-    /// file you added, stay yours.
+    /// file you added, read-only or not, stay yours.
     @Test func aChangedLessonReplacesOnlyWhatTheAppWrote() throws {
         let root = try Fixtures.tempDir("update")
         defer { try? FileManager.default.removeItem(at: root) }
