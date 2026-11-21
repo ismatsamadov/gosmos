@@ -44,8 +44,10 @@ the files themselves. Everything lives in this one repository.
 - **The Go reference**, `reference/go.sqlite` (`docs/reference-format.md`), is the Go
   documentation built into the app. The app opens it read-only and immutable from
   `Contents/Resources/Reference`, after checking its `application_id` and `user_version`.
-- Every connection turns on foreign keys and keeps the rollback journal (no WAL), so each
-  file is always whole. Timestamps are RFC 3339 in UTC with a trailing Z.
+- Every connection keeps the rollback journal (no WAL), so each file is always whole, and
+  every connection that writes turns on foreign keys; the app's read-only connections to a
+  library and to the Go reference leave them off, since they write nothing. Timestamps are
+  RFC 3339 in UTC with a trailing Z.
 - Settings that belong to one Mac, like window frames, live in UserDefaults.
 
 ## The app
