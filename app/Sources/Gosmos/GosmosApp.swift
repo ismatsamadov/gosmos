@@ -185,6 +185,8 @@ struct GosmosCommands: Commands {
     @FocusedValue(\.searchFocus) private var searchFocus
 
     var body: some Commands {
+        // While the opening covers the window, nothing acts on what it covers.
+        let covered = app.opening != nil
         CommandGroup(replacing: .newItem) {
             Button("Open Library…") { app.chooseLibrary() }
                 .keyboardShortcut("o", modifiers: .command)
@@ -199,45 +201,46 @@ struct GosmosCommands: Commands {
         CommandMenu("Lesson") {
             Button("Run") { app.lesson?.run() }
                 .keyboardShortcut("r", modifiers: .command)
-                .disabled(!(app.lesson?.canRun ?? false) || (app.lesson?.isBusy ?? false))
+                .disabled(covered || !(app.lesson?.canRun ?? false) || (app.lesson?.isBusy ?? false))
             Button("Submit") { app.lesson?.submit() }
                 .keyboardShortcut(.return, modifiers: .command)
-                .disabled(!(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
+                .disabled(covered || !(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
             Button("Stop") { app.lesson?.code?.stop() }
                 .keyboardShortcut(".", modifiers: .command)
                 .disabled(!(app.lesson?.isBusy ?? false))
             Divider()
             Button("Next Lesson") { app.openNext() }
                 .keyboardShortcut("]", modifiers: .command)
-                .disabled(app.nextLesson == nil)
+                .disabled(covered || app.nextLesson == nil)
             Button("Previous Lesson") { app.openPrevious() }
                 .keyboardShortcut("[", modifiers: .command)
-                .disabled(app.previousLesson == nil)
+                .disabled(covered || app.previousLesson == nil)
             Button("Back") { app.goBack() }
                 .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
-                .disabled(!app.canGoBack)
+                .disabled(covered || !app.canGoBack)
             Button("Forward") { app.goForward() }
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
-                .disabled(!app.canGoForward)
+                .disabled(covered || !app.canGoForward)
             Divider()
             // ⇧⌘H: the system keeps ⌥⌘H for Hide Others.
             Button("Show Hint") { app.lesson?.revealHint() }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
-                .disabled(!(app.lesson?.hints.canReveal ?? false))
+                .disabled(covered || !(app.lesson?.hints.canReveal ?? false))
             Button("Show Solution") { app.lesson?.showSolution() }
                 .keyboardShortcut("s", modifiers: [.command, .option])
-                .disabled(!(app.lesson?.hasSolution ?? false))
+                .disabled(covered || !(app.lesson?.hasSolution ?? false))
             Button("Review") { app.showReview() }
                 .keyboardShortcut("y", modifiers: [.command, .shift])
-                .disabled(app.learner == nil)
+                .disabled(covered || app.learner == nil)
             Divider()
             if let lesson = app.lesson, !lesson.isReview {
                 let done = app.isDone(lesson.ref)
                 Button(done ? "Mark as Not Done" : "Mark as Done") { app.setDone(lesson.ref, !done) }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
+                    .disabled(covered)
             }
             Button("Reset to Starter Code…") { app.confirmReset = true }
-                .disabled(app.lesson?.code == nil || app.lesson?.isReview == true)
+                .disabled(covered || app.lesson?.code == nil || app.lesson?.isReview == true)
             Divider()
             Button("Reveal Lesson Folder in Finder") { app.revealLessonFolder() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
@@ -250,24 +253,24 @@ struct GosmosCommands: Commands {
         CommandMenu("Editor") {
             Button("Format Code") { app.lesson?.code?.perform(.format) }
                 .keyboardShortcut("f", modifiers: [.shift, .option])
-                .disabled(!(app.lesson?.canPerform(.format) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.format) ?? false))
             Button("Toggle Comment") { app.lesson?.code?.perform(.toggleComment) }
                 .keyboardShortcut("/", modifiers: .command)
-                .disabled(!(app.lesson?.canPerform(.toggleComment) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.toggleComment) ?? false))
             Divider()
             // With Option: ⌘] and ⌘[ are the next and previous lesson.
             Button("Indent") { app.lesson?.code?.perform(.indent) }
                 .keyboardShortcut("]", modifiers: [.command, .option])
-                .disabled(!(app.lesson?.canPerform(.indent) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.indent) ?? false))
             Button("Outdent") { app.lesson?.code?.perform(.outdent) }
                 .keyboardShortcut("[", modifiers: [.command, .option])
-                .disabled(!(app.lesson?.canPerform(.outdent) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.outdent) ?? false))
             Divider()
             // Quick Help for the name at the insertion point, as Option-click gives it; ⌃⌘? as
             // in Xcode.
             Button("Show Documentation") { if let code = app.lesson?.code { app.showQuickHelp(code) } }
                 .keyboardShortcut("?", modifiers: [.command, .control])
-                .disabled(!app.canShowQuickHelp)
+                .disabled(covered || !app.canShowQuickHelp)
         }
         CommandGroup(after: .sidebar) {
             Button("Mission Control") { app.showDashboard() }
