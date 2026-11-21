@@ -19,10 +19,11 @@ the files themselves. Everything lives in this one repository.
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |
+| `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, and the tool that makes and checks it (`make reference`); `db/reference.sql` is its schema and `docs/reference-format.md` its format |
 | `cmd/passes/` | The pass model of the Apogee world, as the lessons carry it, printing passes for writers |
 | `scripts/pkgcheck.sh` | Checks lesson packages before import (`docs/authoring.md`) |
 | `app/scripts/snapshot.sh` | Draws one screen of a copy of the app to a PNG, under its own bundle identifier and learner data |
-| `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify` |
+| `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify`, `make reference` |
 
 ## The databases
 
