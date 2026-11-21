@@ -35,7 +35,13 @@ import Testing
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 7") }
             == ["application_id is 7, not 1196641619: the file is not a Gosmos library"])
         #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 8") }
-            == ["user_version is 8, not 9: the library is of an older format; migrating brings it up to date"])
+            == ["user_version is 8, not 9: the library is of an older format; library migrate brings it up to date"])
+        // A library from before the app was called Gosmos is one to migrate too, as the
+        // library tool says (db.Validate), word for word.
+        #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 1196447556; PRAGMA user_version = 6") }
+            == ["application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; library migrate brings it up to date"])
+        #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 1196447556; PRAGMA user_version = 7") }
+            == ["application_id is 1196447556, not 1196641619: the file is not a Gosmos library"])
         #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 10") }
             == ["user_version is 10, not 9: the library is of a newer format than this program knows"])
         // An older file is to be migrated with the tool; the app never migrates.

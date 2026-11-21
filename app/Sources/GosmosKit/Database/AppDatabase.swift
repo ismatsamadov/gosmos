@@ -12,6 +12,8 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
     case unreadable(path: String, detail: String)
     case notLibrary(path: String, applicationID: Int)
     case olderFormat(path: String, version: Int)
+    /// A library of format 6 or older, from before the app was called Gosmos ('GPWD').
+    case legacyFormat(path: String, version: Int)
     case newerFormat(path: String, version: Int)
     /// quick_check's findings, one line each.
     case damaged(path: String, problems: [String])
@@ -26,7 +28,8 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missing(let path): "There is no file at \(path)."
-        case .notPermitted, .unreadable, .notLibrary, .olderFormat, .newerFormat, .damaged, .failedChecks, .interruptedWrite, .busy: problems.joined(separator: "\n")
+        case .notPermitted, .unreadable, .notLibrary, .olderFormat, .legacyFormat, .newerFormat, .damaged, .failedChecks, .interruptedWrite, .busy:
+            problems.joined(separator: "\n")
         case .sqlite(let message): message
         }
     }
@@ -39,7 +42,9 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
         case .notPermitted(let path): ["Gosmos isn't allowed to read \(path)."]
         case .unreadable(_, let detail): ["the file is not an SQLite database SQLite can read: \(detail)"]
         case .notLibrary(_, let found): ["application_id is \(found), not \(id): the file is not a Gosmos library"]
-        case .olderFormat(_, let found): ["user_version is \(found), not \(version): the library is of an older format; migrating brings it up to date"]
+        case .olderFormat(_, let found): ["user_version is \(found), not \(version): the library is of an older format; library migrate brings it up to date"]
+        case .legacyFormat(_, let found):
+            ["application_id is \(AppDatabase.legacyApplicationID) and user_version \(found): the library is of format \(found), from before format \(version); library migrate brings it up to date"]
         case .newerFormat(_, let found): ["user_version is \(found), not \(version): the library is of a newer format than this program knows"]
         case .damaged(_, let lines), .failedChecks(_, let lines): lines
         case .interruptedWrite: ["a write to the library was cut short and has to be rolled back first"]
@@ -55,7 +60,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
         case .notPermitted: "No Access to the Library"
         case .unreadable: "Not an SQLite File"
         case .notLibrary: "Not a Gosmos Library"
-        case .olderFormat: "Library Needs Migrating"
+        case .olderFormat, .legacyFormat: "Library Needs Migrating"
         case .newerFormat: "Library Too New"
         case .damaged: "Damaged Library"
         case .failedChecks: "Library Failed Its Checks"
@@ -70,7 +75,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
         case .missing: "Open another library, or put the file back."
         case .notPermitted: "Allow Gosmos in System Settings › Privacy & Security › Files and Folders, then try again."
         case .unreadable, .notLibrary: "Open a Gosmos library."
-        case .olderFormat(let path, _): "Run go run ./cmd/library migrate \(path), then open it again."
+        case .olderFormat(let path, _), .legacyFormat(let path, _): "Run go run ./cmd/library migrate \(path), then open it again."
         case .newerFormat: "Update Gosmos to open it."
         case .damaged: "Restore the file from a backup, or open another library."
         case .failedChecks(let path, _): "Whoever made the library can list the same problems with go run ./cmd/library check \(path)."
@@ -91,6 +96,9 @@ public final class AppDatabase: Sendable {
     public static let schemaVersion = 9
     /// 'GSMS'.
     public static let applicationID = 1_196_641_619
+    /// 'GPWD': a library of format 6 or older, from before the app was called Gosmos, which
+    /// the library tool migrates.
+    public static let legacyApplicationID = 1_196_447_556
 
     let dbQueue: DatabaseQueue
     /// The library's identity, from its library_info row.
@@ -187,6 +195,7 @@ public final class AppDatabase: Sendable {
         } catch {
             return .failure(refusal(error, path: path))
         }
+        if id == legacyApplicationID && version <= 6 { return .failure(.legacyFormat(path: path, version: version)) }
         if id != applicationID { return .failure(.notLibrary(path: path, applicationID: id)) }
         if version < schemaVersion { return .failure(.olderFormat(path: path, version: version)) }
         if version > schemaVersion { return .failure(.newerFormat(path: path, version: version)) }
