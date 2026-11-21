@@ -325,23 +325,48 @@ import Testing
         func file(_ name: String) -> URL { dir.appendingPathComponent(name) }
         let v1 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 1"),
                                              StarterFile(name: "helper.go", content: "helper 1", isReadonly: true),
+                                             StarterFile(name: "go.mod", content: "module apogee/groundctl\n\ngo 1.27\n", isReadonly: true),
                                              StarterFile(name: "main_test.go", content: "tests 1", isReadonly: true)])
         let v2 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 2"),
                                              StarterFile(name: "main_test.go", content: "tests 2", isReadonly: true)])
         _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
         try "package main // mine\n".write(to: file("notes.go"), atomically: true, encoding: .utf8)
+        try "package main // copied\n".write(to: file("copied.go"), atomically: true, encoding: .utf8)
+        chmod(file("copied.go").path, 0o444) // as files copied out of the module cache are
 
-        // Opened before and never edited: the new starter and tests, and no helper.go.
-        var p = try ws.prepare(l, code: v2, saved: [:], goVersion: "1.27")
+        // Opened before and never edited: the new starter and tests, no helper.go, and the
+        // app's own go.mod in place of the one the lesson no longer gives.
+        var p = try ws.prepare(l, code: v2, saved: [:], goVersion: "1.26")
         #expect(p.files.map(\.content) == ["starter 2", "tests 2"] && p.readBack.isEmpty)
         #expect(try String(contentsOf: file("main.go"), encoding: .utf8) == "starter 2")
         #expect(!FileManager.default.fileExists(atPath: file("helper.go").path))
+        #expect(try String(contentsOf: file("go.mod"), encoding: .utf8) == "module lesson\n\ngo 1.26\n")
         #expect(FileManager.default.fileExists(atPath: file("notes.go").path))
+        #expect(FileManager.default.fileExists(atPath: file("copied.go").path))
 
         // Edited in another editor: read back for the database, whatever the lesson says now.
         try "edited outside".write(to: file("main.go"), atomically: true, encoding: .utf8)
         p = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
         #expect(p.files.first?.content == "edited outside" && p.readBack.map(\.content) == ["edited outside"])
+    }
+
+    /// Taking out what a lesson dropped is best effort: a copy the app can't remove stays, and
+    /// the lesson still opens.
+    @Test func aCopyThatCantBeRemovedStays() throws {
+        let root = try Fixtures.tempDir("stuck")
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let sub = ws.folder(for: l).appendingPathComponent("sub", isDirectory: true)
+        defer {
+            chmod(sub.path, 0o755)
+            try? FileManager.default.removeItem(at: root)
+        }
+        let v1 = CodeExercise(starterFiles: code.starterFiles + [StarterFile(name: "sub/helper.go", content: "helper", isReadonly: true)])
+        _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        chmod(sub.path, 0o555)
+        let p = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
+        #expect(p.files.map(\.name) == ["main.go", "main_test.go"])
+        #expect(FileManager.default.fileExists(atPath: sub.appendingPathComponent("helper.go").path))
     }
 
     /// The go.mod the app writes names the Go that runs the lesson: a go line newer than that

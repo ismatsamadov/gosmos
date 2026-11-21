@@ -89,10 +89,11 @@ public struct Workspace: Sendable {
     /// left alone, and the editor gets yours from the database, so the next save asks.
     ///
     /// A lesson can change under its folder, when an update brings a new version of its
-    /// library. A file the app wrote and you never edited is no edit of yours: a read-only copy,
-    /// or a starter it wrote while you had no saved code, which it remembers in the folder's
-    /// `.gosmos/starter` (go ignores folders whose names start with a dot). Such a file takes the
-    /// lesson's new text, and goes when the lesson no longer has it; anything you wrote stays.
+    /// library. The folder's `.gosmos/starter` (go ignores folders whose names start with a dot)
+    /// remembers what the app wrote there from the lesson: each read-only file, and each of
+    /// your files while you had no saved code. A file that still holds that text is no edit of
+    /// yours: it takes the lesson's new text, and goes when the lesson no longer has it. Any
+    /// file you changed or added stays.
     public func prepare(_ lesson: LessonDetail, code: CodeExercise, saved: [String: CodeFileRecord], goVersion: String,
                         unsettled: Set<String> = []) throws -> Prepared {
         let dir = folder(for: lesson)
@@ -100,13 +101,15 @@ public struct Workspace: Sendable {
         if !lesson.readme.isEmpty {
             try Workspace.writeIfChanged(dir.appendingPathComponent("README.md"), lesson.readme, mode: 0o644)
         }
-        try Workspace.removeDropped(from: dir, keeping: Set(code.starterFiles.filter(\.isVisible).map(\.name)))
+        Workspace.removeDropped(from: dir, keeping: Set(code.starterFiles.filter(\.isVisible).map(\.name)))
         var files: [EditorFile] = []
         var readBack: [CodeFileRecord] = []
         for f in code.starterFiles where f.isVisible {
             let path = try Workspace.lessonPath(dir, f.name)
+            let record = try Workspace.starterRecord(dir, f.name)
             if f.isReadonly {
                 try Workspace.writeIfChanged(path, f.content, mode: 0o444)
+                Workspace.remember(f.content, in: record)
                 files.append(EditorFile(name: f.name, content: f.content, readOnly: true))
                 continue
             }
@@ -116,7 +119,6 @@ public struct Workspace: Sendable {
                 files.append(EditorFile(name: f.name, content: content, readOnly: false))
                 continue
             }
-            let record = try Workspace.starterRecord(dir, f.name)
             if let disk = try? String(contentsOf: path, encoding: .utf8) {
                 let modified = (try? path.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
                 if let mine {
@@ -129,18 +131,18 @@ public struct Workspace: Sendable {
                         }
                     }
                 } else if disk == f.content {
-                    try Workspace.writeIfChanged(record, f.content, mode: 0o644)
-                } else if Workspace.isAppsCopy(path, disk: disk, record: record) {
-                    // The starter of an earlier version of the lesson, never edited.
+                    Workspace.remember(f.content, in: record)
+                } else if Workspace.isAppsCopy(disk, record: record) {
+                    // What the app wrote from an earlier version of the lesson, never edited.
                     try Workspace.writeIfChanged(path, f.content, mode: 0o644)
-                    try Workspace.writeIfChanged(record, f.content, mode: 0o644)
+                    Workspace.remember(f.content, in: record)
                 } else {
                     content = disk
                     readBack.append(CodeFileRecord(name: f.name, content: disk, updatedAt: Clock.string(modified)))
                 }
             } else {
                 try Workspace.writeIfChanged(path, content, mode: 0o644)
-                if mine == nil { try Workspace.writeIfChanged(record, f.content, mode: 0o644) }
+                if mine == nil { Workspace.remember(f.content, in: record) }
             }
             files.append(EditorFile(name: f.name, content: content, readOnly: false))
         }
@@ -159,39 +161,40 @@ public struct Workspace: Sendable {
         return Prepared(folder: dir, files: files, readBack: readBack)
     }
 
-    /// Where `prepare` remembers the starter text it wrote for one of your files.
+    /// Where `prepare` remembers what it wrote from the lesson into one of the folder's files.
     static func starterRecord(_ dir: URL, _ name: String) throws -> URL {
         try lessonPath(dir.appendingPathComponent(".gosmos/starter", isDirectory: true), name)
     }
 
-    /// Whether the file at `path`, holding `disk`, is a copy the app wrote that you never
-    /// edited: the starter it remembers in `record`, or a read-only file, which only the app
-    /// writes (as the lesson's tests).
-    static func isAppsCopy(_ path: URL, disk: String, record: URL) -> Bool {
-        if (try? String(contentsOf: record, encoding: .utf8)) == disk { return true }
-        let mode = (try? FileManager.default.attributesOfItem(atPath: path.path)[.posixPermissions] as? NSNumber)?.uint16Value
-        return mode.map { $0 & 0o222 == 0 } ?? false
+    /// Remembers `text` as what the app wrote into a file. Best effort: without the record, the
+    /// file only counts as yours.
+    static func remember(_ text: String, in record: URL) {
+        try? writeIfChanged(record, text, mode: 0o644)
     }
 
-    /// Removes from a lesson folder the copies the app wrote of files the lesson no longer has
-    /// (`keeping` names the ones it has), with what it remembers of them; go would still build
-    /// them. Your own files stay, and so do the readme, go.mod and anything whose name starts
-    /// with a dot.
-    static func removeDropped(from dir: URL, keeping: Set<String>) throws {
+    /// Whether `disk`, the text of a file in the folder, is what the app last wrote there from
+    /// the lesson, as `record` remembers it: a copy you never edited.
+    static func isAppsCopy(_ disk: String, record: URL) -> Bool {
+        (try? String(contentsOf: record, encoding: .utf8)) == disk
+    }
+
+    /// Removes the app's copies of files the lesson no longer has (`keeping` names the visible
+    /// files it has), as the folder's records name them, since go would still build them; a
+    /// file you changed stays, as yours. Best effort: what can't be removed stays, and nothing
+    /// here keeps the lesson from opening.
+    static func removeDropped(from dir: URL, keeping: Set<String>) {
         let fm = FileManager.default
-        guard let walk = fm.enumerator(atPath: dir.path) else { return }
-        while let name = walk.nextObject() as? String { // relative to dir, with / between folders
-            if (name as NSString).lastPathComponent.hasPrefix(".") {
-                walk.skipDescendants()
-                continue
+        let records = dir.appendingPathComponent(".gosmos/starter", isDirectory: true)
+        guard let walk = fm.enumerator(atPath: records.path) else { return }
+        var dropped: [String] = [] // relative to the records' folder, as in the lesson's folder
+        while let name = walk.nextObject() as? String {
+            if walk.fileAttributes?[.type] as? FileAttributeType == .typeRegular, !keeping.contains(name) { dropped.append(name) }
+        }
+        for name in dropped {
+            guard let record = try? starterRecord(dir, name), let file = try? lessonPath(dir, name) else { continue }
+            if let disk = try? String(contentsOf: file, encoding: .utf8), isAppsCopy(disk, record: record) {
+                try? fm.removeItem(at: file)
             }
-            guard walk.fileAttributes?[.type] as? FileAttributeType == .typeRegular,
-                  !keeping.contains(name), name != "README.md", name != "go.mod" else { continue }
-            let url = dir.appendingPathComponent(name)
-            guard let disk = try? String(contentsOf: url, encoding: .utf8) else { continue }
-            let record = try starterRecord(dir, name)
-            guard isAppsCopy(url, disk: disk, record: record) else { continue }
-            try fm.removeItem(at: url)
             try? fm.removeItem(at: record)
         }
     }
