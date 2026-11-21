@@ -193,7 +193,8 @@ public struct Workspace: Sendable {
         for name in dropped {
             guard let record = try? starterRecord(dir, name), let file = try? lessonPath(dir, name) else { continue }
             if let disk = try? String(contentsOf: file, encoding: .utf8), isAppsCopy(disk, record: record) {
-                try? fm.removeItem(at: file)
+                // One that can't go yet (in a read-only folder, say) keeps its record, for the next open.
+                guard (try? fm.removeItem(at: file)) != nil else { continue }
             }
             try? fm.removeItem(at: record)
         }

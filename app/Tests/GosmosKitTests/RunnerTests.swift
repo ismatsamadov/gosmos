@@ -346,8 +346,8 @@ import Testing
         #expect(p.files.first?.content == "edited outside" && p.readBack.map(\.content) == ["edited outside"])
     }
 
-    /// Taking out what a lesson dropped is best effort: a copy the app can't remove stays, and
-    /// the lesson still opens.
+    /// Taking out what a lesson dropped is best effort: a copy the app can't remove stays, the
+    /// lesson still opens, and the next open tries again.
     @Test func aCopyThatCantBeRemovedStays() throws {
         let root = try Fixtures.tempDir("stuck")
         let ws = Workspace(root: root)
@@ -363,6 +363,9 @@ import Testing
         let p = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
         #expect(p.files.map(\.name) == ["main.go", "main_test.go"])
         #expect(FileManager.default.fileExists(atPath: sub.appendingPathComponent("helper.go").path))
+        chmod(sub.path, 0o755)
+        _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
+        #expect(!FileManager.default.fileExists(atPath: sub.appendingPathComponent("helper.go").path))
     }
 
     /// The go.mod the app writes names the Go that runs the lesson: a go line newer than that
