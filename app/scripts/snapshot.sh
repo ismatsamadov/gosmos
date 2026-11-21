@@ -63,15 +63,12 @@ rm -f "$out"
 	-GosmosWindowSize "${QA_SIZE:-1400x900}" -GosmosSnapshotDelay "${QA_DELAY:-3}" -GosmosSnapshot "$out" "$@" \
 	>/dev/null 2>&1 &
 pid=$!
-# A snapshot run never quits by itself: wait for the PNG to stop growing, then stop the app.
-last=-1
-for _ in $(seq 1 240); do
+# The app quits once it has drawn the PNG. Should it still run half a minute after the delay,
+# stop it.
+delay=${QA_DELAY:-3}
+for _ in $(seq 1 $(( (${delay%.*} + 30) * 4 ))); do
 	sleep 0.25
-	if [ -s "$out" ]; then
-		size=$(stat -f %z "$out")
-		[ "$size" = "$last" ] && break
-		last=$size
-	fi
+	kill -0 "$pid" 2>/dev/null || break
 done
 {
 	kill "$pid" || true
