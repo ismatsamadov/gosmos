@@ -54,6 +54,26 @@ import Testing
         #expect(try await saver.sync(["main.go": "theirs 4"]) == ["main.go": .unchanged])
     }
 
+    /// Text typed while a save took in another editor's version is built on neither side's
+    /// latest text: once marked, the file waits for a choice instead of being written over.
+    @Test func aMarkedConflictWaitsForAChoice() async throws {
+        let (db, dir) = try Fixtures.database()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        guard let lesson = try await db.lesson(Fixtures.codeLesson), let code = lesson.code else { Issue.record("lesson"); return }
+        let workspace = Workspace(root: dir.appendingPathComponent("work"))
+        let prepared = try workspace.prepare(lesson, code: code, saved: [:], goVersion: "1.27")
+        let file = prepared.folder.appendingPathComponent("main.go")
+        let start = try String(contentsOf: file, encoding: .utf8)
+        let learner = try await Fixtures.learner(in: dir)
+        let saver = CodeSaver(learner: learner, workspace: workspace, lesson: lesson, saved: ["main.go": start])
+        try "theirs".write(to: file, atomically: true, encoding: .utf8)
+        #expect(try await saver.sync(["main.go": start]) == ["main.go": .adopted("theirs")])
+        try await saver.markConflict("main.go")
+        #expect(try await saver.sync(["main.go": "mine"]) == ["main.go": .conflict(disk: "theirs")])
+        #expect(try String(contentsOf: file, encoding: .utf8) == "theirs")
+        #expect(await saver.conflicts == ["main.go"])
+    }
+
     @Test func savesLandInOrder() async throws {
         let (db, dir) = try Fixtures.database()
         defer { try? FileManager.default.removeItem(at: dir) }

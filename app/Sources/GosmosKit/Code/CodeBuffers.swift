@@ -172,8 +172,15 @@ public final class CodeBuffers {
         for buffer in editable {
             switch outcomes[buffer.name] {
             case .adopted(let disk)?:
-                // The other editor's version, unless you typed again meanwhile.
-                if buffer.text == texts[buffer.name] { buffer.fill(disk) }
+                // The other editor's version. If you typed meanwhile, both sides changed: the
+                // saver already counts that version as saved, so it must ask before it writes.
+                if buffer.text == texts[buffer.name] || buffer.text == disk {
+                    buffer.fill(disk)
+                } else {
+                    try await saver.markConflict(buffer.name)
+                    if conflict == nil { conflict = buffer.name }
+                    settled = false
+                }
             case .conflict?:
                 if conflict == nil { conflict = buffer.name }
                 settled = false

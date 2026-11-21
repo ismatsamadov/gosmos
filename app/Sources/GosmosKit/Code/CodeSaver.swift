@@ -98,11 +98,22 @@ public actor CodeSaver {
         return await withCheckedContinuation { waiters[id] = $0 }
     }
 
+    /// Marks a file as changed both here and on disk after a save took in the folder's edit:
+    /// you typed while it did, so the editor holds neither that edit nor the text it started
+    /// from. Nothing is written for the file until a choice is made.
+    public func markConflict(_ name: String) async throws {
+        try await serialized { await $0.markConflictNow(name) }
+    }
+
     /// When no choice came in time (the app is quitting): keeps both versions. Your text goes
     /// into code_file, the file on disk stays as the other editor left it, and the conflict
     /// stays open, to be asked about when the lesson opens again. Returns the files kept so.
     public func keepBoth(_ texts: [String: String]) async throws -> [String] {
         try await serialized { s in try await s.keepBothNow(texts) }
+    }
+
+    private func markConflictNow(_ name: String) {
+        unsettled.insert(name)
     }
 
     private func stopWaiting(_ id: UUID) {
