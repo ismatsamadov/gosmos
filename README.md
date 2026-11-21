@@ -15,7 +15,7 @@ invented small space company whose radio dishes talk to satellites, planned in
 `docs/apogee/`. They are told as a story (`docs/storytelling.md`): an opening that gives you
 your badge, a briefing and a debrief for every chapter, a mission patch for each one you
 finish, and a field guide that explains every word of that world in plain language. Everything
-in them is written for Gosmos. The path from here to production Go is jobloom/gosmos#18.
+in them is written for Gosmos. The path from here to production Go is ismatsamadov/gosmos#18.
 
 ## Two databases
 
@@ -37,7 +37,7 @@ never runs git and syncs nothing.
 
 ## A new laptop
 
-`gh repo clone jobloom/gosmos`, then `make install` in it, and open Gosmos.
+`gh repo clone ismatsamadov/gosmos`, then `make install` in it, and open Gosmos.
 
 ## Parts
 
