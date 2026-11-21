@@ -140,8 +140,8 @@ covered by Swift Testing tests.
   been seen, and from View › Replay the Opening. The name on the badge and the openings seen
   are settings in the learner database (`badge_name`, `openings_seen`).
 - A Settings scene, and menu commands: Run ⌘R, Submit ⌘↩, Next ⌘], Previous ⌘[, Mission
-  Control ⌘1, Field Guide ⌘2, Replay the Opening, and the Editor menu: Format Code ⇧⌥F, Toggle Comment ⌘/, Indent ⌥⌘], Outdent
-  ⌥⌘[ and Show Documentation ⌃⌘?.
+  Control ⌘1, Field Guide ⌘2, Replay the Opening, and the Editor menu: Format Code ⇧⌥F,
+  Toggle Comment ⌘/, Indent ⌥⌘], Outdent ⌥⌘[ and Show Documentation ⌃⌘?.
 - The documentation browser (`DocsModel`, `DocsBrowser`): a list and its own search beside
   the page, which is a lazy stack of rows (header, doc blocks, index lines, declarations,
   sections), so only what is in view is made; a place scrolls to its declaration or section.
@@ -163,14 +163,14 @@ covered by Swift Testing tests.
 
 ## Self-contained, fast, reliable
 
-- **Self-contained**: the app is one process, and its bundle holds everything it runs: the
-  Go toolchain that builds, runs, tests and formats your code, the Go documentation, the
-  database layer, Markdown and highlighting. Nothing needs installing. Gosmos never uses the network: it has no
-  account, sends nothing anywhere, syncs nothing, fetches nothing and opens no web page, and
-  Go never reaches the network either. Every lesson is checked on the Mac alone: code by
-  running it, a quiz by its answers. `IsolationTests` keeps it so: it fails on any networking
-  module or API (URLSession, Network.framework, SwiftNIO, sockets), any web address written
-  into the app's code, and any link handed to the system to open.
+- **Self-contained**: the app is one process, and its bundle holds everything it runs: the Go
+  toolchain that builds, runs, tests and formats your code, the Go documentation, the database
+  layer, Markdown and highlighting. Nothing needs installing. Gosmos never uses the network:
+  it has no account, sends nothing anywhere, syncs nothing, fetches nothing and opens no web
+  page, and Go never reaches the network either. Every lesson is checked on the Mac alone:
+  code by running it, a quiz by its answers. `IsolationTests` keeps it so: it fails on any
+  networking module or API (URLSession, Network.framework, SwiftNIO, sockets), any web address
+  written into the app's code, and any link handed to the system to open.
 - **Fast**: these budgets are measured with `os_signpost` intervals and tested where they
   can be.
   - The window is usable less than a second after launch.
