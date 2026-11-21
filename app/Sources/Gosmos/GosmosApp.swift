@@ -104,7 +104,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Log.app.error("Snapshot: \(error.localizedDescription, privacy: .public)")
                 }
             }
-            NSApp.terminate(nil)
+            // Quit from the run loop once this task has ended, not from inside it: quitting
+            // waits for the saves applicationShouldTerminate starts on the main actor, which
+            // this task holds, so a terminate called here would wait for them forever.
+            NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)
         }
     }
 
