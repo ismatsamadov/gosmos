@@ -130,9 +130,15 @@ public struct Workspace: Sendable {
             files.append(EditorFile(name: f.name, content: content, readOnly: false))
         }
         if code.runsHere {
-            let mod = dir.appendingPathComponent("go.mod")
-            if !FileManager.default.fileExists(atPath: mod.path) {
-                try Workspace.writeIfChanged(mod, "module lesson\n\ngo \(goVersion)\n", mode: 0o644)
+            // The app's own go.mod follows the Go that runs the lesson: a go line newer than that
+            // Go stops every build. A go.mod the lesson gives is one of its files, written above.
+            let mod = dir.appendingPathComponent("go.mod"), want = "module lesson\n\ngo \(goVersion)\n"
+            if let have = try? String(contentsOf: mod, encoding: .utf8) {
+                if have != want, have.wholeMatch(of: /module lesson\n\ngo \d+(\.\d+)*\n/) != nil {
+                    try Workspace.writeIfChanged(mod, want, mode: 0o644)
+                }
+            } else {
+                try Workspace.writeIfChanged(mod, want, mode: 0o644)
             }
         }
         return Prepared(folder: dir, files: files, readBack: readBack)

@@ -313,6 +313,23 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: ws.folder(for: l).appendingPathComponent("go.mod").path))
     }
 
+    /// The go.mod the app writes names the Go that runs the lesson: a go line newer than that
+    /// Go stops every build. A go.mod the lesson gives stays as the lesson has it.
+    @Test func theAppsGoModFollowsTheGoThatRuns() throws {
+        let root = try Fixtures.tempDir("gomod")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let mod = ws.folder(for: l).appendingPathComponent("go.mod")
+        _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.28")
+        #expect(try String(contentsOf: mod, encoding: .utf8) == "module lesson\n\ngo 1.28\n")
+        _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27") // an older Go chosen in Settings
+        #expect(try String(contentsOf: mod, encoding: .utf8) == "module lesson\n\ngo 1.27\n")
+        let given = CodeExercise(starterFiles: code.starterFiles + [StarterFile(name: "go.mod", content: "module apogee/groundctl\n\ngo 1.27\n", isReadonly: true)])
+        _ = try ws.prepare(l, code: given, saved: [:], goVersion: "1.26")
+        #expect(try String(contentsOf: mod, encoding: .utf8) == "module apogee/groundctl\n\ngo 1.27\n")
+    }
+
     /// A library is a file anyone can hand you, and its uuids are any text. Whatever they say,
     /// a lesson's folder is one folder inside the work folder: preparing it writes nothing
     /// outside, and a review starting over removes nothing else.
