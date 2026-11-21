@@ -909,9 +909,9 @@ Issue password reset tokens with `rand.Text` and keep only their SHA-256, expire
   `Open` succeeds. Only a SEAL line can be refused for its version.
 - **Chapters 8–9** a stolen identity key can sign shares until it is replaced; 9.5 refuses an
   issuer without its certificate or key, and its certificate 1001 is signed on Friday.
-- **Chapters 10–11** `newClient` takes the injected clock, since Ystmark's certificate is valid
-  only from 22 September; 11.4 loads new keys through `Satellite.Receive`, so `Accept` keeps
-  chapter 6's text; 11.6 also checks resumed sessions. dishd, not uplinkd, dials the dish
+- **Chapters 10 and 12** `newClient` takes the injected clock, since Ystmark's certificate is
+  valid only from 22 September; 12.4 loads new keys through `Satellite.Receive`, so `Accept`
+  keeps chapter 6's text; 12.6 also checks resumed sessions. dishd, not uplinkd, dials the dish
   controllers in 10.8, as Season 4 has it, with a client certificate of its own (2003, then
   2103 on Rotation Day), so 9.8 issues eight certificates.
 - **Given code** keeps the text the learner last saw, including `KeyVersion`'s comments and the

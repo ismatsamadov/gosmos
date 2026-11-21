@@ -825,6 +825,6 @@ Where the lessons as built differ from the entries above:
 - **9.6, 9.7, 9.9** The learner's `fstest.MapFS` is `fixtureFS()` in `fixtures.go`;
   `templateFS` checks the folder with `fs.Stat` before `fs.Sub`; `loadResources` falls back to
   the built-in `calibration.json` only when the stick has none.
-- **11.5, 11.7–11.9** `saveDay(path, report func(io.Writer) error)`; chapter 10's gctl has the
-  `day` command only, checked by golden sessions; 10.8's error paths are in `planDay`; 10.9 is
+- **11.5, 11.7–11.9** `saveDay(path, report func(io.Writer) error)`; chapter 11's gctl has the
+  `day` command only, checked by golden sessions; 11.8's error paths are in `planDay`; 11.9 is
   `runDay(dir, format, stdout)`.
