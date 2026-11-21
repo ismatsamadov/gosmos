@@ -5,13 +5,16 @@ Season 3 of Apogee, November 2027 to February 2028. Customers book passes by ema
 learner moves from reading a single request to a tested service that authenticates, limits,
 calls customers back and restarts in the middle of a live pass without dropping anything.
 
-**Authoring status:** all thirteen chapters are implemented as 115 lessons. Chapter 1 was read in
-the app in light and dark before the rest was written; chapters 2–11 were written from this
-plan two chapters at a time and each pair independently reviewed. The world, the characters and
-the writing rules are in `story.md`, whose section "Season 3: open for business" fixes every
-shared type, route, header, message and number. The lessons in `courses/apogee.sqlite` are the
-source of truth: writing and review changed details such as function signatures, exercises and
-test cases, and the larger changes are listed under "Changes in writing and review" at the end.
+**Authoring status:** all thirteen chapters are implemented as 115 lessons. Chapter 1 was read
+in the app in light and dark before the rest was written; chapters 2–10 and 12 were written
+from this plan two chapters at a time and each pair independently reviewed. Chapters 11 and 13,
+Signed In and The First Week Open, were added later, before Launch Day (which became chapter
+12) and as the season's epilogue, and read in the app in light and dark. The world, the
+characters and the writing rules are in `story.md`, whose section "Season 3: open for business"
+fixes every shared type, route, header, message and number. The lessons in
+`courses/apogee.sqlite` are the source of truth: writing and review changed details such as
+function signatures, exercises and test cases, and the larger changes are listed under "Changes
+in writing and review" at the end.
 
 - **Title:** Web Services in Go
 - **Slug:** `web-services-in-go` · **Kind:** Course

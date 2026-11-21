@@ -1,11 +1,13 @@
 # Files, Data and the Command Line: syllabus
 
-**Authoring status:** all eleven chapters are implemented as 99 lessons; chapter 10 was added later, between Files That Travel With the Program and The Top of the Road. Chapter 1 passed its
-calibration checks before the rest was written; chapters 3–10 were written from this plan
-two chapters at a time and each pair independently reviewed. The lessons in
-`courses/apogee.sqlite` are the source of truth: writing and review changed details such as
-function signatures, exercises and test cases, and the larger changes are listed under
-"Changes in writing and review" at the end.
+**Authoring status:** all eleven chapters are implemented as 99 lessons. Chapter 1 passed its
+calibration checks before the rest was written; chapters 3–9 and 11 were written from this
+plan two chapters at a time and each pair independently reviewed. Chapter 10, Parcels From
+Salar Quieto, was added later, between Files That Travel With the Program and The Top of the
+Road, and read in the app in light and dark. The lessons in `courses/apogee.sqlite` are the
+source of truth: writing and review changed details such as function signatures, exercises
+and test cases, and the larger changes are listed under "Changes in writing and review" at
+the end.
 
 Season 2 of Apogee, July to October 2027. The van heads up the Quebrada Añil with no signal; Paz needs gctl to run a calibration day from files alone. The learner moves from one file to a tested command with explicit streams, configuration and embedded defaults.
 

@@ -5,13 +5,15 @@ condition: nobody but Cirrine and Apogee may read its commands. Mirela leads the
 learner learns each tool of Go's standard library by protecting something real, up to Rotation
 Day, when every key in the network is replaced without missing a pass.
 
-**Authoring status:** all thirteen chapters are implemented as 105 lessons. Chapter 1 was read in
-the app in light and dark before the rest was written; chapters 2–11 were written from this
-plan two chapters at a time and every chapter independently reviewed. The world, the
-characters and the writing rules are in `story.md`, whose section "Season 5: keeping secrets"
-fixes every key, format, vector and message. The lessons in `courses/apogee.sqlite` are the
-source of truth, and the larger changes from this plan are listed under "Changes in writing
-and review" at the end.
+**Authoring status:** all thirteen chapters are implemented as 105 lessons. Chapter 1 was read
+in the app in light and dark before the rest was written; chapters 2–10 and 12 were written
+from this plan two chapters at a time and every chapter independently reviewed. Chapters 11 and
+13, Brinewatch's Older Keys and More Than a Password, were added later, before Rotation Day
+(which became chapter 12) and as the season's epilogue, and read in the app in light and dark.
+The world, the characters and the writing rules are in `story.md`, whose section "Season 5:
+keeping secrets" fixes every key, format, vector and message. The lessons in
+`courses/apogee.sqlite` are the source of truth, and the larger changes from this plan are
+listed under "Changes in writing and review" at the end.
 
 - **Title:** Cryptography in Go
 - **Slug:** `cryptography-in-go` · **Kind:** Course
