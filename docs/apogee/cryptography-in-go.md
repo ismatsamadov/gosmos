@@ -5,13 +5,15 @@ condition: nobody but Cirrine and Apogee may read its commands. Mirela leads the
 learner learns each tool of Go's standard library by protecting something real, up to Rotation
 Day, when every key in the network is replaced without missing a pass.
 
-**Authoring status:** all thirteen chapters are implemented as 105 lessons. Chapter 1 was read in
-the app in light and dark before the rest was written; chapters 2–11 were written from this
-plan two chapters at a time and every chapter independently reviewed. The world, the
-characters and the writing rules are in `story.md`, whose section "Season 5: keeping secrets"
-fixes every key, format, vector and message. The lessons in `courses/apogee.sqlite` are the
-source of truth, and the larger changes from this plan are listed under "Changes in writing
-and review" at the end.
+**Authoring status:** all thirteen chapters are implemented as 105 lessons. Chapter 1 was read
+in the app in light and dark before the rest was written; chapters 2–10 and 12 were written
+from this plan two chapters at a time and every chapter independently reviewed. Chapters 11 and
+13, Brinewatch's Older Keys and More Than a Password, were added later, before Rotation Day
+(which became chapter 12) and as the season's epilogue, and read in the app in light and dark.
+The world, the characters and the writing rules are in `story.md`, whose section "Season 5:
+keeping secrets" fixes every key, format, vector and message. The lessons in
+`courses/apogee.sqlite` are the source of truth, and the larger changes from this plan are
+listed under "Changes in writing and review" at the end.
 
 - **Title:** Cryptography in Go
 - **Slug:** `cryptography-in-go` · **Kind:** Course
@@ -907,9 +909,9 @@ Issue password reset tokens with `rand.Text` and keep only their SHA-256, expire
   `Open` succeeds. Only a SEAL line can be refused for its version.
 - **Chapters 8–9** a stolen identity key can sign shares until it is replaced; 9.5 refuses an
   issuer without its certificate or key, and its certificate 1001 is signed on Friday.
-- **Chapters 10–11** `newClient` takes the injected clock, since Ystmark's certificate is valid
-  only from 22 September; 11.4 loads new keys through `Satellite.Receive`, so `Accept` keeps
-  chapter 6's text; 11.6 also checks resumed sessions. dishd, not uplinkd, dials the dish
+- **Chapters 10 and 12** `newClient` takes the injected clock, since Ystmark's certificate is
+  valid only from 22 September; 12.4 loads new keys through `Satellite.Receive`, so `Accept`
+  keeps chapter 6's text; 12.6 also checks resumed sessions. dishd, not uplinkd, dials the dish
   controllers in 10.8, as Season 4 has it, with a client certificate of its own (2003, then
   2103 on Rotation Day), so 9.8 issues eight certificates.
 - **Given code** keeps the text the learner last saw, including `KeyVersion`'s comments and the

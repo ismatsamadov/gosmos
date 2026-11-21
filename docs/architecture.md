@@ -19,10 +19,11 @@ the files themselves. Everything lives in this one repository.
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |
+| `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, and the tool that makes and checks it (`make reference`); `db/reference.sql` is its schema and `docs/reference-format.md` its format |
 | `cmd/passes/` | The pass model of the Apogee world, as the lessons carry it, printing passes for writers |
 | `scripts/pkgcheck.sh` | Checks lesson packages before import (`docs/authoring.md`) |
 | `app/scripts/snapshot.sh` | Draws one screen of a copy of the app to a PNG, under its own bundle identifier and learner data |
-| `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify` |
+| `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify`, `make reference` |
 
 ## The databases
 
@@ -44,8 +45,10 @@ the files themselves. Everything lives in this one repository.
 - **The Go reference**, `reference/go.sqlite` (`docs/reference-format.md`), is the Go
   documentation built into the app. The app opens it read-only and immutable from
   `Contents/Resources/Reference`, after checking its `application_id` and `user_version`.
-- Every connection turns on foreign keys and keeps the rollback journal (no WAL), so each
-  file is always whole. Timestamps are RFC 3339 in UTC with a trailing Z.
+- Every connection keeps the rollback journal (no WAL), so each file is always whole, and
+  every connection that writes turns on foreign keys; the app's read-only connections to a
+  library and to the Go reference leave them off, since they write nothing. Timestamps are
+  RFC 3339 in UTC with a trailing Z.
 - Settings that belong to one Mac, like window frames, live in UserDefaults.
 
 ## The app
@@ -119,8 +122,9 @@ covered by Swift Testing tests.
   from stdout, with a 10-second timeout, so nothing is written to the lesson folder. A syntax
   error comes back as gofmt's messages, naming the file.
 - **Code runs**: your saved code is written to
-  `~/Library/Caches/Gosmos/work/<library>/<lesson>/`. `go run` or `go test` runs there, and
-  the output is compared or the tests are read. A review redo works from the starter code in
+  `~/Library/Caches/Gosmos/work/<library>/<lesson>/`. `go build` and then the program, or
+  `go test`, runs there, so a compile error and a failing program are told apart, and the
+  output is compared or the tests are read. A review redo works from the starter code in
   `work/review/<library>/<lesson>/` and is never saved.
 
 **Gosmos** is the SwiftUI app.
@@ -136,8 +140,8 @@ covered by Swift Testing tests.
   been seen, and from View › Replay the Opening. The name on the badge and the openings seen
   are settings in the learner database (`badge_name`, `openings_seen`).
 - A Settings scene, and menu commands: Run ⌘R, Submit ⌘↩, Next ⌘], Previous ⌘[, Mission
-  Control ⌘1, Field Guide ⌘2, Replay the Opening, and the Editor menu: Format Code ⇧⌥F, Toggle Comment ⌘/, Indent ⌥⌘], Outdent
-  ⌥⌘[ and Show Documentation ⌃⌘?.
+  Control ⌘1, Field Guide ⌘2, Replay the Opening, and the Editor menu: Format Code ⇧⌥F,
+  Toggle Comment ⌘/, Indent ⌥⌘], Outdent ⌥⌘[ and Show Documentation ⌃⌘?.
 - The documentation browser (`DocsModel`, `DocsBrowser`): a list and its own search beside
   the page, which is a lazy stack of rows (header, doc blocks, index lines, declarations,
   sections), so only what is in view is made; a place scrolls to its declaration or section.
@@ -159,14 +163,14 @@ covered by Swift Testing tests.
 
 ## Self-contained, fast, reliable
 
-- **Self-contained**: the app is one process, and its bundle holds everything it runs: the
-  Go toolchain that builds, runs, tests and formats your code, the Go documentation, the
-  database layer, Markdown and highlighting. Nothing needs installing. Gosmos never uses the network: it has no
-  account, sends nothing anywhere, syncs nothing, fetches nothing and opens no web page, and
-  Go never reaches the network either. Every lesson is checked on the Mac alone: code by
-  running it, a quiz by its answers. `IsolationTests` keeps it so: it fails on any networking
-  module or API (URLSession, Network.framework, SwiftNIO, sockets), any web address written
-  into the app's code, and any link handed to the system to open.
+- **Self-contained**: the app is one process, and its bundle holds everything it runs: the Go
+  toolchain that builds, runs, tests and formats your code, the Go documentation, the database
+  layer, Markdown and highlighting. Nothing needs installing. Gosmos never uses the network:
+  it has no account, sends nothing anywhere, syncs nothing, fetches nothing and opens no web
+  page, and Go never reaches the network either. Every lesson is checked on the Mac alone:
+  code by running it, a quiz by its answers. `IsolationTests` keeps it so: it fails on any
+  networking module or API (URLSession, Network.framework, SwiftNIO, sockets), any web address
+  written into the app's code, and any link handed to the system to open.
 - **Fast**: these budgets are measured with `os_signpost` intervals and tested where they
   can be.
   - The window is usable less than a second after launch.

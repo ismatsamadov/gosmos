@@ -82,8 +82,10 @@ A producer fills the tables; nothing in a library belongs to a learner.
   - `story_term`: the field guide, the words of the course's world, each with its meaning in
     a sentence or two of plain language. The first time a readme uses a linked term, outside
     code, headings and links, the app links it to the meaning; the term matches as the guide
-    spells it, as a whole word, also with a plural "s" or "es". A term lessons also use as an everyday word, such
-    as pass, has `linked` 0 and is never linked.
+    spells it, as a whole word, also with an ending ("s", "es", "d", "ed" or "ing") and, for a
+    term the guide writes in lowercase, with a capital first letter, as at the start of a
+    sentence. A term lessons also use as an everyday word, such as pass, has `linked` 0 and is
+    never linked.
 
   Their texts are short paragraphs, a blank line between each two, of inline Markdown only:
   code spans, emphasis and strong emphasis, with no headings, lists, quotes, code blocks,

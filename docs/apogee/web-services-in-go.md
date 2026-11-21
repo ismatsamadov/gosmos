@@ -5,13 +5,16 @@ Season 3 of Apogee, November 2027 to February 2028. Customers book passes by ema
 learner moves from reading a single request to a tested service that authenticates, limits,
 calls customers back and restarts in the middle of a live pass without dropping anything.
 
-**Authoring status:** all thirteen chapters are implemented as 115 lessons. Chapter 1 was read in
-the app in light and dark before the rest was written; chapters 2–11 were written from this
-plan two chapters at a time and each pair independently reviewed. The world, the characters and
-the writing rules are in `story.md`, whose section "Season 3: open for business" fixes every
-shared type, route, header, message and number. The lessons in `courses/apogee.sqlite` are the
-source of truth: writing and review changed details such as function signatures, exercises and
-test cases, and the larger changes are listed under "Changes in writing and review" at the end.
+**Authoring status:** all thirteen chapters are implemented as 115 lessons. Chapter 1 was read
+in the app in light and dark before the rest was written; chapters 2–10 and 12 were written
+from this plan two chapters at a time and each pair independently reviewed. Chapters 11 and 13,
+Signed In and The First Week Open, were added later, before Launch Day (which became chapter
+12) and as the season's epilogue, and read in the app in light and dark. The world, the
+characters and the writing rules are in `story.md`, whose section "Season 3: open for business"
+fixes every shared type, route, header, message and number. The lessons in
+`courses/apogee.sqlite` are the source of truth: writing and review changed details such as
+function signatures, exercises and test cases, and the larger changes are listed under "Changes
+in writing and review" at the end.
 
 - **Title:** Web Services in Go
 - **Slug:** `web-services-in-go` · **Kind:** Course
@@ -989,10 +992,10 @@ links signed with HMAC that expire, webhooks refused inside the network by a `ne
   attempt is in flight, and 10.9 asks for `claim` rather than the whole `idempotent`
   middleware, which runs about forty lines.
 - **Chapter 12** Cirrine's launch-day event comes from Cirrine-1's 13:30 pass over Ystmark,
-  whose file lands at 14:04:57 over Ystmark's slow backhaul. 11.6's stuck request is a
+  whose file lands at 14:04:57 over Ystmark's slow backhaul. 12.6's stuck request is a
   `POST /bookings` saving behind the slow disk, the one request that touches it. The notifier
   keeps or drops a delivery by its outcome, `Notifier.Start` and `Stop` and the outbox's
-  methods are part of the API, and 11.8's request helper is called `request`.
+  methods are part of the API, and 12.8's request helper is called `request`.
 - **Spelling** is American throughout, `canceled` included.
 - **Chapter 11** was added after the season shipped. It takes Friday 21 January's afternoon, the only story time between chapter 10's Friday and Launch Day's Monday, and adds new declarations only: no given text of another chapter changes, and Launch Day's lessons leave the account page out of `newApp`.
 - **Chapter 13** was added after the season shipped, as its epilogue: Wednesday 2 to Friday 4 February 2028, after Launch Day's finale and before the Board project. It adds new declarations and files only; no given text of another chapter changes, and 13.9 wraps Launch Day's `newApp` instead of changing it. The plan counts bookings made in a calendar month and keeps them in `usage.json`, so a restart forgets nothing.
