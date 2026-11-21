@@ -87,6 +87,12 @@ public struct Workspace: Sendable {
     /// unless the folder holds a newer edit.
     /// `unsettled` names files left in conflict when the app last quit: their copy on disk is
     /// left alone, and the editor gets yours from the database, so the next save asks.
+    ///
+    /// A lesson can change under its folder, when an update brings a new version of its
+    /// library. A file the app wrote and you never edited is no edit of yours: a read-only copy,
+    /// or a starter it wrote while you had no saved code, which it remembers in the folder's
+    /// `.gosmos/starter` (go ignores folders whose names start with a dot). Such a file takes the
+    /// lesson's new text, and goes when the lesson no longer has it; anything you wrote stays.
     public func prepare(_ lesson: LessonDetail, code: CodeExercise, saved: [String: CodeFileRecord], goVersion: String,
                         unsettled: Set<String> = []) throws -> Prepared {
         let dir = folder(for: lesson)
@@ -94,6 +100,7 @@ public struct Workspace: Sendable {
         if !lesson.readme.isEmpty {
             try Workspace.writeIfChanged(dir.appendingPathComponent("README.md"), lesson.readme, mode: 0o644)
         }
+        try Workspace.removeDropped(from: dir, keeping: Set(code.starterFiles.filter(\.isVisible).map(\.name)))
         var files: [EditorFile] = []
         var readBack: [CodeFileRecord] = []
         for f in code.starterFiles where f.isVisible {
@@ -109,6 +116,7 @@ public struct Workspace: Sendable {
                 files.append(EditorFile(name: f.name, content: content, readOnly: false))
                 continue
             }
+            let record = try Workspace.starterRecord(dir, f.name)
             if let disk = try? String(contentsOf: path, encoding: .utf8) {
                 let modified = (try? path.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
                 if let mine {
@@ -120,12 +128,19 @@ public struct Workspace: Sendable {
                             try Workspace.writeIfChanged(path, mine.content, mode: 0o644)
                         }
                     }
-                } else if disk != f.content {
+                } else if disk == f.content {
+                    try Workspace.writeIfChanged(record, f.content, mode: 0o644)
+                } else if Workspace.isAppsCopy(path, disk: disk, record: record) {
+                    // The starter of an earlier version of the lesson, never edited.
+                    try Workspace.writeIfChanged(path, f.content, mode: 0o644)
+                    try Workspace.writeIfChanged(record, f.content, mode: 0o644)
+                } else {
                     content = disk
                     readBack.append(CodeFileRecord(name: f.name, content: disk, updatedAt: Clock.string(modified)))
                 }
             } else {
                 try Workspace.writeIfChanged(path, content, mode: 0o644)
+                if mine == nil { try Workspace.writeIfChanged(record, f.content, mode: 0o644) }
             }
             files.append(EditorFile(name: f.name, content: content, readOnly: false))
         }
@@ -142,6 +157,43 @@ public struct Workspace: Sendable {
             }
         }
         return Prepared(folder: dir, files: files, readBack: readBack)
+    }
+
+    /// Where `prepare` remembers the starter text it wrote for one of your files.
+    static func starterRecord(_ dir: URL, _ name: String) throws -> URL {
+        try lessonPath(dir.appendingPathComponent(".gosmos/starter", isDirectory: true), name)
+    }
+
+    /// Whether the file at `path`, holding `disk`, is a copy the app wrote that you never
+    /// edited: the starter it remembers in `record`, or a read-only file, which only the app
+    /// writes (as the lesson's tests).
+    static func isAppsCopy(_ path: URL, disk: String, record: URL) -> Bool {
+        if (try? String(contentsOf: record, encoding: .utf8)) == disk { return true }
+        let mode = (try? FileManager.default.attributesOfItem(atPath: path.path)[.posixPermissions] as? NSNumber)?.uint16Value
+        return mode.map { $0 & 0o222 == 0 } ?? false
+    }
+
+    /// Removes from a lesson folder the copies the app wrote of files the lesson no longer has
+    /// (`keeping` names the ones it has), with what it remembers of them; go would still build
+    /// them. Your own files stay, and so do the readme, go.mod and anything whose name starts
+    /// with a dot.
+    static func removeDropped(from dir: URL, keeping: Set<String>) throws {
+        let fm = FileManager.default
+        guard let walk = fm.enumerator(atPath: dir.path) else { return }
+        while let name = walk.nextObject() as? String { // relative to dir, with / between folders
+            if (name as NSString).lastPathComponent.hasPrefix(".") {
+                walk.skipDescendants()
+                continue
+            }
+            guard walk.fileAttributes?[.type] as? FileAttributeType == .typeRegular,
+                  !keeping.contains(name), name != "README.md", name != "go.mod" else { continue }
+            let url = dir.appendingPathComponent(name)
+            guard let disk = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let record = try starterRecord(dir, name)
+            guard isAppsCopy(url, disk: disk, record: record) else { continue }
+            try fm.removeItem(at: url)
+            try? fm.removeItem(at: record)
+        }
     }
 
     /// Removes the lesson's folder, if there is one.

@@ -313,6 +313,37 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: ws.folder(for: l).appendingPathComponent("go.mod").path))
     }
 
+    /// An update can bring a new version of a lesson. A file the app wrote and you never edited
+    /// takes the new text, and goes when the lesson no longer has it; an edit of yours, and a
+    /// file you added, stay yours.
+    @Test func aChangedLessonReplacesOnlyWhatTheAppWrote() throws {
+        let root = try Fixtures.tempDir("update")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let dir = ws.folder(for: l)
+        func file(_ name: String) -> URL { dir.appendingPathComponent(name) }
+        let v1 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 1"),
+                                             StarterFile(name: "helper.go", content: "helper 1", isReadonly: true),
+                                             StarterFile(name: "main_test.go", content: "tests 1", isReadonly: true)])
+        let v2 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 2"),
+                                             StarterFile(name: "main_test.go", content: "tests 2", isReadonly: true)])
+        _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        try "package main // mine\n".write(to: file("notes.go"), atomically: true, encoding: .utf8)
+
+        // Opened before and never edited: the new starter and tests, and no helper.go.
+        var p = try ws.prepare(l, code: v2, saved: [:], goVersion: "1.27")
+        #expect(p.files.map(\.content) == ["starter 2", "tests 2"] && p.readBack.isEmpty)
+        #expect(try String(contentsOf: file("main.go"), encoding: .utf8) == "starter 2")
+        #expect(!FileManager.default.fileExists(atPath: file("helper.go").path))
+        #expect(FileManager.default.fileExists(atPath: file("notes.go").path))
+
+        // Edited in another editor: read back for the database, whatever the lesson says now.
+        try "edited outside".write(to: file("main.go"), atomically: true, encoding: .utf8)
+        p = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        #expect(p.files.first?.content == "edited outside" && p.readBack.map(\.content) == ["edited outside"])
+    }
+
     /// The go.mod the app writes names the Go that runs the lesson: a go line newer than that
     /// Go stops every build. A go.mod the lesson gives stays as the lesson has it.
     @Test func theAppsGoModFollowsTheGoThatRuns() throws {
