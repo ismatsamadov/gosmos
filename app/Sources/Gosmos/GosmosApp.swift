@@ -42,17 +42,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pasteboardChanges = NSPasteboard.general.changeCount
 
     // Text copied here from a readme carries the characters that lay its inline code out
-    // (InlineCodeText); another app gets it without them, as the editor does (PastedText).
+    // (InlineCodeText). They go as soon as Copy or Cut is done, so a paste anywhere, the
+    // editor's find bar or another app, gets the text without them (PastedText); and, for a
+    // copy that came no other way, when the app goes to the back.
     func applicationDidResignActive(_ notification: Notification) {
+        cleanCopiedText()
+    }
+
+    @objc private func menuSentAction(_ notification: Notification) {
+        guard let action = (notification.userInfo?["MenuItem"] as? NSMenuItem)?.action,
+              action == #selector(NSText.copy(_:)) || action == #selector(NSText.cut(_:)) else { return }
+        cleanCopiedText()
+    }
+
+    /// Takes the layout characters out of text copied in this app since it came forward.
+    private func cleanCopiedText() {
         let board = NSPasteboard.general
         guard board.changeCount != pasteboardChanges, let text = board.string(forType: .string),
               PastedText.needsCleaning(text) else { return }
         board.clearContents()
         board.setString(PastedText.clean(text), forType: .string)
+        pasteboardChanges = board.changeCount
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.app.info("Launched")
+        NotificationCenter.default.addObserver(self, selector: #selector(menuSentAction(_:)), name: NSMenu.didSendActionNotification, object: nil)
         // Another copy of this app runs and has the learner database: it comes forward, and
         // this one quits before it opens anything (SingleInstance).
         if let other = runningCopy() {

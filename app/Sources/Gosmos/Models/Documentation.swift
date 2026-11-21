@@ -1,4 +1,5 @@
 import AppKit
+import CodeEditor
 import GosmosKit
 import Observation
 import SwiftUI
@@ -17,7 +18,13 @@ final class DocsModel {
     private(set) var loadError: String?
     /// Bumped to bring `location` into view, even when it is the same place again.
     private(set) var scrollRequests = 0
-    var searchText = "" { didSet { searchChanged() } }
+    var searchText = "" {
+        didSet {
+            // As the sidebar's search: what copied text says, without its layout characters.
+            if PastedText.needsCleaning(searchText) { searchText = PastedText.clean(searchText) }
+            searchChanged()
+        }
+    }
     private(set) var results: [DocSearchHit] = []
     private(set) var searching = false
     @ObservationIgnored private weak var app: AppModel?
