@@ -6447,12 +6447,12 @@ places, satellites or customers.
 
 Each course of the series is a season of the learner's career at Apogee, and story time only
 moves forward. Each season's opening gives the learner a new role on their badge. The roadmap
-is jobloom/gosmos#18; how each season is told is `docs/storytelling.md`.
+is ismatsamadov/gosmos#18; how each season is told is `docs/storytelling.md`.
 
 | Season | Course | Story time | The season in a sentence | Issue |
 |---|---|---|---|---|
-| 1 | Go Foundations | Mar–Jul 2027 | From your first message to Pipit-1 to your first solo week on call | written; #7, #8 |
-| 2 · Tools of the Trade | Files, Data and the Command Line | Jul–Oct 2027 | The test van's trip up the Quebrada Añil, with no signal: gctl, from files alone | #9 |
+| 1 | Go Foundations | Mar–Jul 2027 | From your first message to Pipit-1 to your first solo week on call | #7, #8 |
+| 2 · Tools for the Van | Files, Data and the Command Line | Jul–Oct 2027 | The test van's trip up the Quebrada Añil, with no signal: gctl, from files alone | #9 |
 | Project | Build gctl | Oct 2027 | The night shift's interactive tool | #10 |
 | 3 · Open for Business | Web Services in Go | Nov 2027–Feb 2028 | Customers book passes through Apogee's own service, which you build | #11 |
 | Project | Build the Board | Feb 2028 | The Board on every screen in the building | #12 |
