@@ -1,4 +1,5 @@
 import AppKit
+import CodeEditor
 import GosmosKit
 import Observation
 import os
@@ -188,7 +189,14 @@ final class AppModel {
     var selection: SidebarItem?
     /// Open chapters and guided projects, as "<library>/<chapter or course>".
     var expanded: Set<String> = []
-    var searchText = "" { didSet { searchChanged() } }
+    var searchText = "" {
+        didSet {
+            // Text copied from a readme carries the characters that lay out its inline code
+            // (PastedText); search for what it says.
+            if PastedText.needsCleaning(searchText) { searchText = PastedText.clean(searchText) }
+            searchChanged()
+        }
+    }
     private(set) var searchResults: [SearchHit] = []
     /// Excerpts for the results, by lesson.
     private(set) var searchSnippets: [LessonRef: [Snippet.Part]] = [:]

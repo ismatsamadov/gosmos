@@ -80,8 +80,9 @@ struct EditorPane: View {
                     CodeLoadFailed(message: error, session: session)
                 } else {
                     FileEditor(buffer: file, session: session)
-                        // A new editor, with its own undo history, for each file.
-                        .id("\(session.lesson.id)/\(file.name)")
+                        // A new editor, with its own undo history, for each file, and for a
+                        // redo's copy of it.
+                        .id("\(session.lesson.id)/\(session.isReview ? "redo" : "lesson")/\(file.name)")
                         // Until your code has loaded the editor shows it but takes no typing;
                         // a small spinner says why, in a corner, so nothing moves.
                         .overlay(alignment: .topTrailing) {

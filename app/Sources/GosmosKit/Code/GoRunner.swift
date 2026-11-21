@@ -184,7 +184,9 @@ public struct GoRunner: Sendable {
     static func readablePaths(_ output: String, folder: URL) -> String {
         var text = output.replacing(/(?:\/private)?\/[^\s:]*\/run-[A-Za-z0-9]+\/overlay-\d+-/) { _ in "" }
         let dir = folder.path
-        for prefix in Set([dir, realPath(dir), "/private" + dir]) where !prefix.isEmpty {
+        // Longest first: the folder through a symlink (/tmp for /private/tmp) is the end of its
+        // real path, and taken out first it would leave "/private" in front of the file's name.
+        for prefix in Set([dir, realPath(dir), "/private" + dir]).sorted(by: { $0.count > $1.count }) where !prefix.isEmpty {
             text = text.replacingOccurrences(of: prefix + "/", with: "")
         }
         return text

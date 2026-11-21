@@ -1,3 +1,4 @@
+import CodeEditor
 import GosmosKit
 import SwiftUI
 
@@ -64,7 +65,7 @@ struct FieldGuideView: View {
 
     /// Each course's terms that match the filter, in the shelf's order.
     private var sections: [Section] {
-        let query = filter.trimmingCharacters(in: .whitespaces)
+        let query = PastedText.clean(filter).trimmingCharacters(in: .whitespaces)
         var out: [Section] = []
         for library in app.shelf {
             for course in library.catalog.courses {

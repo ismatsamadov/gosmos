@@ -42,17 +42,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pasteboardChanges = NSPasteboard.general.changeCount
 
     // Text copied here from a readme carries the characters that lay its inline code out
-    // (InlineCodeText); another app gets it without them, as the editor does (PastedText).
+    // (InlineCodeText). They go as soon as Copy or Cut is done, so a paste anywhere, the
+    // editor's find bar or another app, gets the text without them (PastedText); and, for a
+    // copy that came no other way, when the app goes to the back.
     func applicationDidResignActive(_ notification: Notification) {
+        cleanCopiedText()
+    }
+
+    @objc private func menuSentAction(_ notification: Notification) {
+        guard let action = (notification.userInfo?["MenuItem"] as? NSMenuItem)?.action,
+              action == #selector(NSText.copy(_:)) || action == #selector(NSText.cut(_:)) else { return }
+        cleanCopiedText()
+    }
+
+    /// Takes the layout characters out of text copied in this app since it came forward.
+    private func cleanCopiedText() {
         let board = NSPasteboard.general
         guard board.changeCount != pasteboardChanges, let text = board.string(forType: .string),
               PastedText.needsCleaning(text) else { return }
         board.clearContents()
         board.setString(PastedText.clean(text), forType: .string)
+        pasteboardChanges = board.changeCount
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.app.info("Launched")
+        NotificationCenter.default.addObserver(self, selector: #selector(menuSentAction(_:)), name: NSMenu.didSendActionNotification, object: nil)
         // Another copy of this app runs and has the learner database: it comes forward, and
         // this one quits before it opens anything (SingleInstance).
         if let other = runningCopy() {
@@ -104,7 +119,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Log.app.error("Snapshot: \(error.localizedDescription, privacy: .public)")
                 }
             }
-            NSApp.terminate(nil)
+            // Quit from the run loop once this task has ended, not from inside it: quitting
+            // waits for the saves applicationShouldTerminate starts on the main actor, which
+            // this task holds, so a terminate called here would wait for them forever.
+            NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)
         }
     }
 
@@ -167,6 +185,8 @@ struct GosmosCommands: Commands {
     @FocusedValue(\.searchFocus) private var searchFocus
 
     var body: some Commands {
+        // While the opening covers the window, nothing acts on what it covers.
+        let covered = app.opening != nil
         CommandGroup(replacing: .newItem) {
             Button("Open Library…") { app.chooseLibrary() }
                 .keyboardShortcut("o", modifiers: .command)
@@ -181,45 +201,46 @@ struct GosmosCommands: Commands {
         CommandMenu("Lesson") {
             Button("Run") { app.lesson?.run() }
                 .keyboardShortcut("r", modifiers: .command)
-                .disabled(!(app.lesson?.canRun ?? false) || (app.lesson?.isBusy ?? false))
+                .disabled(covered || !(app.lesson?.canRun ?? false) || (app.lesson?.isBusy ?? false))
             Button("Submit") { app.lesson?.submit() }
                 .keyboardShortcut(.return, modifiers: .command)
-                .disabled(!(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
+                .disabled(covered || !(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
             Button("Stop") { app.lesson?.code?.stop() }
                 .keyboardShortcut(".", modifiers: .command)
                 .disabled(!(app.lesson?.isBusy ?? false))
             Divider()
             Button("Next Lesson") { app.openNext() }
                 .keyboardShortcut("]", modifiers: .command)
-                .disabled(app.nextLesson == nil)
+                .disabled(covered || app.nextLesson == nil)
             Button("Previous Lesson") { app.openPrevious() }
                 .keyboardShortcut("[", modifiers: .command)
-                .disabled(app.previousLesson == nil)
+                .disabled(covered || app.previousLesson == nil)
             Button("Back") { app.goBack() }
                 .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
-                .disabled(!app.canGoBack)
+                .disabled(covered || !app.canGoBack)
             Button("Forward") { app.goForward() }
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
-                .disabled(!app.canGoForward)
+                .disabled(covered || !app.canGoForward)
             Divider()
             // ⇧⌘H: the system keeps ⌥⌘H for Hide Others.
             Button("Show Hint") { app.lesson?.revealHint() }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
-                .disabled(!(app.lesson?.hints.canReveal ?? false))
+                .disabled(covered || !(app.lesson?.hints.canReveal ?? false))
             Button("Show Solution") { app.lesson?.showSolution() }
                 .keyboardShortcut("s", modifiers: [.command, .option])
-                .disabled(!(app.lesson?.hasSolution ?? false))
+                .disabled(covered || !(app.lesson?.hasSolution ?? false))
             Button("Review") { app.showReview() }
                 .keyboardShortcut("y", modifiers: [.command, .shift])
-                .disabled(app.learner == nil)
+                .disabled(covered || app.learner == nil)
             Divider()
             if let lesson = app.lesson, !lesson.isReview {
                 let done = app.isDone(lesson.ref)
                 Button(done ? "Mark as Not Done" : "Mark as Done") { app.setDone(lesson.ref, !done) }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
+                    .disabled(covered)
             }
             Button("Reset to Starter Code…") { app.confirmReset = true }
-                .disabled(app.lesson?.code == nil || app.lesson?.isReview == true)
+                .disabled(covered || app.lesson?.code == nil || app.lesson?.isReview == true)
             Divider()
             Button("Reveal Lesson Folder in Finder") { app.revealLessonFolder() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
@@ -232,24 +253,24 @@ struct GosmosCommands: Commands {
         CommandMenu("Editor") {
             Button("Format Code") { app.lesson?.code?.perform(.format) }
                 .keyboardShortcut("f", modifiers: [.shift, .option])
-                .disabled(!(app.lesson?.canPerform(.format) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.format) ?? false))
             Button("Toggle Comment") { app.lesson?.code?.perform(.toggleComment) }
                 .keyboardShortcut("/", modifiers: .command)
-                .disabled(!(app.lesson?.canPerform(.toggleComment) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.toggleComment) ?? false))
             Divider()
             // With Option: ⌘] and ⌘[ are the next and previous lesson.
             Button("Indent") { app.lesson?.code?.perform(.indent) }
                 .keyboardShortcut("]", modifiers: [.command, .option])
-                .disabled(!(app.lesson?.canPerform(.indent) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.indent) ?? false))
             Button("Outdent") { app.lesson?.code?.perform(.outdent) }
                 .keyboardShortcut("[", modifiers: [.command, .option])
-                .disabled(!(app.lesson?.canPerform(.outdent) ?? false))
+                .disabled(covered || !(app.lesson?.canPerform(.outdent) ?? false))
             Divider()
             // Quick Help for the name at the insertion point, as Option-click gives it; ⌃⌘? as
             // in Xcode.
             Button("Show Documentation") { if let code = app.lesson?.code { app.showQuickHelp(code) } }
                 .keyboardShortcut("?", modifiers: [.command, .control])
-                .disabled(!app.canShowQuickHelp)
+                .disabled(covered || !app.canShowQuickHelp)
         }
         CommandGroup(after: .sidebar) {
             Button("Mission Control") { app.showDashboard() }

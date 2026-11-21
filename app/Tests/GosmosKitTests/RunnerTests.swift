@@ -148,6 +148,14 @@ import Testing
         #expect(GoRunner.readablePaths(raw, folder: folder) == "main_test.go:37:7: not enough arguments\nmain.go:3:1: syntax error")
     }
 
+    /// A folder reached through a symlink, as /tmp is /private/tmp: go names the real path, of
+    /// which the folder's own path is the end.
+    @Test func outputNamesTheLessonsFilesThroughASymlink() {
+        let folder = URL(fileURLWithPath: "/tmp/gosmos-tests-work/lesson")
+        let raw = "/private/tmp/gosmos-tests-work/lesson/main.go:3:1: syntax error\n/tmp/gosmos-tests-work/lesson/main_test.go:7:2: undefined: x"
+        #expect(GoRunner.readablePaths(raw, folder: folder) == "main.go:3:1: syntax error\nmain_test.go:7:2: undefined: x")
+    }
+
     @Test func normalizeOutput() {
         #expect(GoRunner.normalizeOutput("a  \r\nb\t\n\n") == GoRunner.normalizeOutput("a\nb"))
         #expect(GoRunner.normalizeOutput("a\n b") != GoRunner.normalizeOutput("a\nb"))
@@ -299,6 +307,82 @@ import Testing
         _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
         #expect(try String(contentsOf: tests, encoding: .utf8) == "tests")
         #expect(FileManager.default.fileExists(atPath: ws.folder(for: l).appendingPathComponent("go.mod").path))
+    }
+
+    /// An update can bring a new version of a lesson. A file the app wrote and you never edited
+    /// takes the new text, and goes when the lesson no longer has it; an edit of yours, and a
+    /// file you added, read-only or not, stay yours.
+    @Test func aChangedLessonReplacesOnlyWhatTheAppWrote() throws {
+        let root = try Fixtures.tempDir("update")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let dir = ws.folder(for: l)
+        func file(_ name: String) -> URL { dir.appendingPathComponent(name) }
+        let v1 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 1"),
+                                             StarterFile(name: "helper.go", content: "helper 1", isReadonly: true),
+                                             StarterFile(name: "go.mod", content: "module apogee/groundctl\n\ngo 1.27\n", isReadonly: true),
+                                             StarterFile(name: "main_test.go", content: "tests 1", isReadonly: true)])
+        let v2 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 2"),
+                                             StarterFile(name: "main_test.go", content: "tests 2", isReadonly: true)])
+        _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        try "package main // mine\n".write(to: file("notes.go"), atomically: true, encoding: .utf8)
+        try "package main // copied\n".write(to: file("copied.go"), atomically: true, encoding: .utf8)
+        chmod(file("copied.go").path, 0o444) // as files copied out of the module cache are
+
+        // Opened before and never edited: the new starter and tests, no helper.go, and the
+        // app's own go.mod in place of the one the lesson no longer gives.
+        var p = try ws.prepare(l, code: v2, saved: [:], goVersion: "1.26")
+        #expect(p.files.map(\.content) == ["starter 2", "tests 2"] && p.readBack.isEmpty)
+        #expect(try String(contentsOf: file("main.go"), encoding: .utf8) == "starter 2")
+        #expect(!FileManager.default.fileExists(atPath: file("helper.go").path))
+        #expect(try String(contentsOf: file("go.mod"), encoding: .utf8) == "module lesson\n\ngo 1.26\n")
+        #expect(FileManager.default.fileExists(atPath: file("notes.go").path))
+        #expect(FileManager.default.fileExists(atPath: file("copied.go").path))
+
+        // Edited in another editor: read back for the database, whatever the lesson says now.
+        try "edited outside".write(to: file("main.go"), atomically: true, encoding: .utf8)
+        p = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        #expect(p.files.first?.content == "edited outside" && p.readBack.map(\.content) == ["edited outside"])
+    }
+
+    /// Taking out what a lesson dropped is best effort: a copy the app can't remove stays, the
+    /// lesson still opens, and the next open tries again.
+    @Test func aCopyThatCantBeRemovedStays() throws {
+        let root = try Fixtures.tempDir("stuck")
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let sub = ws.folder(for: l).appendingPathComponent("sub", isDirectory: true)
+        defer {
+            chmod(sub.path, 0o755)
+            try? FileManager.default.removeItem(at: root)
+        }
+        let v1 = CodeExercise(starterFiles: code.starterFiles + [StarterFile(name: "sub/helper.go", content: "helper", isReadonly: true)])
+        _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        chmod(sub.path, 0o555)
+        let p = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
+        #expect(p.files.map(\.name) == ["main.go", "main_test.go"])
+        #expect(FileManager.default.fileExists(atPath: sub.appendingPathComponent("helper.go").path))
+        chmod(sub.path, 0o755)
+        _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27")
+        #expect(!FileManager.default.fileExists(atPath: sub.appendingPathComponent("helper.go").path))
+    }
+
+    /// The go.mod the app writes names the Go that runs the lesson: a go line newer than that
+    /// Go stops every build. A go.mod the lesson gives stays as the lesson has it.
+    @Test func theAppsGoModFollowsTheGoThatRuns() throws {
+        let root = try Fixtures.tempDir("gomod")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let mod = ws.folder(for: l).appendingPathComponent("go.mod")
+        _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.28")
+        #expect(try String(contentsOf: mod, encoding: .utf8) == "module lesson\n\ngo 1.28\n")
+        _ = try ws.prepare(l, code: code, saved: [:], goVersion: "1.27") // an older Go chosen in Settings
+        #expect(try String(contentsOf: mod, encoding: .utf8) == "module lesson\n\ngo 1.27\n")
+        let given = CodeExercise(starterFiles: code.starterFiles + [StarterFile(name: "go.mod", content: "module apogee/groundctl\n\ngo 1.27\n", isReadonly: true)])
+        _ = try ws.prepare(l, code: given, saved: [:], goVersion: "1.26")
+        #expect(try String(contentsOf: mod, encoding: .utf8) == "module apogee/groundctl\n\ngo 1.27\n")
     }
 
     /// A library is a file anyone can hand you, and its uuids are any text. Whatever they say,

@@ -78,7 +78,9 @@ editor's view tests and the opening's focus transitions also need a working desk
 
 Your code lives in the learner database. To run it, the app writes a lesson's files to its work
 folder (your files, the read-only tests, `go.mod`, the readme) and builds there; hidden
-helper files are added with `go build -overlay`. Edits you make in another editor (Lesson >
+helper files are added with `go build -overlay`. In the folder's `.gosmos/` it remembers the
+starter code it wrote, so when an update changes a lesson, a file you never edited takes the
+new text and one the lesson dropped goes, while your edits stay. Edits you make in another editor (Lesson >
 Open Lesson Folder in Editor) are taken in when you come back to the app and before every
 save and run. If you changed the same file in the app too, it asks which version to keep.
 
