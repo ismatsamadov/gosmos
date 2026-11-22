@@ -97,6 +97,38 @@ import Testing
     /// While the opening covers the window, no command acts on what it covers: here a lesson
     /// still on screen behind it, as when Replay the Opening leaves one that waits to be saved.
     /// They come back once the opening ends.
+    /// Places in the documentation join the back history as lessons do: Back from a page goes
+    /// to the page before it, then to the lesson, and Forward retraces them.
+    @Test func backAndForwardGoThroughTheDocumentation() async throws {
+        let fixture = try FlowFixture(reference: true)
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.docs != nil }
+        app.open(fixture.ref("first"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        let fmt = DocLink.package("fmt"), cut = DocLink.symbol(package: "strings", name: "Cut")
+        app.openDocumentation(fmt)
+        try await fixture.wait { app.docs?.location == fmt && app.lesson == nil }
+        #expect(app.selection == .documentation && app.canGoBack && !app.canGoForward)
+        app.openDocumentation(cut)
+        try await fixture.wait { app.docs?.location == cut }
+
+        app.goBack()
+        try await fixture.wait { app.docs?.location == fmt }
+        #expect(app.selection == .documentation && app.lesson == nil)
+        app.goBack()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        #expect(app.canGoForward)
+
+        app.goForward()
+        try await fixture.wait { app.docs?.location == fmt && app.lesson == nil }
+        app.goForward()
+        try await fixture.wait { app.docs?.location == cut }
+        #expect(app.selection == .documentation && !app.canGoForward)
+    }
+
     @Test func theOpeningTurnsOffTheCommandsBehindIt() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }

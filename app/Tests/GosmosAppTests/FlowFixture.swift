@@ -4,18 +4,20 @@ import GosmosKit
 @testable import Gosmos
 
 /// A test library of two courses, with openings, code lessons and a quiz, and apps made on
-/// it with study data of their own, in a temporary folder.
+/// it with study data of their own, in a temporary folder. With `reference`, the apps have the
+/// Go documentation the app ships, reference/go.sqlite.
 @MainActor struct FlowFixture {
     let directory: URL
     let resources: AppResources
 
-    init() throws {
+    init(reference: Bool = false) throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         directory = FileManager.default.temporaryDirectory.appendingPathComponent("gosmos-flow-\(UUID().uuidString)")
         let libraries = directory.appendingPathComponent("courses")
         try FileManager.default.createDirectory(at: libraries, withIntermediateDirectories: true)
-        resources = AppResources(libraries: libraries, learnerSchema: repository.appendingPathComponent("db/learner.sql"), reference: nil)
+        resources = AppResources(libraries: libraries, learnerSchema: repository.appendingPathComponent("db/learner.sql"),
+                                 reference: reference ? repository.appendingPathComponent("reference/go.sqlite") : nil)
         let queue = try DatabaseQueue(path: libraries.appendingPathComponent("practice.sqlite").path)
         try queue.writeWithoutTransaction { db in
             try db.execute(sql: String(contentsOf: repository.appendingPathComponent("db/schema.sql"), encoding: .utf8))
