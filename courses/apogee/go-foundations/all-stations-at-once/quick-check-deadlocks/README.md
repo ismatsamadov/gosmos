@@ -6,7 +6,7 @@ position: 8
 difficulty: 6
 topics: channels, goroutines
 created: 2026-11-01T07:36:47Z
-modified: 2026-11-04T17:07:34Z
+modified: 2026-11-22T10:08:26Z
 ---
 Ingrid's incident review, the team's account of what went wrong and what to change, lists two snippets that crashed the archiver last night. The first is a whole `main`:
 
@@ -26,3 +26,7 @@ close(frames)
 ```
 
 The last question asks what a receive from `frames` gives once it is closed and empty.
+
+## Your task
+
+Answer the review's three questions.

@@ -6,7 +6,7 @@ position: 6
 difficulty: 4
 topics: methods, pointers
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-06T16:51:26Z
+modified: 2026-11-22T10:08:26Z
 ---
 Nkem's review of your methods comes back as two questions instead of comments; she'd rather you find the answers than read hers. Both are about this code:
 
@@ -20,5 +20,7 @@ func (s *Station) Stow(reason string) {
 cwr := Station{Code: "CWR", Name: "Cape Wren"}
 cwr.Stow("wind 75 km/h")
 ```
+
+## Your task
 
 Pick one answer for each question.
