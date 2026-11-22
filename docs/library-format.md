@@ -112,13 +112,17 @@ broken for each check with the messages both must give, which both sides' tests 
 
 ## Authoring
 
-`go run ./cmd/author` writes original content into any library: `course` and `chapter` add
-or update one by slug, `lesson` imports a lesson package (a folder with the lesson's readme,
-starter and solution files, hints and solution note, or its quiz with explanations), `story`
-imports a course's story package (its opening, its chapters' briefings and debriefs, and its
-field guide) in place of the story the course had, and `export` writes lessons, or with
-`--story` a course's story, back out as packages, byte for byte, to edit and import again.
-`go run ./cmd/author help` describes both package layouts exactly.
+A library is written as text, a library folder: `library.txt`, then a folder for each course
+with its `course.md`, its story package and a folder for each chapter, which holds its
+`chapter.md` and a lesson package for each lesson (the lesson's readme, starter and solution
+files, hints and solution note, or its quiz with explanations). `go run ./cmd/author build`
+makes the library file from it, the same file from the same folder; this repository keeps
+Apogee's as `courses/apogee/` (`docs/authoring.md`). The tool also writes into a library file
+directly: `course` and `chapter` add or update one by slug, `lesson` imports a lesson package,
+`story` imports a course's story package (its opening, its chapters' briefings and debriefs,
+and its field guide) in place of the story the course had, and `export` writes the whole
+library as a library folder, or a course's lessons or story as packages, byte for byte.
+`go run ./cmd/author help` describes the library folder and both package layouts exactly.
 
 ## The learner database
 
