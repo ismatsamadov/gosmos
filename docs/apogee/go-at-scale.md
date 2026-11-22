@@ -12,7 +12,7 @@ Season 7 of Apogee, March to June 2029. Apogee grows from five stations to twent
 eight satellites to eighty, and the learner leads the rewrite of passplan, which must plan a
 hundred days instead of one. The world, the characters, the twenty stations and eighty
 satellites, the pass model, the planning rule and every shared type, signature, bound and
-number are in `story.md`, section "Season 7: scale".
+number are in `story.md`, section "Season 7: scale" (`story/season-7.md`).
 
 - **Title:** Go at Scale
 - **Slug:** `go-at-scale` · **Kind:** Course

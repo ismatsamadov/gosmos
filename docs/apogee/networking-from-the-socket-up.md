@@ -12,8 +12,8 @@ writing and review" at the end.
 Season 4 of Apogee, March to June 2028, at Ystmark. The station's new dish controllers speak raw
 bytes across an island line that drops in every storm; the learner writes dishd, which talks to
 them, then a station server built on a bare socket. The world, the characters, the controller
-protocol and the HTTP subset are in `story.md`, section "Season 4: down to the wire", which fixes
-every byte, type, message and number used here.
+protocol and the HTTP subset are in `story.md`, section "Season 4: down to the wire"
+(`story/season-4.md`), which fixes every byte, type, message and number used here.
 
 - **Title:** Networking from the Socket Up
 - **Slug:** `networking-from-the-socket-up` · **Kind:** Course

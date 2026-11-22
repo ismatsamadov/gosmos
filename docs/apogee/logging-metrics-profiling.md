@@ -12,8 +12,8 @@ Season 6 of Apogee, November 2028 to February 2029. The learner joins the on-cal
 their second night the pager wakes them at 02:46: one pass in five at Lantern Atoll is failing,
 and the log says only `error`. The learner moves from a line that says nothing to programs that
 explain themselves, and in February finds the slow leak behind it. The world, the characters
-and every shared format are in `story.md`, section "Season 6: on call", which fixes every log
-line, metric, rule, number, date, type and signature used here.
+and every shared format are in `story.md`, section "Season 6: on call" (`story/season-6.md`),
+which fixes every log line, metric, rule, number, date, type and signature used here.
 
 - **Title:** Logging, Metrics and Profiling
 - **Slug:** `logging-metrics-profiling` · **Kind:** Course
