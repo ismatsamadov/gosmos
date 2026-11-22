@@ -318,6 +318,7 @@ func TestAuthorRefuses(t *testing.T) {
 		{"a picture in a description", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "![orbit](https://example.com/orbit.png)"}, 1, "--description holds 1 picture, which"},
 		{"a course position taken", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "D", "--position", "0"}, 1, "position 0 is taken by course learn-launches"},
 		{"a chapter of no course", []string{"chapter", path, "--course", "learn-orbits", "--slug", "1-ellipses", "--title", "Ellipses", "--description", "D"}, 1, "the library has no course learn-orbits"},
+		{"a chapter called story", []string{"chapter", path, "--course", "learn-launches", "--slug", "story", "--title", "Story", "--description", "D"}, 2, "a chapter cannot be called story, the name of a course's story folder"},
 		{"an unknown command", []string{"publish", path}, 2, `unknown command "publish"`},
 		{"too many arguments", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", example("launch-window"), "extra"}, 2, "want 2 arguments"},
 	} {

@@ -228,6 +228,8 @@ func chapter(ctx context.Context, args []string, out io.Writer) error {
 	switch {
 	case !authoring.ValidSlug(*slug):
 		return usageError{fmt.Errorf("--slug %q is not lowercase letters, digits and single hyphens", *slug)}
+	case *slug == "story":
+		return usageError{errors.New("--slug story: a chapter cannot be called story, the name of a course's story folder in a library folder")}
 	case *courseSlug == "" || *title == "" || *description == "":
 		return usageError{errors.New("--course, --title and --description are required")}
 	}
