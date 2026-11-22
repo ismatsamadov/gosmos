@@ -532,7 +532,9 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		}
 		items = append(items, it)
 	}
-	rows.Close()
+	if err := errors.Join(rows.Err(), rows.Close()); err != nil {
+		return err
+	}
 	written := 0
 	for _, it := range items {
 		pkg, err := authoring.Load(d, it.uuid)

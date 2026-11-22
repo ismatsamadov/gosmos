@@ -400,22 +400,20 @@ func LoadLibrary(q store.Querier) (Library, error) {
 	if err := q.QueryRow(`SELECT uuid, title, version FROM library_info`).Scan(&l.Info.UUID, &l.Info.Title, &l.Info.Version); err != nil {
 		return l, fmt.Errorf("library_info: %w", err)
 	}
-	courses, err := q.Query(`SELECT uuid, slug, title, kind, short_description, description, position FROM course ORDER BY position`)
-	if err != nil {
-		return l, err
-	}
 	var uuids []string
-	for courses.Next() {
+	err := eachRow(q, `SELECT uuid, slug, title, kind, short_description, description, position FROM course ORDER BY position`, func(r *sql.Rows) error {
 		var c Course
 		var uuid string
-		if err := courses.Scan(&uuid, &c.Slug, &c.Title, &c.Kind, &c.Short, &c.Description, &c.Position); err != nil {
-			courses.Close()
-			return l, err
+		if err := r.Scan(&uuid, &c.Slug, &c.Title, &c.Kind, &c.Short, &c.Description, &c.Position); err != nil {
+			return err
 		}
 		uuids = append(uuids, uuid)
 		l.Courses = append(l.Courses, c)
+		return nil
+	})
+	if err != nil {
+		return l, err
 	}
-	courses.Close()
 	for i := range l.Courses {
 		c := &l.Courses[i]
 		if c.Story, err = LoadStory(q, uuids[i]); err != nil {
@@ -429,38 +427,34 @@ func LoadLibrary(q store.Querier) (Library, error) {
 }
 
 func loadChapters(q store.Querier, courseUUID string) ([]Chapter, error) {
-	rows, err := q.Query(`SELECT uuid, slug, title, description, position FROM chapter WHERE course_uuid = ? ORDER BY position`, courseUUID)
-	if err != nil {
-		return nil, err
-	}
 	var chapters []Chapter
 	var uuids []string
-	for rows.Next() {
+	err := eachRow(q, `SELECT uuid, slug, title, description, position FROM chapter WHERE course_uuid = ? ORDER BY position`, func(r *sql.Rows) error {
 		var ch Chapter
 		var uuid string
-		if err := rows.Scan(&uuid, &ch.Slug, &ch.Title, &ch.Description, &ch.Position); err != nil {
-			rows.Close()
-			return nil, err
+		if err := r.Scan(&uuid, &ch.Slug, &ch.Title, &ch.Description, &ch.Position); err != nil {
+			return err
 		}
 		chapters = append(chapters, ch)
 		uuids = append(uuids, uuid)
+		return nil
+	}, courseUUID)
+	if err != nil {
+		return nil, err
 	}
-	rows.Close()
 	for i := range chapters {
-		lessons, err := q.Query(`SELECT uuid FROM lesson WHERE chapter_uuid = ? ORDER BY position`, uuids[i])
+		var ids []string
+		err := eachRow(q, `SELECT uuid FROM lesson WHERE chapter_uuid = ? ORDER BY position`, func(r *sql.Rows) error {
+			var id string
+			if err := r.Scan(&id); err != nil {
+				return err
+			}
+			ids = append(ids, id)
+			return nil
+		}, uuids[i])
 		if err != nil {
 			return nil, err
 		}
-		var ids []string
-		for lessons.Next() {
-			var id string
-			if err := lessons.Scan(&id); err != nil {
-				lessons.Close()
-				return nil, err
-			}
-			ids = append(ids, id)
-		}
-		lessons.Close()
 		for _, id := range ids {
 			p, err := Load(q, id)
 			if err != nil {

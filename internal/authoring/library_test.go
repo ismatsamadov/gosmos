@@ -2,9 +2,12 @@ package authoring
 
 import (
 	"context"
+	"encoding/binary"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -117,6 +120,87 @@ func TestBuildAndLoadLibrary(t *testing.T) {
 	if !reflect.DeepEqual(ids, want) {
 		t.Errorf("lessons by id = %q, want the slugs' uuids in position order %q", ids, want)
 	}
+}
+
+// A damaged page stops LoadLibrary with an error, rather than ending a list early: an
+// export must not leave courses, chapters or lessons out.
+func TestLoadLibraryStopsAtADamagedPage(t *testing.T) {
+	l, err := ReadLibrary(libraryFolder(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Three courses of three chapters, each row long enough that every table spans pages but
+	// short enough to stay on them.
+	long := strings.Repeat("A long description. ", 75)
+	first := l.Courses[0]
+	l.Courses = nil
+	for i := range 3 {
+		c := first
+		c.Slug, c.Position, c.Description, c.Story = fmt.Sprintf("course-%d", i), int64(i), long, Story{}
+		c.Chapters = nil
+		for j := range 3 {
+			ch := first.Chapters[0]
+			ch.Slug, ch.Position, ch.Description = fmt.Sprintf("chapter-%d", j), int64(j), long
+			ch.Lessons = slices.Clone(ch.Lessons)
+			for k := range ch.Lessons {
+				ch.Lessons[k].Readme += long
+			}
+			c.Chapters = append(c.Chapters, ch)
+		}
+		l.Courses = append(l.Courses, c)
+	}
+	good := filepath.Join(t.TempDir(), "apogee.sqlite")
+	d, err := db.Create(good, l.Info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := d.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Put(tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	var size int64
+	if err := d.QueryRow(`PRAGMA page_size`).Scan(&size); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(good)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"course", "chapter", "lesson"} {
+		t.Run(table, func(t *testing.T) {
+			var root int64
+			if err := d.QueryRow(`SELECT rootpage FROM sqlite_schema WHERE name = ?`, table).Scan(&root); err != nil {
+				t.Fatal(err)
+			}
+			page := b[(root-1)*size:]
+			if page[0] != 0x05 {
+				t.Fatalf("the %s table fits on one page", table)
+			}
+			// The last page of rows, which a list in position order reads last.
+			last := int64(binary.BigEndian.Uint32(page[8:12]))
+			c := slices.Clone(b)
+			c[(last-1)*size] = 0 // no kind of page
+			damaged := filepath.Join(t.TempDir(), "apogee.sqlite")
+			if err := os.WriteFile(damaged, c, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			d, _, err := db.Inspect(damaged)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer d.Close()
+			if back, err := LoadLibrary(d); err == nil {
+				t.Errorf("a damaged %s table loaded as %s, without an error", table, back.Summary())
+			}
+		})
+	}
+	d.Close()
 }
 
 func TestReadLibraryRefuses(t *testing.T) {
