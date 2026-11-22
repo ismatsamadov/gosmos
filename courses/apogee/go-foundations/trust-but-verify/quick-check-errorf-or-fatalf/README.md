@@ -6,7 +6,7 @@ position: 3
 difficulty: 4
 topics: testing
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-06T16:51:28Z
+modified: 2026-11-22T10:08:26Z
 ---
 After your first review, Mirela leaves two questions on this part of a test. `parsePassID` splits a pass ID like `pipit-1/PEL/04182` into its satellite, station and orbit number:
 
@@ -20,5 +20,7 @@ if id.Station != "PEL" {
 		id.Station, "PEL")
 }
 ```
+
+## Your task
 
 Pick one answer for each question.

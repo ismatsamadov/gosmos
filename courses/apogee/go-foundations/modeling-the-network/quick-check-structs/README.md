@@ -6,7 +6,7 @@ position: 4
 difficulty: 3
 topics: structs, variables
 created: 2026-11-01T07:36:45Z
-modified: 2026-11-01T07:36:45Z
+modified: 2026-11-22T10:08:26Z
 ---
 Your types go into review tomorrow. Nkem sends three questions first, one at a time, and the first two are about this code:
 
@@ -20,5 +20,7 @@ a := Station{Code: "PEL", MaskDeg: 5}
 b := a
 b.MaskDeg = 9
 ```
+
+## Your task
 
 Read the code one line at a time, and answer from what it does, not from memory.

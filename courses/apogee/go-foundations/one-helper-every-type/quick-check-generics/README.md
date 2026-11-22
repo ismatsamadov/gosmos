@@ -6,7 +6,7 @@ position: 2
 difficulty: 5
 topics: generics
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-06T16:51:27Z
+modified: 2026-11-22T10:08:26Z
 ---
 Before generics reach the scheduler, Nkem asks two questions. The first is about a helper someone pushed this morning, the second about a call to your `Filter`:
 
@@ -22,3 +22,7 @@ high := Filter(passes, aboveTen)
 ```
 
 `passes` is a `[]Pass`, and `aboveTen` is a `func(Pass) bool` that keeps the passes rising above 10 degrees.
+
+## Your task
+
+Answer Nkem's two questions.
