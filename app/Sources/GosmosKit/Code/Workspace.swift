@@ -93,11 +93,20 @@ public struct Workspace: Sendable {
     /// remembers what the app wrote there from the lesson: each read-only file, and each of
     /// your files while you had no saved code. A file that still holds that text is no edit of
     /// yours: it takes the lesson's new text, and goes when the lesson no longer has it. Any
-    /// file you changed or added stays.
+    /// file you changed or added stays. A folder last prepared before the app kept records gets
+    /// them first (`recordAppsCopies`, with `lastOpened`, when you last opened the lesson).
     public func prepare(_ lesson: LessonDetail, code: CodeExercise, saved: [String: CodeFileRecord], goVersion: String,
-                        unsettled: Set<String> = []) throws -> Prepared {
+                        unsettled: Set<String> = [], lastOpened: Date? = nil) throws -> Prepared {
         let dir = folder(for: lesson)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let fm = FileManager.default
+        if fm.fileExists(atPath: dir.path), !fm.fileExists(atPath: dir.appendingPathComponent(".gosmos").path) {
+            let editable = Set(code.starterFiles.filter { $0.isVisible && !$0.isReadonly }.map(\.name))
+            Workspace.recordAppsCopies(in: dir, editable: editable, saved: saved, lastOpened: lastOpened)
+        }
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        // The folder has records from now on, even of nothing, before anything here can fail: what
+        // a later open finds changed is then an edit, never measured against a later open.
+        try? fm.createDirectory(at: dir.appendingPathComponent(".gosmos/starter", isDirectory: true), withIntermediateDirectories: true)
         if !lesson.readme.isEmpty {
             try Workspace.writeIfChanged(dir.appendingPathComponent("README.md"), lesson.readme, mode: 0o644)
         }
@@ -170,6 +179,34 @@ public struct Workspace: Sendable {
     /// file only counts as yours.
     static func remember(_ text: String, in record: URL) {
         try? writeIfChanged(record, text, mode: 0o644)
+    }
+
+    /// Records what the app wrote in a folder it last prepared before it kept records, so the
+    /// records' rules apply there too: every read-only file, which only the app writes, and each
+    /// of the lesson's editable files (`editable`) you have no saved code for, unless it changed
+    /// after you last opened the lesson. An edit made in another editor while the lesson was
+    /// open was saved when you left it, so it would have saved code. `lastOpened` is the last
+    /// open whose code loaded, so this folder's: a failed load records no open. It runs once a
+    /// folder, and takes two risks there: a file you made read-only yourself counts as the
+    /// app's, and so does a file you added before your last open that the lesson's version now
+    /// also gives. Best effort, as `remember`.
+    static func recordAppsCopies(in dir: URL, editable: Set<String>, saved: [String: CodeFileRecord], lastOpened: Date?) {
+        guard let walk = FileManager.default.enumerator(atPath: dir.path) else { return }
+        while let name = walk.nextObject() as? String { // relative to dir, with / between folders
+            if (name as NSString).lastPathComponent.hasPrefix(".") {
+                walk.skipDescendants()
+                continue
+            }
+            guard let attributes = walk.fileAttributes, attributes[.type] as? FileAttributeType == .typeRegular,
+                  let file = try? lessonPath(dir, name), let record = try? starterRecord(dir, name),
+                  let disk = try? String(contentsOf: file, encoding: .utf8) else { continue }
+            let readOnly = ((attributes[.posixPermissions] as? NSNumber)?.uint16Value).map { $0 & 0o222 == 0 } ?? false
+            // last_opened_at keeps whole seconds and is written once the lesson has loaded.
+            let modified = attributes[.modificationDate] as? Date ?? .distantFuture
+            let untouched = editable.contains(name) && saved[name] == nil
+                && lastOpened.map { modified <= $0.addingTimeInterval(1) } ?? false
+            if readOnly || untouched { remember(disk, in: record) }
+        }
     }
 
     /// Whether `disk`, the text of a file in the folder, is what the app last wrote there from

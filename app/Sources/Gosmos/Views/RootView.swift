@@ -181,9 +181,7 @@ struct DetailView: View {
                 }
             } else if let lesson = app.lesson {
                 LessonView(lesson: lesson)
-                    // A redo and the lesson itself are different views: going from one to the
-                    // other never keeps the other's editor, undo history or scroll position.
-                    .id([lesson.detail.ref.library, lesson.detail.ref.lesson, lesson.isReview ? "redo" : "lesson"])
+                    .id(lesson.viewIdentity)
             } else if app.isLoadingLesson {
                 ProgressView().appearsAfterDelay().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

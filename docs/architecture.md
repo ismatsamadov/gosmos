@@ -136,9 +136,10 @@ covered by Swift Testing tests.
   browser. XP, rank, badges and mission patches (`LearningProgress`, `AppModel.isComplete`)
   are worked out from the finished lessons, never stored.
 - A course's opening (`OpeningView`) takes the whole window in place of the split view while
-  `AppModel.opening` is set: at a new learner's first launch, from Begin Course while it hasn't
-  been seen, and from View › Replay the Opening. The name on the badge and the openings seen
-  are settings in the learner database (`badge_name`, `openings_seen`).
+  `AppModel.opening` is set: at a new learner's first launch (no opening seen, no lesson opened
+  or done), that of the course Mission Control offers; from Begin Course while it hasn't been
+  seen; and from View › Replay the Opening. The name on the badge and the openings seen are
+  settings in the learner database (`badge_name`, `openings_seen`).
 - A Settings scene, and menu commands: Run ⌘R, Submit ⌘↩, Next ⌘], Previous ⌘[, Mission
   Control ⌘1, Field Guide ⌘2, Replay the Opening, and the Editor menu: Format Code ⇧⌥F,
   Toggle Comment ⌘/, Indent ⌥⌘], Outdent ⌥⌘[ and Show Documentation ⌃⌘?.
@@ -185,8 +186,9 @@ covered by Swift Testing tests.
   - Database writes happen in transactions, and `PRAGMA quick_check` runs on open.
   - Every outside process can be cancelled and has a timeout.
   - The window is restored on relaunch, and it opens to Mission Control, which offers the
-    lesson you opened last while it is unfinished, then the next unfinished one in its course;
-    a new learner's first launch opens to the first course's opening instead.
+    lesson you opened last while it is unfinished (the `last_opened` setting names it, since
+    `last_opened_at` keeps whole seconds), then the next unfinished one in its course; a new
+    learner's first launch opens to the first course's opening instead.
 
 ## The built-in Go
 
