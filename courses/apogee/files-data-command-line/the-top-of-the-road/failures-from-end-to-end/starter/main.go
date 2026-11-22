@@ -12,6 +12,5 @@ func planDay(dir, format string) (Plan, error) {
 	stations, _ := loadStations()
 	// TODO: return each step's error at once, wrapped with what it was reading, and validate before planning.
 	_ = fmt.Errorf
-	plan, _ := newPlan(settings, stations, bookings)
-	return plan, nil
+	return newPlan(settings, stations, bookings)
 }

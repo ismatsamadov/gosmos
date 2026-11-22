@@ -13,3 +13,5 @@ testdata/stick/bookings.csv
 testdata/stick/bookings.json
 testdata/stick/settings.json
 testdata/unknown.golden
+testdata/wrong-station.golden
+testdata/wrong-station/settings.json

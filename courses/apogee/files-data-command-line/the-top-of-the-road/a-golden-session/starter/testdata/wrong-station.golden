@@ -1,0 +1,4 @@
+[stdout]
+[stderr]
+gctl: settings: unknown station "SQX"
+[exit 1]
