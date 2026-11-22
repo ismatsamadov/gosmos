@@ -6,7 +6,7 @@ position: 0
 difficulty: 7
 topics: crypto, security
 created: 2026-11-07T07:46:47Z
-modified: 2026-11-07T07:46:47Z
+modified: 2026-11-22T10:06:32Z
 ---
 Monday 7 August, at the lab bench. Mirela reads `k-2027-03` out of the spare Pipit-2 computer kept there, signs a command for Cirrine-1 with it, and the command checks out: all seven satellites check their commands with that one key.
 

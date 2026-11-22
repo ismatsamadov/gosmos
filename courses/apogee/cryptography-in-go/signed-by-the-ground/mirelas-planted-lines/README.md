@@ -6,7 +6,7 @@ position: 7
 difficulty: 8
 topics: crypto, errors, strings
 created: 2026-11-07T07:46:48Z
-modified: 2026-11-07T07:46:48Z
+modified: 2026-11-22T10:06:32Z
 ---
 Friday 28 July, 16:00. Mirela has written twelve command lines by hand, two good ones and ten bad in ten different ways, and she feeds them to the uplink's checker: "Accept two. Refuse ten. And show me the guard never moved."
 

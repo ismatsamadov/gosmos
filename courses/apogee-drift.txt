@@ -51,4 +51,36 @@ networking-from-the-socket-up/answers-from-scratch/answer-in-pieces: routes.go g
 
 # cryptography-in-go
 
+cryptography-in-go/passwords-at-rest/the-console-signs-in: console.go gives func (Console).matches
+  The readme: "its matches now reads old sha256$ records too, as your checkStored did, and
+  spends one derivation on the dummy record for each".
+
+cryptography-in-go/passwords-at-rest/the-console-signs-in: console.go gives type Console
+  The readme: a weak record is replaced "in the user file through c.save", and the console
+  "keeps only the token's SHA-256" of each session.
+
+cryptography-in-go/keys-from-keys/the-key-ring: ring.go gives type KeyVersion
+  The readme's key file holds "the time it retires" and "the word revoked if it has been
+  withdrawn", which the version now carries.
+
+cryptography-in-go/sealed-messages/open-in-the-right-order: seal.go gives var ErrUnknownKey
+  Every refusal of a SEAL line is gathered in one group, as the readme's table of Accept's
+  checks lists them, ErrUnknownKey among them; the declaration is unchanged but for its layout
+  in the group.
+
+cryptography-in-go/signatures-anyone-can-check/never-the-key-it-brings: receipt.go gives var ErrBadEnvelope
+  gofmt realigned the receipt refusals' group when this lesson added ErrUnknownSigner ("wrapping
+  ErrUnknownSigner when there is none", the readme); only the spacing changed.
+
+cryptography-in-go/signatures-anyone-can-check/never-the-key-it-brings: receipt.go gives var ErrBadSignature
+  The same realignment, for ErrUnknownSigner.
+
+cryptography-in-go/signatures-anyone-can-check/proof-for-furrowlight: receipt.go gives var ErrRevoked
+  Receipts get their own ErrRevoked, "as for sealed commands" (the readme's table: "the key not
+  revoked  ErrRevoked"), in the receipt refusals' group; seal.go's keeps its text.
+
+cryptography-in-go/every-connection-encrypted/who-is-calling: seal.go gives var ErrRevoked
+  seal.go's own ErrRevoked, as seal.go has given it since sealed-messages; drift follows the
+  name, and receipt.go's ErrRevoked came in between.
+
 # logging-metrics-profiling
