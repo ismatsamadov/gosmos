@@ -218,6 +218,37 @@ private final class WriteLock {
         #expect(try await bench.stored() == typed && bench.onDisk() == typed)
     }
 
+    /// A save under way when you choose meets the file still in conflict, since the choice
+    /// waits for it: it doesn't ask again about the file the choice is settling.
+    @Test @MainActor func aSaveUnderWayWhenYouChooseDoesntAskAgain() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let code = CodeExercise(starterFiles: [StarterFile(name: "helper.go", content: "package main // helper\n"),
+                                               StarterFile(name: "main.go", content: "package main\n")])
+        let lesson = Fixtures.codeLesson("two-files", .code, code)
+        let gate = Gate()
+        await gate.open()
+        let buffers = CodeBuffers(lesson: lesson, exercise: code, saved: [:], learner: bench.learner, workspace: bench.workspace,
+                                  unsettled: [], goVersion: { await gate.pass(); return "1.27" }, remember: { _, _ in })
+        await buffers.load()
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        let helper = try #require(buffers.files.first { $0.name == "helper.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: bench.workspace.folder(for: lesson).appendingPathComponent("main.go"), atomically: true, encoding: .utf8)
+        #expect(try await buffers.flush() == false && buffers.conflict == "main.go")
+
+        // The save writes helper.go, and waits for the database another connection holds.
+        let lock = try WriteLock(bench.dir.appendingPathComponent("learner.sqlite"))
+        helper.text = "package main // helper, edited\n"
+        let saving = Task { try await buffers.flush() }
+        try await Task.sleep(for: .milliseconds(100))
+        let resolving = try #require(buffers.resolveConflict(keepMine: false))
+        try lock.release()
+        #expect(try await saving.value == false)
+        #expect(try await resolving.value == true)
+        #expect(buffers.conflict == nil && main.text == "package main // theirs\n")
+    }
+
     /// A folder from before the records, holding an edit made in another editor since the last
     /// open, whose first open fails partway. Should a later open be recorded meanwhile, the
     /// retry still measures nothing against it: the folder got its records on the first try,

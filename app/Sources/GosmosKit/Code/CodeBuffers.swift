@@ -54,8 +54,9 @@ public final class CodeBuffers {
     public private(set) var conflict: String?
     /// True while a choice in a conflict is still being saved. The editor takes no typing
     /// meanwhile: a choice of the file on disk puts that file's text in it once it lands.
-    public var isResolving: Bool { choicesLanding > 0 }
-    private var choicesLanding = 0
+    public var isResolving: Bool { !landing.isEmpty }
+    /// The files whose choice is still being saved.
+    private var landing: Set<String> = []
 
     /// Where your code is kept; nil for a review, which starts from the starter code in a
     /// folder of its own each time and keeps nothing.
@@ -201,7 +202,9 @@ public final class CodeBuffers {
                     settled = false
                 }
             case .conflict?:
-                if conflict == nil { conflict = buffer.name }
+                // A save that was under way when you chose meets the file still in conflict: the
+                // choice, after it, settles it, so the question isn't asked again.
+                if conflict == nil && !landing.contains(buffer.name) { conflict = buffer.name }
                 settled = false
             default:
                 break
@@ -219,11 +222,11 @@ public final class CodeBuffers {
     public func resolveConflict(keepMine: Bool) -> Task<Bool, any Error>? {
         guard let name = conflict, let saver, let buffer = files.first(where: { $0.name == name }) else { return nil }
         conflict = nil
-        choicesLanding += 1
+        landing.insert(name)
         let mine = buffer.text
         let previous = flushing
         let task = Task { () async throws -> Bool in
-            defer { choicesLanding -= 1 }
+            defer { landing.remove(name) }
             _ = try? await previous?.value
             let kept = try await saver.resolve(name, keepMine ? .mine(mine) : .disk)
             // A review's conflict is in its own folder; the lesson's list is not its to change.
