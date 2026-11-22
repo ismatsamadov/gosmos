@@ -200,6 +200,178 @@ import Testing
     }
 }
 
+/// What Option-click asked Quick Help about.
+@MainActor private final class QuickHelpAsks {
+    var offsets: [Int] = []
+}
+
+/// Events for the app to hand out in place of its own queue, as a text view tracking the mouse
+/// reads them. The real queue is no use here: posting to it, and the window server's events
+/// once the app reads them, stop the main run loop's current run. When that is the run the
+/// tests run in, the test process ends at once, tests still to run, and `swift test` reports
+/// no failure.
+private final class EventQueue {
+    private(set) var events: [NSEvent]
+
+    init(_ events: [NSEvent]) {
+        self.events = events
+    }
+
+    /// Runs `body` with `NSApplication.nextEvent(matching:until:inMode:dequeue:)` taking its
+    /// events from this queue, and from nowhere else.
+    @MainActor func serve(_ body: () -> Void) {
+        _ = NSApplication.shared
+        let selector = #selector(NSApplication.nextEvent(matching:until:inMode:dequeue:))
+        guard let method = class_getInstanceMethod(NSApplication.self, selector) else {
+            Issue.record("NSApplication has no nextEvent(matching:until:inMode:dequeue:)")
+            return
+        }
+        let next: @convention(block) (NSApplication, UInt64, NSDate?, NSString?, Bool) -> NSEvent? = { _, mask, expiration, _, dequeue in
+            self.next(matching: NSEvent.EventTypeMask(rawValue: mask), until: expiration as Date?, dequeue: dequeue)
+        }
+        let implementation = imp_implementationWithBlock(next)
+        let original = method_setImplementation(method, implementation)
+        defer {
+            method_setImplementation(method, original)
+            imp_removeBlock(implementation)
+        }
+        body()
+    }
+
+    private func next(matching mask: NSEvent.EventTypeMask, until expiration: Date?, dequeue: Bool) -> NSEvent? {
+        guard let index = events.firstIndex(where: { mask.contains(NSEvent.EventTypeMask(type: $0.type)) }) else {
+            // The app would wait for the person to do more.
+            if let expiration, expiration > Date() {
+                Issue.record("An event was waited for after the last one")
+            }
+            return nil
+        }
+        return dequeue ? events.remove(at: index) : events[index]
+    }
+}
+
+/// Presses on the code as the app gets them, in a window that is never shown: `mouseDown`
+/// gets the press, and asks the app for the moves and the release after it.
+@Suite(.serialized) @MainActor struct MousePressTests {
+    private let text = "fmt.Println(x)\nfmt.Println(y)\nfmt.Println(z)\n"
+    private let lineLength = 15
+
+    private func editor() throws -> (textView: CodeTextView, asks: QuickHelpAsks, window: NSWindow) {
+        let asks = QuickHelpAsks()
+        let coordinator = CodeEditorView(
+            text: .constant(text), highlighter: TestHighlighter(), onOptionClick: { asks.offsets.append($0) }
+        ).makeCoordinator()
+        // Not deferred, so the window has a number for the events to carry. An event without
+        // one has its location taken as on the screen when the text view tracks a click.
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = coordinator.scrollView
+        window.layoutIfNeeded()
+        let layout = try #require(coordinator.textView.textLayoutManager)
+        layout.ensureLayout(for: layout.documentRange)
+        return (coordinator.textView, asks, window)
+    }
+
+    /// A point a quarter of the way into the character at `index`, so the insertion point
+    /// nearest it is the one before that character.
+    private func point(at index: Int, in textView: CodeTextView) throws -> NSPoint {
+        let rect = try #require(textView.rect(for: NSRange(location: index, length: 1)))
+        return NSPoint(x: rect.minX + rect.width / 4, y: rect.midY)
+    }
+
+    private func mouse(_ type: NSEvent.EventType, at point: NSPoint, flags: NSEvent.ModifierFlags, in textView: NSTextView) throws -> NSEvent {
+        try #require(NSEvent.mouseEvent(
+            with: type, location: textView.convert(point, to: nil), modifierFlags: flags,
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: textView.window?.windowNumber ?? 0,
+            context: nil, eventNumber: 0, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1
+        ))
+    }
+
+    /// Presses the button at `start` with `flags` held, moves through `path` and lets go at
+    /// its end. Returns what the text view left in the queue, which the app would hand to the
+    /// window next.
+    private func press(_ textView: CodeTextView, at start: NSPoint, through path: [NSPoint] = [],
+                       flags: NSEvent.ModifierFlags) throws -> [NSEvent.EventType] {
+        let down = try mouse(.leftMouseDown, at: start, flags: flags, in: textView)
+        let moves = try path.map { try mouse(.leftMouseDragged, at: $0, flags: flags, in: textView) }
+        let queue = EventQueue(moves + [try mouse(.leftMouseUp, at: path.last ?? start, flags: flags, in: textView)])
+        queue.serve { textView.mouseDown(with: down) }
+        return queue.events.map(\.type)
+    }
+
+    private func selection(of textView: NSTextView) -> [NSRange] {
+        textView.selectedRanges.map(\.rangeValue)
+    }
+
+    /// Option-click on a name asks Quick Help about it when the button comes up, and leaves
+    /// the selection as it was. The release is the window's, as after any click.
+    @Test func optionClickOnANameAsksQuickHelp() throws {
+        let (textView, asks, _) = try editor()
+        let index = (text as NSString).range(of: "Println(y)").location + 2
+        let left = try press(textView, at: try point(at: index, in: textView), flags: .option)
+        #expect(asks.offsets == [index])
+        #expect(selection(of: textView) == [NSRange(location: 0, length: 0)])
+        #expect(left == [.leftMouseUp])
+    }
+
+    /// A trackpad click can move the pointer a point or two before the button comes up; it is
+    /// still a click, up to `clickWobble` points away.
+    @Test func aClickThatWobblesIsStillAClick() throws {
+        let (textView, asks, _) = try editor()
+        let index = (text as NSString).range(of: "Println(z)").location + 3
+        let start = try point(at: index, in: textView)
+        let path = [
+            NSPoint(x: start.x + 1, y: start.y), NSPoint(x: start.x + 1, y: start.y - 2),
+            NSPoint(x: start.x - CodeTextView.clickWobble, y: start.y),
+        ]
+        let left = try press(textView, at: start, through: path, flags: .option)
+        #expect(asks.offsets == [index])
+        #expect(selection(of: textView) == [NSRange(location: 0, length: 0)])
+        // The moves were dropped; the release is still the window's.
+        #expect(left == [.leftMouseUp])
+    }
+
+    /// An Option-drag selects a column of text, whether it starts on a name or anywhere else,
+    /// and asks nothing. The editor stays on TextKit 2.
+    @Test func anOptionDragSelectsAColumn() throws {
+        let (textView, asks, _) = try editor()
+        // From the P of the first line's Println to the second n of the third's: a wobble,
+        // then on to the end.
+        let start = try point(at: 4, in: textView)
+        let end = try point(at: 2 * lineLength + 10, in: textView)
+        let halfway = NSPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
+        var left = try press(textView, at: start, through: [NSPoint(x: start.x + 1, y: start.y + 1), halfway, end], flags: .option)
+        #expect(selection(of: textView) == [
+            NSRange(location: 4, length: 6), NSRange(location: lineLength + 4, length: 6),
+            NSRange(location: 2 * lineLength + 4, length: 6),
+        ])
+        #expect(left.isEmpty)
+
+        // From the first line's period, which is no name, to the second line's l.
+        left = try press(textView, at: try point(at: 3, in: textView), through: [try point(at: lineLength + 9, in: textView)], flags: .option)
+        #expect(selection(of: textView) == [NSRange(location: 3, length: 6), NSRange(location: lineLength + 3, length: 6)])
+        #expect(left.isEmpty)
+        #expect(asks.offsets.isEmpty)
+        #expect(textView.textLayoutManager != nil)
+    }
+
+    /// Off a name, Option-click is an ordinary click, as is a click without Option: the text
+    /// view puts the insertion point there.
+    @Test func otherClicksAreTheTextViewsOwn() throws {
+        let (textView, asks, _) = try editor()
+        let ns = text as NSString
+        let parenthesis = ns.range(of: "(y)").location
+        var left = try press(textView, at: try point(at: parenthesis, in: textView), flags: .option)
+        #expect(selection(of: textView) == [NSRange(location: parenthesis, length: 0)])
+        #expect(left.isEmpty)
+
+        let name = ns.range(of: "Println(z)").location + 1
+        left = try press(textView, at: try point(at: name, in: textView), flags: [])
+        #expect(selection(of: textView) == [NSRange(location: name, length: 0)])
+        #expect(left.isEmpty)
+        #expect(asks.offsets.isEmpty)
+    }
+}
+
 /// The SwiftUI view's update path, driven through its coordinator in a window that is never shown.
 @Suite @MainActor struct CodeEditorViewTests {
     private let code = (1...300).map { "line\($0) := \($0) // note" }.joined(separator: "\n")
