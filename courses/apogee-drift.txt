@@ -84,3 +84,18 @@ cryptography-in-go/every-connection-encrypted/who-is-calling: seal.go gives var 
   name, and receipt.go's ErrRevoked came in between.
 
 # logging-metrics-profiling
+
+logging-metrics-profiling/when-to-wake-someone/silences-that-end: pager.go gives func (Pager).Observe
+  The readme: "The given pager now asks silenced before it sends an alert, and routes the rest
+  with your route".
+
+logging-metrics-profiling/when-to-wake-someone/silences-that-end: state.go gives type ruleState
+  The readme's note: "ruleState, in state.go, has a new field, held, for a FIRING the silence
+  held back".
+
+logging-metrics-profiling/where-the-memory-goes/nothing-left-behind: radio.go gives func newUplink
+  The readme: "since Thursday the radio's fly takes the pass's context and stops at LOS with
+  ErrNoAck".
+
+logging-metrics-profiling/where-the-memory-goes/nothing-left-behind: radio.go gives type Uplink
+  The same: fly takes the pass's context.
