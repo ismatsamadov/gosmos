@@ -46,7 +46,6 @@ final class AppModel {
     private(set) var learner: LearnerDatabase?
     /// The sidebar's libraries: the ones built into the app first, then those you opened.
     private(set) var shelf: [ShelfLibrary] = [] { didSet { updateLearningProgress() } }
-    private(set) var toolchain: Toolchain?
     /// Finished lessons, by library.
     private(set) var done: [String: Set<String>] = [:] { didSet { updateLearningProgress() } }
     /// XP, rank and badges, from `done` over the shelf's catalogs: made again when either
@@ -140,8 +139,8 @@ final class AppModel {
     let search = SearchModel()
     /// The opening on screen, the name on your badge and the openings seen.
     let story = StoryModel()
-    var editorFontSize: Double = 13
-    var showLineNumbers = true
+    /// Settings › Editor and Settings › Go.
+    let settings: SettingsModel
     /// Set while the app saves before it quits.
     private(set) var isQuitting = false
     @ObservationIgnored private var started = false
@@ -157,18 +156,18 @@ final class AppModel {
     private let readmes = ReadmeCache()
     private var observeTask: Task<Void, Never>?
     private var loadTask: Task<Void, Never>?
-    /// Finds the Go to run code with; only the latest check counts (Settings › Go).
-    private let toolchainWork = LatestWork<Toolchain>()
     private let signposter = OSSignposter(subsystem: Log.subsystem, category: .pointsOfInterest)
     private var launchInterval: OSSignpostIntervalState?
 
     init(defaults: UserDefaults = .standard, resources: AppResources = .bundled) {
         preferences = LocalPreferences(defaults: defaults)
+        settings = SettingsModel(preferences: preferences)
         self.resources = resources
         workspace = Workspace(root: preferences.dataFolder?.appendingPathComponent("work", isDirectory: true) ?? Workspace.defaultRoot)
         navigation.docLocation = { [weak self] in self?.docs?.location }
         search.app = self
         story.app = self
+        settings.app = self
     }
 
     // MARK: Launch
@@ -186,10 +185,7 @@ final class AppModel {
         // What runs left behind after a crash; not the lesson folders.
         let workspace = workspace
         Task.detached(priority: .background) { workspace.removeStaleRuns() }
-        let goOverride = preferences.goPath, goCaches = goCaches
-        toolchainWork.start(priority: .utility, { await Toolchain.discover(goOverride: goOverride, caches: goCaches) }) { [weak self] in
-            self?.toolchain = $0
-        }
+        settings.discoverToolchain()
 
         let opened = ContinuousClock.now
         let url = preferences.dataFolder?.appendingPathComponent("learner.sqlite") ?? LearnerDatabase.defaultURL
@@ -210,8 +206,7 @@ final class AppModel {
         AppModel.logPhase("open (learner database and libraries)", since: opened)
         do {
             done = try await learner.done()
-            editorFontSize = Double(try await learner.setting("editor_font_size") ?? "") ?? 13
-            showLineNumbers = (try await learner.setting("editor_line_numbers")) != "0"
+            try await settings.load(from: learner)
             try await story.load(from: learner)
             resumeLesson = try await learner.lastOpened()
         } catch {
@@ -720,48 +715,6 @@ final class AppModel {
             return true
         case nil:
             return false
-        }
-    }
-
-    // MARK: Settings
-
-    func setEditorFontSize(_ size: Double) {
-        editorFontSize = min(max(size, 9), 28)
-        guard let learner else { return }
-        let value = String(Int(editorFontSize))
-        learner.pendingWrites.start { [weak self] in
-            do { try await learner.setSetting("editor_font_size", value) } catch { self?.report(error) }
-        }
-    }
-
-    /// The Go to run code with, waiting for the latest check of it.
-    func awaitToolchain() async -> Toolchain? {
-        if let toolchain { return toolchain }
-        guard let t = await toolchainWork.value() else { return nil }
-        toolchain = t
-        return t
-    }
-
-    /// Where Go keeps its caches: ~/Library/Caches/Gosmos, beside the lesson folders, or the
-    /// data folder of a scripted run.
-    private var goCaches: URL { preferences.dataFolder ?? Toolchain.defaultCaches }
-
-    /// Runs your code with the Go at `goPath`, or with the built-in Go when it is nil.
-    func rediscoverToolchain(goPath: String?) {
-        preferences.setGoPath(goPath)
-        toolchain = nil
-        let override = preferences.goPath, goCaches = goCaches
-        // A check still under way, such as of a Go that hangs, never lands after this one.
-        toolchainWork.start(priority: .userInitiated, { await Toolchain.discover(goOverride: override, caches: goCaches) }) { [weak self] in
-            self?.toolchain = $0
-        }
-    }
-
-    func setShowLineNumbers(_ on: Bool) {
-        showLineNumbers = on
-        guard let learner else { return }
-        learner.pendingWrites.start { [weak self] in
-            do { try await learner.setSetting("editor_line_numbers", on ? "1" : "0") } catch { self?.report(error) }
         }
     }
 
