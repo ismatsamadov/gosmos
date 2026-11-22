@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gosmos}/app",
+            "name": "Debug Gosmos (app)",
+            "target": "Gosmos",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug Gosmos (app)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gosmos}/app",
+            "name": "Release Gosmos (app)",
+            "target": "Gosmos",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release Gosmos (app)"
+        }
+    ]
+}

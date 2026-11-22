@@ -52,6 +52,10 @@ public final class CodeBuffers {
     public private(set) var loadError: String?
     /// A file that changed both here and in another editor; the lesson asks which to keep.
     public private(set) var conflict: String?
+    /// True while a choice in a conflict is still being saved. The editor takes no typing
+    /// meanwhile: a choice of the file on disk puts that file's text in it once it lands.
+    public var isResolving: Bool { choicesLanding > 0 }
+    private var choicesLanding = 0
 
     /// Where your code is kept; nil for a review, which starts from the starter code in a
     /// folder of its own each time and keeps nothing.
@@ -207,22 +211,37 @@ public final class CodeBuffers {
 
     /// Settles the conflict with your version, or with the file on disk, read again now. The
     /// question goes away at once; the task says whether no conflict is left, and asks about
-    /// the next one if there is.
+    /// the next one if there is. Until the choice lands the editor takes no typing
+    /// (`isResolving`), and a save asked for meanwhile waits for it, so neither builds on the
+    /// text the choice replaces. Should the text change anyway, the file on disk never goes
+    /// over it: the change was made on your version, so the lesson asks again.
     public func resolveConflict(keepMine: Bool) -> Task<Bool, any Error>? {
         guard let name = conflict, let saver, let buffer = files.first(where: { $0.name == name }) else { return nil }
         conflict = nil
+        choicesLanding += 1
         let mine = buffer.text
-        return Task {
+        let previous = flushing
+        let task = Task { () async throws -> Bool in
+            defer { choicesLanding -= 1 }
+            _ = try? await previous?.value
             let kept = try await saver.resolve(name, keepMine ? .mine(mine) : .disk)
-            if !keepMine { buffer.fill(kept) }
             // A review's conflict is in its own folder; the lesson's list is not its to change.
             if learner != nil { remember(name, false) }
+            if !keepMine {
+                if buffer.text == mine || buffer.text == kept {
+                    buffer.fill(kept)
+                } else {
+                    try await saver.markConflict(name)
+                }
+            }
             if let next = await saver.conflicts.sorted().first {
-                conflict = next
+                if conflict == nil { conflict = next }
                 return false
             }
             return true
         }
+        flushing = task
+        return task
     }
 
     /// Saves before the lesson closes, once a load under way has landed, so whatever the

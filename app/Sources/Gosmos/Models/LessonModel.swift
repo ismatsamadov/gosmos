@@ -285,6 +285,8 @@ final class CodeSession {
     var folder: URL? { buffers.folder }
     /// A file that changed both here and in another editor; the lesson asks which to keep.
     var conflict: String? { buffers.conflict }
+    /// True while your choice in a conflict is still being saved: the editor takes no typing.
+    var isResolving: Bool { buffers.isResolving }
 
     /// Your code from the database, reconciled with the work folder (an edit made there in
     /// another editor wins when it is newer). Then a save, which asks about a file left in
@@ -445,6 +447,7 @@ final class CodeSession {
         guard let file = activeFile else { return "There is no file to edit" }
         if file.readOnly { return "This file is read-only" }
         if !isLoaded { return loadError == nil ? "Your code is still loading" : "Your code could not load" }
+        if isResolving { return "Your choice of version is still being saved" }
         switch command {
         case .format:
             if !file.name.hasSuffix(".go") { return "Format works on .go files" }

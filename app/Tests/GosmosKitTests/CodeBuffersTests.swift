@@ -1,10 +1,31 @@
 import Foundation
+import SQLite3
 import Testing
 @testable import GosmosKit
 
 /// What the buffers asked to remember across launches: whether a file is still in conflict.
 @MainActor private final class Remembered {
     var files: [String: Bool] = [:]
+}
+
+/// Holds a database's write lock on a connection of its own, as another process writing would,
+/// so the app's next write waits (its busy timeout is 10 s) until `release`. SQLite's own API:
+/// GRDB ends every access with no transaction left open.
+private final class WriteLock {
+    struct Failed: Error { let code: Int32 }
+    private var db: OpaquePointer?
+
+    init(_ url: URL) throws {
+        var code = sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READWRITE, nil)
+        if code == SQLITE_OK { code = sqlite3_exec(db, "BEGIN IMMEDIATE", nil, nil, nil) }
+        guard code == SQLITE_OK else { sqlite3_close(db); throw Failed(code: code) }
+    }
+
+    func release() throws {
+        let code = sqlite3_exec(db, "COMMIT", nil, nil, nil)
+        sqlite3_close(db)
+        guard code == SQLITE_OK else { throw Failed(code: code) }
+    }
 }
 
 /// The editor's buffers before, during and after the load: typing is never lost to a load
@@ -96,6 +117,64 @@ import Testing
         #expect(try await buffers.resolveConflict(keepMine: true)?.value == true)
         #expect(buffers.conflict == nil && remembered.files == ["main.go": false])
         #expect(try await bench.stored() == "package main // mine\n" && bench.onDisk() == "package main // mine\n")
+    }
+
+    /// You choose the file on disk while saving that choice is slow (another connection holds
+    /// the learner database), and the text changes as soon as the question goes away. The editor
+    /// takes no typing until the choice lands, and should the text change anyway, the file on
+    /// disk doesn't go over it: the change was made on your version, so the lesson asks again.
+    @Test @MainActor func aSlowChoiceOfTheFileOnDiskNeverOverwritesTextChangedMeanwhile() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let gate = Gate()
+        await gate.open()
+        let buffers = bench.buffers(gate: gate)
+        await buffers.load()
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: bench.file, atomically: true, encoding: .utf8)
+        #expect(try await buffers.flush() == false && buffers.conflict == "main.go")
+
+        let lock = try WriteLock(bench.dir.appendingPathComponent("learner.sqlite"))
+        let resolving = try #require(buffers.resolveConflict(keepMine: false))
+        #expect(buffers.conflict == nil && buffers.isResolving)
+        // A save asked for now waits for the choice, rather than build on the text it replaces.
+        let saving = Task { try await buffers.flush() }
+        try await Task.sleep(for: .milliseconds(100))
+        let typed = "package main // typed after choosing\n"
+        main.text = typed
+        try lock.release()
+        #expect(try await resolving.value == false)
+        #expect(main.text == typed && buffers.conflict == "main.go" && !buffers.isResolving)
+        #expect(try await saving.value == false)
+        #expect(try await bench.stored() == "package main // theirs\n" && bench.onDisk() == "package main // theirs\n")
+
+        #expect(try await buffers.resolveConflict(keepMine: true)?.value == true)
+        #expect(try await bench.stored() == typed && bench.onDisk() == typed)
+    }
+
+    /// The same slow choice with nothing typed: the editor gets the file on disk once it lands.
+    @Test @MainActor func aSlowChoiceOfTheFileOnDiskFillsTheEditorWhenItLands() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let gate = Gate()
+        await gate.open()
+        let buffers = bench.buffers(gate: gate)
+        await buffers.load()
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: bench.file, atomically: true, encoding: .utf8)
+        #expect(try await buffers.flush() == false)
+
+        let lock = try WriteLock(bench.dir.appendingPathComponent("learner.sqlite"))
+        let resolving = try #require(buffers.resolveConflict(keepMine: false))
+        let saving = Task { try await buffers.flush() }
+        try await Task.sleep(for: .milliseconds(100))
+        try lock.release()
+        #expect(try await resolving.value == true)
+        #expect(try await saving.value == true)
+        #expect(main.text == "package main // theirs\n" && buffers.conflict == nil && !buffers.isResolving)
+        #expect(try await bench.stored() == "package main // theirs\n" && bench.onDisk() == "package main // theirs\n")
     }
 
     /// Without typing, the load takes in the other editor's newer edit, as before.
