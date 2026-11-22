@@ -346,6 +346,60 @@ import Testing
         #expect(p.files.first?.content == "edited outside" && p.readBack.map(\.content) == ["edited outside"])
     }
 
+    /// A folder a build before the records last prepared has none. What only the app could have
+    /// written there counts as its copy: a read-only file, and a starter you have no saved code
+    /// for that is no newer than your last open of the lesson. Those take the changed lesson's
+    /// text, or go; a starter edited after that open, and a file you added, stay yours.
+    @Test func aFolderFromBeforeTheRecordsGetsThemFirst() throws {
+        let root = try Fixtures.tempDir("unrecorded")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let dir = ws.folder(for: l)
+        func file(_ name: String) -> URL { dir.appendingPathComponent(name) }
+        let v1 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 1"),
+                                             StarterFile(name: "plan.go", content: "plan 1"),
+                                             StarterFile(name: "old_test.go", content: "old tests", isReadonly: true),
+                                             StarterFile(name: "main_test.go", content: "tests 1", isReadonly: true)])
+        let v2 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 2"),
+                                             StarterFile(name: "plan.go", content: "plan 2"),
+                                             StarterFile(name: "main_test.go", content: "tests 2", isReadonly: true)])
+        _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        let opened = Date()
+        try FileManager.default.removeItem(at: file(".gosmos")) // as a build before the records left it
+        try "plan edited outside".write(to: file("plan.go"), atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.modificationDate: opened.addingTimeInterval(60)], ofItemAtPath: file("plan.go").path)
+        try "package main // mine\n".write(to: file("notes.go"), atomically: true, encoding: .utf8)
+
+        let p = try ws.prepare(l, code: v2, saved: [:], goVersion: "1.27", lastOpened: opened)
+        #expect(try String(contentsOf: file("main.go"), encoding: .utf8) == "starter 2")
+        #expect(try String(contentsOf: file("main_test.go"), encoding: .utf8) == "tests 2")
+        #expect(!FileManager.default.fileExists(atPath: file("old_test.go").path))
+        #expect(p.files.map(\.content) == ["starter 2", "plan edited outside", "tests 2"])
+        #expect(p.readBack.map(\.name) == ["plan.go"])
+        #expect(FileManager.default.fileExists(atPath: file("notes.go").path))
+        #expect(FileManager.default.fileExists(atPath: file(".gosmos/starter/main.go").path))
+    }
+
+    /// The same folder, never opened as far as your progress knows: a starter that differs from
+    /// the lesson's can't be told from an edit, so it stays yours, as before; the read-only
+    /// files are still the app's.
+    @Test func aFolderFromBeforeTheRecordsWithNoOpenKeepsItsStarters() throws {
+        let root = try Fixtures.tempDir("unrecorded")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ws = Workspace(root: root)
+        let l = lesson()
+        let dir = ws.folder(for: l)
+        let v1 = CodeExercise(starterFiles: code.starterFiles + [StarterFile(name: "old_test.go", content: "old tests", isReadonly: true)])
+        let v2 = CodeExercise(starterFiles: [StarterFile(name: "main.go", content: "starter 2"), code.starterFiles[1]])
+        _ = try ws.prepare(l, code: v1, saved: [:], goVersion: "1.27")
+        try FileManager.default.removeItem(at: dir.appendingPathComponent(".gosmos"))
+
+        let p = try ws.prepare(l, code: v2, saved: [:], goVersion: "1.27")
+        #expect(p.files.first?.content == "starter" && p.readBack.map(\.content) == ["starter"])
+        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("old_test.go").path))
+    }
+
     /// Taking out what a lesson dropped is best effort: a copy the app can't remove stays, the
     /// lesson still opens, and the next open tries again.
     @Test func aCopyThatCantBeRemovedStays() throws {

@@ -301,6 +301,14 @@ public final class LearnerDatabase: Sendable {
         }
     }
 
+    /// When you last opened a lesson; nil if you never have.
+    public func lastOpenedAt(_ ref: LessonRef) async throws -> Date? {
+        try await dbQueue.read { db in
+            try String.fetchOne(db, sql: "SELECT last_opened_at FROM progress WHERE library_uuid = ? AND lesson_uuid = ?",
+                                arguments: [ref.library, ref.lesson]).flatMap(Clock.date)
+        }
+    }
+
     /// The lesson you opened last, in any library: the one the last_opened setting names;
     /// without it (a database from before it), the one opened latest.
     public func lastOpened() async throws -> LessonRef? {

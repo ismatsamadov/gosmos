@@ -102,12 +102,13 @@ public final class CodeBuffers {
     private func loadNow() async {
         do {
             let saved = try await learner?.codeFiles(for: lesson.ref) ?? [:]
+            let opened = try await learner?.lastOpenedAt(lesson.ref)
             let version = await goVersion()
             let lesson = lesson, exercise = exercise, workspace = workspace, unsettled = unsettled, fresh = learner == nil
             let prepared = try await Task.detached(priority: .userInitiated) {
                 // A review starts over from the starter code every time.
                 if fresh { try workspace.remove(lesson) }
-                return try workspace.prepare(lesson, code: exercise, saved: saved, goVersion: version, unsettled: unsettled)
+                return try workspace.prepare(lesson, code: exercise, saved: saved, goVersion: version, unsettled: unsettled, lastOpened: opened)
             }.value
             folder = prepared.folder
             let (start, conflicted) = adopt(prepared.files)

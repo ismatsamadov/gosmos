@@ -270,6 +270,8 @@ import Testing
         try await learner.setDone(quiz, true, now: at("2027-03-01T11:00:00Z")) // the first time stays
         try await learner.markOpened(code, now: at("2027-03-01T10:05:00Z"))
         try await learner.markOpened(otherCode, now: at("2027-03-01T10:06:00Z"))
+        #expect(try await learner.lastOpenedAt(code) == at("2027-03-01T10:05:00Z"))
+        #expect(try await learner.lastOpenedAt(quiz) == nil)
         try await learner.setDone(otherCode, true)
         #expect(try await learner.done() == [Fixtures.libraryID: [Fixtures.quizLesson], other.uuid: [Fixtures.codeLesson]])
         try await learner.setDone(otherCode, false) // keeps the row: it was opened
