@@ -1,0 +1,41 @@
+# Every pull request, and every push to main: the Go tools' vet and tests and the libraries'
+# checks (make check: the library's checks and drift, then the Go reference's) on Linux, and
+# the app's and the CodeEditor package's tests on macOS 27.
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local # the Go set up below, never one the go command fetches
+
+jobs:
+  go:
+    name: Go tools and library checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.3 # the Go the app is built with
+          cache: false # the modules are in vendor/
+      - run: go vet ./...
+      - run: go test ./...
+      - run: make check
+
+  app:
+    name: App tests
+    runs-on: xcode-27 # macOS 27 with Xcode 27's Swift
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.3 # the tests run Go programs
+          cache: false
+      - run: swift test --package-path app
+      - run: swift test --package-path app/Packages/CodeEditor

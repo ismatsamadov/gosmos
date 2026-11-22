@@ -272,6 +272,28 @@ func TestVerifyGivesGuidedProjectsLonger(t *testing.T) {
 	}
 }
 
+// On a slower machine, such as a shared CI runner, --slow reports a run only when it is
+// stopped, not when it passes the slow limit.
+func TestVerifySlowReportsOnlyStoppedRuns(t *testing.T) {
+	slow, timeout := slowAfter, runTimeout
+	slowAfter, runTimeout = 800*time.Millisecond, 3*time.Second
+	t.Cleanup(func() { slowAfter, runTimeout = slow, timeout })
+
+	sleepy := map[string]string{"main.go": program("\ttime.Sleep(1500 * time.Millisecond)\n\tfmt.Print(\"Hello, Apogee!\\n\")\n")}
+	stuck := map[string]string{"main.go": program("\ttime.Sleep(5 * time.Second)\n\tfmt.Print(\"Hello, Apogee!\\n\")\n")}
+	stmts := codeLessonSQL("slow", "type_code", 0, expect(greeting), map[string]string{"main.go": todo}, sleepy)
+	stmts = append(stmts, codeLessonSQL("stuck", "type_code", 1, expect(greeting), map[string]string{"main.go": todo}, stuck)...)
+	path := verifyLibrary(t, stmts...)
+
+	code, byLesson, out := problems(t, "--slow", path)
+	if len(byLesson["slow"]) != 0 {
+		t.Errorf("--slow reported a run of 1.5 s against 800ms:\n%s", out)
+	}
+	if code != 1 || len(byLesson["stuck"]) != 1 || !strings.Contains(byLesson["stuck"][0], "did not finish within 3s") {
+		t.Errorf("--slow and a run stopped at 3s: exit %d, problems %q", code, byLesson["stuck"])
+	}
+}
+
 // A starter without a go.mod gets the one the app writes: the language version of the Go
 // toolchain that runs it, so a lesson may use what that Go has. errors.AsType came in Go 1.26.
 func TestVerifyUsesTheToolchainsGoVersion(t *testing.T) {
