@@ -1,8 +1,12 @@
 #!/bin/sh
 # Assembles Gosmos.app from a built binary, with the Go toolchain it runs lessons with, and
-# signs it ad hoc.
+# signs it: ad hoc, for the Mac that built it, or with a Developer ID for others.
 # Usage: app/scripts/bundle.sh <binary> <app path>   (make app runs it)
 # GO_ROOT=<folder> is the Go to build in; the default is the one `go env GOROOT` names.
+# SIGN_IDENTITY=<identity> signs with that certificate in the keychain, such as "Developer ID
+# Application: <name> (<team>)", with the hardened runtime and a secure timestamp, as
+# notarization wants (make notarize); the default, -, signs ad hoc. HARDENED=1 gives an ad hoc
+# build the hardened runtime too, to try the app under it without a certificate.
 set -eu
 
 binary=$1
@@ -21,6 +25,19 @@ if [ ! -x "$go_root/bin/go" ] || [ ! -x "$go_root/bin/gofmt" ] || [ ! -d "$go_ro
 	echo "bundle.sh: $go_root is not a darwin/arm64 Go toolchain; set GO_ROOT to one" >&2
 	exit 1
 fi
+
+identity=${SIGN_IDENTITY:--}
+if [ "$identity" = - ]; then
+	sign_flags=--timestamp=none
+	if [ "${HARDENED:-}" = 1 ]; then sign_flags="$sign_flags --options runtime"; fi
+else
+	if ! security find-identity -v -p codesigning | grep -qF -- "$identity"; then
+		echo "bundle.sh: no valid signing identity \"$identity\" in the keychain (security find-identity -v -p codesigning lists them)" >&2
+		exit 1
+	fi
+	sign_flags="--timestamp --options runtime"
+fi
+export identity sign_flags
 
 if [ ! -f "$repo/db/learner.sql" ]; then
 	echo "bundle.sh: $repo/db/learner.sql is missing" >&2
@@ -106,18 +123,18 @@ if [ ! -f "$go/LICENSE" ]; then
 	exit 1
 fi
 
-# Every program in the toolchain is signed like the app, then the app. A Developer ID build
-# signs each with its identity, the hardened runtime and a timestamp (docs/architecture.md).
+# Every program in the toolchain is signed like the app, then the app (docs/architecture.md,
+# "Signing").
 find "$go" -type f -perm -u+x -exec sh -c '
 	set -e
 	for f; do
 		case $(file -b "$f") in
 		Mach-O*executable* | Mach-O*dynamically\ linked* | Mach-O*bundle*)
 			codesign --remove-signature "$f"
-			codesign --sign - --timestamp=none "$f" ;;
+			codesign --sign "$identity" $sign_flags "$f" ;;
 		esac
 	done' sh {} +
-codesign --force --sign - --timestamp=none "$new"
+codesign --force --sign "$identity" $sign_flags "$new"
 
 mkdir -p "$(dirname "$app")"
 if [ -e "$app" ]; then mv "$app" "$stage/previous"; fi
