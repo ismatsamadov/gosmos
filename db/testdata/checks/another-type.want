@@ -1,0 +1,3 @@
+foreign key: quiz_lesson row 1 points at a missing lesson row
+lesson quiz (type_cli) has 1 quiz_lesson rows, want 0
+lesson quiz (type_cli) is of a type format 9 does not have

@@ -106,7 +106,9 @@ A file that fails any of these is refused with a message that names the problem:
 6. `library_info` holds exactly one row.
 
 `go run ./cmd/library check <file>` (or `make check` for this repository's library) runs the
-same checks, written once in the `db` package, and prints the same messages the app shows.
+same checks and prints the same messages the app shows. They are written twice, for the tools
+in the `db` package and for the app in `AppDatabase`, and `db/testdata/checks` holds a library
+broken for each check with the messages both must give, which both sides' tests read.
 
 ## Authoring
 
