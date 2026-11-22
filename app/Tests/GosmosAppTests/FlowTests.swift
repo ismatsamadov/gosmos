@@ -31,6 +31,46 @@ import Testing
         await reopened.prepareToQuit()
     }
 
+    /// The first course's opening, finished, then a relaunch before the course is done: Mission
+    /// Control, with the lesson to continue. The second course's opening waits until you begin
+    /// that course.
+    @Test func aRelaunchShowsNoOpeningOfACourseNotBegun() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        #expect(app.opening?.course == "course")
+        app.finishOpening()
+        try await fixture.wait { app.resumeLesson == fixture.ref("first") }
+        await app.prepareToQuit()
+
+        let reopened = fixture.app()
+        await reopened.start()
+        #expect(reopened.opening == nil)
+        #expect(reopened.selection == .dashboard)
+        #expect(reopened.recommendedLesson == fixture.ref("first"))
+        let second = try #require(reopened.library("flow-library")?.catalog.courses.first { $0.id == "second-course" })
+        reopened.begin(second, in: "flow-library")
+        #expect(reopened.opening?.course == "second-course")
+        await reopened.prepareToQuit()
+    }
+
+    /// Quitting halfway through the opening: you are still new, so the next launch shows it again.
+    @Test func anOpeningLeftUnfinishedShowsAgainAtTheNextLaunch() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.advanceOpening()
+        #expect(app.opening?.page == 1)
+        await app.prepareToQuit()
+
+        let reopened = fixture.app()
+        await reopened.start()
+        #expect(reopened.opening == AppModel.Opening(library: "flow-library", course: "course", page: 0))
+        await reopened.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
@@ -255,25 +295,30 @@ import Testing
             try db.execute(sql: """
                 INSERT INTO library_info VALUES (1, 'flow-library', 'Flow tests', '1');
                 INSERT INTO course (uuid, slug, title, kind, short_description, description, position)
-                  VALUES ('course', 'course', 'Practice', 'Course', '', '', 0);
+                  VALUES ('course', 'course', 'Practice', 'Course', '', '', 0),
+                         ('second-course', 'second-course', 'More practice', 'Course', '', '', 1);
                 INSERT INTO chapter (uuid, course_uuid, position, slug, title, description)
                   VALUES ('chapter-one', 'course', 0, 'one', 'First chapter', ''),
-                         ('chapter-two', 'course', 1, 'two', 'Second chapter', '');
+                         ('chapter-two', 'course', 1, 'two', 'Second chapter', ''),
+                         ('chapter-three', 'second-course', 0, 'three', 'The second course''s chapter', '');
                 INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
                   VALUES ('first', 'chapter-one', 0, 'first', 'First assignment', 'type_code', 1, 1, '# First\n\nPrint hello.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
                          ('optional', 'chapter-one', 1, 'optional', 'Optional practice', 'type_code', 0, 1, '# Optional\n\nTry another greeting.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
-                         ('quiz', 'chapter-two', 0, 'quiz', 'Last assignment', 'type_choice', 1, 1, '# Quiz\n\nCheck your understanding.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
+                         ('quiz', 'chapter-two', 0, 'quiz', 'Last assignment', 'type_choice', 1, 1, '# Quiz\n\nCheck your understanding.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
+                         ('second', 'chapter-three', 0, 'second', 'The second course''s assignment', 'type_code', 1, 1, '# Second\n\nPrint hello again.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
                 INSERT INTO code_lesson (lesson_uuid, lesson_type, prog_lang, expected_output)
-                  VALUES ('first', 'type_code', 'go', 'Hello'), ('optional', 'type_code', 'go', 'Hello');
+                  VALUES ('first', 'type_code', 'go', 'Hello'), ('optional', 'type_code', 'go', 'Hello'), ('second', 'type_code', 'go', 'Hello');
                 INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
                   VALUES ('first', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0),
-                         ('optional', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0);
+                         ('optional', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0),
+                         ('second', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0);
                 INSERT INTO quiz_lesson (lesson_uuid, contains_complete_dir) VALUES ('quiz', 0);
                 INSERT INTO quiz_question VALUES ('quiz', 0, 'Is Go compiled?');
                 INSERT INTO quiz_answer VALUES ('quiz', 0, 0, 'Yes', 1, 'Go builds programs.'), ('quiz', 0, 1, 'No', 0, 'Go compiles its programs.');
                 INSERT INTO story_page VALUES ('course', 0, 'text', NULL, 'Welcome', 'Welcome to the course.', 'Continue'),
                                               ('course', 1, 'badge', 'Practice', 'Your badge', 'Choose your name.', 'Continue'),
-                                              ('course', 2, 'text', NULL, 'Your assignment', 'Start when you are ready.', 'Start');
+                                              ('course', 2, 'text', NULL, 'Your assignment', 'Start when you are ready.', 'Start'),
+                                              ('second-course', 0, 'text', NULL, 'Further out', 'A second course begins.', 'Start');
                 """)
         }
         try queue.close()

@@ -888,17 +888,14 @@ final class AppModel {
             && required.allSatisfy { $0.id == ref.lesson || isDone(LessonRef(library: ref.library, lesson: $0.id)) }
     }
 
-    /// The opening a new learner sees at launch: the first course with an opening not seen yet,
-    /// and no lesson of it done.
+    /// The opening a new learner sees at launch, one who has seen no opening and opened or
+    /// finished no lesson: that of the course Mission Control offers. Every other course's
+    /// opening waits until you begin that course.
     private var openingAtLaunch: Opening? {
-        for library in shelf {
-            for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true {
-                guard !seenOpenings.contains(library.id + "/" + course.id),
-                      !course.lessons.contains(where: { isDone(LessonRef(library: library.id, lesson: $0.id)) }) else { continue }
-                return Opening(library: library.id, course: course.id, page: 0)
-            }
-        }
-        return nil
+        guard seenOpenings.isEmpty, resumeLesson == nil, done.values.allSatisfy(\.isEmpty),
+              let ref = recommendedLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
+              story(of: course.id, in: ref.library)?.hasOpening == true else { return nil }
+        return Opening(library: ref.library, course: course.id, page: 0)
     }
 
     /// Begins or continues a course: its opening the first time, else its next lesson.
