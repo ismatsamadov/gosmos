@@ -18,9 +18,10 @@ repository.
 | `cmd/library/` | The library tool, for any library: `create`, `check`, `verify`, `drift` |
 | `cmd/author/`, `internal/` | The authoring tool: builds a library from its folder of text (`internal/authoring`'s library folder), writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` finds the pictures and HTML it refuses |
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
-| `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
+| `app/Packages/` | The app's own package, `CodeEditor` (the editor, plus `SyntaxCore`), and in `Vendor/` the Swift packages it builds with (`Vendor/README.md`) |
+| `vendor/` | The Go modules the tools build with, as `go mod vendor` writes them |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |
-| `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, and the tool that makes and checks it (`make reference`); `db/reference.sql` is its schema and `docs/reference-format.md` its format |
+| `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, and the tool that makes and checks it (`make reference`) from the Go and from golang/website's files in `reference/website/`; `db/reference.sql` is its schema and `docs/reference-format.md` its format |
 | `cmd/passes/` | The pass model of the Apogee world, as the lessons carry it, printing passes for writers |
 | `scripts/pkgcheck.sh` | Checks lesson packages before the library is built (`docs/authoring.md`) |
 | `app/scripts/snapshot.sh` | Draws one screen of a copy of the app to a PNG, under its own bundle identifier and learner data |
@@ -267,17 +268,28 @@ internet. macOS 27 runs only on Apple silicon, so one darwin/arm64 toolchain is 
 
 ## Dependencies
 
-Everything is kept at its latest release and pinned by `app/Package.resolved` and `go.sum`,
-both committed. These were the latest on 2026-10-31:
+Everything is kept at its latest release, and in the repository, so a clone builds and tests
+with nothing fetched:
+
+- The Go modules are in `vendor/`, as `go mod vendor` writes them, pinned by `go.mod` and
+  `go.sum`; the go command builds from them on its own. To move one, `go get` it, then
+  `go mod tidy` and `go mod vendor`.
+- The app's Swift packages are in `app/Packages/Vendor/`, trimmed to what the app builds, and
+  `app/Package.swift` names them by path; their `README.md` says what each keeps and how to
+  move one.
+- golang/website's files for the Go reference are in `reference/website/`, at the Makefile's
+  `WEBSITE_COMMIT`.
+
+These were the latest on 2026-10-31:
 
 | Part | Version |
 |---|---|
 | Toolchain | Command Line Tools 27.2 (Swift 6.4.2) and Go 1.27.3 |
 | App, built in | Go 1.27.3 darwin/arm64, the Go that builds the app (`GO_ROOT`), trimmed |
-| App | GRDB.swift 7.11.1, swift-markdown 0.9.0 |
+| App | GRDB.swift 7.11.1, swift-markdown 0.9.0 (with swift-cmark 0.9.0) |
 | Library tools | modernc.org/sqlite v1.61.1 (with modernc.org/libc held at the exact v1.79.0 its go.mod requires), goldmark v1.8.7 |
 
-A new dependency needs a reason written here.
+A new dependency needs a reason written here, and goes into the repository with its license.
 
 ## Tests
 
