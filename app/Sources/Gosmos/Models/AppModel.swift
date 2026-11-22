@@ -636,8 +636,10 @@ final class AppModel {
                 self.finishLaunch()
                 await model.load()
                 // Not once a newer lesson replaced this one: that one is the last opened. Mission
-                // Control resumes the same lesson the next launch will, never one that failed to load.
-                if !review && !Task.isCancelled {
+                // Control resumes the same lesson the next launch will, never one that failed to load,
+                // its code included: a lesson folder from before the folders' records is measured
+                // against this time when it is next prepared (Workspace.recordAppsCopies).
+                if !review && !Task.isCancelled && model.code?.loadError == nil {
                     self.resumeLesson = ref
                     do { try await learner.pendingWrites.start { try await learner.markOpened(ref) }.value } catch { self.report(error) }
                 }
