@@ -52,7 +52,7 @@ never runs git and syncs nothing.
 | `cmd/library/` | Go tool for any library: `create`, `check`, `verify`, `drift` |
 | `cmd/author/`, `internal/` | Go tool: builds a library from its folder of text, writes lessons and a course's story into a library from packages, and exports them back |
 | `cmd/passes/` | Go tool: the passes of the Apogee world, from the pass model every pass in its courses comes from |
-| `scripts/pkgcheck.sh` | Checks lesson packages before they are imported: readme rules, hints, 30 runs, `-race`, failing starters |
+| `scripts/pkgcheck.sh` | Checks lesson packages before the library is built: readme rules, hints, 30 runs, `-race`, failing starters |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |
 | `docs/library-format.md` | The library format: what any library must hold, and what the app checks |
 | `docs/architecture.md` | How the pieces fit together, and why |

@@ -20,6 +20,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/ismatsamadov/gosmos/internal/media"
@@ -63,7 +64,7 @@ README.md starts with this block, every line exactly as shown, in this order:
               repeats; write "topics:" with nothing after it for none
 
 Two more lines may follow topics, both or neither: when the lesson was first written and
-when it last changed, in UTC, to the second. A lesson in a library folder (author build) has
+when it last changed, in UTC, to the second or finer. A lesson in a library folder (author build) has
 them, and whoever changes it sets modified to the time they did; a package without them gets
 the time it is imported, as a new lesson, or as a change.
 
@@ -252,7 +253,17 @@ var frontKeys = []string{"slug", "title", "type", "position", "difficulty", "top
 // timeKeys are the front matter's optional lines, both or neither.
 var timeKeys = []string{"created", "modified"}
 
-var reTime = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$`)
+// reTime is a time in UTC as a library holds one: to the second, perhaps with a fraction.
+var reTime = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$`)
+
+// utcTime reads a created: or modified: time, which must be one that exists.
+func utcTime(s string) (time.Time, bool) {
+	if !reTime.MatchString(s) {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339Nano, s)
+	return t, err == nil
+}
 
 func (p *Package) parseReadme(text string) error {
 	if !strings.HasPrefix(text, "---\n") {
@@ -312,12 +323,14 @@ func (p *Package) parseReadme(text string) error {
 	}
 	p.Topics = sorted
 	p.Created, p.Modified = values["created"], values["modified"]
+	created, createdOK := utcTime(p.Created)
+	modified, modifiedOK := utcTime(p.Modified)
 	switch {
 	case (p.Created == "") != (p.Modified == ""):
 		return errors.New("front matter has one of created and modified; it has both or neither")
-	case p.Created != "" && (!reTime.MatchString(p.Created) || !reTime.MatchString(p.Modified)):
+	case p.Created != "" && (!createdOK || !modifiedOK):
 		return fmt.Errorf("created %q or modified %q is not a time in UTC such as 2026-11-01T07:36:45Z", p.Created, p.Modified)
-	case p.Modified < p.Created:
+	case modified.Before(created):
 		return fmt.Errorf("modified %s is before created %s", p.Modified, p.Created)
 	}
 	if want := p.frontMatter(); block != want {

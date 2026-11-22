@@ -1,5 +1,5 @@
 # Build output
-build/
+/build/
 .build/
 .swiftpm/
 
@@ -9,6 +9,9 @@ build/
 *.sqlite3
 *.db
 !reference/*.sqlite
+
+# A library folder keeps every file its lessons give, whatever the name.
+!courses/[!.]*/**
 
 # SQLite's transient files never belong in source control.
 *.sqlite-journal

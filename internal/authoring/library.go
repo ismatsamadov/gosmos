@@ -30,7 +30,8 @@ const LibraryLayout = `A library folder holds a whole library as text, one folde
   <course>/<chapter>/<lesson>/    a lesson package, with its created: and modified: lines
 
 Each folder is named for the slug its file gives. Nothing else belongs in it, and a chapter
-cannot be called story. Files and folders whose names start with a dot are ignored.
+cannot be called story. Files and folders whose names start with a dot are ignored, and so is
+a folder holding nothing else, such as one git left behind with Finder's .DS_Store in it.
 
 library.txt, every line exactly as shown:
 
@@ -136,13 +137,49 @@ func ReadLibrary(dir string) (Library, error) {
 	return l, nil
 }
 
-// visible lists dir's entries, leaving out names that start with a dot.
+// visible lists dir's entries, leaving out names that start with a dot and folders holding
+// nothing else: git leaves a removed lesson's folder behind when Finder put a .DS_Store in it.
 func visible(dir string) ([]os.DirEntry, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(entries, func(e os.DirEntry) bool { return strings.HasPrefix(e.Name(), ".") }), nil
+	var kept []os.DirEntry
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		if e.IsDir() {
+			if dots, err := onlyDotFiles(filepath.Join(dir, e.Name())); err != nil {
+				return nil, err
+			} else if dots {
+				continue
+			}
+		}
+		kept = append(kept, e)
+	}
+	return kept, nil
+}
+
+// onlyDotFiles reports whether every file in dir, at any depth, has a name that starts with a
+// dot.
+func onlyDotFiles(dir string) (bool, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false, err
+	}
+	for _, e := range entries {
+		switch {
+		case strings.HasPrefix(e.Name(), "."):
+		case !e.IsDir():
+			return false, nil
+		default:
+			if dots, err := onlyDotFiles(filepath.Join(dir, e.Name())); err != nil || !dots {
+				return false, err
+			}
+		}
+	}
+	return true, nil
 }
 
 func readCourse(dir string) (Course, error) {
@@ -400,22 +437,20 @@ func LoadLibrary(q store.Querier) (Library, error) {
 	if err := q.QueryRow(`SELECT uuid, title, version FROM library_info`).Scan(&l.Info.UUID, &l.Info.Title, &l.Info.Version); err != nil {
 		return l, fmt.Errorf("library_info: %w", err)
 	}
-	courses, err := q.Query(`SELECT uuid, slug, title, kind, short_description, description, position FROM course ORDER BY position`)
-	if err != nil {
-		return l, err
-	}
 	var uuids []string
-	for courses.Next() {
+	err := eachRow(q, `SELECT uuid, slug, title, kind, short_description, description, position FROM course ORDER BY position`, func(r *sql.Rows) error {
 		var c Course
 		var uuid string
-		if err := courses.Scan(&uuid, &c.Slug, &c.Title, &c.Kind, &c.Short, &c.Description, &c.Position); err != nil {
-			courses.Close()
-			return l, err
+		if err := r.Scan(&uuid, &c.Slug, &c.Title, &c.Kind, &c.Short, &c.Description, &c.Position); err != nil {
+			return err
 		}
 		uuids = append(uuids, uuid)
 		l.Courses = append(l.Courses, c)
+		return nil
+	})
+	if err != nil {
+		return l, err
 	}
-	courses.Close()
 	for i := range l.Courses {
 		c := &l.Courses[i]
 		if c.Story, err = LoadStory(q, uuids[i]); err != nil {
@@ -429,38 +464,34 @@ func LoadLibrary(q store.Querier) (Library, error) {
 }
 
 func loadChapters(q store.Querier, courseUUID string) ([]Chapter, error) {
-	rows, err := q.Query(`SELECT uuid, slug, title, description, position FROM chapter WHERE course_uuid = ? ORDER BY position`, courseUUID)
-	if err != nil {
-		return nil, err
-	}
 	var chapters []Chapter
 	var uuids []string
-	for rows.Next() {
+	err := eachRow(q, `SELECT uuid, slug, title, description, position FROM chapter WHERE course_uuid = ? ORDER BY position`, func(r *sql.Rows) error {
 		var ch Chapter
 		var uuid string
-		if err := rows.Scan(&uuid, &ch.Slug, &ch.Title, &ch.Description, &ch.Position); err != nil {
-			rows.Close()
-			return nil, err
+		if err := r.Scan(&uuid, &ch.Slug, &ch.Title, &ch.Description, &ch.Position); err != nil {
+			return err
 		}
 		chapters = append(chapters, ch)
 		uuids = append(uuids, uuid)
+		return nil
+	}, courseUUID)
+	if err != nil {
+		return nil, err
 	}
-	rows.Close()
 	for i := range chapters {
-		lessons, err := q.Query(`SELECT uuid FROM lesson WHERE chapter_uuid = ? ORDER BY position`, uuids[i])
+		var ids []string
+		err := eachRow(q, `SELECT uuid FROM lesson WHERE chapter_uuid = ? ORDER BY position`, func(r *sql.Rows) error {
+			var id string
+			if err := r.Scan(&id); err != nil {
+				return err
+			}
+			ids = append(ids, id)
+			return nil
+		}, uuids[i])
 		if err != nil {
 			return nil, err
 		}
-		var ids []string
-		for lessons.Next() {
-			var id string
-			if err := lessons.Scan(&id); err != nil {
-				lessons.Close()
-				return nil, err
-			}
-			ids = append(ids, id)
-		}
-		lessons.Close()
 		for _, id := range ids {
 			p, err := Load(q, id)
 			if err != nil {

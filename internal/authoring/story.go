@@ -920,7 +920,7 @@ func termsText(terms []Term) string {
 func LoadStory(q store.Querier, courseUUID string) (Story, error) {
 	var s Story
 	pages := map[int64]int{} // each page's index in s.Pages, by its position
-	err := eachRow(q, `SELECT position, kind, eyebrow, title, body, action FROM story_page WHERE course_uuid = ? ORDER BY position`, courseUUID, func(r *sql.Rows) error {
+	err := eachRow(q, `SELECT position, kind, eyebrow, title, body, action FROM story_page WHERE course_uuid = ? ORDER BY position`, func(r *sql.Rows) error {
 		var p Page
 		var position int64
 		var eyebrow sql.NullString
@@ -930,11 +930,11 @@ func LoadStory(q store.Querier, courseUUID string) (Story, error) {
 		p.Eyebrow, pages[position] = eyebrow.String, len(s.Pages)
 		s.Pages = append(s.Pages, p)
 		return nil
-	})
+	}, courseUUID)
 	if err != nil {
 		return Story{}, fmt.Errorf("reading story_page: %w", err)
 	}
-	err = eachRow(q, `SELECT page_position, label, title, subtitle, body FROM story_card WHERE course_uuid = ? ORDER BY page_position, position`, courseUUID, func(r *sql.Rows) error {
+	err = eachRow(q, `SELECT page_position, label, title, subtitle, body FROM story_card WHERE course_uuid = ? ORDER BY page_position, position`, func(r *sql.Rows) error {
 		var c Card
 		var page int64
 		var subtitle, body sql.NullString
@@ -948,23 +948,23 @@ func LoadStory(q store.Querier, courseUUID string) (Story, error) {
 		c.Subtitle, c.Body = subtitle.String, body.String
 		s.Pages[i].Cards = append(s.Pages[i].Cards, c)
 		return nil
-	})
+	}, courseUUID)
 	if err != nil {
 		return Story{}, fmt.Errorf("reading story_card: %w", err)
 	}
 	err = eachRow(q, `SELECT ch.slug, cs.briefing, cs.debrief FROM chapter_story cs JOIN chapter ch ON ch.uuid = cs.chapter_uuid
-		WHERE ch.course_uuid = ? ORDER BY ch.position`, courseUUID, func(r *sql.Rows) error {
+		WHERE ch.course_uuid = ? ORDER BY ch.position`, func(r *sql.Rows) error {
 		var c ChapterStory
 		if err := r.Scan(&c.Chapter, &c.Briefing, &c.Debrief); err != nil {
 			return err
 		}
 		s.Chapters = append(s.Chapters, c)
 		return nil
-	})
+	}, courseUUID)
 	if err != nil {
 		return Story{}, fmt.Errorf("reading chapter_story: %w", err)
 	}
-	err = eachRow(q, `SELECT term, meaning, linked FROM story_term WHERE course_uuid = ?`, courseUUID, func(r *sql.Rows) error {
+	err = eachRow(q, `SELECT term, meaning, linked FROM story_term WHERE course_uuid = ?`, func(r *sql.Rows) error {
 		var t Term
 		var linked int64
 		if err := r.Scan(&t.Term, &t.Meaning, &linked); err != nil {
@@ -973,7 +973,7 @@ func LoadStory(q store.Querier, courseUUID string) (Story, error) {
 		t.Linked = linked == 1
 		s.Terms = append(s.Terms, t)
 		return nil
-	})
+	}, courseUUID)
 	if err != nil {
 		return Story{}, fmt.Errorf("reading story_term: %w", err)
 	}
@@ -986,9 +986,9 @@ func LoadStory(q store.Querier, courseUUID string) (Story, error) {
 	return s, nil
 }
 
-// eachRow runs a query of one course's rows and calls fn with each row.
-func eachRow(q store.Querier, query, courseUUID string, fn func(*sql.Rows) error) error {
-	rows, err := q.Query(query, courseUUID)
+// eachRow runs a query and calls fn with each row; an error reading a row stops it.
+func eachRow(q store.Querier, query string, fn func(*sql.Rows) error, args ...any) error {
+	rows, err := q.Query(query, args...)
 	if err != nil {
 		return err
 	}
