@@ -6,7 +6,7 @@ position: 3
 difficulty: 3
 topics: maps
 created: 2026-11-01T07:36:45Z
-modified: 2026-11-06T16:51:28Z
+modified: 2026-11-22T10:08:26Z
 ---
 The registry is ready for review. Nkem reads your map code line by line, then asks three questions about this snippet, one at a time, the way she reviews everything:
 
@@ -19,5 +19,7 @@ for id := range seen {
 var pending map[string]int
 pending["thistle"] = 1
 ```
+
+## Your task
 
 Each question has exactly one right answer. Before you pick, think about what each line does when it runs.

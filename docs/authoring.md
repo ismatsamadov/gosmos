@@ -210,9 +210,7 @@ drift with the list over the whole library.
   lines at most 50 characters (the app's readme column wraps longer ones); 2 or 3 hints and a
   solution note of 1 to 3 sentences; gofmt; the solution passing 30 runs in a row (a tests
   lesson's tests also 3 times under `-race`); the starter building and failing for the
-  lesson's reason, never by a panic. Go Foundations' quizzes, all but 15.8, were written
-  before quizzes took the `## Your task` heading, so pkgcheck reports theirs missing; a fix
-  to one of them adds it.
+  lesson's reason, never by a panic.
 - **`library check`**: what the app checks when it opens a library.
 - **`library verify --teaching`**: every code lesson passes with its solution and fails with
   its starter, as the app runs it; a run over 2 s (5 s in a guided project) is reported slow

@@ -6,7 +6,7 @@ position: 1
 difficulty: 4
 topics: pointers
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-01T07:36:46Z
+modified: 2026-11-22T10:08:26Z
 ---
 Ystmark, 21:40 UTC, the storm due by 03:00. Before she goes out to check the radome heaters, Sunniva sends three questions over the slow backhaul, telegraph style, about five lines of code:
 
@@ -17,5 +17,7 @@ p := &x
 var q *int
 fmt.Println(x, q)
 ```
+
+## Your task
 
 Answer the way she would: one pick each, no hedging. Every question has exactly one right answer.
