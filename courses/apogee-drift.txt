@@ -22,7 +22,65 @@ go-foundations/locks-and-deadlines/pass-day: schedule.go gives type Pass
 
 # files-data-command-line
 
+files-data-command-line/json-in-json-out/send-a-booking-back: booking.go gives type Booking
+  The booking gains its note, which the reply must escape: its readme, "would break on the
+  first note that holds a quote"; the bible's Booking has `Note`.
+files-data-command-line/json-in-json-out/the-round-trip: booking.go gives type Booking
+  Its readme: "`omitempty` drops an empty note", as Hollis asked in optional-notes: "NO EMPTY
+  NOTES".
+files-data-command-line/odd-json/the-changing-report: report.go gives func decodeOne
+  Its readme: "`decodeOne` now takes the value to fill, so it reads any JSON as strictly as it
+  read the settings": the envelope here, then the payload.
+files-data-command-line/flags-and-subcommands/errors-belong-on-stderr: passes.go gives func runPasses
+  Its readme: "Implement `report`, which `runPasses` already ends with"; its example has
+  runPasses read standard input, as read-from-the-pipe's "read standard input when no file is
+  named" asked; an unknown station fails as the bible's "`gctl: unknown station "SQX"`".
+files-data-command-line/flags-and-subcommands/three-useful-commands: main.go gives const usage
+  Its readme: "Implement `runStow`, whose usage starts with this synopsis", which joins the
+  list; `passes` takes its file or standard input since errors-belong-on-stderr. The bible's
+  usage is this text.
+files-data-command-line/flags-and-subcommands/three-useful-commands: main.go gives func run
+  Its readme: "Paz wants the van's daily jobs under one command", the stow among them; and
+  `runPasses` reads standard input since errors-belong-on-stderr.
+files-data-command-line/flags-and-subcommands/three-useful-commands: stations.go gives func runStations
+  errors-belong-on-stderr's readme: "Mirela wants every gctl command to end the same way,
+  through one `report` function"; this one's: "`report` for the result or the failure".
+files-data-command-line/files-with-the-program/read-any-filesystem: stations.go gives type Station
+  The station gains the table's mask and bands, which the given parseStations reads: the
+  briefing, "Paz wants gctl to carry its table and report templates inside itself", and the
+  bible's table, "code,name,lat_deg,lon_deg,mask_deg,bands".
+files-data-command-line/files-with-the-program/walk-the-templates: resources.go gives var resources
+  The templates join the station table: its readme, "Paz wants gctl to list every template it
+  carries".
+files-data-command-line/files-with-the-program/the-offline-resource-pack: resources.go gives var resources
+  The default calibration joins them: its readme, "gctl's default is zero"; the bible, "gctl
+  also carries report templates ... and a default `calibration.json`".
+files-data-command-line/the-top-of-the-road/choose-the-input-format: bookings.go gives func decodeBookings
+  Its readme: "`decodeBookings` now reads the export from a reader, as `readBookingSheet` reads
+  the sheet".
+files-data-command-line/the-top-of-the-road/choose-the-input-format: bookings.go gives type Booking
+  Back to the whole booking of JSON In, JSON Out: the calibration day reads LOS and the note
+  from "my export as JSON and Hollis's sheet as CSV" (its readme), whose columns the bible
+  gives as "ID,SATELLITE,STATION,AOS,LOS,NOTE", and its day report prints both. Flags and
+  Subcommands' copy left out the two its commands never read.
+files-data-command-line/the-top-of-the-road/a-golden-session: cli.go gives const usage
+  The bible: "Chapter 11's copy of gctl carries only `day [-format json|csv] dir`"; the
+  syllabus: "chapter 11's gctl has the `day` command only", as the comment says.
+files-data-command-line/the-top-of-the-road/la-grande-points-true: cli.go gives func run
+  Its readme: "Complete `runDay`, which `run` now calls in place of `planDay` and
+  `writeReport`".
+
 # build-gctl
+
+build-gctl/a-cache-that-knows-its-age/the-background-refresher: main.go gives func run
+  Its readme: "`main.go` now starts a refresher, a goroutine that loads the passes again every
+  minute while the night shift types".
+build-gctl/the-night-shift/settings-from-a-file: main.go gives func run
+  gctl reads its settings as it starts: the readme's "set in a file they can change
+  themselves", through the `loadSettings` and `apply` its task asks for; the bible's
+  "Settings: `gctl.json`, read strictly".
+build-gctl/the-night-shift/history-that-survives: main.go gives func run
+  Its readme: "`main.go` sets `s.history.path` to `gctl_history`".
 
 # web-services-in-go
 

@@ -6,11 +6,11 @@ position: 8
 difficulty: 6
 topics: errors, streams, structs, switch, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T17:07:41Z
+modified: 2026-11-22T10:20:41Z
 ---
 Furrowlight switched its delivery reports to version 3 on Thursday, while the van had no signal, and nobody on board knows what changed. Yusra needs every report gctl can't read named by its exact ID, to ask for it again in version 2.
 
-Read a changing format in order: decode the envelope strictly, check its version, then decode the payload for its kind. Version 1 reports, from July, have no kind: all of them are image reports.
+Read a changing format in order: decode the envelope strictly, check its version, then decode the payload for its kind. `decodeOne` now takes the value to fill, so it reads any JSON as strictly as it read the settings. Version 1 reports, from July, have no kind: all of them are image reports.
 
 ```go
 switch m.Version {

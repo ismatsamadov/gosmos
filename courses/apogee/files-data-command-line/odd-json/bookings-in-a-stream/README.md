@@ -6,7 +6,7 @@ position: 0
 difficulty: 5
 topics: errors, loops, streams, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:19:20Z
 ---
 At each signal stop, the van's recorder adds the newest bookings to a log, one JSON object per line. Paz wants the whole log read tonight, but `json.Unmarshal` refuses the file at its second line.
 

@@ -6,7 +6,7 @@ position: 2
 difficulty: 7
 topics: files, interfaces, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:21:59Z
 ---
 Nkem's review asks one question: how would a test hand the table reader a small table of its own, without rebuilding gctl?
 

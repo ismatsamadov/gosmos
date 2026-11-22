@@ -14,10 +14,10 @@ import (
 // Band is a radio band.
 type Band string
 
-// Station is one of Apogee's ground stations, as the station table lists it.
+// Station is one of Apogee's ground stations.
 type Station struct {
-	Code    string
-	Name    string
+	Code    string // "YST": three capital letters
+	Name    string // "Ystmark"
 	MaskDeg float64
 	Bands   []Band
 }

@@ -6,7 +6,7 @@ position: 6
 difficulty: 7
 topics: programs, streams, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:23:42Z
 ---
 Ingrid wants to know, byte for byte, what gctl prints on Thursday. "Copy. Exact output, checked before the first AOS."
 

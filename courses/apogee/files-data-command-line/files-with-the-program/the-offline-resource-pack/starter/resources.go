@@ -13,18 +13,18 @@ import (
 	"strings"
 )
 
-// resources holds the files gctl carries inside itself, the defaults among them.
+// resources holds the files gctl carries inside itself: the station table, the templates and the default calibration.
 //
-//go:embed stations.csv calibration.json
+//go:embed stations.csv templates calibration.json
 var resources embed.FS
 
 // Band is a radio band.
 type Band string
 
-// Station is one of Apogee's ground stations, as the station table lists it.
+// Station is one of Apogee's ground stations.
 type Station struct {
-	Code    string
-	Name    string
+	Code    string // "YST": three capital letters
+	Name    string // "Ystmark"
 	MaskDeg float64
 	Bands   []Band
 }
@@ -41,12 +41,8 @@ type Resources struct {
 	Reference Offsets
 }
 
-// readStationsFS reads and parses stations.csv from fsys.
-func readStationsFS(fsys fs.FS) ([]Station, error) {
-	data, err := fs.ReadFile(fsys, "stations.csv")
-	if err != nil {
-		return nil, err
-	}
+// parseStations reads a station table: its header line, then one station per line.
+func parseStations(data []byte) ([]Station, error) {
 	rows, err := csv.NewReader(bytes.NewReader(data)).ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("station table: %w", err)
@@ -67,6 +63,15 @@ func readStationsFS(fsys fs.FS) ([]Station, error) {
 		stations = append(stations, s)
 	}
 	return stations, nil
+}
+
+// readStationsFS reads and parses stations.csv from fsys.
+func readStationsFS(fsys fs.FS) ([]Station, error) {
+	data, err := fs.ReadFile(fsys, "stations.csv")
+	if err != nil {
+		return nil, err
+	}
+	return parseStations(data)
 }
 
 // parseOffsets reads calibration.json strictly: one object with known fields only.

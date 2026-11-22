@@ -6,7 +6,7 @@ position: 2
 difficulty: 7
 topics: errors, loops, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:23:42Z
 ---
 Hollis's sheet books Furrowlight's second satellite, Furrow-B, at station SQX, and no station has that code. One wrong line must stop the whole batch before gctl writes a plan from it.
 

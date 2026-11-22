@@ -7,7 +7,7 @@ type Booking struct {
 	ID      string    `json:"id"`
 	SatID   string    `json:"sat_id"`
 	Station string    `json:"station"`
-	AOS     time.Time `json:"aos"`
-	LOS     time.Time `json:"los"`
+	AOS     time.Time `json:"aos"` // when the satellite rises into view
+	LOS     time.Time `json:"los"` // when it sets
 	Note    string    `json:"note,omitempty"`
 }
