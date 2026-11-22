@@ -214,7 +214,9 @@ drift with the list over the whole library.
 - **`library check`**: what the app checks when it opens a library.
 - **`library verify --teaching`**: every code lesson passes with its solution and fails with
   its starter, as the app runs it; a run over 2 s (5 s in a guided project) is reported slow
-  and one over 10 s stopped. Run it on a quiet Mac: under heavy load runs slow down.
+  and one over 10 s stopped. Run it on a quiet Mac: under heavy load runs slow down. A pull
+  request that changes `courses/` runs it too, with `--slow`, since CI's shared machines are
+  slower than a Mac: there only a run stopped at 10 s fails.
 - **`library drift`**: given code changes only for a reason (above).
 - **The review checklist**, for someone who didn't write the lesson:
   1. It teaches what its syllabus entry says, one idea, and the Go is right and idiomatic

@@ -1,0 +1,33 @@
+# A pull request that changes the courses, or the tools that build and run them, runs every
+# code lesson: each must pass with its solution and fail with its starter. A shared runner is
+# slower than a Mac, so --slow reports only a run stopped at 10 s.
+name: Verify lessons
+
+on:
+  pull_request:
+    paths:
+      - "courses/**"
+      - "cmd/library/**"
+      - "cmd/author/**"
+      - "internal/**"
+      - "db/**"
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  verify:
+    name: Every code lesson
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: make library
+      - run: go run ./cmd/library verify --teaching --slow courses/apogee.sqlite

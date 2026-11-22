@@ -298,3 +298,11 @@ databases in `$TMPDIR`, from `db/schema.sql` with fixture lessons of every type,
 `db/learner.sql`, and from `db/reference.sql` with a few packages, names and articles. No test
 touches `courses/` or a real learner database; the documentation's time budgets read
 `reference/go.sqlite`, the full reference, which is only read.
+
+Every pull request, and every push to main, runs them on GitHub's machines with Go 1.27.3
+(`.github/workflows/check.yml`): `go vet ./...`, `go test ./...` and `make check` on Linux,
+and `swift test` for the app and for CodeEditor on macOS 27. A pull request that changes
+`courses/` or the tools that build and run them also runs every code lesson
+(`verify.yml`): `library verify --teaching --slow`, since a shared runner is slower than a
+Mac, so there only a run stopped at 10 s fails. `make verify` on a quiet Mac still holds
+lessons to 2 s (5 s in a guided project).
