@@ -656,6 +656,16 @@ final class AppModel {
         }
     }
 
+    /// A lesson on screen whose code failed to load, then loaded on a retry: it is the lesson you
+    /// opened last from now on, as it would have been had it loaded at once.
+    func codeLoaded(_ ref: LessonRef) {
+        guard let learner, lesson?.ref == ref, lesson?.isReview == false else { return }
+        resumeLesson = ref
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.markOpened(ref) } catch { self?.report(error) }
+        }
+    }
+
     /// Launch arguments for scripted runs (screenshots, debugging): `-GosmosOpenLesson
     /// [<library>/]<lesson>` opens a lesson, and `-GosmosLaunchAction <action>` acts on it once,
     /// after it loads. They live in the argument domain only, never stored.

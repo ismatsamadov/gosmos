@@ -300,10 +300,14 @@ final class CodeSession {
 
     /// Your code from the database, reconciled with the work folder (an edit made there in
     /// another editor wins when it is newer). Then a save, which asks about a file left in
-    /// conflict when the app last quit.
+    /// conflict when the app last quit. A load that succeeds after one failed (Try Again, or a
+    /// Run) makes the lesson the one you opened last, as opening it would have.
     func load() async {
+        let failedBefore = buffers.loadError != nil
         await buffers.load()
-        if buffers.isLoaded { await flush() }
+        guard buffers.isLoaded else { return }
+        if failedBefore && !isReview { app?.codeLoaded(lesson.ref) }
+        await flush()
     }
 
     /// Saves your edits soon; the editor calls this a second after typing stops, and the app

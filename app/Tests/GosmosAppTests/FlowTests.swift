@@ -210,7 +210,7 @@ import Testing
 
     /// A lesson whose code can't load is on screen, but the next launch doesn't resume it, nor
     /// does its folder count it as opened: the time of the last open is what a folder from
-    /// before the folders' records is measured against.
+    /// before the folders' records is measured against. Once a retry loads it, it counts.
     @Test func aLessonWhoseCodeFailedToLoadIsNotTheLastOpened() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
@@ -228,7 +228,17 @@ import Testing
         #expect(app.resumeLesson == fixture.ref("first"))
         #expect(try await app.learner?.lastOpened() == fixture.ref("first"))
         #expect(try await app.learner?.lastOpenedAt(fixture.ref("optional")) == nil)
+
+        // Fixed, and Try Again: now it loads, and it is the lesson opened last, after a relaunch too.
+        try FileManager.default.removeItem(at: work)
+        let session = try #require(app.lesson?.code)
+        await session.load()
+        #expect(session.isLoaded && app.resumeLesson == fixture.ref("optional"))
         await app.prepareToQuit()
+        let reopened = fixture.app()
+        await reopened.start()
+        #expect(reopened.resumeLesson == fixture.ref("optional") && reopened.recommendedLesson == fixture.ref("optional"))
+        await reopened.prepareToQuit()
     }
 
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
