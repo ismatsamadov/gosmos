@@ -9,6 +9,16 @@
 
 # build-gctl
 
+build-gctl/a-cache-that-knows-its-age/the-background-refresher: main.go gives func run
+  Its readme: "`main.go` now starts a refresher, a goroutine that loads the passes again every
+  minute while the night shift types".
+build-gctl/the-night-shift/settings-from-a-file: main.go gives func run
+  gctl reads its settings as it starts: the readme's "set in a file they can change
+  themselves", through the `loadSettings` and `apply` its task asks for; the bible's
+  "Settings: `gctl.json`, read strictly".
+build-gctl/the-night-shift/history-that-survives: main.go gives func run
+  Its readme: "`main.go` sets `s.history.path` to `gctl_history`".
+
 # web-services-in-go
 
 # networking-from-the-socket-up
