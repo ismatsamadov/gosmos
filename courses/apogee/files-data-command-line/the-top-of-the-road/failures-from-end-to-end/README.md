@@ -6,7 +6,7 @@ position: 7
 difficulty: 7
 topics: errors, programs, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-22T10:19:20Z
+modified: 2026-11-22T10:23:42Z
 ---
 A copy of `bookings.json` on the stick was cut off halfway, and gctl printed an empty plan, as if Thursday had no booked passes. Nkem: "Works. Now make it say what it means."
 

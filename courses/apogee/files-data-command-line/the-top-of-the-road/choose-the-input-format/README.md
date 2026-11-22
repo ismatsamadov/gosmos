@@ -6,7 +6,7 @@ position: 1
 difficulty: 7
 topics: errors, streams, switch, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-22T10:19:20Z
+modified: 2026-11-22T10:23:42Z
 ---
 Yusra, who looks after Apogee's customers, starts with a one-line summary, as always: "TL;DR: Thursday's bookings come in two files, my export as JSON and Hollis's sheet as CSV. Same passes; read whichever one Paz names."
 
@@ -25,4 +25,4 @@ default:
 
 ## Your task
 
-Implement `readBookings`: for `"json"` return what `decodeBookings` returns, for `"csv"` what `readBookingSheet` returns, and for any other format an error that names it. Pass their errors back unchanged.
+`decodeBookings` now reads the export from a reader, as `readBookingSheet` reads the sheet. Implement `readBookings`: for `"json"` return what `decodeBookings` returns, for `"csv"` what `readBookingSheet` returns, and for any other format an error that names it. Pass their errors back unchanged.

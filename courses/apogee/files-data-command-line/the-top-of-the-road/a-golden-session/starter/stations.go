@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	_ "embed"
 	"encoding/csv"
 	"errors"
@@ -9,20 +8,25 @@ import (
 	"strings"
 )
 
-// stationsCSV is the station table gctl carries inside itself.
+// stationsCSV is the station table, copied into gctl when it is built.
 //
 //go:embed stations.csv
-var stationsCSV []byte
+var stationsCSV string
 
-// Station is one of Apogee's ground stations, as the station table lists it.
+// Band is a radio band.
+type Band string
+
+// Station is one of Apogee's ground stations.
 type Station struct {
-	Code string
-	Name string
+	Code    string // "YST": three capital letters
+	Name    string // "Ystmark"
+	MaskDeg float64
+	Bands   []Band
 }
 
 // loadStations reads the built-in station table, by station code.
 func loadStations() (map[string]Station, error) {
-	rows, err := csv.NewReader(bytes.NewReader(stationsCSV)).ReadAll()
+	rows, err := csv.NewReader(strings.NewReader(stationsCSV)).ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("station table: %w", err)
 	}

@@ -6,7 +6,7 @@ position: 0
 difficulty: 7
 topics: errors, structs, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:23:42Z
 ---
 Monday morning, before the last 140 meters of the climb, Paz writes the settings for Thursday, calibration day. A misspelled field has to stop gctl down here, not at the top.
 

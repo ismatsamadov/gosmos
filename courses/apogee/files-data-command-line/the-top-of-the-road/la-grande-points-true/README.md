@@ -6,7 +6,7 @@ position: 8
 difficulty: 8
 topics: errors, files, functions, programs, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-22T10:19:20Z
+modified: 2026-11-22T10:23:42Z
 ---
 Thursday, 06:00 on the salt flat, 13:00 UTC. Paz plugs in the stick with the settings, Yusra's export and Hollis's sheet: calibration day runs from these files and gctl alone.
 
@@ -24,7 +24,7 @@ return writeNote(stdout, stow)
 
 ## Your task
 
-Complete `runDay`:
+Complete `runDay`, which `run` now calls in place of `planDay` and `writeReport`:
 
 1. Plan the day with `planDay`.
 2. Make `reports/daily` below `dir` with mode `0700`, and save the report there as `<day>.txt` with `saveDay` and `writeReport`.

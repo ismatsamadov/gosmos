@@ -40,6 +40,20 @@ files-data-command-line/files-with-the-program/walk-the-templates: resources.go 
 files-data-command-line/files-with-the-program/the-offline-resource-pack: resources.go gives var resources
   The default calibration joins them: its readme, "gctl's default is zero"; the bible, "gctl
   also carries report templates ... and a default `calibration.json`".
+files-data-command-line/the-top-of-the-road/choose-the-input-format: bookings.go gives func decodeBookings
+  Its readme: "`decodeBookings` now reads the export from a reader, as `readBookingSheet` reads
+  the sheet".
+files-data-command-line/the-top-of-the-road/choose-the-input-format: bookings.go gives type Booking
+  Back to the whole booking of JSON In, JSON Out: the calibration day reads LOS and the note
+  from "my export as JSON and Hollis's sheet as CSV" (its readme), whose columns the bible
+  gives as "ID,SATELLITE,STATION,AOS,LOS,NOTE", and its day report prints both. Flags and
+  Subcommands' copy left out the two its commands never read.
+files-data-command-line/the-top-of-the-road/a-golden-session: cli.go gives const usage
+  The bible: "Chapter 11's copy of gctl carries only `day [-format json|csv] dir`"; the
+  syllabus: "chapter 11's gctl has the `day` command only", as the comment says.
+files-data-command-line/the-top-of-the-road/la-grande-points-true: cli.go gives func run
+  Its readme: "Complete `runDay`, which `run` now calls in place of `planDay` and
+  `writeReport`".
 
 # build-gctl
 
