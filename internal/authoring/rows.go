@@ -69,7 +69,8 @@ func Load(q store.Querier, uuid string) (Package, error) {
 	if !ok {
 		return Package{}, fmt.Errorf("no lesson %s", uuid)
 	}
-	p := Package{Slug: l.Slug, Title: l.Title, Position: l.Position, Difficulty: l.Difficulty, Readme: l.Readme}
+	p := Package{Slug: l.Slug, Title: l.Title, Position: l.Position, Difficulty: l.Difficulty, Readme: l.Readme,
+		Created: l.CreatedAt, Modified: l.LastMod}
 	for k, v := range lessonType {
 		if v == l.Type {
 			p.Type = k

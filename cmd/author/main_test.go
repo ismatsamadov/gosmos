@@ -107,6 +107,25 @@ func sameTree(t *testing.T, got, want string) {
 	}
 }
 
+// withoutTimes takes the created: and modified: lines out of every README.md under dir, which
+// an export writes from the lesson's row and the example packages leave out.
+func withoutTimes(t *testing.T, dir string) {
+	t.Helper()
+	filepath.WalkDir(dir, func(p string, e fs.DirEntry, err error) error {
+		if err != nil || e.Name() != "README.md" {
+			return err
+		}
+		b, _ := os.ReadFile(p)
+		var kept []string
+		for _, line := range strings.SplitAfter(string(b), "\n") {
+			if !strings.HasPrefix(line, "created: ") && !strings.HasPrefix(line, "modified: ") {
+				kept = append(kept, line)
+			}
+		}
+		return os.WriteFile(p, []byte(strings.Join(kept, "")), 0o644)
+	})
+}
+
 func TestAuthorALibrary(t *testing.T) {
 	path := library(t)
 	importAll(t, path)
@@ -160,6 +179,7 @@ func TestAuthorALibrary(t *testing.T) {
 	if msg := mustAuthor(t, "export", path, "--course", "learn-launches", out); !strings.Contains(msg, "exported 3 lessons") {
 		t.Errorf("export: %q", msg)
 	}
+	withoutTimes(t, out)
 	for _, name := range []string{"launch-window", "fuel-budget", "mission-quiz"} {
 		sameTree(t, filepath.Join(out, "1-countdown", name), example(name))
 		if msg := mustAuthor(t, "lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", filepath.Join(out, "1-countdown", name)); !strings.Contains(msg, "unchanged") {
@@ -171,6 +191,7 @@ func TestAuthorALibrary(t *testing.T) {
 	}
 	one := filepath.Join(t.TempDir(), "chapter")
 	mustAuthor(t, "export", path, "--course", "learn-launches", "--chapter", "1-countdown", one)
+	withoutTimes(t, one)
 	sameTree(t, filepath.Join(one, "fuel-budget"), example("fuel-budget"))
 	if code, _, errOut := author(t, "export", path, "--course", "learn-launches", one); code != 1 || !strings.Contains(errOut, "is not empty") {
 		t.Errorf("export into a folder with files: %d %q", code, errOut)

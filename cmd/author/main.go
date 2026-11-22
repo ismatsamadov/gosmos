@@ -347,15 +347,23 @@ func lesson(ctx context.Context, args []string, out io.Writer) error {
 		if err := tx.QueryRow(`SELECT slug FROM lesson WHERE chapter_uuid = ? AND position = ? AND uuid <> ?`, chapterUUID, pkg.Position, uuid).Scan(&holder); err == nil {
 			return fmt.Errorf("position %d of chapter %s is taken by lesson %s", pkg.Position, *chapterSlug, holder)
 		}
+		// The package's times when it gives them; else now for a new lesson, and for one that
+		// changed now as its modified time.
 		t := now()
+		given := pkg.Created != ""
 		times := authoring.Times{Created: t, Modified: t}
+		if given {
+			times = authoring.Times{Created: pkg.Created, Modified: pkg.Modified}
+		}
 		var diff []string
 		if exists {
 			cur, _, err := store.Get(tx, uuid)
 			if err != nil {
 				return err
 			}
-			times = authoring.Times{Created: cur.CreatedAt, Modified: cur.LastMod}
+			if !given {
+				times = authoring.Times{Created: cur.CreatedAt, Modified: cur.LastMod}
+			}
 			rec := pkg.Record(uuid, chapterUUID, times)
 			parts, err := store.ReadParts(tx, uuid)
 			if err != nil {
@@ -365,7 +373,9 @@ func lesson(ctx context.Context, args []string, out io.Writer) error {
 				fmt.Fprintf(out, "lesson %s: unchanged (%s)\n", name, uuid)
 				return nil
 			}
-			times.Modified = t
+			if !given {
+				times.Modified = t
+			}
 		}
 		if err := store.Put(tx, pkg.Record(uuid, chapterUUID, times)); err != nil {
 			return err
