@@ -96,46 +96,6 @@ struct AppResources {
     }
 }
 
-/// A place Back and Forward return to: Mission Control, the field guide, a lesson, or a place
-/// in the Go documentation.
-enum Place: Hashable {
-    case dashboard
-    case fieldGuide
-    case lesson(LessonRef)
-    case doc(DocLink)
-}
-
-/// Places visited, for the toolbar's back and forward buttons.
-struct VisitHistory {
-    private(set) var back: [Place] = []
-    private(set) var forward: [Place] = []
-
-    mutating func visit(from current: Place?) {
-        if let current, back.last != current { back.append(current) }
-        if back.count > 200 { back.removeFirst() }
-        forward.removeAll()
-    }
-
-    /// An entry for the place on screen is no step: it is left when you go to a place the
-    /// history doesn't keep (the review, a redo) and come straight back.
-    mutating func goBack(from current: Place?) -> Place? {
-        while let last = back.last, last == current { back.removeLast() }
-        guard let target = back.popLast() else { return nil }
-        if let current { forward.append(current) }
-        return target
-    }
-
-    mutating func goForward(from current: Place?) -> Place? {
-        while let next = forward.last, next == current { forward.removeLast() }
-        guard let target = forward.popLast() else { return nil }
-        if let current { back.append(current) }
-        return target
-    }
-
-    func canGoBack(from current: Place?) -> Bool { back.contains { $0 != current } }
-    func canGoForward(from current: Place?) -> Bool { forward.contains { $0 != current } }
-}
-
 /// A library in the sidebar: built into the app, or one you opened.
 struct ShelfLibrary: Identifiable {
     /// The library's uuid; the file's location while it can't be read.
@@ -215,12 +175,6 @@ final class AppModel {
     private(set) var docNames = DocNames.empty
     /// What search found in the documentation, below the lessons.
     private(set) var docSearchResults: [DocSearchHit] = []
-    /// The documentation is the place on screen, or about to be, for the history.
-    @ObservationIgnored private var docsActive = false
-    /// Mission Control is the place on screen, or about to be, for the history.
-    @ObservationIgnored private var dashboardActive = false
-    /// The field guide is the place on screen, for the history.
-    @ObservationIgnored private var fieldGuideActive = false
     /// The opening on screen, over the whole window: the course it opens, and its page.
     private(set) var opening: Opening?
     /// The name on your badge, the one the team calls you; empty until you give one.
@@ -233,9 +187,6 @@ final class AppModel {
     private(set) var fieldGuideFocus: String?
     /// Lessons' story beats, the first paragraph of each readme, for the teaser after a pass.
     @ObservationIgnored private var beats: [LessonRef: [MDInline]] = [:]
-    /// The lesson that is the place on screen, or about to be while it loads, for the history;
-    /// nil for Mission Control, the documentation, the review and a redo.
-    @ObservationIgnored private var lessonTarget: LessonRef?
 
     /// The review is on screen: selected, with no lesson still leaving.
     var showsReview: Bool { selection == .review && lesson == nil }
@@ -294,7 +245,8 @@ final class AppModel {
         get { access(keyPath: \.showInspector); return preferences.defaults.bool(forKey: "ShowInspector") }
         set { withMutation(keyPath: \.showInspector) { preferences.defaults.set(newValue, forKey: "ShowInspector") } }
     }
-    private(set) var history = VisitHistory()
+    /// The place on screen and the places visited, for Back and Forward.
+    let navigation = NavigationModel()
     var editorFontSize: Double = 13
     var showLineNumbers = true
     /// Set while the app saves before it quits.
@@ -322,6 +274,7 @@ final class AppModel {
         preferences = LocalPreferences(defaults: defaults)
         self.resources = resources
         workspace = Workspace(root: preferences.dataFolder?.appendingPathComponent("work", isDirectory: true) ?? Workspace.defaultRoot)
+        navigation.docLocation = { [weak self] in self?.docs?.location }
     }
 
     // MARK: Launch
@@ -380,7 +333,7 @@ final class AppModel {
         let scripted = storyAction == nil && (preferences.defaults.string(forKey: LaunchArguments.openLesson) != nil || action != nil)
         if !scripted {
             selection = .dashboard
-            dashboardActive = true
+            navigation.screen = .dashboard
             // A new learner meets the story before anything else.
             if storyAction == nil { self.opening = openingAtLaunch }
         }
@@ -569,12 +522,9 @@ final class AppModel {
         review = nil
         // The lesson on screen, or the one still loading to take its place; none while the
         // documentation is the place, even with a lesson still leaving for it.
-        let current = docsActive ? nil : lessonTarget
-        if remember && ref != current { history.visit(from: visited) }
-        dashboardActive = false
-        fieldGuideActive = false
-        docsActive = false
-        lessonTarget = ref
+        let current = navigation.lessonTarget
+        if remember && ref != current { navigation.visit() }
+        navigation.screen = .lesson(ref)
         if selection != .lesson(ref) { selection = .lesson(ref) }
         if let loc = catalog.location(of: ref.lesson) {
             let course = catalog.courses[loc.course]
@@ -593,22 +543,9 @@ final class AppModel {
     func redo(_ ref: LessonRef) {
         guard let learner, let db = library(ref.library)?.database, summary(ref) != nil else { return }
         selection = nil
-        dashboardActive = false
-        fieldGuideActive = false
+        navigation.screen = nil
         review = nil
-        docsActive = false
-        lessonTarget = nil
         startLoading(ref, db: db, learner: learner, review: true)
-    }
-
-    /// The place on screen as the back and forward history knows it: Mission Control, the
-    /// documentation's page, or the lesson, also while it still loads, so Back or Forward
-    /// meanwhile keeps it; the review and a redo are not in it.
-    private var visited: Place? {
-        if dashboardActive { return .dashboard }
-        if fieldGuideActive { return .fieldGuide }
-        if docsActive { return docs?.location.map(Place.doc) }
-        return lessonTarget.map(Place.lesson)
     }
 
     private func startLoading(_ ref: LessonRef, db: AppDatabase, learner: LearnerDatabase, review: Bool) {
@@ -754,26 +691,6 @@ final class AppModel {
         }
     }
 
-    var canGoBack: Bool { history.canGoBack(from: visited) }
-    var canGoForward: Bool { history.canGoForward(from: visited) }
-
-    func goBack() {
-        if let place = history.goBack(from: visited) { go(to: place) }
-    }
-
-    func goForward() {
-        if let place = history.goForward(from: visited) { go(to: place) }
-    }
-
-    private func go(to place: Place) {
-        switch place {
-        case .dashboard: showDashboard(remember: false)
-        case .fieldGuide: showFieldGuide(remember: false)
-        case .lesson(let ref): open(ref, remember: false)
-        case .doc(let link): openDocumentation(link, remember: false)
-        }
-    }
-
     var nextLesson: LessonSummary? {
         guard let ref = lesson?.detail.ref, lesson?.isReview == false else { return nil }
         return library(ref.library)?.catalog.next(after: ref.lesson)
@@ -831,17 +748,14 @@ final class AppModel {
     /// Shows Mission Control; `remember` adds the place on screen to the back history. A lesson
     /// on screen is saved and left, as when another opens.
     func showDashboard(remember: Bool = true) {
-        guard !dashboardActive else {
+        guard navigation.screen != .dashboard else {
             // Already the place: the list may have cleared its selection (a Command-click on
             // the selected row), so the sidebar shows it selected again.
             if selection != .dashboard { selection = .dashboard }
             return
         }
-        if remember { history.visit(from: visited) }
-        dashboardActive = true
-        fieldGuideActive = false
-        docsActive = false
-        lessonTarget = nil
+        if remember { navigation.visit() }
+        navigation.screen = .dashboard
         selection = .dashboard
         isLoadingLesson = false
         loadTask?.cancel()
@@ -1011,15 +925,12 @@ final class AppModel {
     func showFieldGuide(focus term: String? = nil, remember: Bool = true) {
         shownTerm = nil
         fieldGuideFocus = term
-        guard !fieldGuideActive else {
+        guard navigation.screen != .fieldGuide else {
             if selection != .fieldGuide { selection = .fieldGuide }
             return
         }
-        if remember { history.visit(from: visited) }
-        dashboardActive = false
-        fieldGuideActive = true
-        docsActive = false
-        lessonTarget = nil
+        if remember { navigation.visit() }
+        navigation.screen = .fieldGuide
         selection = .fieldGuide
         isLoadingLesson = false
         loadTask?.cancel()
@@ -1064,11 +975,8 @@ final class AppModel {
     /// conflict can still be asked about; Back returns to it.
     func showReview() {
         guard let learner else { return }
-        if let ref = visited { history.visit(from: ref) }
-        dashboardActive = false
-        fieldGuideActive = false
-        docsActive = false
-        lessonTarget = nil
+        if navigation.visited != nil { navigation.visit() }
+        navigation.screen = nil
         selection = .review
         isLoadingLesson = false
         loadTask?.cancel()
@@ -1125,11 +1033,8 @@ final class AppModel {
     func openDocumentation(_ link: DocLink? = nil, remember: Bool = true, selecting item: SidebarItem = .documentation) {
         guard let docs else { return }
         let target = link ?? docs.location
-        if remember, let place = visited, place != target.map(Place.doc) { history.visit(from: place) }
-        dashboardActive = false
-        fieldGuideActive = false
-        docsActive = true
-        lessonTarget = nil
+        if remember, let place = navigation.visited, place != target.map(Place.doc) { navigation.visit() }
+        navigation.screen = .documentation
         if selection != item { selection = item }
         if let target { docs.show(target) }
         review = nil
