@@ -366,44 +366,6 @@ import Testing
     }
 }
 
-/// A library migrated by the tool: its learner rows sit in learner.sqlite under its uuid, with
-/// its path as the location. The app lists it with the libraries you opened and shows that
-/// progress as it is.
-@Suite struct MigratedLibraryTests {
-    @Test func migratedProgressShowsAsIs() async throws {
-        let (_, dir) = try Fixtures.database()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let libraryFile = dir.appendingPathComponent(Fixtures.libraryName)
-        let url = dir.appendingPathComponent("learner.sqlite")
-        try LearnerDatabase(url: url, schema: Fixtures.learnerSchemaURL).close()
-        // What the tool writes, row by row, as it moves the progress out of the library.
-        try await DatabaseQueue(path: url.path).write { db in
-            let lib = Fixtures.libraryID
-            try db.execute(sql: "INSERT INTO library(uuid, title, location, added_at) VALUES (?, ?, ?, ?)",
-                           arguments: [lib, Fixtures.libraryTitle, libraryFile.path, "2026-10-01T09:00:00Z"])
-            try db.execute(sql: "INSERT INTO progress(library_uuid, lesson_uuid, done_at, last_opened_at) VALUES (?, ?, ?, ?)",
-                           arguments: [lib, Fixtures.codeLesson, "2026-10-02T10:00:00Z", "2026-10-02T10:00:00Z"])
-            try db.execute(sql: "INSERT INTO progress(library_uuid, lesson_uuid, done_at, last_opened_at) VALUES (?, ?, NULL, ?)",
-                           arguments: [lib, Fixtures.quizLesson, "2026-10-03T10:00:00Z"])
-            try db.execute(sql: "INSERT INTO code_file(library_uuid, lesson_uuid, name, content, updated_at) VALUES (?, ?, ?, ?, ?)",
-                           arguments: [lib, Fixtures.codeLesson, "main.go", "package main // mine\n", "2026-10-02T10:00:00Z"])
-            try db.execute(sql: "INSERT INTO note(library_uuid, lesson_uuid, body, updated_at) VALUES (?, ?, ?, ?)",
-                           arguments: [lib, Fixtures.codeLesson, "Println adds the newline.", "2026-10-02T10:00:00Z"])
-            try db.execute(sql: "INSERT INTO setting(key, value) VALUES ('editor_font_size', '15')")
-        }
-        let learner = try LearnerDatabase(url: url, schema: Fixtures.learnerSchemaURL)
-        let opened = BuiltInLibraries.opened(from: try await learner.libraries())
-        #expect(opened.map(\.uuid) == [Fixtures.libraryID] && opened[0].location == libraryFile.path)
-        let library = try AppDatabase(url: URL(fileURLWithPath: opened[0].location))
-        #expect(library.info.uuid == opened[0].uuid)
-        #expect(try await learner.done() == [Fixtures.libraryID: [Fixtures.codeLesson]])
-        #expect(try await learner.lastOpened() == Fixtures.ref(Fixtures.quizLesson))
-        #expect(try await learner.codeFiles(for: Fixtures.ref(Fixtures.codeLesson))["main.go"]?.content == "package main // mine\n")
-        #expect(try await learner.note(for: Fixtures.ref(Fixtures.codeLesson)) == "Println adds the newline.")
-        #expect(try await learner.setting("editor_font_size") == "15")
-    }
-}
-
 /// Writes nothing else waits for, such as a review answer, and quitting, which waits for them.
 @Suite struct PendingWriteTests {
     /// A review answer given a moment before the app quits is there when it opens again; a

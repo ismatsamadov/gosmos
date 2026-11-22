@@ -24,8 +24,8 @@
 --   * The uuids of the library, its courses and its lessons never change: the learner database
 --     refers to them. A producer rewrites a lesson in place and never deletes one.
 --   * This file makes a new, empty library; it is never run against an existing one. A change
---     raises user_version and comes with a migration in the db package (db/migrate.go), which
---     `library migrate` runs. The app opens only the version it was built for.
+--     raises user_version, and libraries are made again with the new tools: the app and the
+--     tools open only the version they were built for.
 --   * No pictures, videos or interactive widgets: producers leave them out (cmd/author refuses
 --     them), so none lands here.
 

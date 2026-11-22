@@ -465,7 +465,7 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	if version != db.Version {
-		return fmt.Errorf("%s is of format %d, not %d; migrate it first (library migrate)", file, version, db.Version)
+		return fmt.Errorf("%s is of format %d, not %d; make it again with this version's tools", file, version, db.Version)
 	}
 	courseUUID, err := courseBySlug(d, *courseSlug)
 	if err != nil {

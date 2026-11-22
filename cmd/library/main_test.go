@@ -138,12 +138,12 @@ func TestCheckFindsEachProblem(t *testing.T) {
 		{
 			name:    "a library of format 6",
 			breakIt: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`},
-			want:    []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; library migrate brings it up to date"},
+			want:    []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; make it again with this version's tools"},
 		},
 		{
 			name:    "an older format",
 			breakIt: []string{`PRAGMA user_version = 8`},
-			want:    []string{"user_version is 8, not 9: the library is of an older format; library migrate brings it up to date"},
+			want:    []string{"user_version is 8, not 9: the library is of an older format; make it again with this version's tools"},
 		},
 		{
 			name:    "a newer format",
@@ -235,156 +235,6 @@ func TestCheckDamagedAndForeignFiles(t *testing.T) {
 	}
 	if code, _, errOut := runCmd(t, "check", filepath.Join(t.TempDir(), "missing.sqlite")); code != 1 || !strings.Contains(errOut, "no database file") {
 		t.Errorf("check of a missing file: %d %q", code, errOut)
-	}
-}
-
-// historySchema returns the schema of an older format, as db/history keeps it.
-func historySchema(t *testing.T, v int) string {
-	t.Helper()
-	schema, err := os.ReadFile(filepath.Join("..", "..", "db", "history", fmt.Sprintf("schema_v%d.sql", v)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(schema)
-}
-
-// v3Library makes a library of format 3 from the schema kept in db/history: a course with a
-// code lesson, the learner's progress in it, and the learner's project folder for the course,
-// which only command-line lessons used.
-func v3Library(t *testing.T) string {
-	t.Helper()
-	path := filepath.Join(t.TempDir(), "old.sqlite")
-	exec(t, path,
-		historySchema(t, 3),
-		`INSERT INTO course VALUES ('c-ship', 'learn-shipping', 'Learn Shipping', 'Course', 'Ship it.', 'An invented course about shipping code.', 0)`,
-		`INSERT INTO chapter VALUES ('ch-build', 'c-ship', 0, '1-build', 'Build', '')`,
-		`INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod, code_last_mod, synced_at)
-			VALUES ('l-build', 'ch-build', 0, '1-build', 'Build your app', 'type_code', 1, 30, 'Build it.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', NULL, '2026-01-03T00:00:00Z')`,
-		`INSERT INTO code_lesson VALUES ('l-build', 'type_code', 'go', 'built' || char(10))`,
-		`INSERT INTO starter_file VALUES ('l-build', 'main.go', 0, 'package main', 0, 0)`,
-		`INSERT INTO progress VALUES ('l-build', NULL, '2026-10-31T12:00:00Z')`,
-		`INSERT INTO project VALUES ('c-ship', '/Users/me/shipping', 'https://my-app.example.com')`,
-	)
-	return path
-}
-
-// v7Library makes a library of format 7 from the schema kept in db/history: the small library,
-// and the statements given.
-func v7Library(t *testing.T, stmts ...string) string {
-	t.Helper()
-	path := filepath.Join(t.TempDir(), "v7.sqlite")
-	exec(t, path, append([]string{historySchema(t, 7),
-		`INSERT INTO library_info VALUES (1, '0b7f3e52-9a41-4c6d-8f20-6e5d1c9b7a34', 'Learn Testing', '2')`}, append(smallLibrary, stmts...)...)...)
-	return path
-}
-
-// Format 7 goes to 9 in place: the library keeps its uuid, its title and every lesson.
-func TestMigrateFrom7(t *testing.T) {
-	path := v7Library(t)
-	code, out, errOut := runCmd(t, "migrate", path)
-	want := `^migrated ` + regexp.QuoteMeta(path) + ` from format 7 to 9: "Learn Testing" version 2 \(uuid 0b7f3e52-9a41-4c6d-8f20-6e5d1c9b7a34\)
-ok: ` + regexp.QuoteMeta(path) + ` is "Learn Testing" version 2 \(uuid 0b7f3e52-9a41-4c6d-8f20-6e5d1c9b7a34\), a library of format 9 with 1 course, 2 chapters and 4 lessons
-$`
-	if code != 0 || !regexp.MustCompile(want).MatchString(out) {
-		t.Fatalf("migrate: %d\n%s\n%s", code, out, errOut)
-	}
-}
-
-// Format 8 goes to 9 in place: the library keeps its uuid, its title and every lesson, and has
-// the tables of a course's story, empty. Migrating it again changes nothing.
-func TestMigrateFrom8(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "v8.sqlite")
-	exec(t, path, append([]string{historySchema(t, 8),
-		`INSERT INTO library_info VALUES (1, '5d2a9c47-1e8b-4f30-9a6d-3b7c0e2f8a15', 'Learn Testing', '3')`}, smallLibrary...)...)
-	code, out, errOut := runCmd(t, "migrate", path)
-	want := `^migrated ` + regexp.QuoteMeta(path) + ` from format 8 to 9: "Learn Testing" version 3 \(uuid 5d2a9c47-1e8b-4f30-9a6d-3b7c0e2f8a15\)
-ok: ` + regexp.QuoteMeta(path) + ` is "Learn Testing" version 3 \(uuid 5d2a9c47-1e8b-4f30-9a6d-3b7c0e2f8a15\), a library of format 9 with 1 course, 2 chapters and 4 lessons
-$`
-	if code != 0 || !regexp.MustCompile(want).MatchString(out) {
-		t.Fatalf("migrate: %d\n%s\n%s", code, out, errOut)
-	}
-	d, _, err := db.Inspect(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var tables, rows int
-	d.QueryRow(`SELECT (SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('story_page', 'story_card', 'chapter_story', 'story_term')),
-		(SELECT count(*) FROM story_page) + (SELECT count(*) FROM story_card) + (SELECT count(*) FROM chapter_story) + (SELECT count(*) FROM story_term)`).Scan(&tables, &rows)
-	d.Close()
-	if tables != 4 || rows != 0 {
-		t.Errorf("after migrating: %d of the story's 4 tables, holding %d rows; want all 4, empty", tables, rows)
-	}
-	before, _ := os.ReadFile(path)
-	if code, out, _ := runCmd(t, "migrate", path); code != 0 || !strings.HasPrefix(out, path+` is already of format 9: "Learn Testing" version 3`) {
-		t.Errorf("migrating again: %d %q", code, out)
-	}
-	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
-		t.Error("migrating an up-to-date library changed it")
-	}
-}
-
-func TestMigrate(t *testing.T) {
-	path := v3Library(t)
-	if code, out, _ := runCmd(t, "check", path); code != 1 || !strings.HasPrefix(out, "application_id is 1196447556 and user_version 3: the library is of format 3") {
-		t.Fatalf("check before migrating: %d %q", code, out)
-	}
-	unchanged, _ := os.ReadFile(path)
-	if code, _, errOut := runCmd(t, "migrate", path); code != 1 || !strings.Contains(errOut, "holds the learner's data (1 progress rows); give a learner database to move it into (--learner <file>): nothing changed") {
-		t.Fatalf("migrate without a learner database: %d %q", code, errOut)
-	}
-	if after, _ := os.ReadFile(path); !bytes.Equal(unchanged, after) {
-		t.Fatal("the refused migration changed the library")
-	}
-	learner := filepath.Join(t.TempDir(), "Gosmos", "learner.sqlite")
-	code, out, errOut := runCmd(t, "migrate", path, "--learner", learner, "--title", "Shipping")
-	want := `^migrated ` + regexp.QuoteMeta(path) + ` from format 3 to 9: "Shipping" version 1 \(uuid ([0-9a-f-]{36})\)
-moved its learner data into ` + regexp.QuoteMeta(learner) + `, a new learner database: progress 1, attempt 0, note 0, code_file 0, setting 0
-dropped the learner data only command-line lessons used, which Gosmos no longer has: project 1
-ok: `
-	m := regexp.MustCompile(want).FindStringSubmatch(out)
-	if code != 0 || m == nil {
-		t.Fatalf("migrate: %d\n%s\n%s", code, out, errOut)
-	}
-	l, err := db.OpenLearner(learner)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var opened string
-	l.QueryRow(`SELECT last_opened_at FROM progress WHERE library_uuid = ? AND lesson_uuid = 'l-build'`, m[1]).Scan(&opened)
-	l.Close()
-	if opened != "2026-10-31T12:00:00Z" {
-		t.Errorf("the progress became %q in the learner database", opened)
-	}
-
-	before, _ := os.ReadFile(path)
-	if code, out, _ := runCmd(t, "migrate", path, "--learner", learner); code != 0 || !strings.HasPrefix(out, path+" is already of format 9: \"Shipping\" version 1 (uuid "+m[1]+")") {
-		t.Errorf("migrating again: %d %q", code, out)
-	}
-	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
-		t.Error("migrating an up-to-date library changed it")
-	}
-}
-
-func TestMigrateRefuses(t *testing.T) {
-	newer := newLibrary(t, `PRAGMA user_version = 10`)
-	other := filepath.Join(t.TempDir(), "other.sqlite")
-	exec(t, other, `CREATE TABLE recipe (name TEXT)`)
-	interview := v7Library(t, `INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
-		VALUES ('l-talk', 'ch-more', 1, 'l-talk', 'Talk it through', 'type_interview_chat', 1, 3, 'Explain table tests.', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')`,
-		`INSERT INTO interview_lesson VALUES ('l-talk', 'type_interview_chat', 'Explain table-driven tests.', 'Mentions t.Run.')`)
-	for _, tc := range []struct{ path, want string }{
-		{newer, "newer than this program's 9"},
-		{interview, "holds lessons of types format 8 removed (type_interview_chat 1): Gosmos is self-contained, with code, tests and quiz lessons only, which it checks on the Mac alone; nothing changed"},
-		{other, "not a Gosmos library (application_id 0); nothing changed"},
-		{filepath.Join(t.TempDir(), "missing.sqlite"), "no database file"},
-	} {
-		before, _ := os.ReadFile(tc.path)
-		if code, _, errOut := runCmd(t, "migrate", tc.path); code != 1 || !strings.Contains(errOut, tc.want) {
-			t.Errorf("migrate %s: %d %q, want it to say %q", tc.path, code, errOut, tc.want)
-		}
-		if after, _ := os.ReadFile(tc.path); !bytes.Equal(before, after) {
-			t.Errorf("a refused migration changed %s", tc.path)
-		}
 	}
 }
 

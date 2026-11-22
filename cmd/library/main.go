@@ -1,9 +1,8 @@
-// Command library makes, checks, migrates and verifies Gosmos course libraries: SQLite files in
-// the format docs/library-format.md describes, whatever they hold and wherever it came from.
+// Command library makes, checks and verifies Gosmos course libraries: SQLite files in the format
+// docs/library-format.md describes, whatever they hold and wherever it came from.
 //
 //	library create <file> [--title T] [--version V]
 //	library check <file>
-//	library migrate <file> [--learner <file>] [--title T]
 //	library verify <file> [--course <slug>] [--teaching]
 //	library drift <file> [--course <slug>] [--diff]
 //
@@ -33,13 +32,6 @@ const usage = `usage:
       make a new, empty library, titled with the file's name and of version 1 unless given
   library check <file>
       run the checks the app makes before it opens a library
-  library migrate <file> [--learner <file>] [--title T]
-      bring a library of an older format up to date. Going to format 7, the library gets its
-      title (else its first course's, else the file's name), and the learner's data in it
-      moves to the learner database, made from learner.sql if it does not exist; a library
-      that holds such data needs --learner. Format 8 has code, tests and quiz lessons only: a
-      library with command-line, GitHub or interview lessons is refused. Format 9 adds the
-      tables of a course's story, empty
   library verify <file> [--course <slug>] [--teaching]
       run every code lesson with the Go toolchain: it must pass with its solution and fail
       with its starter. With --teaching, every code lesson must also have 2 or 3 hints and a
@@ -66,16 +58,13 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	cmd := args[0]
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	var title, version, learner, course string
+	var title, version, course string
 	var teaching, diffs bool
 	switch cmd {
 	case "create":
 		fs.StringVar(&title, "title", "", "")
 		fs.StringVar(&version, "version", "1", "")
 	case "check":
-	case "migrate":
-		fs.StringVar(&learner, "learner", "", "")
-		fs.StringVar(&title, "title", "", "")
 	case "verify":
 		fs.StringVar(&course, "course", "", "")
 		fs.BoolVar(&teaching, "teaching", false, "")
@@ -102,9 +91,6 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 		ok = err == nil
 	case "check":
 		ok, err = check(ctx, path, out)
-	case "migrate":
-		err = migrate(ctx, path, db.MigrateOptions{Title: title, Learner: learner}, out)
-		ok = err == nil
 	case "verify":
 		ok, err = verify(ctx, path, course, teaching, out)
 	case "drift":
@@ -201,49 +187,4 @@ func check(ctx context.Context, path string, out io.Writer) (bool, error) {
 	fmt.Fprintf(out, "ok: %s is %s, a library of format %d with %s, %s and %s\n",
 		path, describeInfo(info), db.Version, plural(courses, "course"), plural(chapters, "chapter"), plural(lessons, "lesson"))
 	return true, nil
-}
-
-// migrate brings a library of an older format up to date (db.Migrate), says what it did, and
-// checks the result.
-func migrate(ctx context.Context, path string, opt db.MigrateOptions, out io.Writer) error {
-	m, err := db.Migrate(ctx, path, opt)
-	if m.Recovered {
-		fmt.Fprintln(out, db.RecoveredMessage(path))
-	}
-	if err != nil {
-		return err
-	}
-	if m.From == m.To {
-		fmt.Fprintf(out, "%s is already of format %d: %s\n", path, m.To, describeInfo(m.Info))
-		return nil
-	}
-	fmt.Fprintf(out, "migrated %s from format %d to %d: %s\n", path, m.From, m.To, describeInfo(m.Info))
-	if m.Learner != "" {
-		var counts []string
-		for _, r := range m.Moved {
-			counts = append(counts, fmt.Sprintf("%s %d", r.Table, r.Rows))
-		}
-		switch {
-		case m.Already:
-			fmt.Fprintf(out, "the learner database %s already held its learner data, from an earlier run, so none was copied again: %s\n", m.Learner, strings.Join(counts, ", "))
-		case m.Created:
-			fmt.Fprintf(out, "moved its learner data into %s, a new learner database: %s\n", m.Learner, strings.Join(counts, ", "))
-		default:
-			fmt.Fprintf(out, "moved its learner data into the learner database %s: %s\n", m.Learner, strings.Join(counts, ", "))
-		}
-	}
-	var dropped []string
-	for _, r := range m.Dropped {
-		if r.Rows > 0 {
-			dropped = append(dropped, fmt.Sprintf("%s %d", r.Table, r.Rows))
-		}
-	}
-	if len(dropped) > 0 {
-		fmt.Fprintf(out, "dropped the learner data only command-line lessons used, which Gosmos no longer has: %s\n", strings.Join(dropped, ", "))
-	}
-	ok, err := check(ctx, path, out)
-	if err == nil && !ok {
-		err = errors.New("the migrated library fails its checks")
-	}
-	return err
 }

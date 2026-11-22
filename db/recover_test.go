@@ -112,7 +112,7 @@ func crashLibrary(t *testing.T) (string, string) {
 		t.Fatal(err)
 	}
 	defer d.Close()
-	return path, dump(t, d, nil)
+	return path, dump(t, d)
 }
 
 func TestInspectRecoversAnInterruptedWrite(t *testing.T) {
@@ -138,7 +138,7 @@ func TestInspectRecoversAnInterruptedWrite(t *testing.T) {
 	if _, err := os.Stat(path + "-journal"); err == nil {
 		t.Error("the journal is still there")
 	}
-	if got := dump(t, d, nil); got != want {
+	if got := dump(t, d); got != want {
 		t.Errorf("the rows are not as they were before the write:\n%s\nwant\n%s", got, want)
 	}
 	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
@@ -163,7 +163,7 @@ func TestOpenRecoversAnInterruptedWrite(t *testing.T) {
 	if !strings.Contains(logged.String(), RecoveredMessage(path)) {
 		t.Errorf("Open logged %q, want the message that it recovered an interrupted write", logged.String())
 	}
-	if got := dump(t, d, nil); got != want {
+	if got := dump(t, d); got != want {
 		t.Errorf("the rows are not as they were before the write:\n%s\nwant\n%s", got, want)
 	}
 }
@@ -177,4 +177,63 @@ func TestRecoverLeavesAWholeFileAlone(t *testing.T) {
 	if after, _ := os.ReadFile(path); !bytes.Equal(before, after) {
 		t.Error("Recover changed a file with nothing to recover")
 	}
+}
+
+// dump renders every row of every table but the search index, to see they did not change.
+func dump(t *testing.T, d *sql.DB) string {
+	t.Helper()
+	var b strings.Builder
+	for _, table := range tableNames(t, d) {
+		if strings.HasPrefix(table, "lesson_search") {
+			continue
+		}
+		rows, err := d.Query(`SELECT * FROM ` + table + ` ORDER BY 1, 2`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, _ := rows.Columns()
+		for rows.Next() {
+			vals := make([]any, len(n))
+			ptrs := make([]any, len(n))
+			for i := range vals {
+				ptrs[i] = &vals[i]
+			}
+			rows.Scan(ptrs...)
+			b.WriteString(table)
+			for _, v := range vals {
+				b.WriteString("|")
+				b.WriteString(strings.TrimSpace(strings.ReplaceAll(sprint(v), "\n", " ")))
+			}
+			b.WriteString("\n")
+		}
+		rows.Close()
+	}
+	return b.String()
+}
+
+func sprint(v any) string {
+	switch v := v.(type) {
+	case nil:
+		return "NULL"
+	case []byte:
+		return string(v)
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
+func tableNames(t *testing.T, d *sql.DB) []string {
+	t.Helper()
+	rows, err := d.Query(`SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var n string
+		rows.Scan(&n)
+		out = append(out, n)
+	}
+	return out
 }

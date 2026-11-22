@@ -35,18 +35,18 @@ import Testing
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 7") }
             == ["application_id is 7, not 1196641619: the file is not a Gosmos library"])
         #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 8") }
-            == ["user_version is 8, not 9: the library is of an older format; library migrate brings it up to date"])
-        // A library from before the app was called Gosmos is one to migrate too, as the
-        // library tool says (db.Validate), word for word.
+            == ["user_version is 8, not 9: the library is of an older format; make it again with this version's tools"])
+        // A library from before the app was called Gosmos is an older one too, as the library
+        // tool says (db.Validate), word for word.
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 1196447556; PRAGMA user_version = 6") }
-            == ["application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; library migrate brings it up to date"])
+            == ["application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; make it again with this version's tools"])
         #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 1196447556; PRAGMA user_version = 7") }
             == ["application_id is 1196447556, not 1196641619: the file is not a Gosmos library"])
         #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 10") }
             == ["user_version is 10, not 9: the library is of a newer format than this program knows"])
-        // An older file is to be migrated with the tool; the app never migrates.
+        // An older file is made again by whoever made it; nothing brings it up to date.
         let older = try open { try $0.execute(sql: "PRAGMA user_version = 8") }.error
-        #expect(older?.recoverySuggestion?.contains("go run ./cmd/library migrate") == true)
+        #expect(older?.title == "Library Too Old" && older?.recoverySuggestion?.contains("make it again") == true)
     }
 
     /// Check 6: a library names itself in exactly one library_info row.

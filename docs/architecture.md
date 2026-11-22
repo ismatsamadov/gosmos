@@ -12,9 +12,9 @@ the files themselves. Everything lives in this one repository.
 | Path | What it is |
 |---|---|
 | `courses/` | The course libraries built into the app: `apogee.sqlite`, the Apogee courses planned in `docs/apogee/` |
-| `db/schema.sql` | A library's schema (format in `user_version`); `db/` also holds the Go package that creates, opens, checks and migrates libraries, with the schema embedded, and `db/history/` the schema of every older format |
+| `db/schema.sql` | A library's schema (format in `user_version`); `db/` also holds the Go package that creates, opens and checks libraries, with the schema embedded, and `db/history/` the learner database's first schema, for the test of the app's step from it |
 | `db/learner.sql` | The learner database's schema |
-| `cmd/library/` | The library tool, for any library: `create`, `check`, `migrate`, `verify`, `drift` |
+| `cmd/library/` | The library tool, for any library: `create`, `check`, `verify`, `drift` |
 | `cmd/author/`, `internal/` | The authoring tool: writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` refuses pictures, videos and embeds |
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
@@ -27,12 +27,12 @@ the files themselves. Everything lives in this one repository.
 
 ## The databases
 
-- **Libraries** are content. The `db` package owns their format: the schema, the checks and
-  the migrations, used by `cmd/library` and `cmd/author`. A content producer (here
-  `cmd/author`) is the only writer. The app opens any library that passes the checks in
-  `docs/library-format.md`, read-only; one built into the app is opened immutable, so SQLite
-  does not even lock it. The app never creates, changes or migrates a library;
-  `cmd/library migrate` does, with the migrations in `db/migrate.go`.
+- **Libraries** are content. The `db` package owns their format: the schema and the checks,
+  used by `cmd/library` and `cmd/author`. A content producer (here `cmd/author`) is the only
+  writer. The app opens any library that passes the checks in `docs/library-format.md`,
+  read-only; one built into the app is opened immutable, so SQLite does not even lock it. The
+  app never creates or changes a library, and nothing brings one of an older format up to
+  date: it is refused, and whoever made it makes it again.
 - **The learner database** is the learner's: one file per Mac,
   `~/Library/Application Support/Gosmos/learner.sqlite`, made from `db/learner.sql` (which
   the app carries) on first launch. It lists the libraries in use (the built-in ones and

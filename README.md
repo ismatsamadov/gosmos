@@ -47,8 +47,8 @@ never runs git and syncs nothing.
 | `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, read offline: the standard library's docs and examples, the spec, the memory model, Effective Go, the FAQ and How to Write Go Code; `make reference` remakes it, `docs/reference-format.md` says how |
 | `db/schema.sql` | A library's tables, constraints and conventions (format 9) |
 | `db/learner.sql` | The learner database's tables |
-| `db/` | The Go package that creates, opens, checks and migrates libraries; `db/history/` keeps the schema of every older format |
-| `cmd/library/` | Go tool for any library: `create`, `check`, `migrate`, `verify`, `drift` |
+| `db/` | The Go package that creates, opens and checks libraries; `db/history/` keeps the learner database's first schema, for the test of the app's step from it |
+| `cmd/library/` | Go tool for any library: `create`, `check`, `verify`, `drift` |
 | `cmd/author/`, `internal/` | Go tool: writes lessons, and a course's story, into a library from packages, and exports them back |
 | `cmd/passes/` | Go tool: the passes of the Apogee world, from the pass model every pass in its courses comes from |
 | `scripts/pkgcheck.sh` | Checks lesson packages before they are imported: readme rules, hints, 30 runs, `-race`, failing starters |
