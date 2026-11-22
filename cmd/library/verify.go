@@ -23,7 +23,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 var (

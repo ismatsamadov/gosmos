@@ -22,7 +22,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/jobloom/gosmos/internal/media"
+	"github.com/ismatsamadov/gosmos/internal/media"
 )
 
 // Layout is the lesson package specification, as the author tool's help shows it.

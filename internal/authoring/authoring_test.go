@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jobloom/gosmos/db"
-	"github.com/jobloom/gosmos/internal/store"
+	"github.com/ismatsamadov/gosmos/db"
+	"github.com/ismatsamadov/gosmos/internal/store"
 )
 
 var examples = []string{"launch-window", "fuel-budget", "mission-quiz"}

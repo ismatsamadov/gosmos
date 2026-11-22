@@ -24,7 +24,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	mdtext "github.com/yuin/goldmark/text"
 
-	"github.com/jobloom/gosmos/internal/store"
+	"github.com/ismatsamadov/gosmos/internal/store"
 )
 
 // StoryLayout is the story package specification, as the author tool's help shows it.

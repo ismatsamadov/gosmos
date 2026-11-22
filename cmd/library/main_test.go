@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 func runCmd(t *testing.T, args ...string) (code int, out, errOut string) {

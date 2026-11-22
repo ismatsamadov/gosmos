@@ -24,7 +24,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 // shownDecl is one top-level declaration as one lesson shows it.
