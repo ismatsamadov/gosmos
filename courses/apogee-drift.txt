@@ -28,6 +28,27 @@ go-foundations/locks-and-deadlines/pass-day: schedule.go gives type Pass
 
 # networking-from-the-socket-up
 
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: routes.go gives func (Server).route
+  Chapter 8 opens with the recorder's uploads, and the given server stores them: "Go's client's
+  PUT of 1024 bytes through the given server is stored whole" (syllabus 8.1).
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: server.go gives func (Server).serveConn
+  The readme's note: "From today the given server reads the body into req.Body before routing,
+  its length decided by bodyLength."
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: request.go gives func readRequest
+  The same note: the body's length is now "decided by bodyLength".
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: request.go gives type Request
+  The same note: the server "reads the body into req.Body"; Trailer holds the fields after a
+  chunked body, which chapter 8 reads ("chunked transfer encoding and trailers", syllabus).
+
+networking-from-the-socket-up/answers-from-scratch/the-head-without-the-body: routes.go gives func (Server).route
+  The readme: "route now sends GET and HEAD of a recording to recording".
+
+networking-from-the-socket-up/answers-from-scratch/answer-in-pieces: routes.go gives func (Server).route
+  The readme's note: "route now answers GET /feed".
+
 # cryptography-in-go
 
 # logging-metrics-profiling
