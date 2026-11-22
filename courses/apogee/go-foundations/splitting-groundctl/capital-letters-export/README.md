@@ -6,7 +6,7 @@ position: 1
 difficulty: 5
 topics: compiler-errors, packages
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-06T16:51:28Z
+modified: 2026-11-22T10:03:44Z
 ---
 Joss, on Thistle's team at Kessick Polytechnic, asks for its orbital period. Last night's tidy-up of `orbit` gave it a `cube` helper but also renamed `PeriodMinutes` to `periodMinutes`, and now `main` can't reach it: `undefined: orbit.periodMinutes`.
 

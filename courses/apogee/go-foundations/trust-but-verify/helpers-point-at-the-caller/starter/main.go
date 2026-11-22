@@ -2,10 +2,14 @@ package main
 
 import "fmt"
 
-// speedOfLight is in meters per second.
-const speedOfLight = 299792458.0
+// Earth and physics.
+const (
+	earthRadiusKm = 6371
+	muKm3PerS2    = 398600.4418 // Earth's gravitational parameter
+	speedOfLight  = 299792458.0 // meters per second
+)
 
-// dopplerHz returns the Doppler shift of a signal at freqHz seen at a range rate in m/s.
+// dopplerHz returns the shift of a signal at freqHz when the range changes at rangeRateMps.
 func dopplerHz(freqHz, rangeRateMps float64) float64 {
 	return -freqHz * rangeRateMps / speedOfLight
 }

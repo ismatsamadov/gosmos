@@ -7,13 +7,18 @@ type Booking struct {
 	ID      string    `json:"id"`
 	SatID   string    `json:"sat_id"`
 	Station string    `json:"station"`
-	AOS     time.Time `json:"aos"`
-	LOS     time.Time `json:"los"`
+	AOS     time.Time `json:"aos"` // when the satellite rises into view
+	LOS     time.Time `json:"los"` // when it sets
 	Note    string    `json:"note,omitempty"`
 }
 
-// Station is one of Apogee's ground stations, as the station table lists it.
+// Band is a radio band.
+type Band string
+
+// Station is one of Apogee's ground stations.
 type Station struct {
-	Code string
-	Name string
+	Code    string // "YST": three capital letters
+	Name    string // "Ystmark"
+	MaskDeg float64
+	Bands   []Band
 }

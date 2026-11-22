@@ -1,0 +1,252 @@
+# Changes in the Apogee courses' given code that a lesson or the story asks for, which library
+# drift --accept reads (docs/authoring.md, "Given code changes only for a reason"). Each names
+# a change as drift does, then says why it is fine in an indented line or more: where the
+# readme, the story or the syllabus asks for it. A slip is fixed in the lessons instead.
+
+# go-foundations
+
+go-foundations/counting-down-to-aos/every-station-every-block: plan.go gives func stationCode
+  The planner's own helper, given with visible for the grid: "stationCode(i int) string and
+  visible(station, block int) bool are given" (syllabus 6.7). The stationCode of 1.4 was the
+  scheduler's one-station stub, in another program.
+
+go-foundations/trust-but-verify/catch-the-mutants: main.go gives func accept
+  The command replay guard Mirela plants broken copies of: "accept(seq, last uint64) bool, the
+  replay guard's core" (syllabus 15.2). The accept of 13.6 checked telemetry frames, in
+  another program.
+
+go-foundations/locks-and-deadlines/pass-day: schedule.go gives type Pass
+  Pass Day runs each station's passes "in AOS order" and gives each "a context ending at its
+  LOS" (syllabus 19.9), so its Pass carries AOS and LOS. The Pass of 17.1 carried the elevation
+  it filtered by, in another program.
+
+# files-data-command-line
+
+files-data-command-line/json-in-json-out/send-a-booking-back: booking.go gives type Booking
+  The booking gains its note, which the reply must escape: its readme, "would break on the
+  first note that holds a quote"; the bible's Booking has `Note`.
+files-data-command-line/json-in-json-out/the-round-trip: booking.go gives type Booking
+  Its readme: "`omitempty` drops an empty note", as Hollis asked in optional-notes: "NO EMPTY
+  NOTES".
+files-data-command-line/odd-json/the-changing-report: report.go gives func decodeOne
+  Its readme: "`decodeOne` now takes the value to fill, so it reads any JSON as strictly as it
+  read the settings": the envelope here, then the payload.
+files-data-command-line/flags-and-subcommands/errors-belong-on-stderr: passes.go gives func runPasses
+  Its readme: "Implement `report`, which `runPasses` already ends with"; its example has
+  runPasses read standard input, as read-from-the-pipe's "read standard input when no file is
+  named" asked; an unknown station fails as the bible's "`gctl: unknown station "SQX"`".
+files-data-command-line/flags-and-subcommands/three-useful-commands: main.go gives const usage
+  Its readme: "Implement `runStow`, whose usage starts with this synopsis", which joins the
+  list; `passes` takes its file or standard input since errors-belong-on-stderr. The bible's
+  usage is this text.
+files-data-command-line/flags-and-subcommands/three-useful-commands: main.go gives func run
+  Its readme: "Paz wants the van's daily jobs under one command", the stow among them; and
+  `runPasses` reads standard input since errors-belong-on-stderr.
+files-data-command-line/flags-and-subcommands/three-useful-commands: stations.go gives func runStations
+  errors-belong-on-stderr's readme: "Mirela wants every gctl command to end the same way,
+  through one `report` function"; this one's: "`report` for the result or the failure".
+files-data-command-line/files-with-the-program/read-any-filesystem: stations.go gives type Station
+  The station gains the table's mask and bands, which the given parseStations reads: the
+  briefing, "Paz wants gctl to carry its table and report templates inside itself", and the
+  bible's table, "code,name,lat_deg,lon_deg,mask_deg,bands".
+files-data-command-line/files-with-the-program/walk-the-templates: resources.go gives var resources
+  The templates join the station table: its readme, "Paz wants gctl to list every template it
+  carries".
+files-data-command-line/files-with-the-program/the-offline-resource-pack: resources.go gives var resources
+  The default calibration joins them: its readme, "gctl's default is zero"; the bible, "gctl
+  also carries report templates ... and a default `calibration.json`".
+files-data-command-line/the-top-of-the-road/choose-the-input-format: bookings.go gives func decodeBookings
+  Its readme: "`decodeBookings` now reads the export from a reader, as `readBookingSheet` reads
+  the sheet".
+files-data-command-line/the-top-of-the-road/choose-the-input-format: bookings.go gives type Booking
+  Back to the whole booking of JSON In, JSON Out: the calibration day reads LOS and the note
+  from "my export as JSON and Hollis's sheet as CSV" (its readme), whose columns the bible
+  gives as "ID,SATELLITE,STATION,AOS,LOS,NOTE", and its day report prints both. Flags and
+  Subcommands' copy left out the two its commands never read.
+files-data-command-line/the-top-of-the-road/a-golden-session: cli.go gives const usage
+  The bible: "Chapter 11's copy of gctl carries only `day [-format json|csv] dir`"; the
+  syllabus: "chapter 11's gctl has the `day` command only", as the comment says.
+files-data-command-line/the-top-of-the-road/la-grande-points-true: cli.go gives func run
+  Its readme: "Complete `runDay`, which `run` now calls in place of `planDay` and
+  `writeReport`".
+
+# build-gctl
+
+build-gctl/a-cache-that-knows-its-age/the-background-refresher: main.go gives func run
+  Its readme: "`main.go` now starts a refresher, a goroutine that loads the passes again every
+  minute while the night shift types".
+build-gctl/the-night-shift/settings-from-a-file: main.go gives func run
+  gctl reads its settings as it starts: the readme's "set in a file they can change
+  themselves", through the `loadSettings` and `apply` its task asks for; the bible's
+  "Settings: `gctl.json`, read strictly".
+build-gctl/the-night-shift/history-that-survives: main.go gives func run
+  Its readme: "`main.go` sets `s.history.path` to `gctl_history`".
+
+# web-services-in-go
+
+web-services-in-go/asking-politely/decode-the-reading: weather.go gives func (WeatherClient).Reading
+  Its readme: "Write `decodeWeather`, which `Reading` calls with the body".
+web-services-in-go/your-first-endpoint/a-type-that-answers: stations.go gives type Station
+  The booking service's own Station, where the stand-in's had "the two fields the stand-in
+  shows": the syllabus's check wants "the five stations in table order with their JSON names
+  (`code`, `lat_deg`, `bands`)".
+web-services-in-go/your-first-endpoint/headers-before-the-body: stations.go gives func (Service).listStations
+  Its readme: "`listStations` already answers through `writeJSON`".
+web-services-in-go/your-first-endpoint/the-guide-beside-the-service: service.go gives type Service
+  Its readme: "Register a handler at `/guide/` that serves `s.Guide`".
+web-services-in-go/an-address-for-every-pass/pass-ids-are-paths: service.go gives type Service
+  Its readme: "the ID it looks for in `s.Catalog`".
+web-services-in-go/an-address-for-every-pass/filters-in-the-query: service.go gives func (Service).routes
+  Its readme: "Furrowlight's program asks for `/passes?sat=furrow-a&station=SQT` and gets back
+  every pass".
+web-services-in-go/an-address-for-every-pass/a-week-at-a-time: passes.go gives func (Service).listPasses
+  Its readme: "`listPasses` lists the passes starting at or after `from` and before `from` plus
+  `days` days".
+web-services-in-go/an-address-for-every-pass/a-week-at-a-time: service.go gives type Service
+  The service's clock: the syllabus reads the window "with defaults from the service's injected
+  clock", `from` defaulting to `s.Now()`.
+web-services-in-go/an-address-for-every-pass/two-methods-one-address: service.go gives type Service
+  Its readme: "delete the booking with `s.Store.Delete(r.Context(), id)`".
+web-services-in-go/the-first-booking/read-the-booking: service.go gives func (Service).routes
+  Its readme: "Furrowlight's program will send it to `POST /bookings`".
+web-services-in-go/the-first-booking/errors-in-json-too: bookings.go gives func (Service).cancelBooking
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: bookings.go gives func (Service).createBooking
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: bookings.go gives func (Service).getBooking
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: passes.go gives func (Service).getPass
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: stations.go gives func (Service).getStation
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: passes.go gives func (Service).listPasses
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: stations.go gives func (Service).listStations
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/around-every-request/every-request-gets-an-id: errors.go gives func writeError
+  Its readme: "Nkem has made `writeError` copy it into `request_id`".
+web-services-in-go/around-every-request/every-request-gets-an-id: errors.go gives type ErrorBody
+  Its readme: every request gets an ID "in its answer's `X-Request-Id` header and in every error
+  body".
+web-services-in-go/around-every-request/one-bug-no-outage: passes.go gives func (Service).getPass
+  Monday's bug, planted: "Nkem held back the fix for Monday's bug in `getPass`, so the
+  middleware meets the real thing".
+web-services-in-go/keeping-bookings/one-interface-for-bookings: passes.go gives func (Service).getPass
+  Monday's bug fixed, back to the text before it: chapter 6's debrief, "Nkem's fix for the
+  short orbit number ships with Monday's deploy".
+web-services-in-go/whos-asking/trade-keys-for-tokens: service.go gives type Service
+  The customers and the token key: its readme, "It sends its API key to `POST /tokens`"; its
+  hints, "Hand the key to `checkKey` with `s.Customers`"; the bible's Service, "(chapter 8)".
+web-services-in-go/whos-asking/fail-closed: service.go gives func (Service).routes
+  Its readme: "`routes` puts `authenticate` around every private route"; `POST /tokens` is
+  trade-keys-for-tokens': "It sends its API key to `POST /tokens`".
+web-services-in-go/fair-use/the-flood-test: service.go gives type Service
+  Its readme: "make `private` list `authenticate` before `limit`" and "make `handler` list
+  `withDeadline(s.Timeouts.Handler)` last"; the bible's Service has both fields, "chapter 9".
+web-services-in-go/calling-customers-back/deliver-with-retries: auth.go gives type Customer
+  A customer's webhook: tell-them-it-landed's readme, "an address the customer chose", and
+  sign-what-you-send's, "under the customer's webhook secret".
+web-services-in-go/launch-day/run-until-told-to-stop: server.go gives type Timeouts
+  Its readme: "return `stop(srv, t.Shutdown)`"; draining-not-down's: "for `t.Drain`, `/health`
+  answers `503`". The bible's Timeouts has both.
+web-services-in-go/launch-day/draining-not-down: app.go gives type App
+  Its readme: "set `app.Service.draining`".
+web-services-in-go/launch-day/draining-not-down: service.go gives type Service
+  Its readme: "set `app.Service.draining`"; "The flag that `run` sets and every health check
+  reads is an `atomic.Bool`".
+web-services-in-go/launch-day/one-test-for-everything: webhook.go gives func (Notifier).Landed
+  The outbox: the-outbox-survives' readme, "The outbox keeps every delivery not yet made, and
+  the number of the next event"; the bible, from chapter 12 "the count is kept in the outbox".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives func (Service).routes
+  Its readme: "books the first one twice with one `Idempotency-Key`"; the bible: "`POST
+  /bookings` adds `idempotent` inside them (chapter 10)".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives func newService
+  Its readme: "run against the whole service"; the syllabus: "the assembled service (`newApp`,
+  read-only)".
+web-services-in-go/launch-day/one-test-for-everything: app.go gives type App
+  Its readme: "run against the whole service"; the bible: "`App` (chapter 12) is the assembled
+  service: `Service *Service`, `Notifier *Notifier` and `Handler http.Handler`".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives type Config
+  Its readme: "run against the whole service"; the bible: "Config is everything the service is
+  built from", its data folder holding bookings.json and outbox.json.
+web-services-in-go/launch-day/one-test-for-everything: webhook.go gives type Notifier
+  The outbox and Stop: the bible, "`Notifier` holds the `Store`, the customers, the `Sender`
+  and (chapter 12) the `Outbox`" and "deliveries run under the notifier's own context, which
+  `Stop` cancels"; the-outbox-survives' readme, "The outbox keeps every delivery not yet made".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives type Service
+  Its readme: "books the first one twice with one `Idempotency-Key`"; the bible's Service:
+  "Keys *keyStore // idempotency keys (chapter 10)".
+
+# networking-from-the-socket-up
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: routes.go gives func (Server).route
+  Chapter 8 opens with the recorder's uploads, and the given server stores them: "Go's client's
+  PUT of 1024 bytes through the given server is stored whole" (syllabus 8.1).
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: server.go gives func (Server).serveConn
+  The readme's note: "From today the given server reads the body into req.Body before routing,
+  its length decided by bodyLength."
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: request.go gives func readRequest
+  The same note: the body's length is now "decided by bodyLength".
+
+networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: request.go gives type Request
+  The same note: the server "reads the body into req.Body"; Trailer holds the fields after a
+  chunked body, which chapter 8 reads ("chunked transfer encoding and trailers", syllabus).
+
+networking-from-the-socket-up/answers-from-scratch/the-head-without-the-body: routes.go gives func (Server).route
+  The readme: "route now sends GET and HEAD of a recording to recording".
+
+networking-from-the-socket-up/answers-from-scratch/answer-in-pieces: routes.go gives func (Server).route
+  The readme's note: "route now answers GET /feed".
+
+# cryptography-in-go
+
+cryptography-in-go/passwords-at-rest/the-console-signs-in: console.go gives func (Console).matches
+  The readme: "its matches now reads old sha256$ records too, as your checkStored did, and
+  spends one derivation on the dummy record for each".
+
+cryptography-in-go/passwords-at-rest/the-console-signs-in: console.go gives type Console
+  The readme: a weak record is replaced "in the user file through c.save", and the console
+  "keeps only the token's SHA-256" of each session.
+
+cryptography-in-go/keys-from-keys/the-key-ring: ring.go gives type KeyVersion
+  The readme's key file holds "the time it retires" and "the word revoked if it has been
+  withdrawn", which the version now carries.
+
+cryptography-in-go/sealed-messages/open-in-the-right-order: seal.go gives var ErrUnknownKey
+  Every refusal of a SEAL line is gathered in one group, as the readme's table of Accept's
+  checks lists them, ErrUnknownKey among them; the declaration is unchanged but for its layout
+  in the group.
+
+cryptography-in-go/signatures-anyone-can-check/never-the-key-it-brings: receipt.go gives var ErrBadEnvelope
+  gofmt realigned the receipt refusals' group when this lesson added ErrUnknownSigner ("wrapping
+  ErrUnknownSigner when there is none", the readme); only the spacing changed.
+
+cryptography-in-go/signatures-anyone-can-check/never-the-key-it-brings: receipt.go gives var ErrBadSignature
+  The same realignment, for ErrUnknownSigner.
+
+cryptography-in-go/signatures-anyone-can-check/proof-for-furrowlight: receipt.go gives var ErrRevoked
+  Receipts get their own ErrRevoked, "as for sealed commands" (the readme's table: "the key not
+  revoked  ErrRevoked"), in the receipt refusals' group; seal.go's keeps its text.
+
+cryptography-in-go/every-connection-encrypted/who-is-calling: seal.go gives var ErrRevoked
+  seal.go's own ErrRevoked, as seal.go has given it since sealed-messages; drift follows the
+  name, and receipt.go's ErrRevoked came in between.
+
+# logging-metrics-profiling
+
+logging-metrics-profiling/when-to-wake-someone/silences-that-end: pager.go gives func (Pager).Observe
+  The readme: "The given pager now asks silenced before it sends an alert, and routes the rest
+  with your route".
+
+logging-metrics-profiling/when-to-wake-someone/silences-that-end: state.go gives type ruleState
+  The readme's note: "ruleState, in state.go, has a new field, held, for a FIRING the silence
+  held back".
+
+logging-metrics-profiling/where-the-memory-goes/nothing-left-behind: radio.go gives func newUplink
+  The readme: "since Thursday the radio's fly takes the pass's context and stops at LOS with
+  ErrNoAck".
+
+logging-metrics-profiling/where-the-memory-goes/nothing-left-behind: radio.go gives type Uplink
+  The same: fly takes the pass's context.

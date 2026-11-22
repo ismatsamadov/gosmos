@@ -7,6 +7,10 @@ package main
 // top-level declaration of a given Go file through a course, lesson by lesson, and reports each
 // lesson that gives it differently from the last text the learner saw: its last given copy, or
 // the solution that changed it. Tests and each lesson's func main are left out.
+//
+// A change a lesson or the story asks for is fine: the rules allow it, but drift can't know it.
+// An accept list names each such change, with its reason, so it stops being reported; an entry
+// that no longer matches a change is reported instead, so the list never outlives its changes.
 
 import (
 	"bytes"
@@ -45,7 +49,53 @@ type driftChange struct {
 	before, after string
 }
 
-func drift(ctx context.Context, path, course string, diffs bool, out io.Writer) (bool, error) {
+// acceptedChange is an entry of an accept list: a change, as drift names it, and why it is fine.
+type acceptedChange struct {
+	change, reason string
+	line           int
+	used           bool
+}
+
+// readAccepted reads an accept list: for each change, a line that names it as drift does,
+// "<course>/<chapter>/<lesson>: <file> gives <declaration>", and an indented line or more
+// saying why. Blank lines and lines starting with # are left out.
+func readAccepted(path string) ([]*acceptedChange, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var list []*acceptedChange
+	for i, line := range strings.Split(string(b), "\n") {
+		switch {
+		case strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#"):
+		case strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t"):
+			if len(list) == 0 {
+				return nil, fmt.Errorf("%s:%d: a reason comes after the change it is for", path, i+1)
+			}
+			last := list[len(list)-1]
+			last.reason = strings.TrimSpace(last.reason + " " + strings.TrimSpace(line))
+		case !strings.Contains(line, " gives "):
+			return nil, fmt.Errorf("%s:%d: %q names no change: <lesson>: <file> gives <declaration>", path, i+1, line)
+		default:
+			list = append(list, &acceptedChange{change: line, line: i + 1})
+		}
+	}
+	for _, a := range list {
+		if a.reason == "" {
+			return nil, fmt.Errorf("%s:%d: %s has no reason: an indented line after it says why the change is fine", path, a.line, a.change)
+		}
+	}
+	return list, nil
+}
+
+func drift(ctx context.Context, path, course, acceptPath string, diffs bool, out io.Writer) (bool, error) {
+	var accepted []*acceptedChange
+	if acceptPath != "" {
+		var err error
+		if accepted, err = readAccepted(acceptPath); err != nil {
+			return false, err
+		}
+	}
 	d, recovered, err := db.Inspect(path)
 	if err != nil {
 		return false, err
@@ -65,7 +115,25 @@ func drift(ctx context.Context, path, course string, diffs bool, out io.Writer) 
 	if err != nil {
 		return false, err
 	}
-	changes := driftChanges(ls)
+	var changes []driftChange
+	for _, c := range driftChanges(ls) {
+		key := fmt.Sprintf("%s: %s gives %s", ls[c.lesson].name, c.file, c.name)
+		if i := slices.IndexFunc(accepted, func(a *acceptedChange) bool { return a.change == key }); i >= 0 {
+			accepted[i].used = true
+			continue
+		}
+		changes = append(changes, c)
+	}
+	var stale []*acceptedChange
+	for _, a := range accepted {
+		// A course left out was not looked at.
+		if lesson, _, _ := strings.Cut(a.change, ": "); !a.used && (course == "" || strings.HasPrefix(lesson, course+"/")) {
+			stale = append(stale, a)
+		}
+	}
+	for _, a := range stale {
+		fmt.Fprintf(out, "%s:%d: %s: no such change; take it out of the list\n", acceptPath, a.line, a.change)
+	}
 	for _, c := range changes {
 		what := "only its comments or layout changed"
 		if c.codeChanged {
@@ -79,11 +147,21 @@ func drift(ctx context.Context, path, course string, diffs bool, out io.Writer) 
 			showDiff(out, c.before, c.after)
 		}
 	}
-	if len(changes) > 0 {
+	if len(changes) > 0 || len(stale) > 0 {
 		fmt.Fprintf(out, "%s in the given code of %s\n", plural(len(changes), "change"), path)
 		return false, nil
 	}
-	fmt.Fprintf(out, "ok: %s: the given code changes only where a solution changed it first (%s)\n", path, plural(len(ls), "code lesson"))
+	used := 0
+	for _, a := range accepted {
+		if a.used {
+			used++
+		}
+	}
+	fmt.Fprintf(out, "ok: %s: the given code changes only where a solution changed it first (%s)", path, plural(len(ls), "code lesson"))
+	if used > 0 {
+		fmt.Fprintf(out, ", or where %s accepts it (%s)", acceptPath, plural(used, "change"))
+	}
+	fmt.Fprintln(out)
 	return true, nil
 }
 
@@ -198,10 +276,11 @@ func declarations(name, src string) map[string]shownDecl {
 						end = sp.Comment.End()
 					}
 				}
+				bare := &ast.GenDecl{Tok: d.Tok, Specs: []ast.Spec{sp}}
 				if doc == nil && !d.Lparen.IsValid() {
-					doc = d.Doc
+					doc, bare.Doc = d.Doc, d.Doc
 				}
-				add(d.Tok.String()+" "+strings.Join(names, ", "), doc, sp, end, &ast.GenDecl{Tok: d.Tok, Specs: []ast.Spec{sp}})
+				add(d.Tok.String()+" "+strings.Join(names, ", "), doc, sp, end, bare)
 			}
 		}
 	}
@@ -209,24 +288,42 @@ func declarations(name, src string) map[string]shownDecl {
 }
 
 // withoutComments returns d with its doc comments and line comments taken out, so printing it
-// shows only its code. It changes d itself; declarations reads each text before it calls this.
+// shows only its code; a directive such as //go:embed stays, since it is code. It changes d
+// itself; declarations reads each text before it calls this.
 func withoutComments(d ast.Decl) ast.Decl {
 	ast.Inspect(d, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
-			n.Doc = nil
+			n.Doc = directives(n.Doc)
 		case *ast.GenDecl:
-			n.Doc = nil
+			n.Doc = directives(n.Doc)
 		case *ast.Field:
 			n.Doc, n.Comment = nil, nil
 		case *ast.ValueSpec:
-			n.Doc, n.Comment = nil, nil
+			n.Doc, n.Comment = directives(n.Doc), nil
 		case *ast.TypeSpec:
-			n.Doc, n.Comment = nil, nil
+			n.Doc, n.Comment = directives(n.Doc), nil
 		}
 		return true
 	})
 	return d
+}
+
+// directives returns the //go: lines of a doc comment, or nil if it has none.
+func directives(g *ast.CommentGroup) *ast.CommentGroup {
+	if g == nil {
+		return nil
+	}
+	var kept []*ast.Comment
+	for _, c := range g.List {
+		if strings.HasPrefix(c.Text, "//go:") {
+			kept = append(kept, c)
+		}
+	}
+	if kept == nil {
+		return nil
+	}
+	return &ast.CommentGroup{List: kept}
 }
 
 // showDiff prints a unified diff from before to after, indented, with diff(1).

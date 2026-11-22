@@ -6,7 +6,7 @@ position: 3
 difficulty: 7
 topics: slices, sorting, testing, time
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:19:20Z
 ---
 Two of Thursday's passes start at 15:40:05 UTC, one on each dish, and Paz wants them in the same order every time she prints the plan. The rest of gctl still reads the bookings in the order they arrived.
 

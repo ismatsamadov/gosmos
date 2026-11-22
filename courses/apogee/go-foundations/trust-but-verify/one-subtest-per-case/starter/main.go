@@ -2,12 +2,12 @@ package main
 
 import "fmt"
 
-// windCall says what Cape Wren's dish does in a wind of kmh km/h.
-func windCall(kmh float64) string {
+// windCall returns what Cape Wren's dish does in a wind of windKmh: track, track with warning, or stow.
+func windCall(windKmh float64) string {
 	switch {
-	case kmh >= 72:
+	case windKmh >= 72:
 		return "stow"
-	case kmh >= 50:
+	case windKmh >= 50:
 		return "track with warning"
 	default:
 		return "track"

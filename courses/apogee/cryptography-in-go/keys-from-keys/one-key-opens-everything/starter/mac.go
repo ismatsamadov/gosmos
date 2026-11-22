@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 )
 
-// tag returns the HMAC-SHA256 of canonical under key.
+// tag returns the proof, sent with a command, that canonical was signed with key.
 func tag(key []byte, canonical string) []byte {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(canonical))

@@ -6,7 +6,7 @@ position: 3
 difficulty: 7
 topics: crypto, errors, maps
 created: 2026-11-07T07:46:48Z
-modified: 2026-11-07T07:46:48Z
+modified: 2026-11-22T10:06:32Z
 ---
 Wednesday. Mirela sends one forged command, numbered 18,446,744,073,709,551,615, the largest a `uint64` holds, to the code that refuses old commands sent again, the replay guard. The guard writes that number down before checking the signature, so every real command after it looks like a replay, for good.
 

@@ -6,7 +6,7 @@ position: 0
 difficulty: 5
 topics: compiler-errors, modules, packages
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-06T16:51:28Z
+modified: 2026-11-22T10:03:44Z
 ---
 groundctl, the software behind Apogee's ground stations, has grown into one `main` package that three teams edit at once. Nkem starts splitting it up: the orbit math now lives in its own folder, `orbit/`.
 

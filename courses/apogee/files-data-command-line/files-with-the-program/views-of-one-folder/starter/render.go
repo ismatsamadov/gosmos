@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// resources holds the files gctl carries inside itself.
+// resources holds the files gctl carries inside itself: the station table and the templates.
 //
-//go:embed templates
+//go:embed stations.csv templates
 var resources embed.FS
 
 // render reads the template name from templates and fills in its {field} placeholders.

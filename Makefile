@@ -30,8 +30,11 @@ test:
 	swift test --package-path app
 	for p in $(PACKAGES); do swift test --package-path app/Packages/$$p || exit 1; done
 
+# The library's checks: what the app checks when it opens it, and given code that changes only
+# where a lesson changes it or courses/apogee-drift.txt says why; then the Go reference's.
 check: library
 	go run ./cmd/library check $(LIBRARY)
+	go run ./cmd/library drift --accept courses/apogee-drift.txt $(LIBRARY)
 	go run ./cmd/reference check $(REFERENCE)
 
 # Runs every code lesson of the library: each reference solution passes, each starter fails.

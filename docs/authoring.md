@@ -34,10 +34,10 @@ All run from the repository's folder.
 | `scripts/pkgcheck.sh <folder>` | Checks lesson packages (below); `QUICK=1` in front for a fast first pass |
 | `go run ./cmd/library check <library>` | The checks the app makes before it opens a library |
 | `go run ./cmd/library verify [--course <c>] --teaching <library>` | Runs every code lesson: it must pass with its solution and fail with its starter; also wants the hints, solution notes and quiz explanations |
-| `go run ./cmd/library drift [--course <c>] [--diff] <library>` | Lists given code (read-only and hidden files) that changes between lessons without a lesson changing it |
+| `go run ./cmd/library drift [--course <c>] [--accept <list>] [--diff] <library>` | Lists given code (read-only and hidden files) that changes between lessons without a lesson changing it, but for the changes the list accepts (`courses/apogee-drift.txt`) |
 | `go run ./cmd/passes --from <day> [--to <day>] [--sat <ids>] [--station <codes>]` | The passes of the Apogee world: pass ID, AOS, LOS, maximum elevation |
 | `app/scripts/snapshot.sh <out.png> <light\|dark> [launch arguments]` | Draws one screen of a copy of the app to a PNG |
-| `make test`, `make check`, `make verify`, `make install` | The whole repository's tests, the libraries' checks, every lesson run, the app installed; `check`, `verify` and `install` build the library first |
+| `make test`, `make check`, `make verify`, `make install` | The whole repository's tests, the libraries' checks and drift, every lesson run, the app installed; `check`, `verify` and `install` build the library first |
 
 ## Where things go
 
@@ -78,7 +78,7 @@ built one: the next build replaces it, and only the text is kept.
    make library
    go run ./cmd/library check courses/apogee.sqlite
    go run ./cmd/library verify --course <c> --teaching courses/apogee.sqlite
-   go run ./cmd/library drift --course <c> courses/apogee.sqlite
+   go run ./cmd/library drift --course <c> --accept courses/apogee-drift.txt courses/apogee.sqlite
    ```
 
 7. **Tell the story.** A world word the readme uses for the first time needs a card in the
@@ -166,9 +166,12 @@ inconsistency.
 
 `library drift` reports each change: `its code changed` means behavior or names, `only its
 comments or layout changed` the wording; `back to an older text` that an earlier version
-returned. A change a lesson or the story asks for is fine: say why in the pull request. The
-courses before Season 6 were written before this check existed, and it still reports changes
-in them.
+returned. A change a lesson or the story asks for is fine: add it to `courses/apogee-drift.txt`
+as drift names it (`<course>/<chapter>/<lesson>: <file> gives <declaration>`), with an
+indented line or more saying where the readme, the story or the syllabus asks for it, and
+drift stops reporting it. An entry that no longer names a change is reported in its place, so
+the list goes when its changes go. A slip is fixed in the lessons instead. `make check` runs
+drift with the list over the whole library.
 
 ## Calculating the world
 

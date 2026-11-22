@@ -6,7 +6,7 @@ position: 5
 difficulty: 6
 topics: testing
 created: 2026-11-01T07:36:46Z
-modified: 2026-11-06T16:51:28Z
+modified: 2026-11-22T10:03:44Z
 ---
 Three Doppler shift cases failed last night, and all three failures pointed at the same line: inside `assertNear` in `checks.go`, not at the calls that failed.
 

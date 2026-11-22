@@ -6,7 +6,7 @@ position: 8
 difficulty: 5
 topics: errors, structs, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:19:20Z
 ---
 Yusra's tools match the van's replies to her bookings by ID, so an accepted booking must come back with its ID exactly as she sent it. A booking without an ID could never be matched, so it must be refused before anything is written.
 
