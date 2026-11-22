@@ -100,3 +100,27 @@ func TestDriftOfSteadyCode(t *testing.T) {
 		t.Errorf("drift of steady code = %d, %q, %q", code, out, errOut)
 	}
 }
+
+// A //go:embed line is code: it says which files the program carries, though it sits among
+// the doc comment's lines.
+func TestDriftCountsDirectivesAsCode(t *testing.T) {
+	const pack = "package main\n\nimport \"embed\"\n\n// resources are the files gctl carries.\n//\n//go:embed stations.csv\nvar resources embed.FS\n"
+	widened := strings.Replace(pack, "//go:embed stations.csv", "//go:embed stations.csv templates", 1)
+	reworded := strings.Replace(pack, "the files gctl carries", "what gctl carries", 1)
+	const main = "package main\n\nfunc main() {}\n"
+	var stmts []string
+	for i, l := range []struct{ slug, given string }{{"one", pack}, {"two", widened}, {"three", strings.Replace(reworded, "stations.csv", "stations.csv templates", 1)}} {
+		stmts = append(stmts, codeLessonSQL(l.slug, "type_code", i, expect("ok\n"), map[string]string{"resources.go": l.given, "main.go": main}, map[string]string{"main.go": main})...)
+	}
+	stmts = append(stmts, `UPDATE starter_file SET is_readonly = 1 WHERE name = 'resources.go'`)
+	path := verifyLibrary(t, stmts...)
+	code, out, errOut := runCmd(t, "drift", path)
+	want := []string{
+		"learn-launches/1-countdown/two: resources.go gives var resources: its code changed since learn-launches/1-countdown/one",
+		"learn-launches/1-countdown/three: resources.go gives var resources: only its comments or layout changed since learn-launches/1-countdown/two",
+		"2 changes in the given code of " + path,
+	}
+	if code != 1 || errOut != "" || out != strings.Join(want, "\n")+"\n" {
+		t.Errorf("drift = %d, %q\n%s\nwant 1 and\n%s", code, errOut, out, strings.Join(want, "\n"))
+	}
+}

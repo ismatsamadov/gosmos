@@ -276,10 +276,11 @@ func declarations(name, src string) map[string]shownDecl {
 						end = sp.Comment.End()
 					}
 				}
+				bare := &ast.GenDecl{Tok: d.Tok, Specs: []ast.Spec{sp}}
 				if doc == nil && !d.Lparen.IsValid() {
-					doc = d.Doc
+					doc, bare.Doc = d.Doc, d.Doc
 				}
-				add(d.Tok.String()+" "+strings.Join(names, ", "), doc, sp, end, &ast.GenDecl{Tok: d.Tok, Specs: []ast.Spec{sp}})
+				add(d.Tok.String()+" "+strings.Join(names, ", "), doc, sp, end, bare)
 			}
 		}
 	}
@@ -287,24 +288,42 @@ func declarations(name, src string) map[string]shownDecl {
 }
 
 // withoutComments returns d with its doc comments and line comments taken out, so printing it
-// shows only its code. It changes d itself; declarations reads each text before it calls this.
+// shows only its code; a directive such as //go:embed stays, since it is code. It changes d
+// itself; declarations reads each text before it calls this.
 func withoutComments(d ast.Decl) ast.Decl {
 	ast.Inspect(d, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
-			n.Doc = nil
+			n.Doc = directives(n.Doc)
 		case *ast.GenDecl:
-			n.Doc = nil
+			n.Doc = directives(n.Doc)
 		case *ast.Field:
 			n.Doc, n.Comment = nil, nil
 		case *ast.ValueSpec:
-			n.Doc, n.Comment = nil, nil
+			n.Doc, n.Comment = directives(n.Doc), nil
 		case *ast.TypeSpec:
-			n.Doc, n.Comment = nil, nil
+			n.Doc, n.Comment = directives(n.Doc), nil
 		}
 		return true
 	})
 	return d
+}
+
+// directives returns the //go: lines of a doc comment, or nil if it has none.
+func directives(g *ast.CommentGroup) *ast.CommentGroup {
+	if g == nil {
+		return nil
+	}
+	var kept []*ast.Comment
+	for _, c := range g.List {
+		if strings.HasPrefix(c.Text, "//go:") {
+			kept = append(kept, c)
+		}
+	}
+	if kept == nil {
+		return nil
+	}
+	return &ast.CommentGroup{List: kept}
 }
 
 // showDiff prints a unified diff from before to after, indented, with diff(1).
