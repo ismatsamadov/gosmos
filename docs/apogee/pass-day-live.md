@@ -11,10 +11,10 @@ plan are listed under "Changes in writing and review" at the end.
 
 The capstone of the Apogee series, after Season 7; story time 2 to 20 July 2029, with the
 investors' week of 23 to 29 July as its finale. The world, the characters, the code and the
-writing rules are in `story.md`, whose section "The capstone: Pass Day, Live" fixes every contract
-the tests check: the rehearsal's world and folder, the settings, the pass archive and the plan,
-the bookings, the pass line, the commands, the files, the deliveries, the logs, numbers, pages and
-report, and the investors' week as Ingrid scripts it.
+writing rules are in `story.md`, whose section "The capstone: Pass Day, Live" (`story/capstone.md`)
+fixes every contract the tests check: the rehearsal's world and folder, the settings, the pass
+archive and the plan, the bookings, the pass line, the commands, the files, the deliveries, the
+logs, numbers, pages and report, and the investors' week as Ingrid scripts it.
 
 This is the plan the lessons are written from. Once they are written, the lessons in
 `courses/apogee.sqlite` are the source of truth. `go run ./cmd/author export` writes them out to

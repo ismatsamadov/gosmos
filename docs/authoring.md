@@ -5,7 +5,7 @@ needs, or to fix what is there, is in this repository: the tools in `cmd/` and `
 plans and the world in `docs/`. Work in progress lives in a scratch folder under `$TMPDIR` and
 is never needed afterwards: the library is the only stored copy of every lesson and story, and
 the docs hold every decision. The rules the steps rely on live in the story bible
-(`docs/apogee/story.md`, Style guide and Naming rules) and the library format
+(`docs/apogee/story/style.md`, Style guide and Naming rules) and the library format
 (`docs/library-format.md`); where they say more, they win.
 
 ## What every course is
