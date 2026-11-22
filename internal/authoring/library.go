@@ -30,7 +30,8 @@ const LibraryLayout = `A library folder holds a whole library as text, one folde
   <course>/<chapter>/<lesson>/    a lesson package, with its created: and modified: lines
 
 Each folder is named for the slug its file gives. Nothing else belongs in it, and a chapter
-cannot be called story. Files and folders whose names start with a dot are ignored.
+cannot be called story. Files and folders whose names start with a dot are ignored, and so is
+a folder holding nothing else, such as one git left behind with Finder's .DS_Store in it.
 
 library.txt, every line exactly as shown:
 
@@ -136,13 +137,49 @@ func ReadLibrary(dir string) (Library, error) {
 	return l, nil
 }
 
-// visible lists dir's entries, leaving out names that start with a dot.
+// visible lists dir's entries, leaving out names that start with a dot and folders holding
+// nothing else: git leaves a removed lesson's folder behind when Finder put a .DS_Store in it.
 func visible(dir string) ([]os.DirEntry, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(entries, func(e os.DirEntry) bool { return strings.HasPrefix(e.Name(), ".") }), nil
+	var kept []os.DirEntry
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		if e.IsDir() {
+			if dots, err := onlyDotFiles(filepath.Join(dir, e.Name())); err != nil {
+				return nil, err
+			} else if dots {
+				continue
+			}
+		}
+		kept = append(kept, e)
+	}
+	return kept, nil
+}
+
+// onlyDotFiles reports whether every file in dir, at any depth, has a name that starts with a
+// dot.
+func onlyDotFiles(dir string) (bool, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false, err
+	}
+	for _, e := range entries {
+		switch {
+		case strings.HasPrefix(e.Name(), "."):
+		case !e.IsDir():
+			return false, nil
+		default:
+			if dots, err := onlyDotFiles(filepath.Join(dir, e.Name())); err != nil || !dots {
+				return false, err
+			}
+		}
+	}
+	return true, nil
 }
 
 func readCourse(dir string) (Course, error) {

@@ -70,6 +70,33 @@ func TestLibraryRoundTrip(t *testing.T) {
 	sameFiles(t, out, src)
 }
 
+// git removes a lesson's, chapter's or course's files but leaves its folder when something it
+// doesn't track is there, such as Finder's .DS_Store. A folder of dot-files is no folder.
+func TestReadLibraryLeavesOutFoldersOfDotFiles(t *testing.T) {
+	dir := libraryFolder(t)
+	for _, name := range []string{
+		"learn-launches/1-countdown/gone-lesson/.DS_Store",
+		"learn-launches/1-countdown/gone-lesson/starter/.DS_Store",
+		"learn-launches/2-gone-chapter/gone-lesson/.DS_Store",
+		"gone-course/.DS_Store",
+	} {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("Finder's\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	l, err := ReadLibrary(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := l.Summary(); got != "1 course, 1 chapter and 3 lessons" {
+		t.Errorf("Summary() = %q", got)
+	}
+}
+
 // Into a new library and back: the same rows from the same folder, in position order, with
 // the uuids the slugs give.
 func TestBuildAndLoadLibrary(t *testing.T) {
