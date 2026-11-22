@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"syscall"
@@ -46,7 +47,8 @@ course, chapter and slug in place, with its uuid. story imports a course's story
 place of the whole story the course had; a folder with none of its files clears it. export
 writes a course's lessons, or one chapter's, as packages: <out>/<chapter>/<lesson>/, or
 <out>/<lesson>/ for one chapter; with --story, it writes the course's story package into
-<out> instead; without --course, it writes the whole library as a library folder. build
+<out> instead; without --course, it writes the whole library as a library folder. It then
+reads back what it wrote, and fails if that won't import or build as the same library. build
 makes the library file from a library folder, the same file from the same folder: a new
 library, written aside and moved into place once it passes its checks, and left alone when
 the file there is already the same.`
@@ -493,6 +495,15 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		if err := l.Write(outDir); err != nil {
 			return err
 		}
+		// A library can hold what a folder can't, such as a chapter called story: the folder is
+		// written to fix there, but it must say so.
+		back, err := authoring.ReadLibrary(outDir)
+		if err == nil && !reflect.DeepEqual(back, l) {
+			err = errors.New("it reads as a library other than the file's")
+		}
+		if err != nil {
+			return fmt.Errorf("exported %s to %s, but the folder will not build until this is fixed: %w", file, outDir, err)
+		}
 		fmt.Fprintf(out, "exported %s to %s: %s\n", file, outDir, l.Summary())
 		return nil
 	}
@@ -507,6 +518,13 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		}
 		if err := s.Write(outDir); err != nil {
 			return err
+		}
+		back, err := authoring.ReadStory(outDir)
+		if err == nil && !reflect.DeepEqual(back, s) {
+			err = errors.New("it reads as a story other than the file's")
+		}
+		if err != nil {
+			return fmt.Errorf("exported the story of %s to %s, but it will not import until this is fixed: %w", *courseSlug, outDir, err)
 		}
 		fmt.Fprintf(out, "exported the story of %s to %s (%s)\n", *courseSlug, outDir, s.Summary())
 		return nil
@@ -538,19 +556,31 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	written := 0
+	var unfit []error // packages that won't import as they were written
 	for _, it := range items {
 		pkg, err := authoring.Load(d, it.uuid)
 		if err != nil {
 			return err
 		}
-		dir := filepath.Join(outDir, it.chapter, pkg.Slug)
+		name := filepath.Join(it.chapter, pkg.Slug)
 		if *chapterSlug != "" {
-			dir = filepath.Join(outDir, pkg.Slug)
+			name = pkg.Slug
 		}
+		dir := filepath.Join(outDir, name)
 		if err := pkg.Write(dir); err != nil {
 			return err
 		}
 		written++
+		back, err := authoring.Read(dir)
+		if err == nil && !reflect.DeepEqual(back, pkg) {
+			err = errors.New("it reads as a lesson other than the file's")
+		}
+		if err != nil {
+			unfit = append(unfit, fmt.Errorf("%s: %w", name, err))
+		}
+	}
+	if len(unfit) > 0 {
+		return fmt.Errorf("exported %d lessons of %s to %s, but not all will import until this is fixed: %w", written, *courseSlug, outDir, errors.Join(unfit...))
 	}
 	fmt.Fprintf(out, "exported %d lessons of %s to %s\n", written, *courseSlug, outDir)
 	return nil

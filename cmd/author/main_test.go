@@ -663,6 +663,49 @@ func TestBuildClearsAnOldJournal(t *testing.T) {
 	}
 }
 
+// A library can hold what a folder can't, such as a lesson changed before it was written or a
+// chapter called story. An export still writes the folder, to fix there, but says it won't
+// build.
+func TestExportChecksTheFolder(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	d, err := db.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec(`UPDATE lesson SET created_at = '2026-11-03T10:00:00Z', last_mod = '2026-11-02T08:30:00Z' WHERE slug = 'fuel-budget'`); err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+	folder := filepath.Join(t.TempDir(), "apogee")
+	code, _, errOut := author(t, "export", path, folder)
+	if code != 1 || !strings.Contains(errOut, "but the folder will not build until this is fixed: learn-launches/1-countdown/fuel-budget: README.md: modified 2026-11-02T08:30:00Z is before created 2026-11-03T10:00:00Z") {
+		t.Errorf("export of a lesson changed before it was written: %d %q", code, errOut)
+	}
+	if _, err := os.Stat(filepath.Join(folder, "learn-launches", "1-countdown", "fuel-budget", "README.md")); err != nil {
+		t.Errorf("the export left out the lesson to fix: %v", err)
+	}
+	lessons := filepath.Join(t.TempDir(), "lessons")
+	code, _, errOut = author(t, "export", path, "--course", "learn-launches", lessons)
+	if code != 1 || !strings.Contains(errOut, "but not all will import until this is fixed: 1-countdown/fuel-budget: README.md: modified 2026-11-02T08:30:00Z is before created") {
+		t.Errorf("export of a course with a lesson changed before it was written: %d %q", code, errOut)
+	}
+
+	path = library(t)
+	d, err = db.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec(`UPDATE chapter SET slug = 'story'`); err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+	code, _, errOut = author(t, "export", path, filepath.Join(t.TempDir(), "apogee"))
+	if code != 1 || !strings.Contains(errOut, "but the folder will not build until this is fixed: learn-launches/story/chapter.md: a chapter cannot be called story") {
+		t.Errorf("export of a chapter called story: %d %q", code, errOut)
+	}
+}
+
 // dump renders the rows a query returns, one line each, sorted.
 func dump(t *testing.T, path, query string) string {
 	t.Helper()
