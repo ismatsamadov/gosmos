@@ -53,7 +53,9 @@ if [ ! -d "$app" ] || [ "$built" -nt "$app" ] || [ -n "${QA_LIBRARY:-}" ]; then
 	if [ -n "${QA_LIBRARY:-}" ]; then
 		cp "$QA_LIBRARY" "$app/Contents/Resources/Courses/apogee.sqlite"
 	fi
-	codesign --force --sign - --timestamp=none "$app"
+	# Signed again for its new identifier, with the built app's flags, such as the hardened
+	# runtime, so the copy runs as the app does.
+	codesign --force --sign - --timestamp=none --preserve-metadata=flags "$app"
 fi
 
 data="${QA_DATA:-$QA/data}"
