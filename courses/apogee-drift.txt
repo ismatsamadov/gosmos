@@ -1,0 +1,18 @@
+# Changes in the Apogee courses' given code that a lesson or the story asks for, which library
+# drift --accept reads (docs/authoring.md, "Given code changes only for a reason"). Each names
+# a change as drift does, then says why it is fine in an indented line or more: where the
+# readme, the story or the syllabus asks for it. A slip is fixed in the lessons instead.
+
+# go-foundations
+
+# files-data-command-line
+
+# build-gctl
+
+# web-services-in-go
+
+# networking-from-the-socket-up
+
+# cryptography-in-go
+
+# logging-metrics-profiling
