@@ -150,17 +150,47 @@ final class CodeTextView: NSTextView {
 
     // MARK: Quick Help
 
-    // Option-click asks about the code under the pointer, as in Xcode. It is decided as the
-    // button goes down, so an Option-drag that starts on a word asks about that word too; one
-    // that starts anywhere else is the text view's own.
+    // Option-click asks about the code under the pointer, as in Xcode. On a word, the press
+    // waits to see whether the button comes up before the pointer moves away: if not, it is
+    // an Option-drag, the text view's own wherever it starts, and selects a column of text.
     override func mouseDown(with event: NSEvent) {
         if let onOptionClick, event.clickCount == 1,
            event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .option,
-           let index = wordIndex(at: convert(event.locationInWindow, from: nil)) {
+           let index = wordIndex(at: convert(event.locationInWindow, from: nil)),
+           isClick(event) {
             onOptionClick(index)
             return
         }
         super.mouseDown(with: event)
+    }
+
+    /// Waits for the press `down` to end or the pointer to move away, and says whether the
+    /// button came up first. A move short of a drag, such as a trackpad click's wobble, is
+    /// dropped. The release, or the move that makes a drag, stays in the queue for the text
+    /// view, as if nothing had waited.
+    private func isClick(_ down: NSEvent) -> Bool {
+        guard let window else { return true }
+        let mask: NSEvent.EventTypeMask = [.leftMouseUp, .leftMouseDragged]
+        while let next = window.nextEvent(matching: mask, until: .distantFuture, inMode: .eventTracking, dequeue: false) {
+            if next.type == .leftMouseUp {
+                return true
+            }
+            if Self.isDrag(from: down.locationInWindow, to: next.locationInWindow) {
+                return false
+            }
+            window.nextEvent(matching: mask, until: .distantFuture, inMode: .eventTracking, dequeue: true)
+        }
+        return true
+    }
+
+    /// How far the pointer can move while the button is down, in points, and the press still
+    /// be a click.
+    nonisolated static let clickWobble: CGFloat = 3
+
+    /// Whether the pointer went far enough from `start` to `end`, in window coordinates, for
+    /// a press to be a drag.
+    nonisolated static func isDrag(from start: NSPoint, to end: NSPoint) -> Bool {
+        hypot(end.x - start.x, end.y - start.y) > clickWobble
     }
 
     /// The index of the word character drawn under `point`, in the view's coordinates: a letter,
