@@ -104,6 +104,9 @@ public struct Workspace: Sendable {
             Workspace.recordAppsCopies(in: dir, editable: editable, saved: saved, lastOpened: lastOpened)
         }
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        // The folder has records from now on, even of nothing, before anything here can fail: what
+        // a later open finds changed is then an edit, never measured against a later open.
+        try? fm.createDirectory(at: dir.appendingPathComponent(".gosmos/starter", isDirectory: true), withIntermediateDirectories: true)
         if !lesson.readme.isEmpty {
             try Workspace.writeIfChanged(dir.appendingPathComponent("README.md"), lesson.readme, mode: 0o644)
         }
@@ -179,11 +182,14 @@ public struct Workspace: Sendable {
     }
 
     /// Records what the app wrote in a folder it last prepared before it kept records, so the
-    /// records' rules apply there too: every read-only file, which only the app writes (one you
-    /// made read-only yourself would count too, a risk this once-only step takes), and each of
-    /// the lesson's editable files (`editable`) you have no saved code for, unless it changed
+    /// records' rules apply there too: every read-only file, which only the app writes, and each
+    /// of the lesson's editable files (`editable`) you have no saved code for, unless it changed
     /// after you last opened the lesson. An edit made in another editor while the lesson was
-    /// open was saved when you left it, so it would have saved code. Best effort, as `remember`.
+    /// open was saved when you left it, so it would have saved code. `lastOpened` is the last
+    /// open whose code loaded, so this folder's: a failed load records no open. It runs once a
+    /// folder, and takes two risks there: a file you made read-only yourself counts as the
+    /// app's, and so does a file you added before your last open that the lesson's version now
+    /// also gives. Best effort, as `remember`.
     static func recordAppsCopies(in dir: URL, editable: Set<String>, saved: [String: CodeFileRecord], lastOpened: Date?) {
         guard let walk = FileManager.default.enumerator(atPath: dir.path) else { return }
         while let name = walk.nextObject() as? String { // relative to dir, with / between folders

@@ -218,6 +218,35 @@ private final class WriteLock {
         #expect(try await bench.stored() == typed && bench.onDisk() == typed)
     }
 
+    /// A folder from before the records, holding an edit made in another editor since the last
+    /// open, whose first open fails partway. Should a later open be recorded meanwhile, the
+    /// retry still measures nothing against it: the folder got its records on the first try,
+    /// and the edit is read back as yours, never replaced as the app's copy.
+    @Test @MainActor func aFolderFromBeforeTheRecordsKeepsAnEditAfterAFailedOpen() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let folder = bench.workspace.folder(for: bench.lesson)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try await bench.learner.markOpened(bench.lesson.ref, now: Date(timeIntervalSinceNow: -3600))
+        let edited = "package main // edited in another editor\n"
+        try edited.write(to: bench.file, atomically: true, encoding: .utf8)
+        // The readme can't be written: the open fails after it looked at the folder.
+        let readme = folder.appendingPathComponent("README.md")
+        try FileManager.default.createDirectory(at: readme, withIntermediateDirectories: true)
+        let gate = Gate()
+        await gate.open()
+        let first = bench.buffers(gate: gate)
+        await first.load()
+        #expect(!first.isLoaded && first.loadError != nil)
+
+        try await bench.learner.markOpened(bench.lesson.ref)
+        try FileManager.default.removeItem(at: readme)
+        let again = bench.buffers(gate: gate)
+        await again.load()
+        #expect(again.isLoaded && again.files.first { $0.name == "main.go" }?.text == edited)
+        #expect(try await bench.stored() == edited && bench.onDisk() == edited)
+    }
+
     /// Without typing, the load takes in the other editor's newer edit, as before.
     @Test @MainActor func aLoadWithoutTypingTakesInTheFolder() async throws {
         let bench = try await Bench()
