@@ -42,9 +42,9 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
         case .notPermitted(let path): ["Gosmos isn't allowed to read \(path)."]
         case .unreadable(_, let detail): ["the file is not an SQLite database SQLite can read: \(detail)"]
         case .notLibrary(_, let found): ["application_id is \(found), not \(id): the file is not a Gosmos library"]
-        case .olderFormat(_, let found): ["user_version is \(found), not \(version): the library is of an older format; library migrate brings it up to date"]
+        case .olderFormat(_, let found): ["user_version is \(found), not \(version): the library is of an older format; make it again with this version's tools"]
         case .legacyFormat(_, let found):
-            ["application_id is \(AppDatabase.legacyApplicationID) and user_version \(found): the library is of format \(found), from before format \(version); library migrate brings it up to date"]
+            ["application_id is \(AppDatabase.legacyApplicationID) and user_version \(found): the library is of format \(found), from before format \(version); make it again with this version's tools"]
         case .newerFormat(_, let found): ["user_version is \(found), not \(version): the library is of a newer format than this program knows"]
         case .damaged(_, let lines), .failedChecks(_, let lines): lines
         case .interruptedWrite: ["a write to the library was cut short and has to be rolled back first"]
@@ -60,7 +60,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
         case .notPermitted: "No Access to the Library"
         case .unreadable: "Not an SQLite File"
         case .notLibrary: "Not a Gosmos Library"
-        case .olderFormat, .legacyFormat: "Library Needs Migrating"
+        case .olderFormat, .legacyFormat: "Library Too Old"
         case .newerFormat: "Library Too New"
         case .damaged: "Damaged Library"
         case .failedChecks: "Library Failed Its Checks"
@@ -75,7 +75,7 @@ public enum AppDatabaseError: Error, LocalizedError, Equatable, Sendable {
         case .missing: "Open another library, or put the file back."
         case .notPermitted: "Allow Gosmos in System Settings › Privacy & Security › Files and Folders, then try again."
         case .unreadable, .notLibrary: "Open a Gosmos library."
-        case .olderFormat(let path, _), .legacyFormat(let path, _): "Run go run ./cmd/library migrate \(path), then open it again."
+        case .olderFormat, .legacyFormat: "Whoever made the library can make it again with this version's tools; until then, open another library."
         case .newerFormat: "Update Gosmos to open it."
         case .damaged: "Restore the file from a backup, or open another library."
         case .failedChecks(let path, _): "Whoever made the library can list the same problems with go run ./cmd/library check \(path)."
@@ -97,7 +97,7 @@ public final class AppDatabase: Sendable {
     /// 'GSMS'.
     public static let applicationID = 1_196_641_619
     /// 'GPWD': a library of format 6 or older, from before the app was called Gosmos, which
-    /// the library tool migrates.
+    /// only the checks name.
     public static let legacyApplicationID = 1_196_447_556
 
     let dbQueue: DatabaseQueue

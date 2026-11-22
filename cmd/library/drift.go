@@ -59,7 +59,7 @@ func drift(ctx context.Context, path, course string, diffs bool, out io.Writer) 
 		return false, fmt.Errorf("%s: %w", path, err)
 	}
 	if version != db.Version {
-		return false, fmt.Errorf("%s is of format %d, not %d; migrate it first", path, version, db.Version)
+		return false, fmt.Errorf("%s is of format %d, not %d; make it again with this version's tools", path, version, db.Version)
 	}
 	ls, err := loadCodeLessons(ctx, d, course)
 	if err != nil {

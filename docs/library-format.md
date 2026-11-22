@@ -14,8 +14,9 @@ that need nothing else: code, code with tests, and quizzes.
 
 - SQLite 3, rollback journal (`journal_mode` DELETE).
 - `PRAGMA application_id = 1196641619` ('GSMS'). The app refuses any other file.
-- `PRAGMA user_version` is the format version, now 9. The app opens only the version it was
-  built for; `go run ./cmd/library migrate <file>` brings an older file up to date.
+- `PRAGMA user_version` is the format version, now 9. The app and the tools open only the
+  version they were built for. A file of an older format is refused: whoever made it makes it
+  again with the current tools (see How the format got here).
 - `library_info` holds the library's one row: a uuid that never changes (the learner's data
   is filed under it), a title and a version.
 - The tables are exactly those in `db/schema.sql`, which documents every column. Make new
@@ -125,13 +126,23 @@ Everything a learner does is in one SQLite file on their Mac,
 attempts, notes, their code, the hints and solutions they looked at, and their review
 schedule. Each row names its library by `library_info.uuid` and its lesson by uuid, so
 updating a library never touches the learner's data. The app brings an older learner
-database up to date when it opens it. Libraries of format 6 and older kept the learner's data
-inside the library; `go run ./cmd/library migrate <file> --learner <learner.sqlite>` moves it
-into the learner database and leaves the library content only. The same migration puts
-`difficulty` on the 1 to 10 scale (the old score plus 6, divided by 7) and drops the lesson
-columns `code_last_mod` and `synced_at`.
+database up to date when it opens it.
 
-## Format 8: what it removed, and why
+## How the format got here
+
+Every library is of format 9. The tools once brought libraries of formats 3 to 8 up to date
+(`library migrate`); they were removed once nothing older was left, and a library of an older
+format is now refused, by the app and the tools alike. What each change did, and why, is kept
+here.
+
+### Format 7: the learner's data moved out
+
+Libraries of format 6 and older kept the learner's data inside the library. Format 7 moved it
+into the learner database and left the library content only. The same step put `difficulty`
+on the 1 to 10 scale (the old score plus 6, divided by 7) and dropped the lesson columns
+`code_last_mod` and `synced_at`.
+
+### Format 8: what it removed, and why
 
 Gosmos is an isolated app: no account, no server, nothing it fetches or sends. Format 7 still
 had three lesson types from the app Gosmos grew out of, and each reached outside the Mac or
@@ -143,18 +154,18 @@ could only be marked done by hand:
   requests and workflow runs (the `github_*` tables).
 - `type_interview_chat`: a question to answer in one's own words (`interview_lesson`).
 
-Format 8 drops those tables and takes only `type_code`, `type_code_tests` and `type_choice`
-in `lesson.type`. `go run ./cmd/library migrate <file>` takes a library of format 7 (or older)
-to 8 and keeps every row of the kept types, its `library_info` row included, so the
-library's uuid, and the learner's progress filed under it, stay as they were. A library that
-holds a lesson of a removed type is refused, with the count of each, and left unchanged.
+Format 8 dropped those tables and took only `type_code`, `type_code_tests` and
+`type_choice` in `lesson.type`. Bringing a library of format 7 to 8 kept every row of the kept
+types, its `library_info` row included, so the library's uuid, and the learner's progress
+filed under it, stayed as they were. A library that held a lesson of a removed type was
+refused, with the count of each, and left unchanged.
 
 The learner database's version 2 dropped what only those lessons used: the course project
 folders (`project`), the learner's server addresses (`server_address`) and the attempts of
-command-line checks. Migrating a library of format 6 or older drops such rows instead of
-moving them, and says how many.
+command-line checks. Bringing a library of format 6 or older up to date dropped such rows
+instead of moving them, and said how many.
 
-## Format 9: what it added, and why
+### Format 9: what it added, and why
 
 Gosmos's courses are set in invented worlds, such as Apogee, a small space company. Until
 format 9 that world lived only in the readmes, so each lesson set its own scene and explained
@@ -164,8 +175,6 @@ pages that set the scene and hand the learner their badge, frame each chapter wi
 and a debrief, and explain each of the world's words once, in the field guide, linking readmes
 to it. All of it is optional: a library without a story opens as before.
 
-`go run ./cmd/library migrate <file>` takes a library of format 8 to 9 by creating the four
-tables, empty. Every other row stays as it is, its `library_info` row included, so the
-library keeps its uuid and the learner's progress filed under it. A library of format 7 or
-older goes through format 8 on the way. `go run ./cmd/author story` then gives a course its
-story.
+Bringing a library of format 8 to 9 created the four tables, empty, and kept every other row,
+its `library_info` row included, so the library kept its uuid and the learner's progress
+filed under it. `go run ./cmd/author story` gives a course its story.

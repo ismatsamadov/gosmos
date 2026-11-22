@@ -1,6 +1,5 @@
-// Package db creates, opens, checks and migrates Gosmos course libraries, SQLite files whose
-// tables are db/schema.sql, and makes and opens the learner databases of db/learner.sql that
-// migrating moves a library's learner data into. Both schemas are embedded here.
+// Package db creates, opens and checks Gosmos course libraries, SQLite files whose tables are
+// db/schema.sql, embedded here.
 package db
 
 import (
@@ -36,7 +35,7 @@ var (
 )
 
 // LegacyApplicationID ('GPWD') marks a library of format 6 or older, from before the app was
-// called Gosmos. Only Migrate opens such a file.
+// called Gosmos. Nothing opens such a file; the checks only name it.
 const LegacyApplicationID = 1196447556
 
 // ErrNotFound is returned by Open for a file that does not exist.
@@ -111,8 +110,7 @@ func Create(path string, info Info) (*sql.DB, error) {
 }
 
 // Open opens the existing library at path to write to it. It must be a Gosmos library of this
-// program's format. One of an older format is refused and left as it is: bringing it up to date
-// may move learner data into a learner database, which only Migrate (library migrate) does.
+// program's format; any other file is refused and left as it is.
 func Open(path string) (*sql.DB, error) {
 	info, err := os.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -245,7 +243,7 @@ func formatError(app, version int) error {
 	case app == ApplicationID && version > Version:
 		return fmt.Errorf("the library is of format %d, newer than this program's %d; update the program", version, Version)
 	case app == ApplicationID || app == LegacyApplicationID && version <= 6:
-		return fmt.Errorf("the library is of format %d, older than %d; library migrate brings it up to date", version, Version)
+		return fmt.Errorf("the library is of format %d, older than %d; make it again with this version's tools", version, Version)
 	}
 	return fmt.Errorf("not a Gosmos library (application_id %d)", app)
 }

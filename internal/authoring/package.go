@@ -63,7 +63,7 @@ README.md starts with this block, every line exactly as shown, in this order:
               repeats; write "topics:" with nothing after it for none
 
 Everything after the closing --- line is the readme, Markdown, kept byte for byte. Leave
-out pictures, videos and HTML embeds: the app never shows them, and they are refused.
+out pictures and HTML: the app never shows them, and they are refused.
 
 Code lessons (code, code_tests):
   - starter/ holds every file the learner gets, in any subfolders; at least one of them
@@ -614,7 +614,7 @@ func quizText(qs []Question) string {
 	return b.String()
 }
 
-// checkMedia refuses pictures, videos and widgets in the text the app shows.
+// checkMedia refuses pictures and HTML in the text the app shows.
 func (p Package) checkMedia() error {
 	texts := map[string]string{"README.md": p.Readme, "solution_note.md": p.SolutionNote}
 	for i, h := range p.Hints {
@@ -635,11 +635,10 @@ func (p Package) checkMedia() error {
 	return nil
 }
 
-// mediaError refuses pictures, videos and widgets in a text the app shows, which where names.
+// mediaError refuses pictures and HTML in a text the app shows, which where names.
 func mediaError(where, text string) error {
-	if _, st := media.Strip(text); st.Total() > 0 {
-		return fmt.Errorf("%s holds %d pictures, %d videos, %d links to videos and %d widgets; the app shows none of them, so leave them out",
-			where, st.Images, st.Videos, st.Links, st.Widgets)
+	if found := media.Find(text); found.Total() > 0 {
+		return fmt.Errorf("%s holds %s; the app shows neither pictures nor HTML, so leave them out", where, found)
 	}
 	return nil
 }

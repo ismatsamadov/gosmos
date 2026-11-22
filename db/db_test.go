@@ -66,9 +66,8 @@ func TestCreate(t *testing.T) {
 			t.Errorf("%s = %s, want %s", tc.query, got, tc.want)
 		}
 	}
-	if Version != 9 || ApplicationID != 1196641619 || LearnerVersion != 2 || LearnerApplicationID != 1196641612 {
-		t.Errorf("Version, ApplicationID, LearnerVersion, LearnerApplicationID = %d, %d, %d, %d; want what the schemas set",
-			Version, ApplicationID, LearnerVersion, LearnerApplicationID)
+	if Version != 9 || ApplicationID != 1196641619 {
+		t.Errorf("Version, ApplicationID = %d, %d; want what schema.sql sets", Version, ApplicationID)
 	}
 	if p, err := Validate(context.Background(), d); err != nil || len(p) > 0 {
 		t.Errorf("a new database fails its checks: %v %v", p, err)
@@ -136,9 +135,9 @@ func TestOpen(t *testing.T) {
 	}{
 		{name: "a database it made", ok: true},
 		{name: "one left in WAL mode", setup: []string{`PRAGMA journal_mode = WAL`}, ok: true},
-		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 9; library migrate brings it up to date"},
-		{name: "a library of format 7", setup: []string{`PRAGMA user_version = 7`}, err: "the library is of format 7, older than 9; library migrate brings it up to date"},
-		{name: "a library of format 8", setup: []string{`PRAGMA user_version = 8`}, err: "the library is of format 8, older than 9; library migrate brings it up to date"},
+		{name: "a library of format 6", setup: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`}, err: "the library is of format 6, older than 9; make it again with this version's tools"},
+		{name: "a library of format 7", setup: []string{`PRAGMA user_version = 7`}, err: "the library is of format 7, older than 9; make it again with this version's tools"},
+		{name: "a library of format 8", setup: []string{`PRAGMA user_version = 8`}, err: "the library is of format 8, older than 9; make it again with this version's tools"},
 		{name: "a newer format", setup: []string{`PRAGMA user_version = 10`}, err: "newer than this program's 9"},
 		{name: "not a Gosmos file", setup: []string{`PRAGMA application_id = 42`}, err: "not a Gosmos library (application_id 42)"},
 	} {
@@ -270,12 +269,12 @@ func TestValidate(t *testing.T) {
 		{
 			name:  "a library of format 6",
 			stmts: []string{`PRAGMA application_id = 1196447556`, `PRAGMA user_version = 6`},
-			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; library migrate brings it up to date"},
+			want:  []string{"application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; make it again with this version's tools"},
 		},
 		{
 			name:  "an older format",
 			stmts: []string{`PRAGMA user_version = 8`},
-			want:  []string{"user_version is 8, not 9: the library is of an older format; library migrate brings it up to date"},
+			want:  []string{"user_version is 8, not 9: the library is of an older format; make it again with this version's tools"},
 		},
 		{
 			name:  "a newer format",

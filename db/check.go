@@ -65,11 +65,11 @@ func Validate(ctx context.Context, d Querier) (Problems, error) {
 	}
 	switch {
 	case app == LegacyApplicationID && version <= 6:
-		add("application_id is %d and user_version %d: the library is of format %d, from before format %d; library migrate brings it up to date", app, version, version, Version)
+		add("application_id is %d and user_version %d: the library is of format %d, from before format %d; make it again with this version's tools", app, version, version, Version)
 	case app != ApplicationID:
 		add("application_id is %d, not %d: the file is not a Gosmos library", app, ApplicationID)
 	case version < Version:
-		add("user_version is %d, not %d: the library is of an older format; library migrate brings it up to date", version, Version)
+		add("user_version is %d, not %d: the library is of an older format; make it again with this version's tools", version, Version)
 	case version > Version:
 		add("user_version is %d, not %d: the library is of a newer format than this program knows", version, Version)
 	}
