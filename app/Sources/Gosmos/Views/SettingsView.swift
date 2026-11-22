@@ -45,7 +45,7 @@ struct GeneralSettings: View {
                 Text("The specification, the guides and the standard library's documentation are built into Gosmos. The acknowledgements credit their authors and give their licenses.")
             }
             Section {
-                ForEach(app.shelf) { library in
+                ForEach(app.shelf.libraries) { library in
                     LabeledContent {
                         if library.isBuiltIn {
                             Text("Built in").foregroundStyle(Theme.secondaryText)

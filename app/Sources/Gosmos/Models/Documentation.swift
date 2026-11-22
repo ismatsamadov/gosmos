@@ -172,3 +172,28 @@ extension AppModel {
         }
     }
 }
+
+// MARK: - Links
+
+extension AppModel {
+    /// Follows a link clicked in the app: into the documentation, or to a lesson of the
+    /// library on screen. Any other address does nothing; Gosmos opens nothing outside itself.
+    func follow(_ url: URL) -> Bool {
+        let library = lesson?.detail.library
+        let catalog = library.flatMap { self.library($0)?.catalog }
+        let story = lesson.flatMap { story(for: $0.detail.ref) }
+        switch LinkTarget(destination: url.absoluteString, isLesson: { catalog?.summary($0) != nil }, isTerm: { story?.term($0) != nil }) {
+        case .doc(let link)?:
+            openDocumentation(link)
+            return true
+        case .term(let name)?:
+            shownTerm = story?.term(name)
+            return true
+        case .lesson(let id)?:
+            if let library { open(LessonRef(library: library, lesson: id)) }
+            return true
+        case nil:
+            return false
+        }
+    }
+}

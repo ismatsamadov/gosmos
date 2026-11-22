@@ -154,7 +154,7 @@ struct DashboardView: View {
             } else {
                 // No lesson to recommend: every lesson is done, or no library on the shelf has a
                 // lesson to read (none opened, or none that can be read).
-                let noLessons = app.shelf.allSatisfy { $0.catalog.lessonCount == 0 }
+                let noLessons = app.shelf.libraries.allSatisfy { $0.catalog.lessonCount == 0 }
                 Text(noLessons ? "Make room for a new idea." : "Look how far you’ve come.")
                     .font(.system(size: 30, weight: .semibold)).tracking(-0.7).foregroundStyle(.white)
                 Text(noLessons ? "Open a library and find your first lesson." : "Keep your knowledge fresh with a little practice.")
@@ -261,7 +261,7 @@ struct DashboardView: View {
                     .font(.system(size: 11, weight: .medium)).buttonStyle(.plain).foregroundStyle(Theme.accent)
                     .disabled(app.isAddingLibrary).frame(minHeight: 24)
             }
-            if app.shelf.allSatisfy({ $0.catalog.courses.isEmpty }) {
+            if app.shelf.libraries.allSatisfy({ $0.catalog.courses.isEmpty }) {
                 ContentUnavailableView {
                     Label("Your next adventure awaits", systemImage: "books.vertical")
                 } description: {
@@ -271,9 +271,9 @@ struct DashboardView: View {
                 }
                 .frame(maxWidth: .infinity).missionCard()
             } else {
-                let featured = app.shelf.reduce(0) { $0 + $1.catalog.courses.count } == 1
+                let featured = app.shelf.libraries.reduce(0) { $0 + $1.catalog.courses.count } == 1
                 LazyVGrid(columns: featured ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 290), spacing: 14)], spacing: 14) {
-                    ForEach(app.shelf) { library in
+                    ForEach(app.shelf.libraries) { library in
                         ForEach(library.catalog.courses) { course in
                             CourseMissionCard(course: course, library: library.id, featured: featured)
                         }

@@ -67,7 +67,7 @@ struct FieldGuideView: View {
     private var sections: [Section] {
         let query = PastedText.clean(filter).trimmingCharacters(in: .whitespaces)
         var out: [Section] = []
-        for library in app.shelf {
+        for library in app.shelf.libraries {
             for course in library.catalog.courses {
                 guard let terms = library.stories[course.id]?.terms, !terms.isEmpty else { continue }
                 let shown = query.isEmpty ? terms : terms.filter {

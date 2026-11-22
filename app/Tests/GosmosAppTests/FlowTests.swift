@@ -97,6 +97,38 @@ import Testing
     /// While the opening covers the window, no command acts on what it covers: here a lesson
     /// still on screen behind it, as when Replay the Opening leaves one that waits to be saved.
     /// They come back once the opening ends.
+    /// Places in the documentation join the back history as lessons do: Back from a page goes
+    /// to the page before it, then to the lesson, and Forward retraces them.
+    @Test func backAndForwardGoThroughTheDocumentation() async throws {
+        let fixture = try FlowFixture(reference: true)
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.docs != nil }
+        app.open(fixture.ref("first"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        let fmt = DocLink.package("fmt"), cut = DocLink.symbol(package: "strings", name: "Cut")
+        app.openDocumentation(fmt)
+        try await fixture.wait { app.docs?.location == fmt && app.lesson == nil }
+        #expect(app.selection == .documentation && app.canGoBack && !app.canGoForward)
+        app.openDocumentation(cut)
+        try await fixture.wait { app.docs?.location == cut }
+
+        app.goBack()
+        try await fixture.wait { app.docs?.location == fmt }
+        #expect(app.selection == .documentation && app.lesson == nil)
+        app.goBack()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        #expect(app.canGoForward)
+
+        app.goForward()
+        try await fixture.wait { app.docs?.location == fmt && app.lesson == nil }
+        app.goForward()
+        try await fixture.wait { app.docs?.location == cut }
+        #expect(app.selection == .documentation && !app.canGoForward)
+    }
+
     @Test func theOpeningTurnsOffTheCommandsBehindIt() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
@@ -481,81 +513,4 @@ import Testing
         #expect(try await learner.note(for: ref) == "A draft still being edited.")
         await app.prepareToQuit()
     }
-}
-
-@MainActor private struct FlowFixture {
-    let directory: URL
-    let resources: AppResources
-
-    init() throws {
-        let repository = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        directory = FileManager.default.temporaryDirectory.appendingPathComponent("gosmos-flow-\(UUID().uuidString)")
-        let libraries = directory.appendingPathComponent("courses")
-        try FileManager.default.createDirectory(at: libraries, withIntermediateDirectories: true)
-        resources = AppResources(libraries: libraries, learnerSchema: repository.appendingPathComponent("db/learner.sql"), reference: nil)
-        let queue = try DatabaseQueue(path: libraries.appendingPathComponent("practice.sqlite").path)
-        try queue.writeWithoutTransaction { db in
-            try db.execute(sql: String(contentsOf: repository.appendingPathComponent("db/schema.sql"), encoding: .utf8))
-        }
-        try queue.write { db in
-            try db.execute(sql: """
-                INSERT INTO library_info VALUES (1, 'flow-library', 'Flow tests', '1');
-                INSERT INTO course (uuid, slug, title, kind, short_description, description, position)
-                  VALUES ('course', 'course', 'Practice', 'Course', '', '', 0),
-                         ('second-course', 'second-course', 'More practice', 'Course', '', '', 1);
-                INSERT INTO chapter (uuid, course_uuid, position, slug, title, description)
-                  VALUES ('chapter-one', 'course', 0, 'one', 'First chapter', ''),
-                         ('chapter-two', 'course', 1, 'two', 'Second chapter', ''),
-                         ('chapter-three', 'second-course', 0, 'three', 'The second course''s chapter', '');
-                INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
-                  VALUES ('first', 'chapter-one', 0, 'first', 'First assignment', 'type_code', 1, 1, '# First\n\nPrint hello.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
-                         ('optional', 'chapter-one', 1, 'optional', 'Optional practice', 'type_code', 0, 1, '# Optional\n\nTry another greeting.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
-                         ('quiz', 'chapter-two', 0, 'quiz', 'Last assignment', 'type_choice', 1, 1, '# Quiz\n\nCheck your understanding.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
-                         ('second', 'chapter-three', 0, 'second', 'The second course''s assignment', 'type_code', 1, 1, '# Second\n\nPrint hello again.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
-                INSERT INTO code_lesson (lesson_uuid, lesson_type, prog_lang, expected_output)
-                  VALUES ('first', 'type_code', 'go', 'Hello'), ('optional', 'type_code', 'go', 'Hello'), ('second', 'type_code', 'go', 'Hello');
-                INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
-                  VALUES ('first', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0),
-                         ('optional', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0),
-                         ('second', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0);
-                INSERT INTO quiz_lesson (lesson_uuid, contains_complete_dir) VALUES ('quiz', 0);
-                INSERT INTO quiz_question VALUES ('quiz', 0, 'Is Go compiled?');
-                INSERT INTO quiz_answer VALUES ('quiz', 0, 0, 'Yes', 1, 'Go builds programs.'), ('quiz', 0, 1, 'No', 0, 'Go compiles its programs.');
-                INSERT INTO story_page VALUES ('course', 0, 'text', NULL, 'Welcome', 'Welcome to the course.', 'Continue'),
-                                              ('course', 1, 'badge', 'Practice', 'Your badge', 'Choose your name.', 'Continue'),
-                                              ('course', 2, 'text', NULL, 'Your assignment', 'Start when you are ready.', 'Start'),
-                                              ('second-course', 0, 'text', NULL, 'Further out', 'A second course begins.', 'Start');
-                """)
-        }
-        try queue.close()
-    }
-
-    func app() -> AppModel {
-        // A suite named by an absolute path is stored at that path: each app's settings stay in
-        // this fixture's folder, never in ~/Library/Preferences.
-        let defaults = UserDefaults(suiteName: directory.appendingPathComponent("settings-\(UUID().uuidString)").path)!
-        defaults.register(defaults: [LocalPreferences.dataFolderKey: directory.appendingPathComponent("study").path])
-        return AppModel(defaults: defaults, resources: resources)
-    }
-
-    func ref(_ lesson: String) -> LessonRef { LessonRef(library: "flow-library", lesson: lesson) }
-
-    /// Changes the library, as an update brings a new version of it.
-    func changeLibrary(_ sql: String) throws {
-        let queue = try DatabaseQueue(path: resources.libraries!.appendingPathComponent("practice.sqlite").path)
-        try queue.write { try $0.execute(sql: sql) }
-        try queue.close()
-    }
-
-    func wait(_ condition: () -> Bool) async throws {
-        for _ in 0..<500 {
-            if condition() { return }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        struct TimedOut: Error {}
-        throw TimedOut()
-    }
-
-    func remove() { try? FileManager.default.removeItem(at: directory) }
 }
