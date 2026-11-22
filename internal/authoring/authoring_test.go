@@ -340,11 +340,18 @@ func TestPackageTimes(t *testing.T) {
 	if p, err := Read(edit(t, "launch-window", timed)); err != nil || p.Created != "2026-11-01T10:00:00Z" || p.Modified != "2026-11-02T08:30:00Z" {
 		t.Errorf("a package with times: %+v %v", p, err)
 	}
+	// A library may hold fractions of a second, so an export can write them.
+	fine := map[string]string{"README.md": front(append(goodFront[:6:6], "created: 2026-11-01T10:00:00.25Z", "modified: 2026-11-01T10:00:00.5Z")...) + "# The Launch Window\n"}
+	if p, err := Read(edit(t, "launch-window", fine)); err != nil || p.Created != "2026-11-01T10:00:00.25Z" || p.Modified != "2026-11-01T10:00:00.5Z" {
+		t.Errorf("a package with fractions of a second: %+v %v", p, err)
+	}
 	for _, tc := range []struct{ name, created, modified, want string }{
 		{"modified alone", "", "modified: 2026-11-02T08:30:00Z", "it has both or neither"},
 		{"a time with its zone", "created: 2026-11-01T10:00:00+04:00", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
-		{"a time with fractions", "created: 2026-11-01T10:00:00.5Z", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
+		{"a day that doesn't exist", "created: 2026-02-30T10:00:00Z", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
+		{"a fraction without digits", "created: 2026-11-01T10:00:00.Z", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
 		{"modified before created", "created: 2026-11-03T10:00:00Z", "modified: 2026-11-02T08:30:00Z", "modified 2026-11-02T08:30:00Z is before created 2026-11-03T10:00:00Z"},
+		{"modified before created by a fraction", "created: 2026-11-02T08:30:00.5Z", "modified: 2026-11-02T08:30:00Z", "modified 2026-11-02T08:30:00Z is before created 2026-11-02T08:30:00.5Z"},
 		{"times in the wrong order", "modified: 2026-11-02T08:30:00Z", "created: 2026-11-01T10:00:00Z", "front matter must read exactly"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
