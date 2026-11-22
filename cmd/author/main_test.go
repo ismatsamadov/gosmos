@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ismatsamadov/gosmos/db"
@@ -549,7 +550,7 @@ func TestBuildALibrary(t *testing.T) {
 	if msg := mustAuthor(t, "build", folder, built); !strings.Contains(msg, built+" is up to date") {
 		t.Errorf("a second build: %q", msg)
 	}
-	again := filepath.Join(t.TempDir(), "again.sqlite")
+	again := filepath.Join(t.TempDir(), "new", "again.sqlite") // into a folder made for it
 	mustAuthor(t, "build", folder, again)
 	if b, _ := os.ReadFile(again); !bytes.Equal(b, before) {
 		t.Error("two builds of the same folder made different files")
@@ -570,6 +571,40 @@ func TestBuildALibrary(t *testing.T) {
 	}
 	if code, _, errOut := author(t, "export", path, "--chapter", "1-countdown", t.TempDir()); code != 2 || !strings.Contains(errOut, "--chapter and --story need --course") {
 		t.Errorf("export of a chapter without its course: %d %q", code, errOut)
+	}
+}
+
+// Builds of one folder into one file at the same time, as two make runs in one checkout give:
+// each builds a file of its own, so every one succeeds and the library is whole.
+func TestBuildsAtOnce(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	folder := filepath.Join(t.TempDir(), "apogee")
+	mustAuthor(t, "export", path, folder)
+	built := filepath.Join(t.TempDir(), "apogee.sqlite")
+	codes, errs := make([]int, 4), make([]string, 4)
+	var wg sync.WaitGroup
+	for i := range codes {
+		wg.Go(func() {
+			var out, errOut bytes.Buffer
+			codes[i] = run(context.Background(), []string{"build", folder, built}, &out, &errOut)
+			errs[i] = errOut.String()
+		})
+	}
+	wg.Wait()
+	for i, code := range codes {
+		if code != 0 {
+			t.Errorf("build %d of 4: exit %d: %s", i+1, code, errs[i])
+		}
+	}
+	if problems, err := db.Validate(context.Background(), open(t, built)); err != nil || len(problems) > 0 {
+		t.Fatalf("the library after builds at once: %v %v", problems, err)
+	}
+	if n := count(t, built, `SELECT count(*) FROM lesson`); n != 3 {
+		t.Errorf("the library after builds at once has %d lessons, want 3", n)
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(built)); len(entries) != 1 {
+		t.Errorf("builds at once left %d files beside the library", len(entries)-1)
 	}
 }
 

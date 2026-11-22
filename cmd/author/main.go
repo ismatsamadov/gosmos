@@ -565,9 +565,17 @@ func build(ctx context.Context, args []string, out io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("library folder %s: %w", folder, err)
 	}
-	built := filepath.Join(filepath.Dir(file), "."+filepath.Base(file)+".new")
-	os.Remove(built)
-	defer os.Remove(built)
+	// Each build writes in a folder of its own beside the file, so builds at once can't mix,
+	// and moves its file in whole.
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		return err
+	}
+	work, err := os.MkdirTemp(filepath.Dir(file), "."+filepath.Base(file)+".build-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(work)
+	built := filepath.Join(work, filepath.Base(file))
 	d, err := db.Create(built, l.Info)
 	if err != nil {
 		return err
