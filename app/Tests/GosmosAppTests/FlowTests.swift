@@ -105,10 +105,14 @@ import Testing
         app.finishOpening()
         app.open(fixture.ref("optional"))
         try await fixture.wait { app.lesson?.ref == fixture.ref("optional") && app.lesson?.code?.isLoaded == true }
+        app.open(fixture.ref("first"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        app.goBack()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("optional") && app.lesson?.code?.isLoaded == true }
         // Format needs a Go with gofmt, which a test may not have; the others need nothing.
         let editing: [EditorCommand] = [.toggleComment, .indent, .outdent]
         var commands = app.commands
-        #expect(commands.run && commands.submit && commands.nextLesson && commands.previousLesson && commands.back)
+        #expect(commands.run && commands.submit && commands.nextLesson && commands.previousLesson && commands.back && commands.forward)
         #expect(commands.review && commands.markDone && commands.resetToStarter && editing.allSatisfy(commands.editor))
         #expect(commands.missionControl && commands.replayOpening)
 
