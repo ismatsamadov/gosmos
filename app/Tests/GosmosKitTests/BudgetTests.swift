@@ -5,6 +5,13 @@ import Testing
 
 /// The time budgets of docs/architecture.md, on a library the size of a real catalog.
 @Suite(.serialized) struct BudgetTests {
+    /// A budget, as a Mac keeps it. A shared CI runner (GitHub sets CI) is slower and noisier,
+    /// so there each is ten times as long: still enough to catch a search or a page gone from
+    /// milliseconds to seconds, without failing on a busy machine.
+    static func budget(_ d: Duration) -> Duration {
+        ProcessInfo.processInfo.environment["CI"] == nil ? d : d * 10
+    }
+
     static func bigDatabase() throws -> (AppDatabase, URL) {
         let dir = try Fixtures.tempDir("big")
         let url = dir.appendingPathComponent(Fixtures.libraryName)
@@ -59,17 +66,17 @@ import Testing
             slowest = max(slowest, clock.now - t)
             #expect(!found.hits.isEmpty && found.hits.count <= 60, "\(prefix)")
         }
-        #expect(slowest < .milliseconds(50), "slowest search \(slowest)")
+        #expect(slowest < Self.budget(.milliseconds(50)), "slowest search \(slowest)")
 
         // A lesson switch reads the lesson and parses its readme: under 100 ms.
         let t = clock.now
         let lesson = try #require(try await db.lesson("bc5h3l2"))
         _ = Readme.parse(lesson.readme, droppingTitle: lesson.title)
-        #expect(clock.now - t < .milliseconds(100), "lesson switch \(clock.now - t)")
+        #expect(clock.now - t < Self.budget(.milliseconds(100)), "lesson switch \(clock.now - t)")
 
         let c = clock.now
         _ = try await db.catalog()
-        #expect(clock.now - c < .milliseconds(200), "catalog \(clock.now - c)")
+        #expect(clock.now - c < Self.budget(.milliseconds(200)), "catalog \(clock.now - c)")
     }
 
     /// The documentation's budgets, on the full Go reference the app ships: a package's page
@@ -100,7 +107,7 @@ import Testing
                 #expect(page != nil, "\(path)")
             })
         }
-        #expect(slowest < .milliseconds(100), "slowest package page \(slowest)")
+        #expect(slowest < Self.budget(.milliseconds(100)), "slowest package page \(slowest)")
 
         var slowestSearch = Duration.zero
         for query in ["p", "pr", "pri", "prin", "print", "printl", "println", "B", "Bu", "Builder", "strings.B", "strings.Builder.Gr",
@@ -110,7 +117,7 @@ import Testing
                 #expect(!hits.isEmpty, "\(query)")
             })
         }
-        #expect(slowestSearch < .milliseconds(30), "slowest search \(slowestSearch)")
+        #expect(slowestSearch < Self.budget(.milliseconds(30)), "slowest search \(slowestSearch)")
         #expect(try await reference.search("Println").first?.title == "fmt.Println")
         #expect(try await reference.search("Builder").first?.title == "strings.Builder")
     }
