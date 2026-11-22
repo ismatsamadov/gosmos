@@ -249,6 +249,47 @@ private final class WriteLock {
         #expect(buffers.conflict == nil && main.text == "package main // theirs\n")
     }
 
+    /// Two files in conflict, answered one after the other while the database is slow: the
+    /// first choice, landing, doesn't ask again about the second, whose own choice is landing,
+    /// and no question stays up for a file already settled.
+    @Test @MainActor func aChoiceLandingDoesntAskAboutAnotherChoiceLanding() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let code = CodeExercise(starterFiles: [StarterFile(name: "a.go", content: "package main // a\n"),
+                                               StarterFile(name: "helper.go", content: "package main // helper\n"),
+                                               StarterFile(name: "main.go", content: "package main\n")])
+        let lesson = Fixtures.codeLesson("three-files", .code, code)
+        let gate = Gate()
+        await gate.open()
+        let buffers = CodeBuffers(lesson: lesson, exercise: code, saved: [:], learner: bench.learner, workspace: bench.workspace,
+                                  unsettled: [], goVersion: { await gate.pass(); return "1.27" }, remember: { _, _ in })
+        await buffers.load()
+        let folder = bench.workspace.folder(for: lesson)
+        let a = try #require(buffers.files.first { $0.name == "a.go" })
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        let helper = try #require(buffers.files.first { $0.name == "helper.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: folder.appendingPathComponent("main.go"), atomically: true, encoding: .utf8)
+        #expect(try await buffers.flush() == false && buffers.conflict == "main.go")
+
+        // A save under way when main.go is answered writes a.go, and finds helper.go in conflict.
+        let lock = try WriteLock(bench.dir.appendingPathComponent("learner.sqlite"))
+        a.text = "package main // a, edited\n"
+        helper.text = "package main // helper, mine\n"
+        try "package main // helper, theirs\n".write(to: folder.appendingPathComponent("helper.go"), atomically: true, encoding: .utf8)
+        let saving = Task { try await buffers.flush() }
+        try await Task.sleep(for: .milliseconds(100))
+        let first = try #require(buffers.resolveConflict(keepMine: false))
+        try lock.release()
+        #expect(try await saving.value == false && buffers.conflict == "helper.go")
+        let second = try #require(buffers.resolveConflict(keepMine: false))
+        #expect(try await first.value == true)
+        #expect(buffers.conflict == nil)
+        #expect(try await second.value == true)
+        #expect(buffers.conflict == nil && !buffers.isResolving)
+        #expect(helper.text == "package main // helper, theirs\n" && main.text == "package main // theirs\n")
+    }
+
     /// A folder from before the records, holding an edit made in another editor since the last
     /// open, whose first open fails partway. Should a later open be recorded meanwhile, the
     /// retry still measures nothing against it: the folder got its records on the first try,

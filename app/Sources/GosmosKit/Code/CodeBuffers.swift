@@ -238,7 +238,8 @@ public final class CodeBuffers {
                     try await saver.markConflict(name)
                 }
             }
-            if let next = await saver.conflicts.sorted().first {
+            // Another file in conflict is asked about next, unless its own choice is landing.
+            if let next = await saver.conflicts.sorted().first(where: { $0 == name || !landing.contains($0) }) {
                 if conflict == nil { conflict = next }
                 return false
             }
