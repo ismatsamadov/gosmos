@@ -919,10 +919,11 @@ final class AppModel {
         }
     }
 
-    /// The opening View › Replay the Opening shows: that of the course you are in, else the first
-    /// on the shelf.
+    /// The opening View › Replay the Opening shows: that of the course you are in, the lesson's on
+    /// screen, done or not; with no lesson on screen, that of the course Mission Control offers;
+    /// else the first on the shelf.
     var openingToReplay: (library: String, course: String)? {
-        if let ref = recommendedLesson ?? resumeLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
+        if let ref = lesson?.detail.ref ?? recommendedLesson ?? resumeLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
            story(of: course.id, in: ref.library)?.hasOpening == true {
             return (ref.library, course.id)
         }

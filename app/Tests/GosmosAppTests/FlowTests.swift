@@ -71,6 +71,29 @@ import Testing
         await reopened.prepareToQuit()
     }
 
+    /// View › Replay the Opening replays the course of the lesson on screen, also once that course
+    /// is done and Mission Control offers another; on Mission Control, the course it offers.
+    @Test func replayingTheOpeningKeepsToTheCourseOnScreen() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("second"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("second") && app.resumeLesson == fixture.ref("second") }
+        let lesson = try #require(app.lesson)
+        lesson.markPassed(review: false) // the second course's only lesson: that course is done
+        #expect(app.recommendedLesson == fixture.ref("first"))
+        #expect(app.openingToReplay?.course == "second-course")
+        app.replayOpening()
+        #expect(app.opening?.course == "second-course")
+        app.finishOpening()
+        try await fixture.wait { app.lesson == nil }
+        #expect(app.selection == .dashboard)
+        #expect(app.openingToReplay?.course == "course")
+        await app.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
