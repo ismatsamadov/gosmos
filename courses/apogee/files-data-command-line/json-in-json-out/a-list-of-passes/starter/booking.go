@@ -9,4 +9,5 @@ type Booking struct {
 	Station string    `json:"station"`
 	AOS     time.Time `json:"aos"` // when the satellite rises into view
 	LOS     time.Time `json:"los"` // when it sets
+	Note    string    `json:"note"`
 }

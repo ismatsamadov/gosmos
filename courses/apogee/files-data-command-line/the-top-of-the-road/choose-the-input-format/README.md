@@ -6,7 +6,7 @@ position: 1
 difficulty: 7
 topics: errors, streams, switch, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:19:20Z
 ---
 Yusra, who looks after Apogee's customers, starts with a one-line summary, as always: "TL;DR: Thursday's bookings come in two files, my export as JSON and Hollis's sheet as CSV. Same passes; read whichever one Paz names."
 

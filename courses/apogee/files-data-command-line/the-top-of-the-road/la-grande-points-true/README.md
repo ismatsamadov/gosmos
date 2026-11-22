@@ -6,7 +6,7 @@ position: 8
 difficulty: 8
 topics: errors, files, functions, programs, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:19:20Z
 ---
 Thursday, 06:00 on the salt flat, 13:00 UTC. Paz plugs in the stick with the settings, Yusra's export and Hollis's sheet: calibration day runs from these files and gctl alone.
 

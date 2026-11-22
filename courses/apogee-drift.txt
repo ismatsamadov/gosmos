@@ -7,6 +7,13 @@
 
 # files-data-command-line
 
+files-data-command-line/json-in-json-out/send-a-booking-back: booking.go gives type Booking
+  The booking gains its note, which the reply must escape: its readme, "would break on the
+  first note that holds a quote"; the bible's Booking has `Note`.
+files-data-command-line/json-in-json-out/the-round-trip: booking.go gives type Booking
+  Its readme: "`omitempty` drops an empty note", as Hollis asked in optional-notes: "NO EMPTY
+  NOTES".
+
 # build-gctl
 
 build-gctl/a-cache-that-knows-its-age/the-background-refresher: main.go gives func run

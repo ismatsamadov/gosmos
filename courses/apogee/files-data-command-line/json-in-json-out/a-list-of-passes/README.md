@@ -6,7 +6,7 @@ position: 4
 difficulty: 4
 topics: slices, structs, testing
 created: 2026-11-06T16:34:04Z
-modified: 2026-11-06T16:34:04Z
+modified: 2026-11-22T10:19:20Z
 ---
 Yusra's export for Wednesday 11 August is one JSON array holding every pass booked that day. Her tool writes a day without bookings as `[]`, an older tool as `null`, and the van's copy must say `[]` either way, because Yusra's checker reads `null` as a broken export.
 
