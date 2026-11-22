@@ -3,7 +3,7 @@
 //
 //	library create <file> [--title T] [--version V]
 //	library check <file>
-//	library verify <file> [--course <slug>] [--teaching]
+//	library verify <file> [--course <slug>] [--teaching] [--slow]
 //	library drift <file> [--course <slug>] [--accept <list>] [--diff]
 //
 // check prints one line for each problem and exits 1 if there is any. It writes nothing, with
@@ -32,10 +32,12 @@ const usage = `usage:
       make a new, empty library, titled with the file's name and of version 1 unless given
   library check <file>
       run the checks the app makes before it opens a library
-  library verify <file> [--course <slug>] [--teaching]
+  library verify <file> [--course <slug>] [--teaching] [--slow]
       run every code lesson with the Go toolchain: it must pass with its solution and fail
       with its starter. With --teaching, every code lesson must also have 2 or 3 hints and a
-      solution note, and every quiz answer an explanation
+      solution note, and every quiz answer an explanation. A run over 2 s (5 s in a guided
+      project) is reported as slow, and one over 10 s stopped; with --slow, for a slower
+      machine such as a shared CI runner, only a run that is stopped is reported
   library drift <file> [--course <slug>] [--accept <list>] [--diff]
       list each lesson whose read-only or hidden Go files give a declaration differently
       from the last text the learner saw, where no solution changed it first, unless the
@@ -59,7 +61,7 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var title, version, course, accept string
-	var teaching, diffs bool
+	var teaching, slow, diffs bool
 	switch cmd {
 	case "create":
 		fs.StringVar(&title, "title", "", "")
@@ -68,6 +70,7 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	case "verify":
 		fs.StringVar(&course, "course", "", "")
 		fs.BoolVar(&teaching, "teaching", false, "")
+		fs.BoolVar(&slow, "slow", false, "")
 	case "drift":
 		fs.StringVar(&course, "course", "", "")
 		fs.StringVar(&accept, "accept", "", "")
@@ -93,7 +96,7 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	case "check":
 		ok, err = check(ctx, path, out)
 	case "verify":
-		ok, err = verify(ctx, path, course, teaching, out)
+		ok, err = verify(ctx, path, course, teaching, slow, out)
 	case "drift":
 		ok, err = drift(ctx, path, course, accept, diffs, out)
 	}
