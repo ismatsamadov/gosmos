@@ -284,22 +284,35 @@ public final class LearnerDatabase: Sendable {
         }
     }
 
+    /// The setting that names the lesson you opened last, as "<library uuid>\n<lesson uuid>".
+    /// last_opened_at keeps whole seconds, so it can't tell which of two lessons opened in the
+    /// same second came last.
+    static let lastOpenedKey = "last_opened"
+
     public func markOpened(_ ref: LessonRef, now: Date = Date()) async throws {
         try await dbQueue.write { db in
             try db.execute(sql: """
                 INSERT INTO progress(library_uuid, lesson_uuid, last_opened_at) VALUES (?, ?, ?)
                 ON CONFLICT(library_uuid, lesson_uuid) DO UPDATE SET last_opened_at = excluded.last_opened_at
                 """, arguments: [ref.library, ref.lesson, Clock.string(now)])
+            try db.execute(sql: """
+                INSERT INTO setting(key, value) VALUES (?, ? || char(10) || ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """, arguments: [LearnerDatabase.lastOpenedKey, ref.library, ref.lesson])
         }
     }
 
-    /// The lesson you opened last, in any library.
+    /// The lesson you opened last, in any library: the one the last_opened setting names;
+    /// without it (a database from before it), the one opened latest.
     public func lastOpened() async throws -> LessonRef? {
         try await dbQueue.read { db in
-            try Row.fetchOne(db, sql: """
+            let named = try Row.fetchOne(db, sql: """
+                SELECT library_uuid, lesson_uuid FROM progress
+                WHERE last_opened_at IS NOT NULL AND library_uuid || char(10) || lesson_uuid = (SELECT value FROM setting WHERE key = ?)
+                """, arguments: [LearnerDatabase.lastOpenedKey])
+            return try (named ?? Row.fetchOne(db, sql: """
                 SELECT library_uuid, lesson_uuid FROM progress WHERE last_opened_at IS NOT NULL
                 ORDER BY last_opened_at DESC LIMIT 1
-                """).map { LessonRef(library: $0["library_uuid"], lesson: $0["lesson_uuid"]) }
+                """)).map { LessonRef(library: $0["library_uuid"], lesson: $0["lesson_uuid"]) }
         }
     }
 

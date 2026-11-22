@@ -329,6 +329,25 @@ import Testing
         try await learner.setDone(Fixtures.ref(Fixtures.quizLesson), true)
         #expect(try await iterator.next() == [Fixtures.libraryID: [Fixtures.codeLesson, Fixtures.quizLesson]])
     }
+
+    /// A, B and back to A within one second, as Back goes: the next launch resumes A, though
+    /// last_opened_at keeps whole seconds and gives all three visits the same time.
+    @Test func theLessonOpenedLastWinsWithinOneSecond() async throws {
+        let dir = try Fixtures.tempDir("learner")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let learner = try await Fixtures.learner(in: dir)
+        let a = Fixtures.ref(Fixtures.codeLesson), b = Fixtures.ref(Fixtures.optionalLesson)
+        let second = Date(timeIntervalSince1970: 1_800_000_000)
+        try await learner.markOpened(a, now: second.addingTimeInterval(0.1))
+        try await learner.markOpened(b, now: second.addingTimeInterval(0.2))
+        try await learner.markOpened(a, now: second.addingTimeInterval(0.3))
+        #expect(try await learner.lastOpened() == a)
+        try learner.close()
+        let reopened = try LearnerDatabase(url: dir.appendingPathComponent("learner.sqlite"), schema: Fixtures.learnerSchemaURL)
+        #expect(try await reopened.lastOpened() == a)
+        try await reopened.markOpened(b, now: second.addingTimeInterval(0.4))
+        #expect(try await reopened.lastOpened() == b)
+    }
 }
 
 /// The libraries built into the app: Resources/Courses/*.sqlite, by file name.
