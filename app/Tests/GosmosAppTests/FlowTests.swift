@@ -241,6 +241,43 @@ import Testing
         await reopened.prepareToQuit()
     }
 
+    /// A Run asked for while the database is slow, just before you answer a conflict: its save
+    /// meets the file your answer is settling, and the Run waits for the answer to land rather
+    /// than being dropped.
+    @Test func aRunMeetingAnAnswerStillLandingRunsAfterIt() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        try fixture.changeLibrary("""
+            INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+              VALUES ('pair', 'chapter-two', 1, 'pair', 'Two files', 'type_code', 0, 1, '# Pair\n\nPrint hello.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
+            INSERT INTO code_lesson (lesson_uuid, lesson_type, prog_lang, expected_output) VALUES ('pair', 'type_code', 'go', 'Hello');
+            INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
+              VALUES ('pair', 'helper.go', 0, 'package main\n', 0, 0), ('pair', 'main.go', 1, 'package main\n\nfunc main() {}\n', 0, 0);
+            """)
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("pair"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("pair") && app.lesson?.code?.isLoaded == true }
+        let code = try #require(app.lesson?.code)
+        let folder = try #require(code.folder)
+        let main = try #require(code.files.first { $0.name == "main.go" })
+        let helper = try #require(code.files.first { $0.name == "helper.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: folder.appendingPathComponent("main.go"), atomically: true, encoding: .utf8)
+        #expect(await code.flush() == false && code.conflict == "main.go")
+
+        let lock = try WriteLock(fixture.directory.appendingPathComponent("study/learner.sqlite"))
+        helper.text = "package main // helper, edited\n"
+        code.run(submit: false) // its save writes helper.go, and waits for the database
+        try await Task.sleep(for: .milliseconds(100))
+        code.resolveConflict(keepMine: false)
+        try lock.release()
+        try await fixture.wait { code.result != nil && !code.isRunning }
+        #expect(main.text == "package main // theirs\n" && code.conflict == nil)
+        await app.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }

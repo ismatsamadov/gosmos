@@ -372,7 +372,8 @@ final class CodeSession {
             // build sees the code on screen.
             guard await self.flush() else {
                 self.isRunning = false
-                if self.conflict != nil { self.pendingRun = submit }
+                // It runs once the question is answered, or once an answer still landing has.
+                if self.conflict != nil || self.isResolving { self.pendingRun = submit }
                 return
             }
             guard let folder = self.folder else {
