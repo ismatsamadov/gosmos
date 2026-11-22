@@ -5,6 +5,21 @@
 
 # go-foundations
 
+go-foundations/counting-down-to-aos/every-station-every-block: plan.go gives func stationCode
+  The planner's own helper, given with visible for the grid: "stationCode(i int) string and
+  visible(station, block int) bool are given" (syllabus 6.7). The stationCode of 1.4 was the
+  scheduler's one-station stub, in another program.
+
+go-foundations/trust-but-verify/catch-the-mutants: main.go gives func accept
+  The command replay guard Mirela plants broken copies of: "accept(seq, last uint64) bool, the
+  replay guard's core" (syllabus 15.2). The accept of 13.6 checked telemetry frames, in
+  another program.
+
+go-foundations/locks-and-deadlines/pass-day: schedule.go gives type Pass
+  Pass Day runs each station's passes "in AOS order" and gives each "a context ending at its
+  LOS" (syllabus 19.9), so its Pass carries AOS and LOS. The Pass of 17.1 carried the elevation
+  it filtered by, in another program.
+
 # files-data-command-line
 
 # build-gctl
