@@ -80,9 +80,12 @@ Your code lives in the learner database. To run it, the app writes a lesson's fi
 folder (your files, the read-only tests, `go.mod`, the readme) and builds there; hidden
 helper files are added with `go build -overlay`. In the folder's `.gosmos/` it remembers the
 starter code it wrote, so when an update changes a lesson, a file you never edited takes the
-new text and one the lesson dropped goes, while your edits stay. Edits you make in another editor (Lesson >
-Open Lesson Folder in Editor) are taken in when you come back to the app and before every
-save and run. If you changed the same file in the app too, it asks which version to keep.
+new text and one the lesson dropped goes, while your edits stay. A folder from a build before
+these records gets them on its next open: its read-only files, and the starters you have no
+saved code for and haven't changed since you last opened the lesson, count as the app's.
+Edits you make in another editor (Lesson > Open Lesson Folder in Editor) are taken in when you
+come back to the app and before every save and run. If you changed the same file in the app
+too, it asks which version to keep.
 
 A tests lesson passes when `go test` passes and the tests report no failed case themselves:
 some lesson tests print Fail and a summary such as "0 passed, 5 failed" without failing the

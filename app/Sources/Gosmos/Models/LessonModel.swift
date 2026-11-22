@@ -64,6 +64,10 @@ final class LessonModel {
     var ref: LessonRef { detail.ref }
     var isDone: Bool { app?.isDone(ref) ?? false }
 
+    /// The lesson's views' identity. A redo and the lesson itself are different views: going
+    /// from one to the other never keeps the other's editor, undo history or scroll position.
+    var viewIdentity: [String] { [ref.library, ref.lesson, isReview ? "redo" : "lesson"] }
+
     /// The attempts whose failure unlocks the last hint: Submits, or a quiz's answers.
     var submitKind: AttemptKind { quiz != nil ? .answer : .submit }
 
@@ -277,6 +281,12 @@ final class CodeSession {
         set { buffers.activeIndex = newValue }
     }
     var activeFile: FileBuffer? { files.indices.contains(activeIndex) ? files[activeIndex] : nil }
+
+    /// The identity of `file`'s editor: a new editor, with its own undo history, for each file,
+    /// and for a redo's copy of it.
+    func editorIdentity(of file: FileBuffer) -> String {
+        "\(lesson.id)/\(isReview ? "redo" : "lesson")/\(file.name)"
+    }
     /// True once the editor holds your code as code_file and the lesson folder have it, and
     /// saving is ready: the editor takes typing from then on. Until then it shows a load
     /// under way, or `loadError` when the load failed.
@@ -285,13 +295,19 @@ final class CodeSession {
     var folder: URL? { buffers.folder }
     /// A file that changed both here and in another editor; the lesson asks which to keep.
     var conflict: String? { buffers.conflict }
+    /// True while your choice in a conflict is still being saved: the editor takes no typing.
+    var isResolving: Bool { buffers.isResolving }
 
     /// Your code from the database, reconciled with the work folder (an edit made there in
     /// another editor wins when it is newer). Then a save, which asks about a file left in
-    /// conflict when the app last quit.
+    /// conflict when the app last quit. A load that succeeds after one failed (Try Again, or a
+    /// Run) makes the lesson the one you opened last, as opening it would have.
     func load() async {
+        let failedBefore = buffers.loadError != nil
         await buffers.load()
-        if buffers.isLoaded { await flush() }
+        guard buffers.isLoaded else { return }
+        if failedBefore && !isReview { app?.codeLoaded(lesson.ref) }
+        await flush()
     }
 
     /// Saves your edits soon; the editor calls this a second after typing stops, and the app
@@ -356,7 +372,8 @@ final class CodeSession {
             // build sees the code on screen.
             guard await self.flush() else {
                 self.isRunning = false
-                if self.conflict != nil { self.pendingRun = submit }
+                // It runs once the question is answered, or once an answer still landing has.
+                if self.conflict != nil || self.isResolving { self.pendingRun = submit }
                 return
             }
             guard let folder = self.folder else {
@@ -445,6 +462,7 @@ final class CodeSession {
         guard let file = activeFile else { return "There is no file to edit" }
         if file.readOnly { return "This file is read-only" }
         if !isLoaded { return loadError == nil ? "Your code is still loading" : "Your code could not load" }
+        if isResolving { return "Your choice of version is still being saved" }
         switch command {
         case .format:
             if !file.name.hasSuffix(".go") { return "Format works on .go files" }

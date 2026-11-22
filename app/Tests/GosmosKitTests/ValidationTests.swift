@@ -25,48 +25,30 @@ import Testing
         return (nil, untouched)
     }
 
-    func problems(_ change: (Database) throws -> Void) throws -> [String] {
-        let (error, untouched) = try open(change)
-        #expect(untouched, "a refused file must not be written")
-        return error?.problems ?? []
-    }
-
-    @Test func header() throws {
-        #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 7") }
-            == ["application_id is 7, not 1196641619: the file is not a Gosmos library"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 8") }
-            == ["user_version is 8, not 9: the library is of an older format; make it again with this version's tools"])
-        // A library from before the app was called Gosmos is an older one too, as the library
-        // tool says (db.Validate), word for word.
-        #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 1196447556; PRAGMA user_version = 6") }
-            == ["application_id is 1196447556 and user_version 6: the library is of format 6, from before format 9; make it again with this version's tools"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA application_id = 1196447556; PRAGMA user_version = 7") }
-            == ["application_id is 1196447556, not 1196641619: the file is not a Gosmos library"])
-        #expect(try problems { try $0.execute(sql: "PRAGMA user_version = 10") }
-            == ["user_version is 10, not 9: the library is of a newer format than this program knows"])
-        // An older file is made again by whoever made it; nothing brings it up to date.
-        let older = try open { try $0.execute(sql: "PRAGMA user_version = 8") }.error
-        #expect(older?.title == "Library Too Old" && older?.recoverySuggestion?.contains("make it again") == true)
-    }
-
-    /// Check 6: a library names itself in exactly one library_info row.
-    @Test func oneLibraryInfoRow() throws {
-        #expect(try problems { try $0.execute(sql: "DELETE FROM library_info") } == ["library_info holds 0 rows, not exactly 1"])
-    }
-
-    @Test func notSQLite() throws {
-        let dir = try Fixtures.tempDir("text")
+    /// The cases in db/testdata/checks, which the library tool's tests read too
+    /// (db/checks_test.go): each a library broken for one check, and the problems the checks
+    /// report for it. The app refuses each in the tool's words, problem for problem, and writes
+    /// nothing to the file; the case that breaks nothing opens.
+    @Test(arguments: SharedChecks.cases()) func sharedCase(_ name: String) throws {
+        let dir = try Fixtures.tempDir("checks")
         defer { try? FileManager.default.removeItem(at: dir) }
-        let url = dir.appendingPathComponent("notes.library")
-        try String(repeating: "not a database\n", count: 400).write(to: url, atomically: true, encoding: .utf8)
+        let url = dir.appendingPathComponent(Fixtures.libraryName)
+        try SharedChecks.make(name, at: url)
+        let before = try Data(contentsOf: url)
+        var problems: [String] = []
         do {
             _ = try AppDatabase(url: url)
-            Issue.record("opened a text file")
         } catch {
-            guard case .unreadable = error else { Issue.record("\(error)"); return }
-            // The library tool's words, with SQLite's result code.
-            #expect(error.problems == ["the file is not an SQLite database SQLite can read: file is not a database (26)"], "\(error.problems)")
+            problems = error.problems
         }
+        #expect(problems.map { $0 + "\n" }.joined() == (try SharedChecks.want(name)))
+        #expect(try Data(contentsOf: url) == before, "a refused file must not be written")
+    }
+
+    /// An older library is made again by whoever made it; nothing brings it up to date.
+    @Test func anOlderLibraryIsMadeAgain() throws {
+        let older = try open { try $0.execute(sql: "PRAGMA user_version = 8") }.error
+        #expect(older?.title == "Library Too Old" && older?.recoverySuggestion?.contains("make it again") == true)
     }
 
     @Test func damage() throws {
@@ -87,58 +69,6 @@ import Testing
             guard case .damaged(_, let lines) = error else { Issue.record("\(error)"); return }
             #expect(!lines.isEmpty && lines.allSatisfy { $0.hasPrefix("quick_check: ") })
         }
-    }
-
-    @Test func foreignKeys() throws {
-        let found = try problems {
-            try $0.execute(sql: "INSERT INTO lesson_topic(lesson_uuid, topic) VALUES ('nowhere', 'ghosts')")
-        }
-        #expect(found.count == 1 && found[0].hasPrefix("foreign key: lesson_topic row ") && found[0].hasSuffix(" points at a missing lesson row"), "\(found)")
-    }
-
-    @Test func oneTypeRowPerLesson() throws {
-        // The quiz goes with its questions and answers, so only the lesson is left without its row.
-        #expect(try problems { db in
-            try db.execute(sql: "PRAGMA foreign_keys = ON")
-            try db.execute(sql: "DELETE FROM quiz_lesson WHERE lesson_uuid = ?", arguments: [Fixtures.loopsLesson])
-        } == ["lesson \(Fixtures.loopsLesson) (type_choice) has 0 quiz_lesson rows, want 1"])
-    }
-
-    /// A lesson of a type format 8 removed: only a write past lesson.type's CHECK leaves one, and
-    /// quick_check on a read-only connection lets it pass, so the per-type check names it.
-    @Test func noLessonOfAnotherType() throws {
-        #expect(try problems { db in
-            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
-            try db.execute(sql: "UPDATE lesson SET type = 'type_cli' WHERE uuid = ?", arguments: [Fixtures.optionalLesson])
-        } == [
-            "foreign key: quiz_lesson row 3 points at a missing lesson row",
-            "lesson \(Fixtures.optionalLesson) (type_cli) has 1 quiz_lesson rows, want 0",
-            "lesson \(Fixtures.optionalLesson) (type_cli) is of a type format 9 does not have",
-        ])
-    }
-
-    @Test func oneRightAnswerPerQuestion() throws {
-        #expect(try problems { try $0.execute(sql: "UPDATE quiz_answer SET is_correct = 0 WHERE lesson_uuid = ? AND question_position = 1", arguments: [Fixtures.quizLesson]) }
-            == ["quiz question 1 of lesson \(Fixtures.quizLesson) has 0 right answers, want 1"])
-    }
-
-    @Test func everySolutionSolvesAnEditableFile() throws {
-        // The fixture's solution for the editable main.go passes; one for a file the lesson
-        // doesn't have, or for a read-only test file, is refused in the tool's words.
-        let found = try problems { db in
-            for (lesson, name) in [(Fixtures.codeLesson, "other.go"), (Fixtures.testsLesson, "main_test.go")] {
-                try db.execute(sql: "INSERT INTO solution_file(lesson_uuid, name, content) VALUES (?, ?, ?)", arguments: [lesson, name, "package main\n"])
-            }
-        }
-        #expect(found.sorted() == [
-            "solution_file main_test.go of lesson \(Fixtures.testsLesson) solves no editable starter file",
-            "solution_file other.go of lesson \(Fixtures.codeLesson) solves no editable starter file",
-        ].sorted(), "\(found)")
-    }
-
-    @Test func aGoodLibraryPasses() throws {
-        let (error, untouched) = try open { _ in }
-        #expect(error == nil && untouched)
     }
 
     /// While another program holds the file locked, opening waits; still locked when waiting

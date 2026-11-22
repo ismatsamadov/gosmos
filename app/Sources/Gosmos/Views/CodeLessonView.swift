@@ -80,19 +80,19 @@ struct EditorPane: View {
                     CodeLoadFailed(message: error, session: session)
                 } else {
                     FileEditor(buffer: file, session: session)
-                        // A new editor, with its own undo history, for each file, and for a
-                        // redo's copy of it.
-                        .id("\(session.lesson.id)/\(session.isReview ? "redo" : "lesson")/\(file.name)")
-                        // Until your code has loaded the editor shows it but takes no typing;
-                        // a small spinner says why, in a corner, so nothing moves.
+                        .id(session.editorIdentity(of: file))
+                        // Until your code has loaded, and while a choice in a conflict is saved,
+                        // the editor shows the code but takes no typing; a small spinner says
+                        // why, in a corner, so nothing moves.
                         .overlay(alignment: .topTrailing) {
-                            if !session.isLoaded {
+                            if !session.isLoaded || session.isResolving {
+                                let why = session.isLoaded ? "Saving your choice" : "Loading your code"
                                 ProgressView()
                                     .controlSize(.small)
                                     .appearsAfterDelay()
                                     .padding(12)
-                                    .help("Loading your code")
-                                    .accessibilityLabel("Loading your code")
+                                    .help(why)
+                                    .accessibilityLabel(why)
                             }
                         }
                 }
@@ -156,8 +156,9 @@ struct FileEditor: View {
             highlighter: Highlighting.forFile(buffer.name),
             lineSyntax: LineSyntax(fileName: buffer.name),
             fontSize: app.editorFontSize,
-            // Typing before your code has loaded could be lost, so it waits for the load.
-            isEditable: session.isLoaded && !buffer.readOnly,
+            // Typing before your code has loaded could be lost, so it waits for the load, and
+            // typing on the text a choice of the file on disk is about to replace waits for it.
+            isEditable: session.isLoaded && !session.isResolving && !buffer.readOnly,
             showsLineNumbers: app.showLineNumbers,
             accessibilityLabel: buffer.readOnly ? "\(buffer.name), read only" : buffer.name,
             proxy: session.editor,

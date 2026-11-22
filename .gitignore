@@ -20,3 +20,6 @@ learner.sqlite*
 .learner.sqlite.*
 
 .DS_Store
+
+# Editors' own settings stay on their machine.
+.vscode/

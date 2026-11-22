@@ -186,7 +186,7 @@ struct GosmosCommands: Commands {
 
     var body: some Commands {
         // While the opening covers the window, nothing acts on what it covers.
-        let covered = app.opening != nil
+        let commands = app.commands
         CommandGroup(replacing: .newItem) {
             Button("Open Library…") { app.chooseLibrary() }
                 .keyboardShortcut("o", modifiers: .command)
@@ -201,46 +201,46 @@ struct GosmosCommands: Commands {
         CommandMenu("Lesson") {
             Button("Run") { app.lesson?.run() }
                 .keyboardShortcut("r", modifiers: .command)
-                .disabled(covered || !(app.lesson?.canRun ?? false) || (app.lesson?.isBusy ?? false))
+                .disabled(!commands.run)
             Button("Submit") { app.lesson?.submit() }
                 .keyboardShortcut(.return, modifiers: .command)
-                .disabled(covered || !(app.lesson?.canSubmit ?? false) || (app.lesson?.isBusy ?? false))
+                .disabled(!commands.submit)
             Button("Stop") { app.lesson?.code?.stop() }
                 .keyboardShortcut(".", modifiers: .command)
-                .disabled(!(app.lesson?.isBusy ?? false))
+                .disabled(!commands.stop)
             Divider()
             Button("Next Lesson") { app.openNext() }
                 .keyboardShortcut("]", modifiers: .command)
-                .disabled(covered || app.nextLesson == nil)
+                .disabled(!commands.nextLesson)
             Button("Previous Lesson") { app.openPrevious() }
                 .keyboardShortcut("[", modifiers: .command)
-                .disabled(covered || app.previousLesson == nil)
+                .disabled(!commands.previousLesson)
             Button("Back") { app.goBack() }
                 .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
-                .disabled(covered || !app.canGoBack)
+                .disabled(!commands.back)
             Button("Forward") { app.goForward() }
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
-                .disabled(covered || !app.canGoForward)
+                .disabled(!commands.forward)
             Divider()
             // ⇧⌘H: the system keeps ⌥⌘H for Hide Others.
             Button("Show Hint") { app.lesson?.revealHint() }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
-                .disabled(covered || !(app.lesson?.hints.canReveal ?? false))
+                .disabled(!commands.showHint)
             Button("Show Solution") { app.lesson?.showSolution() }
                 .keyboardShortcut("s", modifiers: [.command, .option])
-                .disabled(covered || !(app.lesson?.hasSolution ?? false))
+                .disabled(!commands.showSolution)
             Button("Review") { app.showReview() }
                 .keyboardShortcut("y", modifiers: [.command, .shift])
-                .disabled(covered || app.learner == nil)
+                .disabled(!commands.review)
             Divider()
             if let lesson = app.lesson, !lesson.isReview {
                 let done = app.isDone(lesson.ref)
                 Button(done ? "Mark as Not Done" : "Mark as Done") { app.setDone(lesson.ref, !done) }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
-                    .disabled(covered)
+                    .disabled(!commands.markDone)
             }
             Button("Reset to Starter Code…") { app.confirmReset = true }
-                .disabled(covered || app.lesson?.code == nil || app.lesson?.isReview == true)
+                .disabled(!commands.resetToStarter)
             Divider()
             Button("Reveal Lesson Folder in Finder") { app.revealLessonFolder() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
@@ -253,34 +253,34 @@ struct GosmosCommands: Commands {
         CommandMenu("Editor") {
             Button("Format Code") { app.lesson?.code?.perform(.format) }
                 .keyboardShortcut("f", modifiers: [.shift, .option])
-                .disabled(covered || !(app.lesson?.canPerform(.format) ?? false))
+                .disabled(!commands.editor(.format))
             Button("Toggle Comment") { app.lesson?.code?.perform(.toggleComment) }
                 .keyboardShortcut("/", modifiers: .command)
-                .disabled(covered || !(app.lesson?.canPerform(.toggleComment) ?? false))
+                .disabled(!commands.editor(.toggleComment))
             Divider()
             // With Option: ⌘] and ⌘[ are the next and previous lesson.
             Button("Indent") { app.lesson?.code?.perform(.indent) }
                 .keyboardShortcut("]", modifiers: [.command, .option])
-                .disabled(covered || !(app.lesson?.canPerform(.indent) ?? false))
+                .disabled(!commands.editor(.indent))
             Button("Outdent") { app.lesson?.code?.perform(.outdent) }
                 .keyboardShortcut("[", modifiers: [.command, .option])
-                .disabled(covered || !(app.lesson?.canPerform(.outdent) ?? false))
+                .disabled(!commands.editor(.outdent))
             Divider()
             // Quick Help for the name at the insertion point, as Option-click gives it; ⌃⌘? as
             // in Xcode.
             Button("Show Documentation") { if let code = app.lesson?.code { app.showQuickHelp(code) } }
                 .keyboardShortcut("?", modifiers: [.command, .control])
-                .disabled(covered || !app.canShowQuickHelp)
+                .disabled(!commands.showDocumentation)
         }
         CommandGroup(after: .sidebar) {
             Button("Mission Control") { app.showDashboard() }
                 .keyboardShortcut("1", modifiers: .command)
-                .disabled(app.learner == nil || app.opening != nil)
+                .disabled(!commands.missionControl)
             Button("Field Guide") { app.showFieldGuide() }
                 .keyboardShortcut("2", modifiers: .command)
-                .disabled(app.learner == nil || app.opening != nil || !app.hasFieldGuide)
+                .disabled(!commands.fieldGuide)
             Button("Replay the Opening") { app.replayOpening() }
-                .disabled(app.learner == nil || app.opening != nil || app.openingToReplay == nil)
+                .disabled(!commands.replayOpening)
             Divider()
             Button("Show Inspector") { app.showInspector.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])

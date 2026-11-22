@@ -636,8 +636,10 @@ final class AppModel {
                 self.finishLaunch()
                 await model.load()
                 // Not once a newer lesson replaced this one: that one is the last opened. Mission
-                // Control resumes the same lesson the next launch will, never one that failed to load.
-                if !review && !Task.isCancelled {
+                // Control resumes the same lesson the next launch will, never one that failed to load,
+                // its code included: a lesson folder from before the folders' records is measured
+                // against this time when it is next prepared (Workspace.recordAppsCopies).
+                if !review && !Task.isCancelled && model.code?.loadError == nil {
                     self.resumeLesson = ref
                     do { try await learner.pendingWrites.start { try await learner.markOpened(ref) }.value } catch { self.report(error) }
                 }
@@ -651,6 +653,16 @@ final class AppModel {
                 self.isLoadingLesson = false
                 self.banner = .lesson(error.localizedDescription)
             }
+        }
+    }
+
+    /// A lesson on screen whose code failed to load, then loaded on a retry: it is the lesson you
+    /// opened last from now on, as it would have been had it loaded at once.
+    func codeLoaded(_ ref: LessonRef) {
+        guard let learner, lesson?.ref == ref, lesson?.isReview == false else { return }
+        resumeLesson = ref
+        learner.pendingWrites.start { [weak self] in
+            do { try await learner.markOpened(ref) } catch { self?.report(error) }
         }
     }
 
@@ -888,17 +900,14 @@ final class AppModel {
             && required.allSatisfy { $0.id == ref.lesson || isDone(LessonRef(library: ref.library, lesson: $0.id)) }
     }
 
-    /// The opening a new learner sees at launch: the first course with an opening not seen yet,
-    /// and no lesson of it done.
+    /// The opening a new learner sees at launch, one who has seen no opening and opened or
+    /// finished no lesson: that of the course Mission Control offers. Every other course's
+    /// opening waits until you begin that course.
     private var openingAtLaunch: Opening? {
-        for library in shelf {
-            for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true {
-                guard !seenOpenings.contains(library.id + "/" + course.id),
-                      !course.lessons.contains(where: { isDone(LessonRef(library: library.id, lesson: $0.id)) }) else { continue }
-                return Opening(library: library.id, course: course.id, page: 0)
-            }
-        }
-        return nil
+        guard seenOpenings.isEmpty, resumeLesson == nil, done.values.allSatisfy(\.isEmpty),
+              let ref = recommendedLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
+              story(of: course.id, in: ref.library)?.hasOpening == true else { return nil }
+        return Opening(library: ref.library, course: course.id, page: 0)
     }
 
     /// Begins or continues a course: its opening the first time, else its next lesson.
@@ -922,10 +931,11 @@ final class AppModel {
         }
     }
 
-    /// The opening View › Replay the Opening shows: that of the course you are in, else the first
-    /// on the shelf.
+    /// The opening View › Replay the Opening shows: that of the course you are in, the lesson's on
+    /// screen, done or not; with no lesson on screen, that of the course Mission Control offers;
+    /// else the first on the shelf.
     var openingToReplay: (library: String, course: String)? {
-        if let ref = recommendedLesson ?? resumeLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
+        if let ref = lesson?.detail.ref ?? recommendedLesson ?? resumeLesson, let course = library(ref.library)?.catalog.course(of: ref.lesson),
            story(of: course.id, in: ref.library)?.hasOpening == true {
             return (ref.library, course.id)
         }

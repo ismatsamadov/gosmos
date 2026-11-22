@@ -31,6 +31,253 @@ import Testing
         await reopened.prepareToQuit()
     }
 
+    /// The first course's opening, finished, then a relaunch before the course is done: Mission
+    /// Control, with the lesson to continue. The second course's opening waits until you begin
+    /// that course.
+    @Test func aRelaunchShowsNoOpeningOfACourseNotBegun() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        #expect(app.opening?.course == "course")
+        app.finishOpening()
+        try await fixture.wait { app.resumeLesson == fixture.ref("first") }
+        await app.prepareToQuit()
+
+        let reopened = fixture.app()
+        await reopened.start()
+        #expect(reopened.opening == nil)
+        #expect(reopened.selection == .dashboard)
+        #expect(reopened.recommendedLesson == fixture.ref("first"))
+        let second = try #require(reopened.library("flow-library")?.catalog.courses.first { $0.id == "second-course" })
+        reopened.begin(second, in: "flow-library")
+        #expect(reopened.opening?.course == "second-course")
+        await reopened.prepareToQuit()
+    }
+
+    /// Quitting halfway through the opening: you are still new, so the next launch shows it again.
+    @Test func anOpeningLeftUnfinishedShowsAgainAtTheNextLaunch() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.advanceOpening()
+        #expect(app.opening?.page == 1)
+        await app.prepareToQuit()
+
+        let reopened = fixture.app()
+        await reopened.start()
+        #expect(reopened.opening == AppModel.Opening(library: "flow-library", course: "course", page: 0))
+        await reopened.prepareToQuit()
+    }
+
+    /// View › Replay the Opening replays the course of the lesson on screen, also once that course
+    /// is done and Mission Control offers another; on Mission Control, the course it offers.
+    @Test func replayingTheOpeningKeepsToTheCourseOnScreen() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("second"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("second") && app.resumeLesson == fixture.ref("second") }
+        let lesson = try #require(app.lesson)
+        lesson.markPassed(review: false) // the second course's only lesson: that course is done
+        #expect(app.recommendedLesson == fixture.ref("first"))
+        #expect(app.openingToReplay?.course == "second-course")
+        app.replayOpening()
+        #expect(app.opening?.course == "second-course")
+        app.finishOpening()
+        try await fixture.wait { app.lesson == nil }
+        #expect(app.selection == .dashboard)
+        #expect(app.openingToReplay?.course == "course")
+        await app.prepareToQuit()
+    }
+
+    /// While the opening covers the window, no command acts on what it covers: here a lesson
+    /// still on screen behind it, as when Replay the Opening leaves one that waits to be saved.
+    /// They come back once the opening ends.
+    @Test func theOpeningTurnsOffTheCommandsBehindIt() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("optional"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("optional") && app.lesson?.code?.isLoaded == true }
+        app.open(fixture.ref("first"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        app.goBack()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("optional") && app.lesson?.code?.isLoaded == true }
+        // Format needs a Go with gofmt, which a test may not have; the others need nothing.
+        let editing: [EditorCommand] = [.toggleComment, .indent, .outdent]
+        var commands = app.commands
+        #expect(commands.run && commands.submit && commands.nextLesson && commands.previousLesson && commands.back && commands.forward)
+        #expect(commands.review && commands.markDone && commands.resetToStarter && editing.allSatisfy(commands.editor))
+        #expect(commands.missionControl && commands.replayOpening)
+
+        app.showOpening("course", in: "flow-library")
+        commands = app.commands
+        #expect(commands.covered && app.lesson?.ref == fixture.ref("optional"))
+        #expect(!commands.run && !commands.submit && !commands.nextLesson && !commands.previousLesson && !commands.back && !commands.forward)
+        #expect(!commands.review && !commands.markDone && !commands.resetToStarter && !editing.contains(where: commands.editor))
+        #expect(!commands.missionControl && !commands.fieldGuide && !commands.replayOpening)
+
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        #expect(app.commands.run && app.commands.back)
+        await app.prepareToQuit()
+    }
+
+    /// A redo for review, then Back to the lesson it redoes: the lesson's views and its editor
+    /// are made anew, never the redo's kept with its undo history, whose Undo would walk back
+    /// through the redo's typing and save it as the lesson's code.
+    @Test func aRedoThenBackGivesTheLessonViewsOfItsOwn() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        app.showReview()
+        try await fixture.wait { app.showsReview }
+        app.redo(fixture.ref("first"))
+        try await fixture.wait { app.lesson?.isReview == true && app.lesson?.code?.isLoaded == true }
+        let redo = try #require(app.lesson?.code)
+        let redoFile = try #require(redo.activeFile)
+        let redoViews = try #require(app.lesson?.viewIdentity), redoEditor = redo.editorIdentity(of: redoFile)
+        redoFile.text = "package main // typed in the redo\n"
+
+        app.goBack()
+        try await fixture.wait { app.lesson?.isReview == false && app.lesson?.code?.isLoaded == true }
+        let lesson = try #require(app.lesson)
+        let code = try #require(lesson.code)
+        let file = try #require(code.activeFile)
+        #expect(lesson.ref == fixture.ref("first"))
+        #expect(lesson.viewIdentity != redoViews && code.editorIdentity(of: file) != redoEditor)
+        #expect(file !== redoFile && file.text == "package main\n\nfunc main() {}\n")
+        await app.prepareToQuit()
+    }
+
+    /// Text copied from a readme carries the word joiners that keep its inline code on one line,
+    /// unseen. Pasted into Search, it searches for what it says.
+    @Test func aSearchForTextCopiedFromAReadmeFindsWhatItSays() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.searchText = "Print\u{2060} hel\u{2060}lo"
+        #expect(app.searchText == "Print hello")
+        try await fixture.wait { !app.searching && !app.searchResults.isEmpty }
+        #expect(app.searchResults.map(\.ref).contains(fixture.ref("first")))
+        await app.prepareToQuit()
+    }
+
+    /// An update changes a lesson between two launches: a new starter, and a test file it no
+    /// longer gives. Its folder, where you never typed, takes the new starter, and the dropped
+    /// file goes, where go would still build it.
+    @Test func aLessonChangedBetweenLaunchesGivesItsNewStarter() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        try fixture.changeLibrary("""
+            INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
+              VALUES ('first', 'extra_test.go', 1, 'package main\n', 0, 1);
+            """)
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        let folder = try #require(app.lesson?.code?.folder)
+        let extra = folder.appendingPathComponent("extra_test.go")
+        #expect(FileManager.default.fileExists(atPath: extra.path))
+        await app.prepareToQuit()
+
+        let starter = "package main\n\nfunc main() { /* the new starter */ }\n"
+        try fixture.changeLibrary("""
+            UPDATE starter_file SET content = '\(starter)' WHERE lesson_uuid = 'first' AND name = 'main.go';
+            DELETE FROM starter_file WHERE lesson_uuid = 'first' AND name = 'extra_test.go';
+            """)
+        let reopened = fixture.app()
+        await reopened.start()
+        reopened.open(fixture.ref("first"))
+        try await fixture.wait { reopened.lesson?.ref == fixture.ref("first") && reopened.lesson?.code?.isLoaded == true }
+        #expect(reopened.lesson?.code?.files.map(\.text) == [starter])
+        #expect(try String(contentsOf: folder.appendingPathComponent("main.go"), encoding: .utf8) == starter)
+        #expect(!FileManager.default.fileExists(atPath: extra.path))
+        #expect(try await reopened.learner?.codeFiles(for: fixture.ref("first")).isEmpty == true)
+        await reopened.prepareToQuit()
+    }
+
+    /// A lesson whose code can't load is on screen, but the next launch doesn't resume it, nor
+    /// does its folder count it as opened: the time of the last open is what a folder from
+    /// before the folders' records is measured against. Once a retry loads it, it counts.
+    @Test func aLessonWhoseCodeFailedToLoadIsNotTheLastOpened() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.resumeLesson == fixture.ref("first") }
+        // The work folder can't hold lesson folders: a file sits in its place.
+        let work = fixture.directory.appendingPathComponent("study/work")
+        try FileManager.default.removeItem(at: work)
+        try "not a folder".write(to: work, atomically: true, encoding: .utf8)
+        app.open(fixture.ref("optional"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("optional") && app.lesson?.code?.loadError != nil && !app.isLoadingLesson }
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(app.resumeLesson == fixture.ref("first"))
+        #expect(try await app.learner?.lastOpened() == fixture.ref("first"))
+        #expect(try await app.learner?.lastOpenedAt(fixture.ref("optional")) == nil)
+
+        // Fixed, and Try Again: now it loads, and it is the lesson opened last, after a relaunch too.
+        try FileManager.default.removeItem(at: work)
+        let session = try #require(app.lesson?.code)
+        await session.load()
+        #expect(session.isLoaded && app.resumeLesson == fixture.ref("optional"))
+        await app.prepareToQuit()
+        let reopened = fixture.app()
+        await reopened.start()
+        #expect(reopened.resumeLesson == fixture.ref("optional") && reopened.recommendedLesson == fixture.ref("optional"))
+        await reopened.prepareToQuit()
+    }
+
+    /// A Run asked for while the database is slow, just before you answer a conflict: its save
+    /// meets the file your answer is settling, and the Run waits for the answer to land rather
+    /// than being dropped.
+    @Test func aRunMeetingAnAnswerStillLandingRunsAfterIt() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        try fixture.changeLibrary("""
+            INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
+              VALUES ('pair', 'chapter-two', 1, 'pair', 'Two files', 'type_code', 0, 1, '# Pair\n\nPrint hello.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
+            INSERT INTO code_lesson (lesson_uuid, lesson_type, prog_lang, expected_output) VALUES ('pair', 'type_code', 'go', 'Hello');
+            INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
+              VALUES ('pair', 'helper.go', 0, 'package main\n', 0, 0), ('pair', 'main.go', 1, 'package main\n\nfunc main() {}\n', 0, 0);
+            """)
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("pair"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("pair") && app.lesson?.code?.isLoaded == true }
+        let code = try #require(app.lesson?.code)
+        let folder = try #require(code.folder)
+        let main = try #require(code.files.first { $0.name == "main.go" })
+        let helper = try #require(code.files.first { $0.name == "helper.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: folder.appendingPathComponent("main.go"), atomically: true, encoding: .utf8)
+        #expect(await code.flush() == false && code.conflict == "main.go")
+
+        let lock = try WriteLock(fixture.directory.appendingPathComponent("study/learner.sqlite"))
+        helper.text = "package main // helper, edited\n"
+        code.run(submit: false) // its save writes helper.go, and waits for the database
+        try await Task.sleep(for: .milliseconds(100))
+        code.resolveConflict(keepMine: false)
+        try lock.release()
+        try await fixture.wait { code.result != nil && !code.isRunning }
+        #expect(main.text == "package main // theirs\n" && code.conflict == nil)
+        await app.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
@@ -255,25 +502,30 @@ import Testing
             try db.execute(sql: """
                 INSERT INTO library_info VALUES (1, 'flow-library', 'Flow tests', '1');
                 INSERT INTO course (uuid, slug, title, kind, short_description, description, position)
-                  VALUES ('course', 'course', 'Practice', 'Course', '', '', 0);
+                  VALUES ('course', 'course', 'Practice', 'Course', '', '', 0),
+                         ('second-course', 'second-course', 'More practice', 'Course', '', '', 1);
                 INSERT INTO chapter (uuid, course_uuid, position, slug, title, description)
                   VALUES ('chapter-one', 'course', 0, 'one', 'First chapter', ''),
-                         ('chapter-two', 'course', 1, 'two', 'Second chapter', '');
+                         ('chapter-two', 'course', 1, 'two', 'Second chapter', ''),
+                         ('chapter-three', 'second-course', 0, 'three', 'The second course''s chapter', '');
                 INSERT INTO lesson (uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod)
                   VALUES ('first', 'chapter-one', 0, 'first', 'First assignment', 'type_code', 1, 1, '# First\n\nPrint hello.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
                          ('optional', 'chapter-one', 1, 'optional', 'Optional practice', 'type_code', 0, 1, '# Optional\n\nTry another greeting.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
-                         ('quiz', 'chapter-two', 0, 'quiz', 'Last assignment', 'type_choice', 1, 1, '# Quiz\n\nCheck your understanding.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
+                         ('quiz', 'chapter-two', 0, 'quiz', 'Last assignment', 'type_choice', 1, 1, '# Quiz\n\nCheck your understanding.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z'),
+                         ('second', 'chapter-three', 0, 'second', 'The second course''s assignment', 'type_code', 1, 1, '# Second\n\nPrint hello again.', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
                 INSERT INTO code_lesson (lesson_uuid, lesson_type, prog_lang, expected_output)
-                  VALUES ('first', 'type_code', 'go', 'Hello'), ('optional', 'type_code', 'go', 'Hello');
+                  VALUES ('first', 'type_code', 'go', 'Hello'), ('optional', 'type_code', 'go', 'Hello'), ('second', 'type_code', 'go', 'Hello');
                 INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
                   VALUES ('first', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0),
-                         ('optional', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0);
+                         ('optional', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0),
+                         ('second', 'main.go', 0, 'package main\n\nfunc main() {}\n', 0, 0);
                 INSERT INTO quiz_lesson (lesson_uuid, contains_complete_dir) VALUES ('quiz', 0);
                 INSERT INTO quiz_question VALUES ('quiz', 0, 'Is Go compiled?');
                 INSERT INTO quiz_answer VALUES ('quiz', 0, 0, 'Yes', 1, 'Go builds programs.'), ('quiz', 0, 1, 'No', 0, 'Go compiles its programs.');
                 INSERT INTO story_page VALUES ('course', 0, 'text', NULL, 'Welcome', 'Welcome to the course.', 'Continue'),
                                               ('course', 1, 'badge', 'Practice', 'Your badge', 'Choose your name.', 'Continue'),
-                                              ('course', 2, 'text', NULL, 'Your assignment', 'Start when you are ready.', 'Start');
+                                              ('course', 2, 'text', NULL, 'Your assignment', 'Start when you are ready.', 'Start'),
+                                              ('second-course', 0, 'text', NULL, 'Further out', 'A second course begins.', 'Start');
                 """)
         }
         try queue.close()
@@ -288,6 +540,13 @@ import Testing
     }
 
     func ref(_ lesson: String) -> LessonRef { LessonRef(library: "flow-library", lesson: lesson) }
+
+    /// Changes the library, as an update brings a new version of it.
+    func changeLibrary(_ sql: String) throws {
+        let queue = try DatabaseQueue(path: resources.libraries!.appendingPathComponent("practice.sqlite").path)
+        try queue.write { try $0.execute(sql: sql) }
+        try queue.close()
+    }
 
     func wait(_ condition: () -> Bool) async throws {
         for _ in 0..<500 {

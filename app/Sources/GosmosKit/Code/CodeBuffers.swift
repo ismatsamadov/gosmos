@@ -52,6 +52,11 @@ public final class CodeBuffers {
     public private(set) var loadError: String?
     /// A file that changed both here and in another editor; the lesson asks which to keep.
     public private(set) var conflict: String?
+    /// True while a choice in a conflict is still being saved. The editor takes no typing
+    /// meanwhile: a choice of the file on disk puts that file's text in it once it lands.
+    public var isResolving: Bool { !landing.isEmpty }
+    /// The files whose choice is still being saved.
+    private var landing: Set<String> = []
 
     /// Where your code is kept; nil for a review, which starts from the starter code in a
     /// folder of its own each time and keeps nothing.
@@ -98,12 +103,13 @@ public final class CodeBuffers {
     private func loadNow() async {
         do {
             let saved = try await learner?.codeFiles(for: lesson.ref) ?? [:]
+            let opened = try await learner?.lastOpenedAt(lesson.ref)
             let version = await goVersion()
             let lesson = lesson, exercise = exercise, workspace = workspace, unsettled = unsettled, fresh = learner == nil
             let prepared = try await Task.detached(priority: .userInitiated) {
                 // A review starts over from the starter code every time.
                 if fresh { try workspace.remove(lesson) }
-                return try workspace.prepare(lesson, code: exercise, saved: saved, goVersion: version, unsettled: unsettled)
+                return try workspace.prepare(lesson, code: exercise, saved: saved, goVersion: version, unsettled: unsettled, lastOpened: opened)
             }.value
             folder = prepared.folder
             let (start, conflicted) = adopt(prepared.files)
@@ -196,7 +202,9 @@ public final class CodeBuffers {
                     settled = false
                 }
             case .conflict?:
-                if conflict == nil { conflict = buffer.name }
+                // A save that was under way when you chose meets the file still in conflict: the
+                // choice, after it, settles it, so the question isn't asked again.
+                if conflict == nil && !landing.contains(buffer.name) { conflict = buffer.name }
                 settled = false
             default:
                 break
@@ -207,22 +215,38 @@ public final class CodeBuffers {
 
     /// Settles the conflict with your version, or with the file on disk, read again now. The
     /// question goes away at once; the task says whether no conflict is left, and asks about
-    /// the next one if there is.
+    /// the next one if there is. Until the choice lands the editor takes no typing
+    /// (`isResolving`), and a save asked for meanwhile waits for it, so neither builds on the
+    /// text the choice replaces. Should the text change anyway, the file on disk never goes
+    /// over it: the change was made on your version, so the lesson asks again.
     public func resolveConflict(keepMine: Bool) -> Task<Bool, any Error>? {
         guard let name = conflict, let saver, let buffer = files.first(where: { $0.name == name }) else { return nil }
         conflict = nil
+        landing.insert(name)
         let mine = buffer.text
-        return Task {
+        let previous = flushing
+        let task = Task { () async throws -> Bool in
+            defer { landing.remove(name) }
+            _ = try? await previous?.value
             let kept = try await saver.resolve(name, keepMine ? .mine(mine) : .disk)
-            if !keepMine { buffer.fill(kept) }
             // A review's conflict is in its own folder; the lesson's list is not its to change.
             if learner != nil { remember(name, false) }
-            if let next = await saver.conflicts.sorted().first {
-                conflict = next
+            if !keepMine {
+                if buffer.text == mine || buffer.text == kept {
+                    buffer.fill(kept)
+                } else {
+                    try await saver.markConflict(name)
+                }
+            }
+            // Another file in conflict is asked about next, unless its own choice is landing.
+            if let next = await saver.conflicts.sorted().first(where: { $0 == name || !landing.contains($0) }) {
+                if conflict == nil { conflict = next }
                 return false
             }
             return true
         }
+        flushing = task
+        return task
     }
 
     /// Saves before the lesson closes, once a load under way has landed, so whatever the
@@ -233,9 +257,11 @@ public final class CodeBuffers {
     public func settle(within limit: Duration?) async throws -> [String] {
         if !isLoaded, loading != nil || files.contains(where: \.isEdited) { await load() }
         guard !(try await flush()), let saver else { return [] }
-        if await saver.waitUntilSettled(within: limit) {
-            try await flush() // edits made while the alert was up
-            return []
+        // After each choice, the edits made while the alert was up are saved. That save can
+        // find another file in conflict, or the one just settled changed while the choice
+        // landed: closing waits for that choice too.
+        while await saver.waitUntilSettled(within: limit) {
+            if try await flush() { return [] }
         }
         // A review keeps nothing: the next redo starts over in a new folder.
         guard learner != nil else { return [] }
