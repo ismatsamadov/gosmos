@@ -10,8 +10,10 @@
 *.db
 !reference/*.sqlite
 
-# A library folder keeps every file its lessons give, whatever the name.
+# A library folder keeps every file its lessons give, whatever the name, and vendor/ every file
+# go mod vendor puts there.
 !courses/[!.]*/**
+!vendor/**
 
 # SQLite's transient files never belong in source control.
 *.sqlite-journal
