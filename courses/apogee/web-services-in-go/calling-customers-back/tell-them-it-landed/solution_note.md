@@ -1,0 +1,1 @@
+`NewRequestWithContext` ties the POST to `ctx`, so a canceled context ends it before anything is sent, and the deferred `Close` runs on every return once `Do` has answered. Any status from 200 to 299 means the receiver took the event; anything else comes back as an `*AnswerError` that keeps the status for whoever decides what to do next.

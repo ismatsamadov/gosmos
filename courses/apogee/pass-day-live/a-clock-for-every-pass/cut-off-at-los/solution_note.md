@@ -1,0 +1,1 @@
+`context.AfterFunc` closes the connection the moment the pass's context ends at LOS, and closing it is what ends a read that would otherwise wait forever. Every call is hung up at its LOS, so no pass outlives its dish and the week ends at its last LOS.

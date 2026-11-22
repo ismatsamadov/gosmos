@@ -1,0 +1,1 @@
+`st.since` remembers the first sample of an unbroken run at or above `FireAt`, so the rule fires only when the run has lasted `For`, and a single sample below it clears the time and starts the wait over. With `For` 0 the wait is over at once, so a rule such as `failed-pass` fires at its first sample.

@@ -1,0 +1,1 @@
+`bytes.Clone` copies the last bytes into a new array no bigger than they need, so nothing keeps a window onto the pass's buffer and the next collection frees it. The 32 tails then keep about 2 KiB instead of 8 MiB, and a later write to a buffer no longer shows through its tail.

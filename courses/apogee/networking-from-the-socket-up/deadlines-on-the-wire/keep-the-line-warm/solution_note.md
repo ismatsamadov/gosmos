@@ -1,0 +1,1 @@
+Each tick sends a PING and reads its answer before the next tick, so every PONG is taken where it belongs, and a line that stopped answering shows up as the read's deadline error 5 seconds later. When the channel closes, `range` ends and `heartbeat` returns `nil`.

@@ -1,0 +1,1 @@
+The first argument chooses the command and everything after it belongs to that command, so each one parses only its own flags. Any other name gets the problem and the usage on standard error with status 2, the same as any other usage mistake.

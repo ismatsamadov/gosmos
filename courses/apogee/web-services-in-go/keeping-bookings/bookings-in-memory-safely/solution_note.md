@@ -1,0 +1,1 @@
+Every method holds `m.mu` from its first look at the map until it returns, so two `Create` calls for one pass run one after the other and the second finds the first one's booking. `List` copies the bookings into a slice of its own, which a caller may sort, change or keep without touching the map.

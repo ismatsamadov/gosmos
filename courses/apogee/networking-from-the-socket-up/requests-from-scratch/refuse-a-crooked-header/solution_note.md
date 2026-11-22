@@ -1,0 +1,1 @@
+Checking the name exactly as sent refuses a line such as `Host :` that two programs could read differently, and the same check catches a folded line. A control character in a value is refused for the same reason. The long-line and field-count limits turn into 431s, so no head can grow past 32 fields of at most 1024 bytes each.

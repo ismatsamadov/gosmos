@@ -1,0 +1,1 @@
+Checking the value character by character refuses every form that two programs might read as different lengths, signs and lists included, before any number is parsed. The limits then turn a huge or out-of-place length into its own refusal, so a body's length is either exact or refused.

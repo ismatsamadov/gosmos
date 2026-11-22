@@ -1,0 +1,1 @@
+`Shutdown` closes the listener at once and then waits, so a request already being answered finishes while no new one gets in. The context bounds that wait: past `within` it returns `context.DeadlineExceeded` and leaves whatever is still running to its caller, and with no limit it waits for everything.

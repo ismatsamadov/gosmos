@@ -1,0 +1,1 @@
+Passing the template as its own parent makes the certificate self-signed, by the very key it names, and `IsCA` with `MaxPathLen` 1 lets at most one CA, the stations CA, stand between it and every station's certificate. Checking the key's length first turns a missing key into an error instead of a panic, and `AddDate` counts ten calendar years, leap days included.

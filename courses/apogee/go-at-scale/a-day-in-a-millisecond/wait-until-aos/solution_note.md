@@ -1,0 +1,1 @@
+One timer for the whole wait fires exactly at `at`, and a duration of zero or less fires at once, so an AOS already past needs no special case. The `select` ends the wait on the timer or the context, whichever comes first, and the deferred `Stop` turns the timer off on both paths.

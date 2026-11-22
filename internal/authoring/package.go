@@ -20,6 +20,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/ismatsamadov/gosmos/internal/media"
@@ -61,6 +62,14 @@ README.md starts with this block, every line exactly as shown, in this order:
   difficulty  a whole number from 1 (easiest) to 10
   topics      comma-separated, one space after each comma, in alphabetical order, no
               repeats; write "topics:" with nothing after it for none
+
+Two more lines may follow topics, both or neither: when the lesson was first written and
+when it last changed, in UTC, to the second or finer. A lesson in a library folder (author build) has
+them, and whoever changes it sets modified to the time they did; a package without them gets
+the time it is imported, as a new lesson, or as a change.
+
+  created: 2026-11-01T07:36:45Z
+  modified: 2026-11-13T11:32:36Z
 
 Everything after the closing --- line is the readme, Markdown, kept byte for byte. Leave
 out pictures and HTML: the app never shows them, and they are refused.
@@ -133,7 +142,10 @@ type Package struct {
 	Position    int64
 	Difficulty  int64
 	Topics      []string // in alphabetical order
-	Readme      string
+	// Created and Modified are when the lesson was first written and last changed, in RFC
+	// 3339 UTC to the second; both or neither.
+	Created, Modified string
+	Readme            string
 
 	Starter      []File   // code lessons, in name order
 	Solution     []File   // code lessons: one per editable starter file, in name order
@@ -238,6 +250,21 @@ func readText(file string) (string, error) {
 
 var frontKeys = []string{"slug", "title", "type", "position", "difficulty", "topics"}
 
+// timeKeys are the front matter's optional lines, both or neither.
+var timeKeys = []string{"created", "modified"}
+
+// reTime is a time in UTC as a library holds one: to the second, perhaps with a fraction.
+var reTime = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$`)
+
+// utcTime reads a created: or modified: time, which must be one that exists.
+func utcTime(s string) (time.Time, bool) {
+	if !reTime.MatchString(s) {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339Nano, s)
+	return t, err == nil
+}
+
 func (p *Package) parseReadme(text string) error {
 	if !strings.HasPrefix(text, "---\n") {
 		return errors.New(`it must start with a front matter block: a "---" line, the keys, and another "---" line`)
@@ -250,8 +277,8 @@ func (p *Package) parseReadme(text string) error {
 	values := map[string]string{}
 	for _, line := range strings.Split(text[4:4+end], "\n") {
 		key, value, ok := strings.Cut(line, ":")
-		if !ok || !slices.Contains(frontKeys, key) {
-			return fmt.Errorf("front matter line %q is not one of %s followed by a colon", line, strings.Join(frontKeys, ", "))
+		if !ok || !slices.Contains(frontKeys, key) && !slices.Contains(timeKeys, key) {
+			return fmt.Errorf("front matter line %q is not one of %s followed by a colon", line, strings.Join(append(frontKeys, timeKeys...), ", "))
 		}
 		if _, dup := values[key]; dup {
 			return fmt.Errorf("front matter has %s twice", key)
@@ -295,6 +322,17 @@ func (p *Package) parseReadme(text string) error {
 		return errors.New("topics lists a topic twice")
 	}
 	p.Topics = sorted
+	p.Created, p.Modified = values["created"], values["modified"]
+	created, createdOK := utcTime(p.Created)
+	modified, modifiedOK := utcTime(p.Modified)
+	switch {
+	case (p.Created == "") != (p.Modified == ""):
+		return errors.New("front matter has one of created and modified; it has both or neither")
+	case p.Created != "" && (!createdOK || !modifiedOK):
+		return fmt.Errorf("created %q or modified %q is not a time in UTC such as 2026-11-01T07:36:45Z", p.Created, p.Modified)
+	case modified.Before(created):
+		return fmt.Errorf("modified %s is before created %s", p.Modified, p.Created)
+	}
 	if want := p.frontMatter(); block != want {
 		return fmt.Errorf("its front matter must read exactly:\n%s", want)
 	}
@@ -306,9 +344,13 @@ func (p Package) frontMatter() string {
 	if len(p.Topics) > 0 {
 		topics = " " + strings.Join(p.Topics, ", ")
 	}
+	times := ""
+	if p.Created != "" {
+		times = "\ncreated: " + p.Created + "\nmodified: " + p.Modified
+	}
 	return "---\nslug: " + p.Slug + "\ntitle: " + p.Title + "\ntype: " + p.Type +
 		"\nposition: " + strconv.FormatInt(p.Position, 10) + "\ndifficulty: " + strconv.FormatInt(p.Difficulty, 10) +
-		"\ntopics:" + topics + "\n---\n"
+		"\ntopics:" + topics + times + "\n---\n"
 }
 
 // ---- Code ----

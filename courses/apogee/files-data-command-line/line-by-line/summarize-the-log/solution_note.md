@@ -1,0 +1,1 @@
+Each line is counted, classified, parsed and folded into the totals before the next `Scan`, so memory stays the same for a log of any length. Starting the maximum from the first reading keeps elevations below zero right, and the line count names any bad record.

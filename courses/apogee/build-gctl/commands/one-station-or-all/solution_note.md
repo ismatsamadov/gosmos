@@ -1,0 +1,1 @@
+The checks come before any printing, so a bad argument gets only its error line, which `Run` prints while the session goes on. With a known code, the loop skips the other stations' passes and keeps the time order.

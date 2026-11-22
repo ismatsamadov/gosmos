@@ -1,0 +1,1 @@
+slog writes an error value as its `Error()` text, which holds every wrapping, so the line names the pass as well as the deadline. Logging `err` only in the failure branch keeps flown passes free of an `err` key, so a search for that key finds failures and nothing else.

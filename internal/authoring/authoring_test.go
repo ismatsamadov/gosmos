@@ -96,7 +96,8 @@ func TestReadWriteRoundTrip(t *testing.T) {
 	}
 }
 
-// Into a library and back: Record, then Load, gives the same package and the same files.
+// Into a library and back: Record, then Load, gives the same package, with the row's times,
+// and the same files.
 func TestRecordAndLoad(t *testing.T) {
 	d, err := db.Create(filepath.Join(t.TempDir(), "apogee.sqlite"), db.Info{Title: "Apogee", Version: "1"})
 	if err != nil {
@@ -129,14 +130,18 @@ func TestRecordAndLoad(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		p.Created, p.Modified = times.Created, times.Modified
 		if !reflect.DeepEqual(back, p) {
 			t.Errorf("%s came back as\n%+v\nwant\n%+v", name, back, p)
 		}
-		out := filepath.Join(t.TempDir(), name)
+		out, want := filepath.Join(t.TempDir(), name), filepath.Join(t.TempDir(), name+"-want")
 		if err := back.Write(out); err != nil {
 			t.Fatal(err)
 		}
-		sameFiles(t, out, example(name))
+		if err := p.Write(want); err != nil {
+			t.Fatal(err)
+		}
+		sameFiles(t, out, want)
 	}
 	if problems, err := db.Validate(context.Background(), d); err != nil || len(problems) > 0 {
 		t.Error(problems, err)
@@ -320,5 +325,46 @@ func TestLayoutExamplesAreValid(t *testing.T) {
 	}
 	if qs, err := parseQuiz(quiz); err != nil || len(qs) != 2 || qs[0].Answers[1].Explanation != "%v prints any value in its default format." {
 		t.Errorf("the quiz example: %+v, %v", qs, err)
+	}
+}
+
+func TestPackageTimes(t *testing.T) {
+	p, err := Read(example("launch-window"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Created != "" || p.Modified != "" {
+		t.Errorf("a package without times read as created %q, modified %q", p.Created, p.Modified)
+	}
+	timed := map[string]string{"README.md": front(append(goodFront[:6:6], "created: 2026-11-01T10:00:00Z", "modified: 2026-11-02T08:30:00Z")...) + "# The Launch Window\n"}
+	if p, err := Read(edit(t, "launch-window", timed)); err != nil || p.Created != "2026-11-01T10:00:00Z" || p.Modified != "2026-11-02T08:30:00Z" {
+		t.Errorf("a package with times: %+v %v", p, err)
+	}
+	// A library may hold fractions of a second, so an export can write them.
+	fine := map[string]string{"README.md": front(append(goodFront[:6:6], "created: 2026-11-01T10:00:00.25Z", "modified: 2026-11-01T10:00:00.5Z")...) + "# The Launch Window\n"}
+	if p, err := Read(edit(t, "launch-window", fine)); err != nil || p.Created != "2026-11-01T10:00:00.25Z" || p.Modified != "2026-11-01T10:00:00.5Z" {
+		t.Errorf("a package with fractions of a second: %+v %v", p, err)
+	}
+	for _, tc := range []struct{ name, created, modified, want string }{
+		{"modified alone", "", "modified: 2026-11-02T08:30:00Z", "it has both or neither"},
+		{"a time with its zone", "created: 2026-11-01T10:00:00+04:00", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
+		{"a day that doesn't exist", "created: 2026-02-30T10:00:00Z", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
+		{"a fraction without digits", "created: 2026-11-01T10:00:00.Z", "modified: 2026-11-02T08:30:00Z", "is not a time in UTC"},
+		{"modified before created", "created: 2026-11-03T10:00:00Z", "modified: 2026-11-02T08:30:00Z", "modified 2026-11-02T08:30:00Z is before created 2026-11-03T10:00:00Z"},
+		{"modified before created by a fraction", "created: 2026-11-02T08:30:00.5Z", "modified: 2026-11-02T08:30:00Z", "modified 2026-11-02T08:30:00Z is before created 2026-11-02T08:30:00.5Z"},
+		{"times in the wrong order", "modified: 2026-11-02T08:30:00Z", "created: 2026-11-01T10:00:00Z", "front matter must read exactly"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lines := goodFront[:6:6]
+			for _, l := range []string{tc.created, tc.modified} {
+				if l != "" {
+					lines = append(lines, l)
+				}
+			}
+			_, err := Read(edit(t, "launch-window", map[string]string{"README.md": front(lines...) + "# The Launch Window\n"}))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("err = %v, want it to say %q", err, tc.want)
+			}
+		})
 	}
 }

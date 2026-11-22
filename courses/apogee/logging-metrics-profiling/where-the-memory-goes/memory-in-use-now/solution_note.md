@@ -1,0 +1,1 @@
+`runtime.GC()` frees every block nothing can reach before the numbers are read, so `HeapAlloc` rises while the 16 MiB is held and falls back once it is let go. `TotalAlloc` only ever adds, which is why it kept climbing after the buffers were gone.

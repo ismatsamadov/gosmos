@@ -1,0 +1,1 @@
+The deadline set at the top of `recv` gives each frame `c.Timeout` from the moment dishd starts waiting for it, so a silent controller costs 5 seconds and an `os.ErrDeadlineExceeded` instead of forty minutes. A controller that answers in time never meets the deadline, and the next `recv` sets a fresh one.

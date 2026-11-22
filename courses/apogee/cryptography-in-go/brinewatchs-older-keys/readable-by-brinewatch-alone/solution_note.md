@@ -1,0 +1,1 @@
+OAEP pads each secret with fresh random bytes and a hash of the label before RSA turns it into a number only the private key turns back, so two lockings of one secret never match and a ciphertext opened under another label fails its padding check. Once locked, either secret can be read only with Brinewatch's private key, which never leaves Brinewatch.

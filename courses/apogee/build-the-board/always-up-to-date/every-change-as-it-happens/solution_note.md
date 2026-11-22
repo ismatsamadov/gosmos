@@ -1,0 +1,1 @@
+The `select` waits for whichever comes first, a new view or the screen leaving, so the stream writes each version as soon as `Refresh` makes it and ends as soon as nobody is reading. `Refresh` sends only new versions, so nothing is written twice.

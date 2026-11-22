@@ -1,0 +1,1 @@
+The middle can make shares but can't sign under PEL's or YST's identity key, so its HELLO fails `ed25519.Verify` against the key each end already holds, and the swap ends before its share is ever used. Since nobody's `known` holds its own code, a HELLO echoed back to its sender is refused as an unknown station.

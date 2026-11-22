@@ -1,0 +1,1 @@
+The right password, run through the same count and salt, gives the same key, and any other password gives an unrelated one. `subtle.ConstantTimeCompare` takes as long whichever byte differs, so a refusal's timing reveals nothing about the stored key, and reading the count from the record lets the bench's 1,000-iteration record keep working.

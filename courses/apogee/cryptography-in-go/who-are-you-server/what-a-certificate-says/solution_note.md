@@ -1,0 +1,1 @@
+`pem.Decode` returns the first block, Ystmark's own certificate, and `x509.ParseCertificate` turns its bytes into fields: a name, a public key, 90 days of validity and the issuer's signature. What it claims is worth believing only once `Verify` has followed that signature to a root you trust.

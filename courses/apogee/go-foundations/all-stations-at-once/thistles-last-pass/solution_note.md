@@ -1,0 +1,1 @@
+`merge` now listens to all four stations at once and closes the stream after the last feed ends, so `range beacons` collects every beacon and then stops. Beacons arrive in whatever order the goroutines run, which is why the report sorts both the sequence numbers and each station list before printing.

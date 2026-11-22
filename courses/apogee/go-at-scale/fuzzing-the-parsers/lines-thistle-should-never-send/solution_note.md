@@ -1,0 +1,1 @@
+Each field is checked for the one form `formatLine` writes, so a refusal names the field that's wrong, and the round trip at the end refuses whatever the field checks let through, such as `07.91` or a second space. Every line `parseLine` accepts now comes back unchanged, and that is what Mirela signed off on.

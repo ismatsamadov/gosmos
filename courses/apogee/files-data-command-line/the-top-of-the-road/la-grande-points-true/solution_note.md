@@ -1,0 +1,1 @@
+`planDay` checks every file before anything is written, the report folder is made inside the day's folder, and `saveDay` puts the complete report in place before a single line reaches the screen. A failure at any step returns its error with nothing half done, and every path starts at `dir`.

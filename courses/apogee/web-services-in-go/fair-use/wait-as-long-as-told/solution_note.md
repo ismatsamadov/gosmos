@@ -1,0 +1,1 @@
+The header is untrusted text, so every way it can go wrong, missing, not a whole number, too small or too large, settles on a sensible wait before any arithmetic happens. Comparing the `int` with 60 first keeps a huge value from overflowing `time.Duration` into a wrong wait, even a negative one.

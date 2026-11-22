@@ -1,0 +1,1 @@
+Each handler runs in a goroutine of its own, counted by `wg`, so the loop is back at `Accept` while earlier watchers are still being served. A closed listener is how the watch port is told to stop, so `net.ErrClosed` ends the loop with `nil`, and any other error is a real failure that goes back as it is.

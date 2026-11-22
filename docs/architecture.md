@@ -4,26 +4,27 @@ Gosmos is a native macOS app (SwiftUI, with AppKit where SwiftUI falls short) fo
 Go by doing. It reads course **libraries**, SQLite files in the format of
 `docs/library-format.md`, and keeps everything the learner does in its own **learner
 database**. Nothing in the app depends on a particular library. Go tools create, check and
-fill libraries; the courses built into the app are the libraries in `courses/`, committed as
-the files themselves. Everything lives in this one repository.
+fill libraries; the courses built into the app are kept in `courses/` as text, one folder per
+library, and built into library files the same way every time. Everything lives in this one
+repository.
 
 ## Repository
 
 | Path | What it is |
 |---|---|
-| `courses/` | The course libraries built into the app: `apogee.sqlite`, the Apogee courses planned in `docs/apogee/` |
+| `courses/` | The course libraries built into the app, as text: `apogee/`, the Apogee courses planned in `docs/apogee/`, which `make library` (`cmd/author build`) builds into `apogee.sqlite`, never committed |
 | `db/schema.sql` | A library's schema (format in `user_version`); `db/` also holds the Go package that creates, opens and checks libraries, with the schema embedded, and `db/history/` the learner database's first schema, for the test of the app's step from it |
 | `db/learner.sql` | The learner database's schema |
 | `cmd/library/` | The library tool, for any library: `create`, `check`, `verify`, `drift` |
-| `cmd/author/`, `internal/` | The authoring tool: writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` finds the pictures and HTML it refuses |
+| `cmd/author/`, `internal/` | The authoring tool: builds a library from its folder of text (`internal/authoring`'s library folder), writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` finds the pictures and HTML it refuses |
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |
 | `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, and the tool that makes and checks it (`make reference`); `db/reference.sql` is its schema and `docs/reference-format.md` its format |
 | `cmd/passes/` | The pass model of the Apogee world, as the lessons carry it, printing passes for writers |
-| `scripts/pkgcheck.sh` | Checks lesson packages before import (`docs/authoring.md`) |
+| `scripts/pkgcheck.sh` | Checks lesson packages before the library is built (`docs/authoring.md`) |
 | `app/scripts/snapshot.sh` | Draws one screen of a copy of the app to a PNG, under its own bundle identifier and learner data |
-| `Makefile` | `make app`, `make install`, `make test`, `make check`, `make verify`, `make reference` |
+| `Makefile` | `make library`, `make app`, `make install`, `make test`, `make check`, `make verify`, `make reference` |
 
 ## The databases
 

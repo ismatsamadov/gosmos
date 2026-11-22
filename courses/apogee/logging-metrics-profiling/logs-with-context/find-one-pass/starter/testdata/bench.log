@@ -1,0 +1,40 @@
+lab bench replay 2028-11-08: bookingd, passplan, uplinkd HQ, uplinkd LAN
+{"time":"2028-11-06T09:41:27Z","level":"INFO","msg":"booking created","program":"bookingd","site":"HQ","booking_id":"bk-5608","pass_id":"brine-3/LAN/14383","request_id":"req-004187"}
+{"time":"2028-11-06T09:41:28Z","level":"INFO","msg":"booking created","program":"bookingd","site":"HQ","booking_id":"bk-5609","pass_id":"brine-3/LAN/14384","request_id":"req-004188"}
+{"time":"2028-11-06T10:14:03Z","level":"INFO","msg":"booking created","program":"bookingd","site":"HQ","booking_id":"bk-5611","pass_id":"cirrine-1/LAN/16402","request_id":"req-004211"}
+{"time":"2028-11-06T15:20:55Z","level":"INFO","msg":"booking created","program":"bookingd","site":"HQ","booking_id":"bk-5613","pass_id":"furrow-a/LAN/20998","request_id":"req-004302"}
+{"time":"2028-11-07T00:00:41Z","level":"INFO","msg":"pass planned","program":"passplan","site":"HQ","booking_id":"bk-5608","pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-07T00:00:41Z","level":"INFO","msg":"pass planned","program":"passplan","site":"HQ","booking_id":"bk-5611","pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-07T00:00:41Z","level":"INFO","msg":"pass planned","program":"passplan","site":"HQ","booking_id":"bk-5613","pass_id":"furrow-a/LAN/20998"}
+{"time":"2028-11-07T00:00:41Z","level":"INFO","msg":"pass planned","program":"passplan","site":"HQ","booking_id":"bk-5609","pass_id":"brine-3/LAN/14384"}
+{"time":"2028-11-08T01:31:05Z","level":"INFO","msg":"lines delivered","program":"uplinkd","site":"HQ","status":202,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:44:40Z","level":"INFO","msg":"command sealed","program":"uplinkd","site":"HQ","seq":4688,"pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T01:48:30Z","level":"INFO","msg":"lines delivered","program":"uplinkd","site":"HQ","status":202,"pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T03:18:40Z","level":"INFO","msg":"lines delivered","program":"uplinkd","site":"HQ","status":202,"pass_id":"brine-3/LAN/14384"}
+{"time":"2028-11-08T01:31:05Z","level":"INFO","msg":"lines queued","program":"uplinkd","site":"LAN","lines":2,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:46:20Z","level":"INFO","msg":"pass started","program":"uplinkd","site":"LAN","pass":{"sat_id":"brine-3","station":"LAN","aos":"2028-11-08T01:48:20Z","los":"2028-11-08T01:54:41Z"},"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:48:30Z","level":"INFO","msg":"lines queued","program":"uplinkd","site":"LAN","lines":1,"pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:51:02Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:52:47Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:52:47Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:52:47Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:52:47Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:52:47Z","level":"WARN","msg":"carrier lost","program":"uplinkd","site":"LAN","margin_db":-1.5,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:53:09Z","level":"INFO","msg":"pass started","program":"uplinkd","site":"LAN","pass":{"sat_id":"cirrine-1","station":"LAN","aos":"2028-11-08T01:55:09Z","los":"2028-11-08T02:02:39Z"},"pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T01:54:41Z","level":"ERROR","msg":"pass failed","program":"uplinkd","site":"LAN","pass":{"sat_id":"brine-3","station":"LAN","aos":"2028-11-08T01:48:20Z","los":"2028-11-08T01:54:41Z"},"max_elev_deg":19.1,"wait_ms":501000,"err":"pass brine-3/LAN/14383: context deadline exceeded","pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T02:02:39Z","level":"ERROR","msg":"pass failed","program":"uplinkd","site":"LAN","pass":{"sat_id":"cirrine-1","station":"LAN","aos":"2028-11-08T01:55:09Z","los":"2028-11-08T02:02:39Z"},"max_elev_deg":22.6,"wait_ms":570000,"err":"pass cirrine-1/LAN/16402: context deadline exceeded","pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T02:37:45Z","level":"INFO","msg":"pass started","program":"uplinkd","site":"LAN","pass":{"sat_id":"furrow-a","station":"LAN","aos":"2028-11-08T02:39:45Z","los":"2028-11-08T02:46:24Z"},"pass_id":"furrow-a/LAN/20998"}
+{"time":"2028-11-08T02:46:24Z","level":"ERROR","msg":"pass failed","program":"uplinkd","site":"LAN","pass":{"sat_id":"furrow-a","station":"LAN","aos":"2028-11-08T02:39:45Z","los":"2028-11-08T02:46:24Z"},"max_elev_deg":21.7,"wait_ms":519000,"err":"pass furrow-a/LAN/20998: context deadline exceeded","pass_id":"furrow-a/LAN/20998"}
+{"time":"2028-11-08T03:18:40Z","level":"INFO","msg":"lines queued","program":"uplinkd","site":"LAN","lines":2,"pass_id":"brine-3/LAN/14384"}
+{"time":"2028-11-08T03:24:17Z","level":"INFO","msg":"pass started","program":"uplinkd","site":"LAN","pass":{"sat_id":"brine-3","station":"LAN","aos":"2028-11-08T03:26:17Z","los":"2028-11-08T03:32:10Z"},"pass_id":"brine-3/LAN/14384"}
+{"time":"2028-11-08T03:27:38Z","level":"INFO","msg":"pass flown","program":"uplinkd","site":"LAN","pass":{"sat_id":"brine-3","station":"LAN","aos":"2028-11-08T03:26:17Z","los":"2028-11-08T03:32:10Z"},"max_elev_deg":16.6,"wait_ms":201000,"ack_ms":71000,"pass_id":"brine-3/LAN/14384"}
+{"time":"2028-11-08T03:2

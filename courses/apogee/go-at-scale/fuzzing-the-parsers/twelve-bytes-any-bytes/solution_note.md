@@ -1,0 +1,1 @@
+With the length checked first, every index into `b` is in range, so no input can make `decodeBeacon` panic. The round trip in `FuzzBeacon` proves the rest: whatever it accepts is twelve bytes that `encodeBeacon` writes back the same, sync bytes and check byte included.

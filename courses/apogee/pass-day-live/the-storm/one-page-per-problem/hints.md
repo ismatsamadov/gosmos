@@ -1,0 +1,5 @@
+Have each contact hand its outcome to the pager at its LOS, on a channel with room for every contact, and keep each station's failed LOS instants. Before it evaluates a minute, the pager takes the result of every contact whose LOS is at or before that minute, so a pass ending on the minute is counted.
+
+Run the pager in a goroutine of its own, with a timer to the next whole minute of `w.Now()`. When the passes and deliveries are done, send it the instant the week ended, so it evaluates the minutes up to it, and wait for it. Each minute goes through the stations in `newNetwork`'s order, then the rules by name.
+
+A rule's value counts the failed LOS instants in (minute − span, minute]. Keep what fires by rule and station: send FIRING when the value reaches the threshold and it isn't firing, or the repeat has passed since it last went out; when the value drops below the clear level, stop, and only `pass-failures` sends RESOLVED, to the FIRING's recipient. Whoever is on call is the last shift that began at or before the minute.

@@ -1,0 +1,1 @@
+Every failed login now runs one 600,000-iteration derivation and ends in the same `errInvalidLogin`, so neither the answer nor the time it takes says whether a name exists. The dummy record is a valid record, so checking it costs exactly what a wrong password costs, and since nobody knows a password that opens it, the unknown user is refused either way.

@@ -1,0 +1,1 @@
+`s.Orbit.IncDeg` reaches through the satellite into its orbit, one dot per struct. Comparing with `>=` and `<=` keeps both 80 and 100 inside the polar range, and the cases just outside it fail one of the two comparisons.

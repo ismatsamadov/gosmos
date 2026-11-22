@@ -1,0 +1,39 @@
+# The night into Friday 11 February 2028, UTC. Each line is a moment of the night and what
+# happens then. passplan sends the night's bookings and Friday morning's; the Fishbowl's
+# screen follows /events and reception's /events?screen=lobby.
+#
+#   weather CODE WIND GUST   the station's mast reads this, in km/h
+#   start                    the Board starts, as the night shift starts it, and the screens follow it
+#   tick                     the Board refreshes, as it does every 15 seconds
+#   deploy                   the Board stops for a deploy and starts again; the screens follow the new one
+#   snap NAME PATH           what GET PATH answers must match testdata/NAME.golden
+#
+# At the end, what each screen read all night must match events.golden and lobby-events.golden.
+03:50 weather YST 41 55
+03:50 weather PEL 22 30
+03:50 weather SQT 12 18
+03:50 weather LAN 18 25
+03:50 weather CWR 46 58
+03:58 start
+03:58 snap page-0358 /
+03:58 snap lobby-0358 /?screen=lobby
+03:58 snap json-0358 /board.json
+03:58 snap lobby-json-0358 /board.json?screen=lobby
+04:23 tick
+04:30 weather CWR 61 77
+04:30 tick
+04:30 snap page-0430 /
+04:40 weather CWR 74 88
+04:40 tick
+04:40 snap page-0440 /
+04:40 snap json-0440 /board.json
+04:42 tick
+05:00 deploy
+05:00 snap lobby-0500 /?screen=lobby
+05:09 tick
+05:23 tick
+05:30 tick
+05:59 tick
+09:00 tick
+09:00 snap lobby-0900 /?screen=lobby
+09:00 snap lobby-json-0900 /board.json?screen=lobby

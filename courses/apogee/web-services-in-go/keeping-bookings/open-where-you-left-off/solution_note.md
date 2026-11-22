@@ -1,0 +1,1 @@
+A missing file is the only case that starts empty; anything that doesn't decode strictly, or that holds one ID twice, stops the start with an error. `load` restores each booking under its own ID and moves the count past the highest one, never below 4501, so a restart continues the count instead of reusing it.

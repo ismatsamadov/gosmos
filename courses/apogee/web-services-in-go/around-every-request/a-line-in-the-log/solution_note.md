@@ -1,0 +1,1 @@
+The `statusRecorder` sits between `next` and the real writer, so when `next` returns it knows the status and the bytes the caller got, and the two readings of `now` bracket exactly the handler's work. `r.URL.Path` holds the path alone, so a customer's filters stay out of the log, and a status still at 0 is logged as the 200 the server sends for a handler that wrote nothing.

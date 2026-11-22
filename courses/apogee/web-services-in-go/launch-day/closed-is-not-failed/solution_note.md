@@ -1,0 +1,1 @@
+`Serve` reports a deliberate stop with the sentinel `http.ErrServerClosed`, which `errors.Is` recognizes, so only a real failure, such as a broken listener, reaches the caller and the log. Whatever runs the service can then treat any error from `serve` as worth a page.

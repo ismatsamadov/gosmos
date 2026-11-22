@@ -1,0 +1,1 @@
+With the two 8-byte fields first, then the 4-byte one, then the four 1-byte ones, every field starts where the last one ended, and the 24 bytes end on a multiple of 8, so no padding is left. Over the strip's 613,496 candidates that is 4.9 MB less, and Tomás's notebook was right after all.

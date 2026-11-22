@@ -1,0 +1,1 @@
+In the bubble each sleep takes no real time and ends at an exact instant, and `synctest.Wait()` lets every fire due by then finish before the check reads the count. The three checks split the mutants between them: nothing before 7 s, exactly one at 7 s, and none after `Stop`. Go 1.27's `synctest.Sleep(d)` does the same as a `time.Sleep(d)` followed by `synctest.Wait()`.

@@ -1,0 +1,1 @@
+`runtime.GC()` finishes a collection first, so the heap profile written next counts what is still reachable rather than garbage waiting to be freed. `WriteTo(f, 0)` writes the compressed profile that `go tool pprof` reads, which starts with gzip's bytes `1f 8b`, and closing the file reports any write the disk refused.

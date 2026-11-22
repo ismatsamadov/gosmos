@@ -1,0 +1,1 @@
+Signing now needs the private key, which never leaves bookingd, while checking needs only the 32-byte public key, so a customer holding everything Apogee publishes can check every receipt and forge none. Checking both lengths first turns what would be a panic into an error or a plain false.

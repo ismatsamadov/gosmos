@@ -1,0 +1,1 @@
+Every call through the new client now ends after `timeout`, connecting, waiting and reading the body included, and its error matches `context.DeadlineExceeded`. Because the client is the weather client's own, no other part of the program has its waiting changed.

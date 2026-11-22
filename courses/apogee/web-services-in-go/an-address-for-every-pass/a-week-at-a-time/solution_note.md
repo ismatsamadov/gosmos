@@ -1,0 +1,1 @@
+Each value starts at its default and is replaced only when the query has it, and a value that fails to parse or falls outside 1 to 14 returns its error at once, so `listPasses` answers 400 before listing anything. `time.Parse` keeps the offset Hollis's time was written in, and `listPasses` compares instants, so `15:02:10+01:00` starts the window at Furrow-A's 14:02:10 pass.

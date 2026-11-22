@@ -1,0 +1,1 @@
+The queue holds the lines' result channels in arrival order, and the sender waits on each in turn, so a line that finishes early waits for the lines before it. Exactly `workers` goroutines parse, so four lines are in flight at once and never five, and every other goroutine watches `ctx`, so a cancel ends them all.

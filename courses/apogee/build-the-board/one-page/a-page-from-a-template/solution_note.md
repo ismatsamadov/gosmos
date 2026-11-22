@@ -1,0 +1,1 @@
+Executing into a buffer keeps the page in memory until the whole template has run, so a failure can still answer 500 with nothing of the page sent. The header is set before the body is written because headers leave with the first byte of the answer.

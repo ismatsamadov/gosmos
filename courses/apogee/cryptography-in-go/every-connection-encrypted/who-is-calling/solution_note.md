@@ -1,0 +1,1 @@
+`VerifiedChains` is filled only by a handshake that checked the client's chain against `ClientCAs`, so its first certificate carries a name Apogee's CA vouched for, and checking it before the body is read means a refused caller changes nothing. A request without TLS has no verified chain at all, so it is refused instead of crashing the handler.

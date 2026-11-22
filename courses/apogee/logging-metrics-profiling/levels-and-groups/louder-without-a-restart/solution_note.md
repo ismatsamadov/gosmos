@@ -1,0 +1,1 @@
+`UnmarshalText` parses the body as a level name in any case and stores it in the `LevelVar`, which every handler built on it reads at its next record, so the station gets louder without a restart. A name it doesn't know leaves the level unchanged, and the handler says so with a 400 that quotes what it was sent.

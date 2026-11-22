@@ -1,0 +1,5 @@
+YST: 3 frames
+PEL: 2 frames
+SQT: 4 frames
+LAN: 2 frames
+CWR: 5 frames

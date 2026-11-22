@@ -1,0 +1,1 @@
+The decoder hands out one booking per `Decode` call and reports the clean end of the stream as `io.EOF`, which the loop treats as success. Any other error, such as a line cut off when the signal dropped, comes back with the bookings that were complete before it.

@@ -1,0 +1,1 @@
+The CSV reader follows the quoting rules that splitting at commas ignores: a quoted cell keeps its commas and line breaks, and a doubled quote becomes one. Each booking therefore stays one record of six cells, and its note comes back exactly as Hollis typed it.

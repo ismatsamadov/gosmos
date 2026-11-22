@@ -1,0 +1,8 @@
+[stdout]
+[stderr]
+unknown command "park"
+usage: gctl <command> [flags] [arguments]
+
+commands:
+  day [-format json|csv] dir  run a calibration day from dir
+[exit 2]

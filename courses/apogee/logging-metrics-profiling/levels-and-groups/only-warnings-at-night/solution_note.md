@@ -1,0 +1,1 @@
+With `Level` at WARN, the handler checks each record's level before it writes anything and drops the INFO and DEBUG ones, so only the carrier loss and the failure reach the screen. The calls in `main` don't change: what to show is decided in one place, the handler.

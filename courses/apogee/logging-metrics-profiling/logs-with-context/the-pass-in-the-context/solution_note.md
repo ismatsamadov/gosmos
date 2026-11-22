@@ -1,0 +1,1 @@
+`WithValue` wraps the context in one that answers `Value(passKey{})` with the ID, and every context made from it asks its parent for keys it doesn't hold, so the ID travels down the whole call chain. Because `passKey` is a type only this package can make, nothing else can store or overwrite a value under it, and an empty ID counts as no pass at all.

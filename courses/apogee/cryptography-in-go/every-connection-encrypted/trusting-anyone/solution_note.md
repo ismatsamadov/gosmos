@@ -1,0 +1,1 @@
+With `RootCAs` holding Apogee's root alone, a certificate counts only if Apogee's CA signed it, so the impostor is refused during the handshake, before a byte of the command leaves, and `ServerName` makes even Ystmark's own certificate fail when the client asked for Port Ellery. The timeout keeps a silent station from holding uplinkd for more than 2 seconds.

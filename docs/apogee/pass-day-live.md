@@ -6,8 +6,8 @@ solution is a cut of that program. All six chapters are implemented as 29 lesson
 written from this plan and independently reviewed. Chapter 1 was read in the app in light and
 dark before the rest was written, and chapters 2–6 were read the same way once all were
 reviewed.
-The lessons in `courses/apogee.sqlite` are the source of truth, and the larger changes from this
-plan are listed under "Changes in writing and review" at the end.
+The lessons in `courses/apogee/pass-day-live/` are the source of truth, and the larger changes
+from this plan are listed under "Changes in writing and review" at the end.
 
 The capstone of the Apogee series, after Season 7; story time 2 to 20 July 2029, with the
 investors' week of 23 to 29 July as its finale. The world, the characters, the code and the
@@ -17,8 +17,7 @@ archive and the plan, the bookings, the pass line, the commands, the files, the 
 logs, numbers, pages and report, and the investors' week as Ingrid scripts it.
 
 This is the plan the lessons are written from. Once they are written, the lessons in
-`courses/apogee.sqlite` are the source of truth. `go run ./cmd/author export` writes them out to
-read.
+`courses/apogee/pass-day-live/` are the source of truth.
 
 - **Title:** Pass Day, Live
 - **Slug:** `pass-day-live` · **Kind:** Guided Project
@@ -352,8 +351,8 @@ Ystmark's storm arrives, and write the week's report, checked against golden fil
 
 ## Changing the capstone later
 
-The whole program, as the learner ends it, is 6.5's solution with its given files: export the
-course with `go run ./cmd/author export courses/apogee.sqlite --course pass-day-live <folder>`.
+The whole program, as the learner ends it, is 6.5's solution with its given files, in
+`courses/apogee/pass-day-live/the-storm/`.
 Each starter is the previous lesson's solution byte for byte, so a fix to one lesson's code goes
 into every later lesson's starter and solution; the hidden `sim_*_test.go` files are the same in
 every lesson, so a change to them goes into all of them. `go run ./cmd/library drift --course

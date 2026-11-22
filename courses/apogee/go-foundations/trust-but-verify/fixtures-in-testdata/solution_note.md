@@ -1,0 +1,1 @@
+`go test` runs in the package's folder, so `testdata/<name>` is found by a relative path; `t.Fatalf` stops a test that has no input instead of letting it carry on with zero lines, and dropping the empty strings leaves exactly the twelve frames.

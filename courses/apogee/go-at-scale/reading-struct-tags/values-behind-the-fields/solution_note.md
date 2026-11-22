@@ -1,0 +1,1 @@
+`Elem` turns a pointer's `Value` into the struct's, and any other kind but a struct returns `nil` before `Fields` could panic. `fmt` prints a field's `Value` as what it holds, so a `time.Duration` comes out as `2m0s` through its `String` method, and the unexported password is never read.

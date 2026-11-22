@@ -1,0 +1,1 @@
+The write deadline set at the top of `send` gives each frame `c.Timeout` to leave, so a controller that stops reading costs 5 seconds and an `os.ErrDeadlineExceeded`, never six minutes. The read deadlines `idleReader` sets never touch a write, and this one never touches a read.

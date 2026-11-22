@@ -1,0 +1,1 @@
+With `default`, a send that would wait is skipped, so one sleeping screen can no longer hold up `Refresh` or the other screens. Deleting before closing means the hub closes each channel once, and the stream's own `Unsubscribe` finds nothing left to close.

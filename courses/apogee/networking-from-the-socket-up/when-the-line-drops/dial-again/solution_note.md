@@ -1,0 +1,1 @@
+The loop dials until a dial works, waiting a second after each refusal, and leaves only through a working connection or a failed wait. Returning the wait's error passes `context.Canceled` up unchanged, so the caller can tell a stop from a line that is still down.

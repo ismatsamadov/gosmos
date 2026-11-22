@@ -1,0 +1,1 @@
+Go compares `mode` with each case from the top and runs only the first match, so `case "DETUMBLE", "LEOP":` gives both modes the same action, and `default` keeps `"hold"` for REBOOTING and any other mode without a case of its own.

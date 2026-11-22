@@ -1,0 +1,6 @@
+resources.go
+stations.csv
+templates/day.txt
+templates/notices/handover.txt
+templates/notices/stow.txt
+templates/pass.txt

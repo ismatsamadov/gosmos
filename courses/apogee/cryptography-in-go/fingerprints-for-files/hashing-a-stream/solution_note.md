@@ -1,0 +1,1 @@
+`io.Copy` keeps reading until the stream ends, writing every piece into the hash, so the digest covers all of it while only one small buffer is ever in memory. A copy that stops with an error returns no digest, since the digest of part of a file would vouch for bytes that never arrived.

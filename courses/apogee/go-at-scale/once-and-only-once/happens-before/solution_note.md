@@ -1,0 +1,1 @@
+The planner's writes now come before its `Store`, and the Board's `Load` that sees `true` happens after that `Store`, so the writes happen before the Board reads the plan. The wait for `looked` no longer matters, since nothing the Board reads is written after the flag goes up.

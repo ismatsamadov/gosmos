@@ -1,0 +1,1 @@
+The checks run from the cheapest to `Open`, and the one line that changes the satellite runs only after every check has passed, so a refusal of any kind leaves `Last` as it was. The forged line numbered 18,446,744,073,709,551,615 now fails at `Open` without being recorded, and the real command numbered 4472 still gets through.

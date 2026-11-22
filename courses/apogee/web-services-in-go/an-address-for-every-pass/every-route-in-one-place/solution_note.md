@@ -1,0 +1,1 @@
+With the list's route added and the bookings' path split by method, every address has one handler per method, and the mux answers the rest itself: 404 for a path that no pattern matches, and 405 with `Allow` for a known path under another method.

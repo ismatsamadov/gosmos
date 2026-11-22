@@ -1,0 +1,1 @@
+Each route gets the guard its caller shows: a token and a limit where a customer acts, nothing more where a signed link or a public page is enough. The booking handler finds the plan in its store and the notifier finds the dial check in its client, so no handler changes, and every route runs inside the service's one middleware chain.

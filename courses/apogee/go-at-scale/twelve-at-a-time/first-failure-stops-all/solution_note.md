@@ -1,0 +1,1 @@
+`once.Do` keeps the first failure alone, and canceling the group's context with it as the cause tells every running job to stop. `Go` checks the cause after taking a slot, so nothing starts once the group has failed, and a refused job still leaves an error for `Wait`, which never reports success for work that never ran.

@@ -1,0 +1,1 @@
+A `[]string` is checked one element at a time by handing each `Index(i)` back to `checkRule`, so both rules are written once, for a string. `slices.Contains` matches whole words, where looking for `S X` inside the text `UHF S X` would find it, and `utf8.RuneCountInString` counts `Í` as one character, not two bytes.

@@ -1,0 +1,3 @@
+Pipit-1 437.250 MHz
+Pipit-2 2245.000 MHz
+Max elevation 61.4 deg

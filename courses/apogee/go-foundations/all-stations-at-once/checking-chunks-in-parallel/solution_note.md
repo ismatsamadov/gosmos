@@ -1,0 +1,1 @@
+A channel hands each index to exactly one worker, and each worker writes only the `ok[i]` slots for the indexes it took, so no two goroutines touch the same value. Closing the channel ends the workers' loops once the work runs out, and `wg.Wait()` makes sure every result is in before `checkAll` returns.

@@ -1,0 +1,1 @@
+`IsZero` compares a value with its type's zero value, whatever the type, so one test covers names, counts and nil lists. An empty list that isn't nil fails that test, so the slice's `Len` catches it, and checking the kind first keeps `Len` away from numbers.

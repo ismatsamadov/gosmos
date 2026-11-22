@@ -1,0 +1,1 @@
+Every request now carries a context that ends `d` after it arrives, so a store that watches its context gives up in time, and `writeError` turns that ending into a 503 that tells the caller to try again rather than a 500 that blames the service. Canceling when the handler returns stops the context's timer at once instead of leaving it to run out.

@@ -1,0 +1,1 @@
+The pattern `/guide/` matches every path below it, and `StripPrefix` removes `/guide/` before the file server looks the rest up in `s.Guide`, so `/guide/` gets `index.html` and `/guide/stations.html` its page. The mux itself redirects `/guide` to `/guide/` with a 307, and a page the guide lacks gets the file server's 404.

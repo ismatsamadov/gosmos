@@ -1,0 +1,1 @@
+`ParseFloat` accepts signs and decimals and refuses anything else with an error that names the text. Returning that error instead of a usable-looking 0 keeps a doubled decimal point from becoming a reading.

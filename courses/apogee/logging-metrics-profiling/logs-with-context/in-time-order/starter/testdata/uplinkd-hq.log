@@ -1,0 +1,4 @@
+{"time":"2028-11-08T01:31:05Z","level":"INFO","msg":"lines delivered","program":"uplinkd","site":"HQ","status":202,"pass_id":"brine-3/LAN/14383"}
+{"time":"2028-11-08T01:44:40Z","level":"INFO","msg":"command sealed","program":"uplinkd","site":"HQ","seq":4688,"pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T01:48:30Z","level":"INFO","msg":"lines delivered","program":"uplinkd","site":"HQ","status":202,"pass_id":"cirrine-1/LAN/16402"}
+{"time":"2028-11-08T03:18:40Z","level":"INFO","msg":"lines delivered","program":"uplinkd","site":"HQ","status":202,"pass_id":"brine-3/LAN/14384"}

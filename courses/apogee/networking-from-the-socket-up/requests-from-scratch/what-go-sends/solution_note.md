@@ -1,0 +1,1 @@
+Each turn of the loop reads one line, CR LF included, and prints it with `%q`, so the invisible `\r\n` shows. The loop stops at the blank line, the end of the head, which is when the server answers and Go's client finishes.

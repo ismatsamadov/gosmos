@@ -1,0 +1,1 @@
+Showing each AOS on the chosen clock before writing its date puts every pass on the day that clock gives it, so a pass at 00:00 van time belongs to its new day and one at 23:59:59 to the old one. The new slice is sorted by instant and the caller's bookings are left as they were.

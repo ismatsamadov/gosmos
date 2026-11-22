@@ -1,0 +1,1 @@
+A `json.RawMessage` field receives the payload's JSON as it arrived, so nothing is decoded, or lost, until the kind says which type it needs. An envelope whose payload is missing or `null` is refused, since there would be nothing to decode later.

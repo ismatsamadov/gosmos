@@ -1,0 +1,1 @@
+Checking `err` right after `strconv.ParseFloat` turns `7.9l` into an error instead of a silent 0 V, and wrapping it with `%w` names the field while keeping the parse error inside, where `errors.Is` can still find `strconv.ErrSyntax`.

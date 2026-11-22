@@ -1,0 +1,1 @@
+`noStore` itself runs once, when the service wraps its mux; the function it returns runs for every request and sets the header before `next` writes anything. The mux's own 404 and 405 are written inside `next` too, so they carry the header as well.

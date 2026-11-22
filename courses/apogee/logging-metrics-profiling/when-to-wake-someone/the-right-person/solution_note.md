@@ -1,0 +1,1 @@
+Walking the rota from the oldest shift and keeping every one that has started leaves the latest in `a.To`, so the week changes hands exactly at Monday 08:00, and 07:59 still belongs to last week. `a` is a copy, so setting its `To` changes neither the caller's alert nor the rota.

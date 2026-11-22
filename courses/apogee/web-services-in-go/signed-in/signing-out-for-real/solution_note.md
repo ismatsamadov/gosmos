@@ -1,0 +1,1 @@
+Ending the session on the service makes its ID worthless everywhere, copies included, and a cookie of the same name and path with `Max-Age=0` removes the browser's own copy. The cookie goes out before `http.Redirect`, because the redirect writes the answer's headers.

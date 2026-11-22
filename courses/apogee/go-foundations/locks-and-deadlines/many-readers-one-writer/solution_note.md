@@ -1,0 +1,1 @@
+Readers now take the read lock, which many of them can hold at once, while `Set` still takes the full lock and writes alone. `Snapshot` returns a clone made under the read lock, so a caller can change its copy freely and the cache stays as the poller left it.

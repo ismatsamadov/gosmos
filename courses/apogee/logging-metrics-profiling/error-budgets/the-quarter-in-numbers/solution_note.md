@@ -1,0 +1,1 @@
+`row` reuses the week's two functions, so the report computes availability and budgets exactly as the tests checked them, and the widths in its layout match the header's, so every column lines up. What is left is the budget less the lost passes, negative when a station lost more than its target allowed.

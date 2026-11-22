@@ -1,0 +1,1 @@
+`Watch` reads the recorder's datagrams until the pass goes quiet, prints each frame `Accept` lets through, so the screen moves only forward and shows nothing twice, then asks the recorder under the next number with every try `ask` allows. Its last line says what the pass lost and what the recorder answered, or that it stayed silent.

@@ -1,0 +1,1 @@
+Checking the signature before anything else means an edited customer or expiry is refused as `invalid token` before either is believed, and `hmac.Equal` gives no timing clue about how close a forgery came. Requiring `now.Before` the expiry makes the expiry second itself the first expired one.

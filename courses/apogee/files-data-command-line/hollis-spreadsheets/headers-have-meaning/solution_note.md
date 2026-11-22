@@ -1,0 +1,1 @@
+Looking the name up in the header makes the column's position part of the data, so moving STATION changes nothing for the reader. A sheet without the column, or with two, is refused by name rather than read from a guessed position.

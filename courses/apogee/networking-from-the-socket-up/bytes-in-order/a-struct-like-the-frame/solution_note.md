@@ -1,0 +1,1 @@
+`rawStatus` has the frame's layout field for field, so `binary.Decode` fills it from the 16 bytes in one call, signed fields included. The length check comes first because `Decode` stops after the bytes it needs and would never notice a 17th.

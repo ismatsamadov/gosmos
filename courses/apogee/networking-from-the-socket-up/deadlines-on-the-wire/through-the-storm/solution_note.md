@@ -1,0 +1,1 @@
+`send` gives the frame 5 seconds to leave and `recvCtx` gives the answer 5 seconds per read until the context ends, so each of Sunniva's lines fails in its own way, in time. Returning at a failed send keeps the error that says what broke, instead of a read's that came 5 seconds later.

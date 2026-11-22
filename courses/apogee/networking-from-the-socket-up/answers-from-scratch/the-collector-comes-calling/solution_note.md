@@ -1,0 +1,1 @@
+Matching the path first and the method second lets every refusal say exactly what was wrong: a 404 means the path isn't there, while a 405 and its `Allow` field say the path is there and which methods it takes. Every answer the station server gives now comes from this one table, from the recorder's uploads to the collector's feed.

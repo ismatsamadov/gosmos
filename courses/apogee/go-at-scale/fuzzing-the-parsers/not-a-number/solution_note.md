@@ -1,0 +1,1 @@
+Every `<`, `>`, `<=` and `>=` with NaN is false, so a check that refuses only what is provably out of range lets NaN through, and one that accepts only what is provably in range refuses it. The pager's `BattV < 6.6` will never see a NaN, because tlmd refuses the line first.

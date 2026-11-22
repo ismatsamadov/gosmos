@@ -1,0 +1,5 @@
+line.go
+testdata/bookingd.log
+testdata/passplan.log
+testdata/uplinkd-hq.log
+testdata/uplinkd-lan.log

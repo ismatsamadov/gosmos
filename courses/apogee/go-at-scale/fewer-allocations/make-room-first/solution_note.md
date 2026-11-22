@@ -1,0 +1,1 @@
+`make` allocates one array with room for `n` passes, so each `append` writes into it in place and allocates again only if more than `n` passes come. For Cape Wren's 360 that's one allocation instead of ten, and no outgrown array left as garbage.

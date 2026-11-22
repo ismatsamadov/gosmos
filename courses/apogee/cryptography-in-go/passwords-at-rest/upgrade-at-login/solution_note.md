@@ -1,0 +1,1 @@
+At a successful login the console briefly holds the password itself, the one thing a stored record never gives back, so that is when a weak record can be replaced by a 600,000-iteration one with a fresh salt. A wrong password or a strong record returns no new record, so nothing is saved without proof and nothing strong is redone.

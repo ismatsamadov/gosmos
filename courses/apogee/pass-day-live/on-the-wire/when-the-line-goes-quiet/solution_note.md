@@ -1,0 +1,1 @@
+A deadline moved forward before every read fires only after 90 s without a single byte, so a frame trickling in over the backhaul lives and a dead fiber is noticed 90 s after its last frame. A lost line is called again at once, a failed call waits a little longer each time, and the timer's `select` with the pass's context ends every wait at LOS or at a stop.

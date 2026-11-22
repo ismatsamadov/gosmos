@@ -1,0 +1,1 @@
+Every name is checked before the root is even opened, so a parcel with one unsafe name writes nothing, while the root and the cap guard every byte that is written. The manifest is read from the unpacked copy, so it too went through both before `readManifest` checks what it promises.

@@ -1,0 +1,1 @@
+The scratch comes from the pool and goes back, so copying the candidates allocates nothing once the pool has one; the map is made once with room for every candidate instead of growing; and a `passKey` is built without a string, where `fmt.Sprintf` made four allocations a pass. What's left is the map and `assign`'s own contacts: on Cape Wren's day 11 allocations and about 60 KB.

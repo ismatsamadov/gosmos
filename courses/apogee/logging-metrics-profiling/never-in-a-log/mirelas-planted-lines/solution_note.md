@@ -1,0 +1,1 @@
+`ReplaceAttr` sees every attribute the handler writes, the message and the nested ones included, after `LogValue` has already turned `Key` and `APIKey` into safe strings, so one rule covers all twelve lines: names first, then headers, addresses, and every other string and error scrubbed. Values of any other type, such as the time and the pass's numbers, pass unchanged.

@@ -1,0 +1,1 @@
+The header carries exactly what a child needs, the trace ID and the parent's span ID, and setting it on a clone leaves the caller's request as it was. On arrival the remote parent goes into the context before `Start`, so the station's span joins headquarters' trace, while a missing or malformed header leaves no parent and the request gets a trace of its own.

@@ -1,0 +1,1 @@
+Each `expvar.Func` is called, and its result marshaled to JSON, when a request reaches `/debug/vars`, so the pager reads the counts as they are at that moment, a pass counted a second ago included. `publishOnce` registers the three names once, so a second call never makes `expvar.Publish` panic.

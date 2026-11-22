@@ -1,0 +1,1 @@
+Ranging over `a` while pulling from `b` walks both in step, and the deferred `stop` runs on every way out of the function, so `b` is stopped whether `a` ends, `b` ends or the loop over `Zip` breaks. `a` needs no stop of its own: returning from the range loop over it stops it.

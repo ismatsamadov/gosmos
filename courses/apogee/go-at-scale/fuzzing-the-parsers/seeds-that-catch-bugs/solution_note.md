@@ -1,0 +1,1 @@
+Plain `go test` never invents a line, so a bug is caught only if a seed walks into it. Each new seed is the good line with one fault, so the reference parser refuses all three, and each mutant meets the one line it gets wrong: a panic, a NaN battery or an unknown mode.

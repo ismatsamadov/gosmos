@@ -1,0 +1,1 @@
+Each of the four new lines passes Pipit-2's constants to one function from the toolbox, so every number on the card comes from formulas that earlier lessons' tests already checked. The Doppler line converts twice: the downlink frequency from MHz to Hz going into `dopplerHz`, and the shift from Hz to kHz coming out.

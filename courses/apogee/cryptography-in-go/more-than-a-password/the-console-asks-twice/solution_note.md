@@ -1,0 +1,1 @@
+Each proof is asked for only once the one before it has passed, so a refusal spends nothing a later attempt needs, and every refusal gives the same error. A password now opens nothing without a code, ten wrong codes close an account to codes until its owner resets the password, and a reset changes the password and ends every session but signs nobody in.

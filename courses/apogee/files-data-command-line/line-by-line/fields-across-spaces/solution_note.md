@@ -1,0 +1,1 @@
+`Fields` treats any run of spaces and tabs as one separator and drops white space at the ends, so every way the controller writes a reading gives the same four columns. Counting them turns a short or crowded line into an error instead of a wrong column.

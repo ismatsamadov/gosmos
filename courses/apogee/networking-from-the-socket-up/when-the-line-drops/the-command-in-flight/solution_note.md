@@ -1,0 +1,1 @@
+The controller's `LastSeq` only moves when it runs a command, and only dishd sends commands, one at a time, so a count at or past the command's number proves it ran, and clearing `l.inflight` keeps it from being sent again. Otherwise the same frame goes back, under the same number, which the controller would refuse if it had somehow run.

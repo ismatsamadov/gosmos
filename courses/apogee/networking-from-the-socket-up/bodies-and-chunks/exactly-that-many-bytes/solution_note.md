@@ -1,0 +1,1 @@
+`io.ReadFull` keeps reading through `br`, starting with what its buffer already holds, until the slice has all `n` bytes, so a recording's CRs and LFs are data like any other byte. A stream that ends sooner gives `io.EOF` or `io.ErrUnexpectedEOF` with the count read, which becomes the 400.

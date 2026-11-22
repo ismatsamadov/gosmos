@@ -1,0 +1,1 @@
+Flushing after each event sends it at once instead of when the server's buffer fills, so the screen sees the Board the moment the stream opens. Waiting on the request's context keeps the answer open exactly as long as the screen is there, and the deferred count drops when it leaves.

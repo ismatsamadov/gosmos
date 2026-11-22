@@ -1,0 +1,1 @@
+Every check uses only the raw bytes and the headers, so nothing in the body is trusted before the signature proves the service sent it. The 64 KiB limit keeps a huge body out of memory, and a body cut short at the limit no longer matches its signature.

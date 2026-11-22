@@ -1,0 +1,1 @@
+`MarshalJSON` turns the duration into its text and lets `json.Marshal` quote it, and `UnmarshalJSON` lets `json.Unmarshal` unquote and unescape a JSON string before `time.ParseDuration` reads it. Any other JSON value, or text that is not a duration, comes back as an error.

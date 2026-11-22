@@ -1,0 +1,10 @@
+client.go
+command.go
+decode.go
+encode.go
+frame.go
+lines.go
+poll.go
+status.go
+watch.go
+watchers.go

@@ -1,0 +1,1 @@
+Splitting on single spaces turns every doubled or stray space into an extra or empty field, and `hexBytes` refuses uppercase, odd-length and out-of-range hex, so a damaged line is refused instead of guessed at. Only a line that starts with `SEAL` can earn `ErrVersion`, so a CMD line or any other seven words is malformed, never taken for a SEAL line of a newer version.

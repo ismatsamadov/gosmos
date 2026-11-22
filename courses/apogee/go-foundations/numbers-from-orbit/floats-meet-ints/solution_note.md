@@ -1,0 +1,1 @@
+Converting both values first makes the division happen between two `float64`s, which keeps the fraction, so 1000 / 3 comes out at about 333.33. Converting afterwards only turns an `int` that has already lost its fraction into a `float64`.

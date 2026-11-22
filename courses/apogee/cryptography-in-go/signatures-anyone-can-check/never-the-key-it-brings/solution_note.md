@@ -1,0 +1,1 @@
+The key that checks a receipt now comes only from the list Apogee publishes, picked by its ID, so a signature by any other key fails however the envelope is dressed, and a field such as `pub` is refused before anything is checked. Matching the receipt's own key ID with the envelope's means a receipt can't name a key other than the one that signed it.

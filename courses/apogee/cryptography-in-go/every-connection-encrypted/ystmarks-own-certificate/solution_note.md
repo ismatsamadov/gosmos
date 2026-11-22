@@ -1,0 +1,1 @@
+Clients hold only the root, so the station sends its own certificate and the intermediate, and the client builds the chain leaf, intermediate, root, checking every signature and every date by its own clock. `Time: now` gives the station the same test clock for any date it checks itself.

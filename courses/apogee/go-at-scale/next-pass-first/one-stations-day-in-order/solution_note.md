@@ -1,0 +1,1 @@
+Every stream is lazy: `Passes` asks for one day at a time, `Filter` passes candidates on as they come, and `MergeBy` holds one head per satellite. So the first candidate costs each satellite only the days up to its own first candidate, and Tirrin Rock's 148 come out in `byAOS` order, the order `assign` needs to hand out its two dishes.

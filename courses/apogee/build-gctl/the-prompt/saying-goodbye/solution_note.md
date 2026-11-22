@@ -1,0 +1,1 @@
+`exit` returns the one `errExit` value, so `errors.Is` tells it apart from a command's real failure, which is printed while the session goes on. After the loop, `sc.Err` is `nil` after both `exit` and a clean end of input, so those write `bye`, and a failed read is returned instead.

@@ -1,0 +1,1 @@
+Starting `j` at `i + 1` visits each pair once and never pairs a pass with itself. Two passes clash only at the same station and when each starts strictly before the other ends, so passes that only touch are not reported.

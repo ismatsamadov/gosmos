@@ -1,0 +1,1 @@
+Each new text is checked against every code seen so far, and k texts make about k times k, halved, pairs that could match, so two of 16.7 million 3-byte codes meet after only 4,775 texts. Matching one given code gets no such help: the first text's 3-byte code still had no match after 100,000.

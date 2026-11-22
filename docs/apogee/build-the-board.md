@@ -8,9 +8,8 @@ Board project" (`story/board-project.md`) fixes the program's behavior, and Seas
 **Authoring status:** all four chapters are implemented as 17 lessons. One writer designed the
 whole program and wrote chapter 1, which was read in the app in light and dark before chapters
 2–4 were written; an independent reviewer then checked every lesson. The lessons in
-`courses/apogee.sqlite` are the source of truth, and `go run ./cmd/author export` writes them
-out to read; the larger changes from this plan are listed under "Changes in writing and
-review" at the end.
+`courses/apogee/build-the-board/` are the source of truth, and the larger changes from this
+plan are listed under "Changes in writing and review" at the end.
 
 - **Title:** Build the Board
 - **Slug:** `build-the-board` · **Kind:** Guided Project

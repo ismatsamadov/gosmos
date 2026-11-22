@@ -1,0 +1,1 @@
+Each stream reads from its own channel, so every view sent by `Publish` reaches every screen instead of whichever stream asked first. Keying the map by the receiving end lets `Unsubscribe` find and close exactly the channel it handed out, and the mutex keeps joins, leaves and sends from overlapping.

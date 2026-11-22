@@ -1,0 +1,4 @@
+Workers: min=1,max=32
+Buffer: min=0,max=1024
+Feeds: required,len=3
+Text: no check

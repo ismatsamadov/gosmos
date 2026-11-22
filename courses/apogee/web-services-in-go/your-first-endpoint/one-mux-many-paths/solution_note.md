@@ -1,0 +1,1 @@
+The mux now sends `/health` to `s.health`, which answers `{"status":"ok"}` through `writeJSON`. A pattern without a trailing slash matches only its own path, so `/stations/`, `/statoins` and `/` still reach nobody's handler and get the mux's `404 page not found`.

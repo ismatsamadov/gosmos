@@ -1,0 +1,1 @@
+`Verify` accepts a certificate only through a chain of signatures that ends in one of your own roots, so Mirela's root, whose name matches but whose key isn't Apogee's, leads nowhere. The same call checks the name against `DNSName`, the allowed use against `KeyUsages` and the dates against `CurrentTime`, so one error covers every way the certificate can fail.

@@ -1,0 +1,1 @@
+Each check refuses before anything is kept, in the order a mistake would cost most: an unknown path, then damaged bytes, then a second copy of a pass already stored. Only a recording that passes all three reaches the store, and its 201 says where to fetch it and the CRC to check it against.

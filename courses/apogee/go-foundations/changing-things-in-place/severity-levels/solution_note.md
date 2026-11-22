@@ -1,0 +1,1 @@
+`iota` numbers the constants 0, 1 and 2 in the order they're written, so `Info < Warning < Critical`. Since `Severity` is an `int` underneath, `worst` can compare with `>`, and the built-in `max(a, b)` would do the same.

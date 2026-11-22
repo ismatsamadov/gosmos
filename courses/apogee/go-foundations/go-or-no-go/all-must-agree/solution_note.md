@@ -1,0 +1,1 @@
+`&&` is true only when every part is, so one failing condition (a station that is down, a stowed dish, or wind of 72 km/h or more) makes `canTrack` false, and `!stowed` is true exactly when the dish is not stowed.

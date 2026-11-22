@@ -1,0 +1,1 @@
+Each event's goroutine sends it; after a failure worth retrying it sleeps for a doubling, jittered wait that the rehearsal's context can cut short, then signs a new attempt with its own timestamp. An answer it must not retry, or the 8th failure, is recorded once, printed as `UNDELIVERED` and written to `undelivered.txt` after the week.

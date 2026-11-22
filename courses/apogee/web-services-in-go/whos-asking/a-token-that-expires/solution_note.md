@@ -1,0 +1,1 @@
+The signature covers exactly the text in front of it, the customer and the expiry, so changing either one breaks it, and only the holder of the token key can make a signature that matches. `Unix` counts seconds from one instant, so a time written in any zone gives the same token.

@@ -1,0 +1,1 @@
+Every byte of the ID is appended straight into `buf`, and while `buf` has room `append` and `strconv.AppendInt` only write into it, so a frame's ID costs no allocation at all. The zeros come from comparing the orbit number with each power of ten, which also leaves a six-digit number whole.

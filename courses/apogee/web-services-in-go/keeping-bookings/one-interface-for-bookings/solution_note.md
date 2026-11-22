@@ -1,0 +1,1 @@
+`*MemStore` has all four methods, so it still satisfies `Store` and the handlers work as before, and the test's `failingStore` satisfies it too. The handlers only call the methods, so they can't tell one store from another: the failing one's error ends in `writeError` as a 500 that hides its text.

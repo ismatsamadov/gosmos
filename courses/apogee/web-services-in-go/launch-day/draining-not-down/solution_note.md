@@ -1,0 +1,1 @@
+Setting the flag first and sleeping before `stop` gives customers' programs `t.Drain` to learn from `/health` that the service is going away, while every request, theirs included, is still answered. The `atomic.Bool` makes the one write in `run` and the many reads in `health` safe without a lock.

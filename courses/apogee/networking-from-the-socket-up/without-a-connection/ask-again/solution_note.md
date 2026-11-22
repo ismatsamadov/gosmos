@@ -1,0 +1,1 @@
+Each try sends the question and waits `wait` for its answer, and only a deadline sends it again, under the same number, so a late answer to an earlier try still counts. After the last try the deadline error is returned, and any other error, such as a closed socket, ends `ask` at once.

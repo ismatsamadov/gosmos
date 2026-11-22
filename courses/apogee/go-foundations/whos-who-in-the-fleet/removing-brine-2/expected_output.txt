@@ -1,0 +1,2 @@
+satellites: 8
+brine-2 listed: false

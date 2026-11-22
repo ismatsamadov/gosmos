@@ -1,0 +1,1 @@
+The comma-ok assertion `r.(DopplerTracker)` reports whether the radio in `r` also has `TracksDoppler`, without panicking when it doesn't. Radios that track need no help, so the function returns the opposite of `ok`.

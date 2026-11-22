@@ -1,0 +1,1 @@
+Every row uses the same widths as the header, so each column starts at the same place on every line. `%02d` gives the hour and minutes two digits, and `%6.1f` rounds the elevation to one decimal and right-aligns it under `MAX EL`.

@@ -1,0 +1,1 @@
+With `~`, `Real` admits any type whose underlying type is `float32` or `float64`, so `Volts`, `Kilometers`, `KmPerHour` and the tests' own `Celsius` all fit, and `Clamp` returns a value of the caller's own type.

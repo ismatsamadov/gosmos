@@ -1,0 +1,1 @@
+Every check shares one child context, so the first failure's `cancel(err)` stops the others, which are waiting on `ctx.Done()`. Only the first call sets the cause, so `context.Cause` returns that failure, or `nil` when every check passed, and `wg.Wait()` makes sure all checks have returned before `runAll` does.

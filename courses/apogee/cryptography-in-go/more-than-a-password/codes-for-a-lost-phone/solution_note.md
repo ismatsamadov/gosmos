@@ -1,0 +1,1 @@
+The console's file now holds eight digests per engineer, and a digest typed as a code is hashed again and matches nothing. Each accepted code's digest leaves the slice at once, so a code read off a sheet, or seen as it was typed, can't sign anyone in a second time.

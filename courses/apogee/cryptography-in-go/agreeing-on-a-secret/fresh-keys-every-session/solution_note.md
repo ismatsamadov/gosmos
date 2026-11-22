@@ -1,0 +1,1 @@
+Each session's key is made new, used for one agreement and dropped, so nothing the station keeps can make it again, and a thief who copies everything later has no key for any recording. The identity key that stays only signs shares, and a signature opens nothing.

@@ -1,0 +1,1 @@
+`Scan` returns false both at the end of the input and at a failure; `Err` tells them apart, returning nil only after a clean end. Returning it with the lines keeps the readings that arrived and the reason the rest are missing.

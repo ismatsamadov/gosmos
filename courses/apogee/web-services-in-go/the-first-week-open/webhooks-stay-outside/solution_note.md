@@ -1,0 +1,1 @@
+The `Control` hook runs after a name is resolved and before the connection opens, so the check judges the address the client is about to reach, whatever the URL said: `localhost` is refused like `127.0.0.1`. `netip` knows every inside range for IPv4 and IPv6, and an address that doesn't parse is refused, because a guard that can't tell fails closed.

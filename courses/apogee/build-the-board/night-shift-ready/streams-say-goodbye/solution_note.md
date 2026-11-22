@@ -1,0 +1,1 @@
+`Shutdown` runs `b.hub.Close` as it begins, which closes every stream's channel, so each stream writes `bye` and returns, and its connection goes idle. The closed flag turns away a screen that connects during the shutdown, and every channel is still closed exactly once.

@@ -1,0 +1,1 @@
+Tokens grow with the time that passed and stop at the bucket's size, so a quiet hour buys 10 requests, not 3,600, and a request goes through only while a whole token is left. Moving `Last` only forward keeps a clock that steps backward from adding anything, now or later.

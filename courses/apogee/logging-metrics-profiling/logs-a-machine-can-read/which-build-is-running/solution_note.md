@@ -1,0 +1,1 @@
+`ReadBuildInfo` hands back what the go command recorded as it built the program, so the first record names the Go release, the module and its version without anyone typing them in. A test binary and a build outside version control both say `(devel)`; a build from a tagged commit says its tag.

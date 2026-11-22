@@ -1,0 +1,15 @@
+bookings.go
+cli.go
+day.go
+settings.go
+stations.csv
+stations.go
+testdata/day-help.golden
+testdata/export.golden
+testdata/help.golden
+testdata/no-folder.golden
+testdata/sheet.golden
+testdata/stick/bookings.csv
+testdata/stick/bookings.json
+testdata/stick/settings.json
+testdata/unknown.golden

@@ -1,0 +1,1 @@
+Every answer that reaches the limiter says how many requests are left, so a well-behaved program can slow down before it is refused, and a refusal says in whole seconds when to try again. A request without a customer gets a 500 instead of slipping past the limit, so a wiring mistake shows up at once.

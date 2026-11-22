@@ -1,0 +1,4 @@
+[stdout]
+[stderr]
+gctl: bookings: booking bk-3422: unknown station "SQX"
+[exit 1]

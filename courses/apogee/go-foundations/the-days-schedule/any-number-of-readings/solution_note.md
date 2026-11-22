@@ -1,0 +1,1 @@
+Inside `average`, `readings` is an ordinary `[]float64`, so a `range` loop sums it and `len` counts it, however the caller passed the values. The early return covers a call with no readings, where dividing would give NaN.

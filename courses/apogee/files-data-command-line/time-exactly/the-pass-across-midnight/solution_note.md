@@ -1,0 +1,1 @@
+Parsing keeps each reading's date and offset, so `Sub` measures the time between the two instants, whatever clock wrote them and whichever day they fall on. Checking `Before` first turns swapped or wrong readings into an error instead of a negative length.

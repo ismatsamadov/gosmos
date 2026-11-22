@@ -1,0 +1,1 @@
+Each case pairs a command with the exact text `canonical` must make of it, so one loop in the test checks them all; covering no arguments, two arguments and a set `Sig` tests the parts of the layout a bug would most likely break.

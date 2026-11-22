@@ -1,0 +1,1 @@
+Each check runs only after the ones before it have passed, so nothing in the receipt is believed before a published, unrevoked key has vouched for its exact bytes, and the file is read last. Hashing with the receipt's own algorithm while `io.Copy` counts the bytes checks a 10.9 GB image in one pass, without ever holding it whole.

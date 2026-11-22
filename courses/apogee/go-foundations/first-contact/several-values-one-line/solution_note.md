@@ -1,0 +1,1 @@
+One `fmt.Println` prints all its values on one line, with a space between each and a newline at the end, so two calls print the two lines. The number goes in as a number, and Println writes it as `7.91`.

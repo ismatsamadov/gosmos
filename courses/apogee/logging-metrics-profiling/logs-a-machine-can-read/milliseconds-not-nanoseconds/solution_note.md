@@ -1,0 +1,1 @@
+`Milliseconds` turns the duration into a whole count, which the JSON handler writes as a plain number, and the `_ms` in the key tells every reader the unit. Nanoseconds were exact too, but nobody reads twelve digits at three in the morning.

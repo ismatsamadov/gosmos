@@ -1,0 +1,5 @@
+`uplink-keys.txt` holds one master per line, `#` lines and blank lines aside: its ID, the instants it activates and retires in RFC 3339 (`-` for no retirement), its 32-byte secret in hex, and `revoked` if it was withdrawn. The sign key comes from that secret through `hkdf.Key`, in `crypto/hkdf`, with the salt and the info `sign|<sat>`, and an `hmac.New(sha256.New, key)` used once per line signs the bars-joined form.
+
+Start a timer at the WELCOME for AOS + 10 s, measured from `w.Now()`, and put it in the `select` that takes the call's frames: when it fires, write the PING; an ACK or a NAK whose seq is the PING's number answers it. Waiting anywhere else stops the frames, and the station can't send its answer until its telemetry has been read.
+
+`command failed authentication` from a satellite points at the key: it must be the one derived for that satellite from the newest master it holds, the last to activate before the window's start, never the master itself. A number refused as replayed must be one above the `last` in the WELCOME, the big-endian uint64 after its dish byte.

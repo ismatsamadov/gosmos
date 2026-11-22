@@ -1,0 +1,1 @@
+The buffer's array is made once and reused: `buf[:0]` keeps its 8 KB and drops its length, so each station's lines overwrite the last one's, and since `Write` doesn't keep the slice, the reuse can't change what a dish loader got. One allocation serves all twenty stations.

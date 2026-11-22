@@ -1,0 +1,1 @@
+The group is one attribute whose value holds four more, so every program that logs a pass through `passGroup` writes the same object, keys in the same order. `UTC` keeps the moment and changes only how it is written, so a pass prints the same whatever zone its times arrived in.

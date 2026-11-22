@@ -1,0 +1,1 @@
+Go stops at the first true condition, so testing 8.2 first keeps 8.3 V out of the lower bands, and `>=` puts each limit itself, such as 7.2 V, in the band it starts. Whichever block runs sets `band`, and the `Sprintf` after the chain adds the voltage.

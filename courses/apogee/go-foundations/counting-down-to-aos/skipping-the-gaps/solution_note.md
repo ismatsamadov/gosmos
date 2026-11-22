@@ -1,0 +1,1 @@
+`continue` jumps to the next minute before a lost frame reaches the sum or the count, so the average covers real readings only, and checking the count first returns 0 instead of NaN, which is what 0 divided by 0 gives a `float64`.

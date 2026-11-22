@@ -1,0 +1,1 @@
+Every contact that rises in a given second is collected from both schedules before `changes` matches them by pass ID, so the order `byAOS` leaves open can't make a contact look missing. Each round takes the earliest AOS either schedule has left, so the changes come out in AOS order, and the deferred stops end both schedules however the loop over `Compare` ends.

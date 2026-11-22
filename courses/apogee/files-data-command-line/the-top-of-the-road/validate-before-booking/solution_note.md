@@ -1,0 +1,1 @@
+The loop checks each booking for an ID, both times in order and a known station, and returns an error naming the first one that fails, so the caller can refuse the batch before anything is written. A zero `time.Time` marks a missing time, and the two-value map lookup refuses any code the station table lacks, a lowercase one included.

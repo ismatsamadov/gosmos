@@ -1,0 +1,2 @@
+go test fuzz v1
+string("0 0 0000-01-01T00:00:00Z batt_v=0 temp_c=0 mode=0")

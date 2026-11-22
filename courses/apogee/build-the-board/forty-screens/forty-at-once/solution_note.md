@@ -1,0 +1,1 @@
+Subscribing first means any refresh after that moment reaches the stream, even one that lands while the first event is still being written. The version check then drops the one view that can arrive twice, so every screen reads each version exactly once.

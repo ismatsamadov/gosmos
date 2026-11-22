@@ -1,0 +1,1 @@
+Reading by header makes the moved column harmless, the CSV reader keeps Hollis's notes in their cells, and sorting the map's keys gives the same report on every run. The rows are built before anything is written, so a sheet that can't be read produces no half report, and `writeSheet` reports a destination that fails.

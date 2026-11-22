@@ -4,8 +4,8 @@
 calibration checks before the rest was written; chapters 3–9 and 11 were written from this
 plan two chapters at a time and each pair independently reviewed. Chapter 10, Parcels From
 Salar Quieto, was added later, between Files That Travel With the Program and The Top of the
-Road, and read in the app in light and dark. The lessons in `courses/apogee.sqlite` are the
-source of truth: writing and review changed details such as function signatures, exercises
+Road, and read in the app in light and dark. The lessons in
+`courses/apogee/files-data-command-line/` are the source of truth: writing and review changed details such as function signatures, exercises
 and test cases, and the larger changes are listed under "Changes in writing and review" at
 the end.
 

@@ -1,0 +1,1 @@
+The decoder fills the five fields `Weather` knows and skips `humidity_pct` and anything else the service adds, so the poll keeps working when it changes. The two checks afterwards refuse a reading that would be useless, one without a station or a time, which the decoder alone would have accepted.

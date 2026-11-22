@@ -1,0 +1,1 @@
+The type switch looks at the key once and gives each case a value of that case's type, so an RSA key can be measured with `N.BitLen()` while an Ed25519 or X25519 key, or a kind nobody expected, is refused with a message saying what it was. Brinewatch's 2021 key parses perfectly and is still refused: its 1,024 bits are below Apogee's floor.

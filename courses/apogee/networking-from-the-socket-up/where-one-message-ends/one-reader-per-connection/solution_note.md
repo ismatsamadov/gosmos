@@ -1,0 +1,1 @@
+One `bufio.Reader` holds every byte that has left the connection, so the STATUS glued behind the WELCOME, or behind the banner, is still there for the next `recv`. A reader made per frame would carry such bytes off with it, and the next read would wait for bytes that already came.

@@ -1,0 +1,1 @@
+Every record a logger writes passes through `Handle` with the context of its call, so the handler reads the pass and request IDs there and appends them once, after the record's own attributes, for every program that uses it. The other three methods come from the embedded handler, so levels and output are exactly what the JSON handler does.

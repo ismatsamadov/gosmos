@@ -1,0 +1,1 @@
+The request now carries the poll's context, so `Do` stops as soon as that context ends and returns its error, which matches `context.DeadlineExceeded` or `context.Canceled`. The client's two-second `Timeout` still applies, and whichever ends first ends the call.

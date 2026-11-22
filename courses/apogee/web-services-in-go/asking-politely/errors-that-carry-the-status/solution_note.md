@@ -1,0 +1,1 @@
+`%w` keeps the `*StatusError` inside the wrapped error, so `errors.AsType` can hand the poll its status code and the service's own words, while the message reads as before with the body added. `io.LimitReader` stops after 512 bytes, so a megabyte of explanation never fills the poll's memory, and a timeout, which never reaches the status check, stays an ordinary error.

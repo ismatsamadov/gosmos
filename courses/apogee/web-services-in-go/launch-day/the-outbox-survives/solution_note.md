@@ -1,0 +1,1 @@
+Every change rewrites the whole file through a temporary file and a rename, so the file always holds a complete outbox, never half of one. Loading `next_event` as well as the pending deliveries means a new process never reuses an ID, even when nothing was pending, and a file that doesn't decode stops the start instead of becoming an empty outbox.

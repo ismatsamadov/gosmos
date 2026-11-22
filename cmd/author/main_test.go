@@ -7,10 +7,13 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ismatsamadov/gosmos/db"
@@ -107,6 +110,25 @@ func sameTree(t *testing.T, got, want string) {
 	}
 }
 
+// withoutTimes takes the created: and modified: lines out of every README.md under dir, which
+// an export writes from the lesson's row and the example packages leave out.
+func withoutTimes(t *testing.T, dir string) {
+	t.Helper()
+	filepath.WalkDir(dir, func(p string, e fs.DirEntry, err error) error {
+		if err != nil || e.Name() != "README.md" {
+			return err
+		}
+		b, _ := os.ReadFile(p)
+		var kept []string
+		for _, line := range strings.SplitAfter(string(b), "\n") {
+			if !strings.HasPrefix(line, "created: ") && !strings.HasPrefix(line, "modified: ") {
+				kept = append(kept, line)
+			}
+		}
+		return os.WriteFile(p, []byte(strings.Join(kept, "")), 0o644)
+	})
+}
+
 func TestAuthorALibrary(t *testing.T) {
 	path := library(t)
 	importAll(t, path)
@@ -160,6 +182,7 @@ func TestAuthorALibrary(t *testing.T) {
 	if msg := mustAuthor(t, "export", path, "--course", "learn-launches", out); !strings.Contains(msg, "exported 3 lessons") {
 		t.Errorf("export: %q", msg)
 	}
+	withoutTimes(t, out)
 	for _, name := range []string{"launch-window", "fuel-budget", "mission-quiz"} {
 		sameTree(t, filepath.Join(out, "1-countdown", name), example(name))
 		if msg := mustAuthor(t, "lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", filepath.Join(out, "1-countdown", name)); !strings.Contains(msg, "unchanged") {
@@ -171,6 +194,7 @@ func TestAuthorALibrary(t *testing.T) {
 	}
 	one := filepath.Join(t.TempDir(), "chapter")
 	mustAuthor(t, "export", path, "--course", "learn-launches", "--chapter", "1-countdown", one)
+	withoutTimes(t, one)
 	sameTree(t, filepath.Join(one, "fuel-budget"), example("fuel-budget"))
 	if code, _, errOut := author(t, "export", path, "--course", "learn-launches", one); code != 1 || !strings.Contains(errOut, "is not empty") {
 		t.Errorf("export into a folder with files: %d %q", code, errOut)
@@ -294,6 +318,7 @@ func TestAuthorRefuses(t *testing.T) {
 		{"a picture in a description", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "![orbit](https://example.com/orbit.png)"}, 1, "--description holds 1 picture, which"},
 		{"a course position taken", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "D", "--position", "0"}, 1, "position 0 is taken by course learn-launches"},
 		{"a chapter of no course", []string{"chapter", path, "--course", "learn-orbits", "--slug", "1-ellipses", "--title", "Ellipses", "--description", "D"}, 1, "the library has no course learn-orbits"},
+		{"a chapter called story", []string{"chapter", path, "--course", "learn-launches", "--slug", "story", "--title", "Story", "--description", "D"}, 2, "a chapter cannot be called story, the name of a course's story folder"},
 		{"an unknown command", []string{"publish", path}, 2, `unknown command "publish"`},
 		{"too many arguments", []string{"lesson", path, "--course", "learn-launches", "--chapter", "1-countdown", example("launch-window"), "extra"}, 2, "want 2 arguments"},
 	} {
@@ -493,4 +518,213 @@ func TestHelp(t *testing.T) {
 		!strings.Contains(out, "chapters.md holds the briefing") || !strings.Contains(out, "terms.md holds the field guide's terms") {
 		t.Errorf("help does not describe the story package: %q", out[max(0, len(out)-300):])
 	}
+}
+
+// A whole library out to a library folder and back: build makes the same rows from it, the
+// same file every time, and moves a new file into place only once it passes its checks.
+func TestBuildALibrary(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	mustAuthor(t, "story", path, "--course", "learn-launches", storyExample())
+	folder := filepath.Join(t.TempDir(), "apogee")
+	if msg := mustAuthor(t, "export", path, folder); !strings.Contains(msg, "1 course, 1 chapter and 3 lessons") {
+		t.Errorf("export of the whole library: %q", msg)
+	}
+	built := filepath.Join(t.TempDir(), "built.sqlite")
+	if msg := mustAuthor(t, "build", folder, built); !strings.Contains(msg, "built "+built+" from "+folder) {
+		t.Errorf("build: %q", msg)
+	}
+	for _, query := range []string{
+		`SELECT * FROM library_info`, `SELECT * FROM course`, `SELECT * FROM chapter`,
+		`SELECT uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod FROM lesson`,
+		`SELECT * FROM lesson_topic`, `SELECT * FROM lesson_hint`, `SELECT * FROM code_lesson`, `SELECT * FROM starter_file`,
+		`SELECT * FROM solution_file`, `SELECT * FROM quiz_lesson`, `SELECT * FROM quiz_question`, `SELECT * FROM quiz_answer`,
+		`SELECT * FROM story_page`, `SELECT * FROM story_card`, `SELECT * FROM chapter_story`, `SELECT * FROM story_term`,
+	} {
+		if got, want := dump(t, built, query), dump(t, path, query); got != want {
+			t.Errorf("%s:\n%s\nwant\n%s", query, got, want)
+		}
+	}
+
+	// The same folder makes the same file.
+	before, _ := os.ReadFile(built)
+	if msg := mustAuthor(t, "build", folder, built); !strings.Contains(msg, built+" is up to date") {
+		t.Errorf("a second build: %q", msg)
+	}
+	again := filepath.Join(t.TempDir(), "new", "again.sqlite") // into a folder made for it
+	mustAuthor(t, "build", folder, again)
+	if b, _ := os.ReadFile(again); !bytes.Equal(b, before) {
+		t.Error("two builds of the same folder made different files")
+	}
+
+	// A folder that is refused leaves the file as it was, and nothing beside it.
+	if err := os.WriteFile(filepath.Join(folder, "notes.md"), []byte("to do\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errOut := author(t, "build", folder, built); code != 1 || !strings.Contains(errOut, "notes.md does not belong in a library folder") {
+		t.Errorf("build of a refused folder: %d %q", code, errOut)
+	}
+	if b, _ := os.ReadFile(built); !bytes.Equal(b, before) {
+		t.Error("a refused build changed the file")
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(built)); len(entries) != 1 {
+		t.Errorf("a refused build left %d files beside the library", len(entries)-1)
+	}
+	if code, _, errOut := author(t, "export", path, "--chapter", "1-countdown", t.TempDir()); code != 2 || !strings.Contains(errOut, "--chapter and --story need --course") {
+		t.Errorf("export of a chapter without its course: %d %q", code, errOut)
+	}
+}
+
+// Builds of one folder into one file at the same time, as two make runs in one checkout give:
+// each builds a file of its own, so every one succeeds and the library is whole.
+func TestBuildsAtOnce(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	folder := filepath.Join(t.TempDir(), "apogee")
+	mustAuthor(t, "export", path, folder)
+	built := filepath.Join(t.TempDir(), "apogee.sqlite")
+	codes, errs := make([]int, 4), make([]string, 4)
+	var wg sync.WaitGroup
+	for i := range codes {
+		wg.Go(func() {
+			var out, errOut bytes.Buffer
+			codes[i] = run(context.Background(), []string{"build", folder, built}, &out, &errOut)
+			errs[i] = errOut.String()
+		})
+	}
+	wg.Wait()
+	for i, code := range codes {
+		if code != 0 {
+			t.Errorf("build %d of 4: exit %d: %s", i+1, code, errs[i])
+		}
+	}
+	if problems, err := db.Validate(context.Background(), open(t, built)); err != nil || len(problems) > 0 {
+		t.Fatalf("the library after builds at once: %v %v", problems, err)
+	}
+	if n := count(t, built, `SELECT count(*) FROM lesson`); n != 3 {
+		t.Errorf("the library after builds at once has %d lessons, want 3", n)
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(built)); len(entries) != 1 {
+		t.Errorf("builds at once left %d files beside the library", len(entries)-1)
+	}
+}
+
+// A write to the library that was cut off leaves its journal beside the file, and SQLite plays a
+// journal back into whatever file then has that name. A build moves a new file in, so it
+// clears the old file's journal first.
+func TestBuildClearsAnOldJournal(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	folder := filepath.Join(t.TempDir(), "apogee")
+	mustAuthor(t, "export", path, folder)
+	built := filepath.Join(t.TempDir(), "apogee.sqlite")
+	mustAuthor(t, "build", folder, built)
+
+	// A write cut off halfway: SQLite has spilled changed pages into the file, and the
+	// journal holds what they were.
+	d, err := db.Open(built)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.SetMaxOpenConns(1)
+	if _, err := d.Exec(`PRAGMA cache_size = 1`); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := d.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`UPDATE lesson SET readme = readme || ?`, strings.Repeat("A longer readme. ", 2000)); err != nil {
+		t.Fatal(err)
+	}
+	journal, err := os.ReadFile(built + "-journal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx.Rollback()
+	d.Close()
+
+	if err := os.RemoveAll(filepath.Join(folder, "learn-launches", "1-countdown", "mission-quiz")); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{built + "-journal", built + "-wal", built + "-shm"} {
+		if err := os.WriteFile(name, journal, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustAuthor(t, "build", folder, built)
+	for _, name := range []string{built + "-journal", built + "-wal", built + "-shm"} {
+		if _, err := os.Stat(name); err == nil {
+			t.Errorf("the build left %s beside the library", filepath.Base(name))
+		}
+	}
+	if problems, err := db.Validate(context.Background(), open(t, built)); err != nil || len(problems) > 0 {
+		t.Fatalf("the library built beside an old journal: %v %v", problems, err)
+	}
+}
+
+// A library can hold what a folder can't, such as a lesson changed before it was written or a
+// chapter called story. An export still writes the folder, to fix there, but says it won't
+// build.
+func TestExportChecksTheFolder(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	d, err := db.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec(`UPDATE lesson SET created_at = '2026-11-03T10:00:00Z', last_mod = '2026-11-02T08:30:00Z' WHERE slug = 'fuel-budget'`); err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+	folder := filepath.Join(t.TempDir(), "apogee")
+	code, _, errOut := author(t, "export", path, folder)
+	if code != 1 || !strings.Contains(errOut, "but the folder will not build until this is fixed: learn-launches/1-countdown/fuel-budget: README.md: modified 2026-11-02T08:30:00Z is before created 2026-11-03T10:00:00Z") {
+		t.Errorf("export of a lesson changed before it was written: %d %q", code, errOut)
+	}
+	if _, err := os.Stat(filepath.Join(folder, "learn-launches", "1-countdown", "fuel-budget", "README.md")); err != nil {
+		t.Errorf("the export left out the lesson to fix: %v", err)
+	}
+	lessons := filepath.Join(t.TempDir(), "lessons")
+	code, _, errOut = author(t, "export", path, "--course", "learn-launches", lessons)
+	if code != 1 || !strings.Contains(errOut, "but not all will import until this is fixed: 1-countdown/fuel-budget: README.md: modified 2026-11-02T08:30:00Z is before created") {
+		t.Errorf("export of a course with a lesson changed before it was written: %d %q", code, errOut)
+	}
+
+	path = library(t)
+	d, err = db.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec(`UPDATE chapter SET slug = 'story'`); err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+	code, _, errOut = author(t, "export", path, filepath.Join(t.TempDir(), "apogee"))
+	if code != 1 || !strings.Contains(errOut, "but the folder will not build until this is fixed: learn-launches/story/chapter.md: a chapter cannot be called story") {
+		t.Errorf("export of a chapter called story: %d %q", code, errOut)
+	}
+}
+
+// dump renders the rows a query returns, one line each, sorted.
+func dump(t *testing.T, path, query string) string {
+	t.Helper()
+	rows, err := open(t, path).Query(query)
+	if err != nil {
+		t.Fatalf("%s: %v", query, err)
+	}
+	defer rows.Close()
+	cols, _ := rows.Columns()
+	var lines []string
+	for rows.Next() {
+		vals := make([]any, len(cols))
+		ptrs := make([]any, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		rows.Scan(ptrs...)
+		lines = append(lines, fmt.Sprintln(vals...))
+	}
+	slices.Sort(lines)
+	return strings.Join(lines, "")
 }

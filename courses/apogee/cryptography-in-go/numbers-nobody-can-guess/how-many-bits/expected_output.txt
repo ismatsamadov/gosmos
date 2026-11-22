@@ -1,0 +1,4 @@
+6 digits: 19.9 bits
+4 bytes in hex: 32.0 bits
+rand.Text: 130.0 bits
+32-byte key: 256.0 bits

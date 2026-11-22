@@ -1,0 +1,2 @@
+70 bytes, from the recorder: true
+"pipit-2 30412 2028-06-12T06:37:15Z batt_v=8.04 temp_c=9.5 mode=NOMINAL"

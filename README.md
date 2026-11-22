@@ -7,10 +7,11 @@ pictures or videos.
 
 The app is not tied to any course. It reads **libraries**: SQLite files holding a syllabus,
 in the format described in `docs/library-format.md`. Any file in that format plugs in and
-works the same way. The courses that ship with the app are the libraries in `courses/`;
-File › Open Library… opens any other.
+works the same way. The courses that ship with the app are the libraries built from
+`courses/`; File › Open Library… opens any other.
 
-`courses/apogee.sqlite` holds the Apogee courses: original lessons set at Apogee, an
+`courses/apogee/` holds the Apogee courses, as text that `make library` builds into
+`courses/apogee.sqlite`: original lessons set at Apogee, an
 invented small space company whose radio dishes talk to satellites, planned in
 `docs/apogee/`. They are told as a story (`docs/storytelling.md`): an opening that gives you
 your badge, a briefing and a debrief for every chapter, a mission patch for each one you
@@ -43,22 +44,22 @@ never runs git and syncs nothing.
 
 | Path | What it is |
 |---|---|
-| `courses/` | The course libraries built into the app |
+| `courses/` | The course libraries built into the app, as text: `apogee/`, a folder for each course, chapter and lesson, that `make library` builds into `apogee.sqlite` |
 | `reference/go.sqlite`, `cmd/reference/` | The Go reference built into the app, read offline: the standard library's docs and examples, the spec, the memory model, Effective Go, the FAQ and How to Write Go Code; `make reference` remakes it, `docs/reference-format.md` says how |
 | `db/schema.sql` | A library's tables, constraints and conventions (format 9) |
 | `db/learner.sql` | The learner database's tables |
 | `db/` | The Go package that creates, opens and checks libraries; `db/history/` keeps the learner database's first schema, for the test of the app's step from it |
 | `cmd/library/` | Go tool for any library: `create`, `check`, `verify`, `drift` |
-| `cmd/author/`, `internal/` | Go tool: writes lessons, and a course's story, into a library from packages, and exports them back |
+| `cmd/author/`, `internal/` | Go tool: builds a library from its folder of text, writes lessons and a course's story into a library from packages, and exports them back |
 | `cmd/passes/` | Go tool: the passes of the Apogee world, from the pass model every pass in its courses comes from |
-| `scripts/pkgcheck.sh` | Checks lesson packages before they are imported: readme rules, hints, 30 runs, `-race`, failing starters |
+| `scripts/pkgcheck.sh` | Checks lesson packages before the library is built: readme rules, hints, 30 runs, `-race`, failing starters |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |
 | `docs/library-format.md` | The library format: what any library must hold, and what the app checks |
 | `docs/architecture.md` | How the pieces fit together, and why |
 | `docs/design.md` | How the app looks and behaves |
 | `docs/apogee/` | The Apogee courses: their world, their Go syllabus, a sample chapter |
 | `docs/authoring.md` | How lessons, chapters and courses are added and fixed: the tools, the steps, the checks, the world's numbers, seeing it in the app (`app/scripts/snapshot.sh`) |
-| `Makefile` | `make install` builds and installs the app; `make test`, `make check`, `make verify` |
+| `Makefile` | `make install` builds and installs the app; `make library` builds the courses; `make test`, `make check`, `make verify` |
 
 ## Requirements
 

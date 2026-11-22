@@ -1,0 +1,1 @@
+The `RFC3339` layout accepts `Z` or a numeric offset, so the van's `-07:00` reading and the network's `Z` reading parse to the same instant. A text without a zone fails to parse, and its error goes back to the caller instead of a guessed time.

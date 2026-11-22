@@ -1,0 +1,1 @@
+`t.Helper()` tells the testing package to skip `assertNear` when it reports where a failure happened, so each failure points at the `main_test.go` line that called the helper, where the failing case lives.

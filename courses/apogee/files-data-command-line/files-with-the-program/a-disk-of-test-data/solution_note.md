@@ -1,0 +1,1 @@
+Each key of the map is a file's path and each value holds its bytes, so the fixture is a complete two-file disk that lives only in the test's memory. The `templates/notices` folders exist because a file's path names them, and every other name reports `fs.ErrNotExist`.

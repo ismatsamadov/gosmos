@@ -1,0 +1,1 @@
+The coarse steps cut `elevationDeg`'s calls about 27 times, and gathering the whole day first lets `attach` build its index once and `buildDay` sort once, so every fix pays in full. Each helper keeps its old rules, so the plan, bookings and order included, is the old planner's exactly.

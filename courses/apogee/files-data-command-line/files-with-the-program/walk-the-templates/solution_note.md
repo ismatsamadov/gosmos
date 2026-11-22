@@ -1,0 +1,1 @@
+`WalkDir` visits the tree in lexical order and passes each path with its root in front, so collecting the entries that are not folders lists every template, nested ones included, in a stable order. Returning the error it reports, such as a missing root, stops the walk and hands the error to the caller.

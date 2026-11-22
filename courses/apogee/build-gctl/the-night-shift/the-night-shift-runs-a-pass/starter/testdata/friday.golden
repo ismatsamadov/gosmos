@@ -1,0 +1,26 @@
+gctl> passes
+04:12-04:21 PEL pipit-1 max 61.4
+04:31-04:40 YST pipit-2 max 47.2
+04:58-05:06 CWR furrow-a max 33.5
+05:20-05:26 LAN brine-3 max 22.8
+05:47-05:57 YST cirrine-1 max 71.9
+gctl> stations
+YST Ystmark
+PEL Port Ellery
+SQT Salar Quieto
+LAN Lantern Atoll
+CWR Cape Wren
+gctl> next
+next: pipit-1 over PEL at 04:12, in 12m0s
+gctl> next
+next: pipit-2 over YST at 04:31, in 18m0s
+gctl> stow CWR wind 74 km/h
+CWR stowed: wind 74 km/h
+gctl> passes CWR
+04:58-05:06 CWR furrow-a max 33.5 (stowed)
+gctl> next
+next: brine-3 over LAN at 05:20, in 40m0s
+gctl> next
+next: cirrine-1 over YST at 05:47, in 17m0s
+gctl> exit
+bye

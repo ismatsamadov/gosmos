@@ -1,0 +1,2 @@
+YST dish 3.7 m, X-band true
+van dish 1.2 m, X-band false

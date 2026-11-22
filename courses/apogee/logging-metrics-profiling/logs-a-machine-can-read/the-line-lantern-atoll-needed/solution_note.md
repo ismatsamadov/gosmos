@@ -1,0 +1,1 @@
+`stamp` sets each record's time from `now` before the JSON handler writes it, so the replay reads 02:02:39 as the station did, and `passLine` puts everything missing at 02:48 into one line: the pass, its elevation, the wait in milliseconds and the whole error. A flown pass gets the same line at INFO, with no `err` key.

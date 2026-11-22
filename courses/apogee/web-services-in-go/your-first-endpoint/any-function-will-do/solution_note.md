@@ -1,0 +1,1 @@
+`s.listStations` is a method value: a function bound to this `s`, with exactly a handler's parameters. Converting it to `http.HandlerFunc` gives it a `ServeHTTP` that calls it, so each service answers with its own stations, without a new type for the job.

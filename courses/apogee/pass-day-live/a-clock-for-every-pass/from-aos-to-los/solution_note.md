@@ -1,0 +1,1 @@
+Each contact's goroutine sleeps for a duration measured from `w.Now()`, so in simulated time it wakes at exactly its AOS, and its pass's context, a timeout of `c.LOS.Sub(w.Now())`, ends at exactly its LOS. Printing the count only after `Wait` returns makes `rehearse` return at the last LOS.

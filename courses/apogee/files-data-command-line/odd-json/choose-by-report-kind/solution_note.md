@@ -1,0 +1,1 @@
+The envelope says which kind arrived, the switch picks a pointer to the matching type, and one `Unmarshal` fills it from the raw payload. A kind the van has no type for becomes an error that names it, instead of a report decoded into the wrong shape.

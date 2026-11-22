@@ -1,0 +1,1 @@
+One question every 30 seconds still finds every pass the plan keeps, since each lasts 2 minutes or more, and `crossing` needs only five more halvings for a 30-second gap than for one second, so the same passes come from about one question in 28. The extra question at the last second before `to` makes both versions see the same window.

@@ -1,0 +1,1 @@
+The handler calls `ReplaceAttr` for every attribute, the nested ones included, so one rule on the key's lowercase form blanks every secret field wherever it sits, and the built-in keys pass because none is on the list. Keeping the key shows a reader that a value was there and was removed.

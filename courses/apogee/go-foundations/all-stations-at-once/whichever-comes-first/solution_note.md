@@ -1,0 +1,1 @@
+The `select` waits on both receives at once and runs the case of whichever channel delivers first, so a beacon from either station comes back as soon as it arrives. If both stations had a beacon waiting, `select` would pick one of the two at random.

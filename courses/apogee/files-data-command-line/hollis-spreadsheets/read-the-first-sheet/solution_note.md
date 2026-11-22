@@ -1,0 +1,1 @@
+`Read` hands back one record per call and `io.EOF` when the sheet ends, so the loop collects every row and stops cleanly. Quoting mistakes come back as errors from the reader, so a broken sheet is never taken for a short one.

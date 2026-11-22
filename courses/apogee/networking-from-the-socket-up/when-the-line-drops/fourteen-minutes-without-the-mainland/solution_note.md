@@ -1,0 +1,1 @@
+A refusal is the controller's answer, so it is recorded and the queue moves on; only an error that is not an answer, such as the context ending, stops `Drain`. The outage itself, with its backoff, its reconnect and the jog that must not run twice, is handled inside `Send`.

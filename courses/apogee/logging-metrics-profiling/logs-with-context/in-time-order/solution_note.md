@@ -1,0 +1,1 @@
+`slices.Concat` copies every log into one new slice, so sorting it leaves the inputs as they were, and `SortStableFunc` orders the lines by time while lines with equal times keep the order they arrived in. Headquarters' log is given first, so its `lines delivered` stays ahead of Lantern Atoll's `lines queued` in the same second.

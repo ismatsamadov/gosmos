@@ -1,0 +1,1 @@
+`Seal` returns the 13 bytes of the command, hidden, followed by the 16-byte tag, so a sealed command is always `Overhead()` bytes longer than its plaintext. `Open` recomputes the tag over the copy's bytes, finds that it no longer matches, and returns its one error, which says that authentication failed and nothing about where.

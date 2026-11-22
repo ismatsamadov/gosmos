@@ -1,0 +1,1 @@
+`errors.Is` looks through every `%w` for the line's own deadline error and for the two ways a stream ends, so wrapping never hides them. Every other error keeps its own words, so a context running out and `iotest.ErrTimeout` are never taken for a quiet line.

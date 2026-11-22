@@ -1,0 +1,1 @@
+The orbit's radius is Earth's radius plus the altitude, and 2π·√(a³/μ) turns it into the period in seconds, which dividing by 60 makes minutes. The untyped constant `earthRadiusKm` works as a `float64` next to `altKm`, so no conversion is needed.

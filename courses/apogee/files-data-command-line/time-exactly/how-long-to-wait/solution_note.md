@@ -1,0 +1,1 @@
+`ParseDuration` refuses text that is not a duration, and the comparison refuses the durations that parse but can't be waited for. Every refusal returns 0 with its error, so a bad timeout never reaches the code that waits.

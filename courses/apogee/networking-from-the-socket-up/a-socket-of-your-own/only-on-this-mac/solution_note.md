@@ -1,0 +1,1 @@
+With port 0 the system gives each listener a free port of its own, so any number of them can listen at once, and `Addr` reports which port each one got. The host `127.0.0.1` keeps every connection inside the Mac.

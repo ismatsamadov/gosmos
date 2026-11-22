@@ -1,0 +1,1 @@
+The `select` waits for a chunk and for the context together, so canceling the pass stops `receive` even when no chunk is coming, and `ctx.Err()` says why. The two-value receive tells a closed channel apart from a chunk, so a pass that ends normally still returns `nil`.

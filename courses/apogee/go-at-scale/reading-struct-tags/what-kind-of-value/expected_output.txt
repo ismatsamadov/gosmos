@@ -1,0 +1,8 @@
+Slots int int
+Days int int
+MinElevDeg float64 float64
+Turnaround time.Duration int64
+Replan time.Duration int64
+RunLimit time.Duration int64
+Queue int int
+Quiet time.Duration int64

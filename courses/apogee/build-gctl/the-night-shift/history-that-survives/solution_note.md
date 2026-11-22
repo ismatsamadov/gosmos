@@ -1,0 +1,1 @@
+Reading the file at the start of `Run` brings back the last session's lines, and appending each line as it is typed keeps the file current even if gctl stops halfway. The `failed` flag turns a broken file into one error line, and the session goes on with its history in memory.

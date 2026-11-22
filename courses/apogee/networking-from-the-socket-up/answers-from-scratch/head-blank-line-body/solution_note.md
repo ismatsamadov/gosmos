@@ -1,0 +1,1 @@
+Every piece of the answer goes into one buffer, so the connection gets the whole answer in one write, or a few for a long body, and any error on the way comes back from `Flush`. Converting `now` to UTC makes `Date` the same instant whatever zone the clock reports, as the `GMT` in the layout promises.

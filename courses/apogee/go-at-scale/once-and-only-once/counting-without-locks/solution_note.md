@@ -1,0 +1,1 @@
+Each `Add` on an `atomic.Int64` is one step no other goroutine can split, so twelve slots adding at once lose nothing and the totals come out the same on every run. `Load` reads each counter whole; together the three are exact once the slots have finished, as they are when the test reads them.

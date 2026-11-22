@@ -1,0 +1,1 @@
+`Login` does nothing until `Check` has proven the password, so a refused login saves no record and opens no session. A weak record is replaced while the password is in hand, in the user file and in memory, so it is upgraded exactly once; the browser keeps the 130-bit token, and the console only its SHA-256, which logs nobody in.

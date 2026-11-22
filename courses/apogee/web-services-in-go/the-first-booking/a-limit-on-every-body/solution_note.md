@@ -1,0 +1,1 @@
+`MaxBytesReader` lets the decoder read at most 65,536 bytes and fails the read that would go past them, so even a 40 MB body costs the service only 64 KiB. Because both `Decode` calls report through `bodyError`, a body that is too large in its value or in what follows gets the same 413.

@@ -1,0 +1,1 @@
+Each satellite's held masters start as those active at the window's start and grow when a LOAD_KEY runs, as its ACK or a later WELCOME's `last` shows, so the switch at Wednesday 00:00 reaches only satellites that already hold the new keys. A pass works out its commands when it takes the satellite's lock, after settling any LOAD_KEY an earlier pass left unanswered at its LOS.

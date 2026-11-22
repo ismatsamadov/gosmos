@@ -1,0 +1,1 @@
+The methods declared on `*statusRecorder` replace the embedded writer's `WriteHeader` and `Write`, so every status and every byte passes through code that notes it before handing it on, while `Header` still comes straight from the writer inside. `Unwrap` lets `http.NewResponseController` look past the wrapper for `Flush`.

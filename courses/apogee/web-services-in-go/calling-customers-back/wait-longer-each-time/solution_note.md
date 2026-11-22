@@ -1,0 +1,1 @@
+The loop stops doubling once the wait reaches 5 minutes, so no attempt number can overflow it, and `min` trims the last doubling to the cap. One draw of `r.Float64()` puts each wait between half and all of its full length, and a seeded source makes those draws, and the test, the same on every run.

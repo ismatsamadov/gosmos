@@ -1,0 +1,1 @@
+Each step either passes the head on or returns its refusal, in the order the station server's rules give, so the first problem in a request decides its answer. Counting Host values instead of joining them refuses a request that names two hosts, and passing errors through unchanged lets the server tell a refusal from a stalled line.

@@ -1,14 +1,17 @@
 # Build output
-build/
+/build/
 .build/
 .swiftpm/
 
-# Only authored course and reference databases belong in the repository.
+# No database belongs in the repository but the Go reference: a course library is built from its
+# folder of text (make library), courses/apogee/ into courses/apogee.sqlite.
 *.sqlite
 *.sqlite3
 *.db
-!courses/*.sqlite
 !reference/*.sqlite
+
+# A library folder keeps every file its lessons give, whatever the name.
+!courses/[!.]*/**
 
 # SQLite's transient files never belong in source control.
 *.sqlite-journal

@@ -1,0 +1,3 @@
+Pipit-1 orbit radius: 6896 km
+Thistle orbit radius: 6786 km
+Cirrine-1 orbit radius: 6971 km

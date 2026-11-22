@@ -1,0 +1,83 @@
+{
+  "passes": [
+    {
+      "id": "",
+      "sat_id": "pipit-3",
+      "station": "YST",
+      "aos": "2028-02-11T09:02:50Z",
+      "los": "2028-02-11T09:11:38Z"
+    },
+    {
+      "id": "",
+      "sat_id": "furrow-a",
+      "station": "SQT",
+      "aos": "2028-02-11T09:40:30Z",
+      "los": "2028-02-11T09:50:00Z"
+    },
+    {
+      "id": "",
+      "sat_id": "brine-3",
+      "station": "PEL",
+      "aos": "2028-02-11T10:15:00Z",
+      "los": "2028-02-11T10:23:45Z"
+    }
+  ],
+  "weather": [
+    {
+      "station": "YST",
+      "weather": {
+        "station": "YST",
+        "at": "2028-02-11T09:00:00Z",
+        "wind_kmh": 41,
+        "gust_kmh": 55,
+        "temp_c": 0
+      },
+      "call": "track"
+    },
+    {
+      "station": "PEL",
+      "weather": {
+        "station": "PEL",
+        "at": "2028-02-11T09:00:00Z",
+        "wind_kmh": 22,
+        "gust_kmh": 30,
+        "temp_c": 0
+      },
+      "call": "track"
+    },
+    {
+      "station": "SQT",
+      "weather": {
+        "station": "SQT",
+        "at": "2028-02-11T09:00:00Z",
+        "wind_kmh": 12,
+        "gust_kmh": 18,
+        "temp_c": 0
+      },
+      "call": "track"
+    },
+    {
+      "station": "LAN",
+      "weather": {
+        "station": "LAN",
+        "at": "2028-02-11T09:00:00Z",
+        "wind_kmh": 18,
+        "gust_kmh": 25,
+        "temp_c": 0
+      },
+      "call": "track"
+    },
+    {
+      "station": "CWR",
+      "weather": {
+        "station": "CWR",
+        "at": "2028-02-11T09:00:00Z",
+        "wind_kmh": 74,
+        "gust_kmh": 88,
+        "temp_c": 0
+      },
+      "call": "stow"
+    }
+  ],
+  "on_call": ""
+}

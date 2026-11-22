@@ -1,0 +1,1 @@
+Appending the passes still to come to a slice of its own leaves passplan's slice exactly as it was sent, and only the copy is sorted. `cmp.Or` turns to the booking ID only when two AOS times are equal, and slicing at the smaller of the length and 12 keeps the rows the television fits.

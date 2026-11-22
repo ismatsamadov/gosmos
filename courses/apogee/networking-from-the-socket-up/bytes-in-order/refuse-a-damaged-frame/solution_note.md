@@ -1,0 +1,1 @@
+The length check comes first, so a payload too short to hold a CRC is refused before any slicing, and the CRC comes next, so no field of a damaged frame is ever read. A CRC-32 differs whenever any single bit of the type, seq, body or CRC has flipped.

@@ -1,0 +1,10 @@
+minute 0: -14.4
+minute 1: 6.4
+minute 2: 24.0
+minute 3: 38.4
+minute 4: 49.6
+minute 5: 57.6
+minute 6: 62.4
+minute 7: 64.0
+minute 8: 62.4
+minute 9: 57.6

@@ -1,0 +1,1 @@
+Only `fs.ErrNotExist` from the override sends the read to the built-in default, so a stick without the file still works. A file that exists but cannot be read or parsed stops the load, and Paz sees why instead of calibrating with zero.

@@ -1,0 +1,1 @@
+Three wildcards match exactly three segments, so the mux sends every three-part pass ID to `getPass` and still answers 404 itself for a path with fewer or more. Joined with slashes, the three values are the pass ID again, which the handler compares with each catalog entry's `ID`.

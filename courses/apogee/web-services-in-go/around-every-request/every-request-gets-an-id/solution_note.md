@@ -1,0 +1,1 @@
+`context.WithValue` stores the ID under a key only this package can make, and `r.WithContext` hands the next handler a request that carries it, so `writeError`, deep inside, finds the very ID the header shows. The two-value type assertion returns `""` for any context that never went through `requestID`, even one holding a plain string key.

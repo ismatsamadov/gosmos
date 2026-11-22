@@ -1,0 +1,1 @@
+`tls.Dialer.DialContext` dials TCP and completes the handshake before it returns, both under `ctx`, so a controller that never answers costs at most the context's 200 ms, and one with the impostor's certificate is refused before any line is sent.

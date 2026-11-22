@@ -1,0 +1,1 @@
+An unknown customer and a wrong secret both get `invalid api key`, so a refusal never says which part of a guess was wrong, and every refusal names the scheme to use in `WWW-Authenticate: Key`. Truncating once and using that one time to sign and to answer keeps `expires_at` and the token's own expiry identical.

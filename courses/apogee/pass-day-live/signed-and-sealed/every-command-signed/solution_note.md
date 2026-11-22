@@ -1,0 +1,1 @@
+Each pass makes its PING when AOS + 10 s comes, numbered one above the WELCOME's `last` and signed with the satellite's own key, derived from the newest master it holds. The PING goes out from the same loop that reads the frames, so telemetry keeps flowing while its answer is on the way, and the answer settles the pass's outcome.

@@ -1,0 +1,1 @@
+Only a frame whose number is past the last one shown reaches the screen, so the screen never goes back in time and nothing is shown twice. The numbers a frame jumps over are counted as missed, and one of them that turns up later is dropped as old news.

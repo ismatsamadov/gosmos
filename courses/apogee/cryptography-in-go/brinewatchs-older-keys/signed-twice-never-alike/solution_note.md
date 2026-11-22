@@ -1,0 +1,1 @@
+Both sides hash the request with SHA-256 and work on its 32-byte digest, so changing any byte of the request changes what a signature must match, and only Brinewatch's signing key makes signatures that `VerifyPSS` accepts under its public key. The random bytes make every signature different, which is why the tests check that signatures verify, never what their bytes are.

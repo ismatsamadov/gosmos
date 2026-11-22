@@ -1,0 +1,1 @@
+The gzip reader unsqueezes the stream and the tar reader walks its files one header at a time, until `io.EOF`. Reading each file through `io.LimitReader` with one spare byte stops at most a byte past the limit, so a parcel that swells is refused as soon as it passes the limit instead of being unpacked whole.

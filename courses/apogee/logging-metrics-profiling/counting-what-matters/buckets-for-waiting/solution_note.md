@@ -1,0 +1,1 @@
+Starting from the last bucket and taking the first bound at or above the wait puts every wait in exactly one bucket, a bound's own value included. Each count is its own atomic, so 30 goroutines observing at once never lose one, and the histogram keeps twelve numbers instead of every wait.

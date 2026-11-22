@@ -1,0 +1,4 @@
+main.Image -> imagery
+main.Housekeeping -> telemetry
+main.Chunk -> reassembly
+string -> quarantine

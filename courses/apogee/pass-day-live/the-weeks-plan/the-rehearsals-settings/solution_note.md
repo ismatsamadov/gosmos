@@ -1,0 +1,1 @@
+Decoding into a struct that already holds the 7-day default changes only what the file names, and the decoder refuses unknown fields while one `Token` call refuses anything after the object. The line is printed only after every check has passed, in one write, so a bad file leaves the console empty and the error says exactly what is wrong.

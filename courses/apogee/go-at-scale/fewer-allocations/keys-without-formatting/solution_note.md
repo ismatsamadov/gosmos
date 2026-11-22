@@ -1,0 +1,1 @@
+A `passKey` is three fields copied into a value the map can compare and hash directly, so a lookup allocates nothing, where `fmt.Sprintf` boxed three values and built a string for every pass. It holds the same three parts as the string did, so the same passes count as repeats.

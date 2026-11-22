@@ -1,0 +1,1 @@
+`Passes` asks its model for one day at a time, so a model that answers nothing after a cancel ends every stream within a day of work, even one that would have predicted the whole window before yielding a pass. The check every 1,000 candidates stays for the passes already predicted, and the last `ctx.Err()` still turns the run into its error.

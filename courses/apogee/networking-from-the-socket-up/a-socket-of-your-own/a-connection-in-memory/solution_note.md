@@ -1,0 +1,1 @@
+`t.Cleanup` waits until the test that called `pipePair` has finished, so the ends stay open for every write and read it makes, and then closes both. A `defer` would have closed them as `pipePair` returned, before the test could use them.

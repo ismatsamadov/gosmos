@@ -1,0 +1,1 @@
+Each receive takes one value, so three receives archive all three frames, in the order `poller` sent them. Because every send waits for its receive, the two goroutines stay in step without any other coordination.

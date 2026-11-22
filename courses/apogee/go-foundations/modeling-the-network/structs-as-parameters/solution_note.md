@@ -1,0 +1,1 @@
+The `if` turns a southern latitude into its size and the letter `S`, so the Board never shows a minus sign. `fmt.Sprintf` then reads each field from the station the function was given, with `%.1f` for one decimal.

@@ -1,0 +1,1 @@
+`strings.Fields` treats any run of spaces and tabs as one break and drops them at both ends, so the first word is the command however the night shift typed it. A line of only spaces or tabs gives no words, and `dispatch` returns before writing anything.

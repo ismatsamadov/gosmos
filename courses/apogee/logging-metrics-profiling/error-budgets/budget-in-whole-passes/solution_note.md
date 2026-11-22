@@ -1,0 +1,1 @@
+Every value in the expression is a whole number, so nothing is rounded until the last step, and that division rounds down to whole passes, the only kind a station can lose. The float version computed 0.0004999... instead of 0.0005, and its truncation cost a whole pass.

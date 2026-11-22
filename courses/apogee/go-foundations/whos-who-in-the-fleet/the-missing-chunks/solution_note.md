@@ -1,0 +1,1 @@
+Counting from 0 to `total-1` visits every chunk the file should have, including those the map has never heard of, in increasing order. The comma-ok lookup keeps only the numbers with no entry at all, so an empty chunk counts as arrived, where a check for `""` would have listed it.

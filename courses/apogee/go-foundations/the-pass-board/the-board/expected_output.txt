@@ -1,0 +1,5 @@
+PASS                 STATION  AOS    MAX EL  BAND
+pipit-1/PEL/04182    PEL      04:12    61.4  UHF
+furrow-a/SQT/11873   SQT      05:03    23.0  X
+thistle/LAN/02218    LAN      06:47     8.9  UHF
+cirrine-1/YST/07455  YST      07:30    44.2  S

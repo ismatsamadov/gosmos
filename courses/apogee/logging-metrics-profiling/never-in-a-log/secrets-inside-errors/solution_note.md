@@ -1,0 +1,1 @@
+The variable is set once, when the program starts, so every call reuses the same compiled pattern, and `ReplaceAllString` rewrites every key and token in the text, keeping the customer ID that `$1` names. The pattern wants exactly 32 or 64 hex digits after the dots, so a 31-digit near miss, a pass ID and an address pass unchanged.

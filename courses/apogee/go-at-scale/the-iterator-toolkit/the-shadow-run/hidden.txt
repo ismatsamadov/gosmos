@@ -1,0 +1,4 @@
+model.go
+network.go
+plan.go
+thursday_test.go

@@ -1,0 +1,1 @@
+Comparing the ACK's sequence number with the command's own makes sure the answer belongs to this command, and a NAK becomes the `*NakError` that says which rule refused it. Errors from `recv` pass through untouched, so the caller still tells a hung-up controller from a damaged answer.

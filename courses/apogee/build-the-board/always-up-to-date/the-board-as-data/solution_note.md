@@ -1,0 +1,1 @@
+`Refresh` is the one place a view becomes JSON, so the page and the data can never disagree, and `serveJSON` only copies the bytes out under the lock. The headers go first because they leave with the answer's first byte.

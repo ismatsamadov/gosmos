@@ -1,0 +1,1 @@
+`heap.Push` appends through your `Push`, then moves the new pass up to its place, and `heap.Pop` swaps the earliest pass to the end and restores the order of the rest before your `Pop` takes it off. Each walks one path through the heap, about nine levels for 286 passes, instead of sorting them all.

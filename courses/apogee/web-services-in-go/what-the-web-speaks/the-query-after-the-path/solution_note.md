@@ -1,0 +1,1 @@
+`url.Values` holds only the pairs you set, and `Encode` sorts them by key and escapes each value, so the `+` in Hollis's time travels as `%2B` and is read back as a `+`, not a space. An empty `Values` encodes to an empty string, which is exactly when the path needs no `?`.

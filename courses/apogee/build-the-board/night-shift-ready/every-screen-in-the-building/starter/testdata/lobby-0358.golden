@@ -1,0 +1,19 @@
+<title>The Board</title>
+<h1>The Board · 03:58 UTC</h1>
+<tr class="pass"><td>04:12</td><td>04:21</td><td>PEL</td><td>pipit-1</td><td></td><td></td></tr>
+<tr class="pass"><td>04:31</td><td>04:40</td><td>YST</td><td>pipit-2</td><td></td><td></td></tr>
+<tr class="pass"><td>04:58</td><td>05:07</td><td>CWR</td><td>furrow-a</td><td></td><td></td></tr>
+<tr class="pass"><td>05:12</td><td>05:22</td><td>SQT</td><td>furrow-b</td><td></td><td></td></tr>
+<tr class="pass"><td>05:20</td><td>05:27</td><td>LAN</td><td>brine-3</td><td></td><td></td></tr>
+<tr class="pass"><td>05:47</td><td>05:57</td><td>YST</td><td>cirrine-1</td><td></td><td></td></tr>
+<tr class="pass"><td>06:05</td><td>06:14</td><td>YST</td><td>pipit-2</td><td></td><td></td></tr>
+<tr class="pass"><td>06:41</td><td>06:49</td><td>LAN</td><td>brine-3</td><td></td><td></td></tr>
+<tr class="pass"><td>07:18</td><td>07:27</td><td>PEL</td><td>pipit-1</td><td></td><td></td></tr>
+<tr class="pass"><td>07:55</td><td>08:03</td><td>CWR</td><td>furrow-b</td><td></td><td></td></tr>
+<tr class="pass"><td>08:30</td><td>08:41</td><td>SQT</td><td>cirrine-1</td><td></td><td></td></tr>
+<tr class="pass"><td>09:02</td><td>09:11</td><td>YST</td><td>pipit-3</td><td></td><td></td></tr>
+<li class="panel track">YST wind 41 km/h, gusts 55</li>
+<li class="panel track">PEL wind 22 km/h, gusts 30</li>
+<li class="panel track">SQT wind 12 km/h, gusts 18</li>
+<li class="panel track">LAN wind 18 km/h, gusts 25</li>
+<li class="panel track">CWR wind 46 km/h, gusts 58</li>

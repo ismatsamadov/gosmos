@@ -1,0 +1,8 @@
+01:16:08 pass cirrine-1/LAN/17759    11m5s
+01:16:08   worker                       0s
+01:16:08   fly                      17m10s
+01:36:52 pass furrow-b/LAN/22379     8m31s
+01:36:52   worker                    8m31s
+02:22:30 pass furrow-a/LAN/22382     3m12s
+02:22:30   worker                       0s
+02:22:30   fly                       3m12s

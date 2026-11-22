@@ -1,0 +1,1 @@
+Each satellite is one job of the group, so no more than `slots` predict at once, and brine-17's failure cancels the group's context: the running predictions stop and `Go` starts nothing more. The mutex keeps the map whole while several jobs finish together, and `Wait` returns only after every job has.

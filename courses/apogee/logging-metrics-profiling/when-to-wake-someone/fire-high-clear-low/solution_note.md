@@ -1,0 +1,1 @@
+With two lines, a value between 0.85 and 0.90 neither fires a rule that isn't firing, since `beforeFiring` waits for 0.90, nor resolves one that is. The disk has to fall below 0.85 to end the problem, so bobbing around 0.90 all night makes one problem instead of a new one every half hour.

@@ -1,0 +1,1 @@
+Indexing the slice hands each method the address of the dish stored in it, so stows and unstows last from one hour to the next and the counts add up; `state` and the last loop only read, so their copies do no harm.

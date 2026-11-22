@@ -1,0 +1,7 @@
+client.go
+command.go
+decode.go
+encode.go
+frame.go
+lines.go
+status.go

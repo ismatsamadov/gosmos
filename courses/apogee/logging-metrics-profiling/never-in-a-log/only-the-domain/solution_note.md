@@ -1,0 +1,1 @@
+Cutting at the first `@` and refusing a second one or an empty side means only a well-formed address is masked, and anything else never reaches the line at all. The domain stays, so a reader still knows which customer the line is about.

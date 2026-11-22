@@ -1,0 +1,1 @@
+The deferred function runs while the panic unwinds out of `run`, and `recover` stops it there. Setting the named result turns the panic into an ordinary error, which `Run` prints before the next prompt.

@@ -1,0 +1,1 @@
+`accept` now returns the one `ErrDuplicate` value, which `errors.Is` recognizes, while a new error with the same text never would. `shouldPage` pages only for an error that isn't `nil` and isn't that sentinel.

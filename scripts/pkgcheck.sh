@@ -1,7 +1,7 @@
 #!/bin/bash
 # pkgcheck.sh <folder>...
 #
-# Checks lesson packages before they are imported (docs/authoring.md, "Checks"), with the Go on
+# Checks lesson packages before the library is built (docs/authoring.md, "Checks"), with the Go on
 # PATH. Each <folder> is a package (it holds README.md) or any folder above packages, such as a
 # chapter's or a whole export. For every package it checks:
 #   - front matter: type, difficulty, topics; the readme's length (60-200 words, quizzes

@@ -1,0 +1,1 @@
+Splitting on one space at a time keeps every empty part, so a doubled space, a tab or a missing part shows up as a wrong count or a bad part and is refused. Only after the shape is right does the version decide between a request the server speaks and a 505.

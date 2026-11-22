@@ -1,0 +1,1 @@
+`Unmarshal` reports one bad entry as an error for the whole array, so returning nil with it leaves no half-read day behind. Swapping a nil result for an empty slice makes `null` and `[]` days alike, and the van's copy always encodes as `[]`.

@@ -1,0 +1,4 @@
+[stdout]
+usage: gctl day [-format json|csv] dir
+[stderr]
+[exit 0]

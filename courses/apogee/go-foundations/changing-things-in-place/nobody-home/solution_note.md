@@ -1,0 +1,1 @@
+Looping by index lets `find` return `&stations[i]`, the address of the element inside the slice, so a change through the pointer changes the slice; when no code matches, the loop ends and `find` returns `nil`.

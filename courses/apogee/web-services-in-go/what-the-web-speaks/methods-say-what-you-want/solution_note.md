@@ -1,0 +1,1 @@
+`http.NewRequest` puts the method you give it at the start of the request line, so each path stays the same while the method says what to do with it: create a booking at `/bookings`, and remove the one at `/bookings/bk-4494`.

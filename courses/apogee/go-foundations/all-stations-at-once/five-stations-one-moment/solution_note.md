@@ -1,0 +1,1 @@
+`wg.Go` counts each poll as it starts it, and `wg.Wait()` returns only after all five have returned, so every `counts[i]` is filled in before the first line prints. The five polls still run at the same time, so the whole round takes about 20 ms instead of 100.

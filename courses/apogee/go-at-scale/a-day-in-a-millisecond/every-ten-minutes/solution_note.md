@@ -1,0 +1,1 @@
+A ticker keeps the beat it had when it was made, so a replan of 20 seconds doesn't push the next tick later, and the day still has its 144 ticks. The `select` returns the moment the context ends, and the deferred `Stop` turns the ticker off as `every` returns.

@@ -1,0 +1,5 @@
+Pre-pass checklist: Pipit-1 over Port Ellery
+1. Confirm the pass time in UTC
+2. Tune the radio to 437.250 MHz
+3. Point the antenna at the rise azimuth
+4. Send the echo message after AOS

@@ -1,0 +1,2 @@
+go test fuzz v1
+string("thistle-2 2290 2029-04-14T05:10:41Z batt_v=7.40")

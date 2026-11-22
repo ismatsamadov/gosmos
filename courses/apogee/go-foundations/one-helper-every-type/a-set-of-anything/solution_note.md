@@ -1,0 +1,1 @@
+`comparable` guarantees that `T` can be a map key, so `Add` stores `v` with an empty struct and `Has` uses the comma-ok lookup. `Intersect` builds a new set from the values of `s` that `other` also holds, leaving both inputs as they were.

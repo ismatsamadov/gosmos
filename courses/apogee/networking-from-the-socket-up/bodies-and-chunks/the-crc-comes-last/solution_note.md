@@ -1,0 +1,1 @@
+The trailer, sent once the recorder has seen the whole pass, takes precedence; a `Content-Length` upload, whose size and CRC were known from the start, may carry the CRC in its header. Parsing as a 32-bit hex number and comparing with the CRC of the bytes actually received refuses both malformed and damaged uploads, and the given `put` keeps nothing it refuses.

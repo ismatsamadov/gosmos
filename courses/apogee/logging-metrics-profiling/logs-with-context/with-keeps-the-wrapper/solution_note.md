@@ -1,0 +1,1 @@
+`With` and `WithGroup` build new loggers on whatever handler these methods return, so returning a `passHandler` around the inner result keeps your `Handle` in every logger made from it, while the inner handler still holds the attributes and the group. The same pattern lets any number of wrappers stack, each keeping itself.

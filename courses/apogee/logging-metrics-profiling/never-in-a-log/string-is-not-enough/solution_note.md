@@ -1,0 +1,1 @@
+The JSON handler resolves a `LogValuer` before it writes anything, so a `Key` now reaches every JSON line as the words fmt prints, and its exported `Secret` is never marshaled. fmt still calls `String` itself, and the text handler now writes what `LogValue` returns, the same words.

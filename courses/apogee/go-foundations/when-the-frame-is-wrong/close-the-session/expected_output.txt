@@ -1,0 +1,6 @@
+open YST
+pass ok
+close YST
+open CWR
+pass failed: wind 81 km/h
+close CWR

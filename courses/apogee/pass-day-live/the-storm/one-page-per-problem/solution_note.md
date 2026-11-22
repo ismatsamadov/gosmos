@@ -1,0 +1,1 @@
+Each contact reports its outcome at its LOS, and a pager goroutine evaluates both rules for every station on each minute of `w.Now()`, once every pass ending by then has reported. Firing state kept by rule and station turns counts into one page per problem, routed by the rota at the minute it fires, with its RESOLVED to the same person.

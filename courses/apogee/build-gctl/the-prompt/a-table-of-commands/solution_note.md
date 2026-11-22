@@ -1,0 +1,1 @@
+The comma-ok lookup tells a missing name from a known one, so unknown commands keep their answer and known ones run with the words after their name. `cmdHelp` sorts the names first because a map has no fixed order, and the table holds `cmdHelp` as a function value that `dispatch` calls through `run`.

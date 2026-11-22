@@ -1,0 +1,1 @@
+The parser refuses any line that isn't exactly one command and one last signature, and everything else goes through `Accept`, which records nothing until the canonical form, the signature and the number all check out. Ten different bad lines end in ten refusals, and the guard still holds 119.

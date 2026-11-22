@@ -1,0 +1,1 @@
+The wildcard makes the mux send every `/stations/<code>` to `getStation`, and `PathValue` hands the handler that code exactly as sent, so `SQT` is found and `sqt` gets the handler's own 404. A path with no segment after `/stations/`, or one too many, matches no pattern, and the mux answers 404 itself.

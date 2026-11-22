@@ -1,0 +1,1 @@
+The deferred `Close` is registered as soon as there is a body to close, so it runs on every return after it: the status error, the decode error and the success. No answer, whatever its status or its JSON, keeps its connection busy any more.

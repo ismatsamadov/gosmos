@@ -1,0 +1,1 @@
+Reading the time through `c.now()` lets tests step the clock from 04:00 to 04:10 without waiting. `refresh` records when the passes were loaded, and `passes` loads again once that moment plus the time to live is no longer in the future.

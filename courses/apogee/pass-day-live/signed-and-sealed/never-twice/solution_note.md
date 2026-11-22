@@ -1,0 +1,1 @@
+The WELCOME after a lost line carries the satellite's `last`, which says whether the command in flight ran: if so it counts as answered, and if not its own bytes go up again under the same number, so the satellite runs it at most once. A copy refused as replayed proves the first copy ran after the line dropped.

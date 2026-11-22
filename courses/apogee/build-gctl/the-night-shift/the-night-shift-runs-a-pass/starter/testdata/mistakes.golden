@@ -1,0 +1,40 @@
+gctl> stow CWR wind 74 km/h
+CWR stowed: wind 74 km/h
+gctl> stow CWR gusts
+error: CWR is already stowed
+gctl> stow cwr
+error: unknown station "cwr"
+gctl> passes PEL YST
+error: passes takes at most one station code
+gctl> passes ZZZ
+error: unknown station "ZZZ"
+gctl> next now
+error: next takes no arguments
+gctl> nxt
+unknown command "nxt"; type help
+gctl> passes
+04:12-04:21 PEL pipit-1 max 61.4
+04:31-04:40 YST pipit-2 max 47.2
+04:58-05:06 CWR furrow-a max 33.5 (stowed)
+05:20-05:26 LAN brine-3 max 22.8
+05:47-05:57 YST cirrine-1 max 71.9
+gctl> help
+exit      leave the shell
+help      list every command
+history   list the commands typed so far
+next      show the next pass
+passes    list tonight's passes
+stations  list the stations and which are stowed
+stow      record a stow: stow CODE [reason...]
+gctl> history
+  1  stow CWR wind 74 km/h
+  2  stow CWR gusts
+  3  stow cwr
+  4  passes PEL YST
+  5  passes ZZZ
+  6  next now
+  7  nxt
+  8  passes
+  9  help
+ 10  history
+gctl> bye

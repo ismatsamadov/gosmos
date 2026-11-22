@@ -1,0 +1,1 @@
+`WriteTo` sends the frame as one datagram to the live view's port, and `ReadFrom` returns all 70 bytes of it at once, with the address it came from. That address is the recorder socket's own `LocalAddr`, so their strings match.

@@ -1,0 +1,1 @@
+The HMAC covers the timestamp and the exact body bytes, so changing either one, or signing with another secret, gives different digits. `post` signs `body`, the same slice it sends, so the receiver's own computation over the bytes that arrive matches.

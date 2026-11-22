@@ -1,0 +1,1 @@
+Every check can only produce an error, and any error ends in a 401 and a `return`, so the one way to reach `next` is a token that passed all of them: the guard fails closed. The customer travels in a copy of the request's context, where the handlers behind it read it with `customerFrom`.

@@ -1,0 +1,1 @@
+`Enabled` asks the handler the same question it would ask of the record, before the record exists, so at INFO `logFrame` returns without calling `dump` or making anything. With a `LevelVar` the handler's answer follows the level as it is at each call, so the next frame after the night shift turns the station up is dumped.

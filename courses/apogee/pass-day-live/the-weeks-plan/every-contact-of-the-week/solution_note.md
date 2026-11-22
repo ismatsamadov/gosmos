@@ -1,0 +1,1 @@
+Each station is planned on its own, since stations never share a dish, and `assign` gives each candidate the first dish free at its AOS or drops it. Sorting every contact by AOS then pass ID before writing puts each in its AOS's file in the order the dish loaders read, and the rename means no reader ever sees half a day.

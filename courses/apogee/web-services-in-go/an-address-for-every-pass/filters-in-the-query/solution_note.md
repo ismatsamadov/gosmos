@@ -1,0 +1,1 @@
+An empty value matches every pass, so one loop serves any mix of filters, and the checks run before the loop, so an unknown value gets its 400 before anything is written. A list made with `[]PassView{}` is empty but not nil, which `encoding/json` writes as `[]`.

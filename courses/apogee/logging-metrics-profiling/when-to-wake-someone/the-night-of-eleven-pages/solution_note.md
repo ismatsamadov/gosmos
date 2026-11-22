@@ -1,0 +1,1 @@
+`pass-failures` fires at the second failure in six hours, at 20:21, and stays firing until the last failure leaves the window at 08:45, so Tomás gets one page and one RESOLVED. Each single failure is a Warning, which the router sends to the morning list, and the disk at two thirds never reaches 0.90.

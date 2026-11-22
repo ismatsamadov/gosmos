@@ -1,0 +1,1 @@
+A SHA-256 digest can't be steered: no known arithmetic finds bytes that bring a changed file back to a given digest, so Mirela's four bytes help her nothing. Any change to the file gives 64 hex digits that look unrelated, and even the empty file has a digest of its own.

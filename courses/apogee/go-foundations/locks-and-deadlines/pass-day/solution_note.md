@@ -1,0 +1,1 @@
+Each station runs in its own goroutine and builds its report without any lock, so the mutex is held only while that report is added to the total. Every pass gets a context that ends at its LOS, and once a pass reports `ErrStowed`, the station counts its remaining passes as skipped instead of running them.

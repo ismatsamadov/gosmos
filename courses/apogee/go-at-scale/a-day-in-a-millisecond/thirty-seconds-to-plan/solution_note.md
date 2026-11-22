@@ -1,0 +1,1 @@
+The child context ends at `limit` or with its parent, whichever comes first, and the deferred `cancel` ends it as soon as the run returns. `errors.Is` picks out the deadline and `%w` keeps `context.DeadlineExceeded` inside the clearer message, while a run its caller canceled, or one that failed on its own, returns its error unchanged.

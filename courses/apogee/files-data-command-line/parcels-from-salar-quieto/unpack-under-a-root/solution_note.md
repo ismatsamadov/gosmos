@@ -1,0 +1,1 @@
+Every name goes through the root, so `MkdirAll` and `Create` refuse a link or a `..` that leads out of the folder, which `IsLocal` cannot see from the text alone. The limited copy stops one byte past the limit, so a file that swells never fills the stick.

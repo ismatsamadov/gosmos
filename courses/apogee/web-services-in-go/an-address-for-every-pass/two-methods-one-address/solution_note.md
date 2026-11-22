@@ -1,0 +1,1 @@
+`DELETE` and `GET` share the path, so the mux picks the handler by method and answers any other method with 405 and `Allow: DELETE, GET, HEAD`. `cancelBooking` writes only the 204 status, and a second cancellation finds nothing to delete and gets the same 404 as a GET.

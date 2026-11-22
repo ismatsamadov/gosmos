@@ -1,0 +1,1 @@
+Every route makes the lobby's answer from the same view through `forLobby`, which copies the passes, so no booking ID, note or on-call name reaches reception while the Fishbowl's screen keeps them. A separate ETag keeps the two versions of the data apart, and the golden files hold the whole night to all of it.

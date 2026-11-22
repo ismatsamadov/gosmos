@@ -1,0 +1,1 @@
+Checking the error first means a failed command never leaves results on standard output, even partial ones, and its one diagnostic line goes where scripts don't read results. The status then tells a script an empty report, 0, from a failure, 1.

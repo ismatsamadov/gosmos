@@ -1,0 +1,1 @@
+Strict decoding settles what the envelope says before anything trusts it, and the version switch turns version 1 into today's form while refusing versions nobody has described. The ID travels as an `int64` from the JSON into every error, so each report the van refuses can be asked for again by its exact number.

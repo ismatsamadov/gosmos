@@ -1,0 +1,1 @@
+`Clone` copies every value into a header of its own, so writing `[redacted]` over the copy's values leaves the request's header whole for the code that still needs it. A header's methods keep names in canonical form, so the four canonical names find a secret however its sender spelled the name.

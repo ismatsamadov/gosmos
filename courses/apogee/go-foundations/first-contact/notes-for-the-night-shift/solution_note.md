@@ -1,0 +1,1 @@
+With `//` in front of them, the two DEBUG calls are comments: they stay in the file for the night shift but never run, so only the three log lines print. The comment at the top of `main` is the other use of `//`, a note for people.

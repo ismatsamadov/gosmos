@@ -1,0 +1,1 @@
+`pbkdf2.Key` repeats its HMAC-SHA256 round 600,000 times, and there is no shortcut: anyone testing a guess against a stolen record must run every round, as the console does once per login. The salt still makes each record its own target, so the cost is paid again for every record and every guess.

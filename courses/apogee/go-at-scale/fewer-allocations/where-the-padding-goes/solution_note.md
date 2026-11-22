@@ -1,0 +1,1 @@
+Each `mark` paints a field's bytes from its offset, so the dots left over are the padding: six bytes after `Station`, because `AOS` must start at a multiple of 8, and two at the end, which round the size up to 32. Tomás's 24 bytes are all there, spread over 32.

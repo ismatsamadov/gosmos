@@ -1,0 +1,1 @@
+Closing `frames` after the last send tells the receiver that nothing more is coming: `range` takes the four frames, finds the channel closed and empty, and ends, so `main` reaches its summary line. Only `poller`, the sender, closes the channel, and only once.

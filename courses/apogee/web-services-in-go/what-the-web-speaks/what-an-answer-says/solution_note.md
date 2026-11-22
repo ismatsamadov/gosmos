@@ -1,0 +1,1 @@
+`ServeHTTP` runs the stand-in's code for the request, and everything it writes, the status, the `Content-Type` header and the JSON, lands in the recorder, which `printResponse` reads back. No connection is made: the handler is called like any other function.

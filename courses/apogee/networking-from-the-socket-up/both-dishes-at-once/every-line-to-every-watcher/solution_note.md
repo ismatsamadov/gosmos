@@ -1,0 +1,1 @@
+The lock is held only while the set is copied, so watchers can join and leave while lines are written, and no write keeps the lock from anyone. Each failed write removes only its own watcher and the loop goes on, so every watcher still listening gets every line.

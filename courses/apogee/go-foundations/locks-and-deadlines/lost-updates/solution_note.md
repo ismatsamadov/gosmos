@@ -1,0 +1,1 @@
+The mutex lets one `Add` at a time read and write `c.frames`, so no increment is lost and the map is never written by two goroutines at once. The deferred `Unlock` releases it as `Add` returns, and a missing key starts at 0, so a satellite's first frame counts as 1.

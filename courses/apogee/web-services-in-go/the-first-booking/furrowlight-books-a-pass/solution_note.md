@@ -1,0 +1,1 @@
+`createBooking` runs the checks in order and hands the first failure to `writeError` untouched, so each keeps its own status, and nothing reaches `Create` until every check has passed. The store's conflict becomes a 409 with its own message, and `Location` is set before `writeJSON` writes the headers, so it travels with the 201.

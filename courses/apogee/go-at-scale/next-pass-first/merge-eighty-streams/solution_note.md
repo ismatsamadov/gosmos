@@ -1,0 +1,1 @@
+The queue holds one head per sequence, so its smallest head is the smallest value left anywhere, and each pop costs about log k steps for k sequences instead of a sort of everything. `byHead` breaks ties by index, so equal values keep their sequences' order, and the deferred `stop` calls end every source when the merge returns, finished or not.

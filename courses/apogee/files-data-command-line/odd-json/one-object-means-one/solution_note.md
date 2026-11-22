@@ -1,0 +1,1 @@
+Only `io.EOF` proves that nothing but white space followed the object. Every other result, a second object, a stray brace or a word, becomes `ErrTrailing`, and the first object is never used on its own.

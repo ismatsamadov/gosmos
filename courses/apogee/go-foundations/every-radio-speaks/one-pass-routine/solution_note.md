@@ -1,0 +1,1 @@
+Every radio type has a `RateMbps() float64` method, so each satisfies `Radio` once the interface lists it. `downlinkSeconds` calls the method through `r` without knowing which radio it holds, and turns megabytes into megabits before dividing by the rate.

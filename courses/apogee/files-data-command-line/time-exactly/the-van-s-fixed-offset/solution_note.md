@@ -1,0 +1,1 @@
+`FixedZone` builds the van's clock from the offset alone, with no time zone files, and `In` shows the same instant on it. The instant never moves, so the van's 20:30 on the 22nd and 03:30 UTC on the 23rd stay equal.

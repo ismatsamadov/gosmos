@@ -1,0 +1,1 @@
+Every secret now comes from one file whose only source of bytes is `crypto/rand`: keys of 32 bytes, nonces of 12 and salts of 16 from `rand.Read`, and tokens from `rand.Text`. A reviewer reads one file, and a test can check that nothing anywhere imports `math/rand`.

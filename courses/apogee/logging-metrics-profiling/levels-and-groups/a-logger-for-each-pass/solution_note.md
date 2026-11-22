@@ -1,0 +1,1 @@
+`With` makes a logger whose handler already holds the pass's ID and group, so every record the pass's code writes through it carries them, whichever step writes it. Each pass gets its own logger from the same parent, so two passes logging at once can't swap their lines, and the parent stays as it was.

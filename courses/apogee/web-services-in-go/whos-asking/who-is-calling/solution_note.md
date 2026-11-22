@@ -1,0 +1,1 @@
+`strings.Cut` splits the header at its first space, `EqualFold` matches the scheme in any letter case, and an empty credential counts as none, so a missing header, another scheme and a bare `Key` all get the same 401.

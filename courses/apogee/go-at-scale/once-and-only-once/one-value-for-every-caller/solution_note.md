@@ -1,0 +1,1 @@
+`sync.OnceValues` wraps `load` in a function that calls it the first time and hands its two results to every caller from then on, so a hundred screens cost one load. The error is kept like the network, which is right for a table that is either there or not, and each call of `networkOnce` makes a function with a once of its own.

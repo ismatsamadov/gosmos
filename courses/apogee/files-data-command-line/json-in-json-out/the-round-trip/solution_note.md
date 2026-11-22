@@ -1,0 +1,1 @@
+Decoding and encoding with the same tagged type sends every field back under the key it came with, and the ID byte for byte. Refusing an empty ID between the two means no reply leaves the van that Yusra could not match.

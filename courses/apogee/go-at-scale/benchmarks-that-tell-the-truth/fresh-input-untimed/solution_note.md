@@ -1,0 +1,1 @@
+Each turn plans a clone of the day as `stationDay` predicted it, so `planDay` always sorts 360 unsorted candidates, and `day` itself is never sorted. The clone is made while the timer is stopped, so neither its time nor its allocation counts: each turn shows `planDay`'s own 9.

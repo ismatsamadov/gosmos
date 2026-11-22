@@ -1,0 +1,1 @@
+With `|` refused inside every field, and every field at least one character long, a canonical text splits into fields in exactly one way, so no two commands share a text and no signature fits two commands. The errors name the field, so whoever wrote the command can see what to fix.

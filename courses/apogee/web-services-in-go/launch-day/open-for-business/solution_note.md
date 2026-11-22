@@ -1,0 +1,1 @@
+Starting the notifier from the outbox resumes Cirrine's event with its two attempts, so it goes out as the third under the same ID, and the next landing continues the saved count as `evt-000118`. Stopping it only after `Shutdown` lets the old process finish what it took on, and `Stop` saves whatever is still pending, so nothing promised to a customer is lost in between.

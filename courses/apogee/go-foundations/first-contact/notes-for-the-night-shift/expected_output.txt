@@ -1,0 +1,3 @@
+Pass log: Pipit-1 over Port Ellery
+AOS 04:12 UTC, LOS 04:21 UTC
+Echo received: Apogee ground calling Pipit-1

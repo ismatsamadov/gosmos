@@ -1,0 +1,1 @@
+Numbering once and keeping the same frame in flight means every retry carries the command's own number, so the controller can run it only once. `connect` and `resume` decide from the controller's count whether a retry is needed at all, and `settle` turns the last answer into nil or a `*NakError`.

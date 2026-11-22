@@ -2,11 +2,11 @@
 
 Everything needed to add a lesson, a chapter or a course, to work out a number the story
 needs, or to fix what is there, is in this repository: the tools in `cmd/` and `scripts/`, the
-plans and the world in `docs/`. Work in progress lives in a scratch folder under `$TMPDIR` and
-is never needed afterwards: the library is the only stored copy of every lesson and story, and
-the docs hold every decision. The rules the steps rely on live in the story bible
-(`docs/apogee/story/style.md`, Style guide and Naming rules) and the library format
-(`docs/library-format.md`); where they say more, they win.
+plans and the world in `docs/`. Every lesson and story is text in the series' library folder,
+`courses/apogee/` for Apogee, the only stored copy of each; `make library` builds the library
+file the app carries from it, and the docs hold every decision. The rules the steps rely on
+live in the story bible (`docs/apogee/story/style.md`, Style guide and Naming rules) and the
+library format (`docs/library-format.md`); where they say more, they win.
 
 ## What every course is
 
@@ -18,8 +18,8 @@ the docs hold every decision. The rules the steps rely on live in the story bibl
 - **Offline.** Standard library only, for the built-in Go (1.27.3). No lesson needs the
   network, a server, GitHub or anything outside the app. No pictures, videos, embeds or links
   that leave the app.
-- **Built in.** A course ships inside a library in `courses/` and is checked like code
-  before it merges.
+- **Built in.** A course ships inside a library built from `courses/`, and is checked like
+  code before it merges.
 
 ## The tools
 
@@ -27,16 +27,17 @@ All run from the repository's folder.
 
 | Command | What it does |
 |---|---|
-| `go run ./cmd/author help` | Prints the two package formats: a lesson package, and a course's story package (opening, briefings and debriefs, field guide) |
-| `go run ./cmd/author export <library> --course <c> [--chapter <ch> \| --story] <folder>` | Writes a course's lessons, one chapter's, or its story out as packages to work on |
-| `go run ./cmd/author course\|chapter\|lesson\|story <library> …` | Adds or replaces a course, a chapter, a lesson or a course's story, in place; `go run ./cmd/author` lists the flags |
-| `scripts/pkgcheck.sh <folder>` | Checks lesson packages before import (below); `QUICK=1` in front for a fast first pass |
+| `go run ./cmd/author help` | Prints the formats: a lesson package, a course's story package (opening, briefings and debriefs, field guide), and a library folder |
+| `make library` | Builds `courses/apogee.sqlite` from `courses/apogee/` (`go run ./cmd/author build`): the same text makes the same file, and every uuid comes from the slugs, so learners keep their progress |
+| `go run ./cmd/author export <library> [--course <c> [--chapter <ch> \| --story]] <folder>` | Writes a library file out as text: the whole library as a library folder, or a course's lessons, one chapter's, or its story |
+| `go run ./cmd/author course\|chapter\|lesson\|story <library> …` | Adds or replaces a course, a chapter, a lesson or a course's story in a library file, in place; for a scratch library, never the repository's, which is built |
+| `scripts/pkgcheck.sh <folder>` | Checks lesson packages (below); `QUICK=1` in front for a fast first pass |
 | `go run ./cmd/library check <library>` | The checks the app makes before it opens a library |
 | `go run ./cmd/library verify [--course <c>] --teaching <library>` | Runs every code lesson: it must pass with its solution and fail with its starter; also wants the hints, solution notes and quiz explanations |
 | `go run ./cmd/library drift [--course <c>] [--diff] <library>` | Lists given code (read-only and hidden files) that changes between lessons without a lesson changing it |
 | `go run ./cmd/passes --from <day> [--to <day>] [--sat <ids>] [--station <codes>]` | The passes of the Apogee world: pass ID, AOS, LOS, maximum elevation |
 | `app/scripts/snapshot.sh <out.png> <light\|dark> [launch arguments]` | Draws one screen of a copy of the app to a PNG |
-| `make test`, `make check`, `make verify`, `make install` | The whole repository's tests, the libraries' checks, every lesson run, the app installed |
+| `make test`, `make check`, `make verify`, `make install` | The whole repository's tests, the libraries' checks, every lesson run, the app installed; `check`, `verify` and `install` build the library first |
 
 ## Where things go
 
@@ -45,63 +46,57 @@ All run from the repository's folder.
 | The world, the cast, the code the learner grows, the writing rules | the series' story bible: `docs/apogee/story.md` for Apogee, `docs/<series>/story.md` for a new world |
 | The plan of every chapter and lesson | `docs/<series>/<course slug>.md`, in the format of `docs/apogee/go-foundations.md`, ending with "Changes in writing and review" |
 | The first chapter written out in full | `docs/<series>/sample-chapter-1.md`, for a new series; a new Apogee course adds its own calibration chapter beside it |
-| The lessons and each course's story | the series' library: Apogee's courses are in `courses/apogee.sqlite`; a new series gets `courses/<series>.sqlite` |
-| Work in progress: packages, story files, a copy of the library | a scratch folder, `$TMPDIR/<course slug>/`, never committed |
+| The lessons and each course's story | the series' library folder, as `go run ./cmd/author help` describes it: `courses/apogee/<course>/` holds `course.md`, `story/` and a folder for each chapter, with its `chapter.md` and a lesson package for each lesson; a new series gets `courses/<series>/` |
+| The library file the app carries | `courses/apogee.sqlite`, built by `make library` and never committed |
+| Notes, screenshots and other scratch work | a scratch folder, `$TMPDIR/<course slug>/` (`$W` below), never committed |
 
-Never import into `courses/apogee.sqlite` while working. Work on a copy, and copy it back only
-when every check passes:
-
-```sh
-W=$TMPDIR/<course slug>
-mkdir -p $W && cp courses/apogee.sqlite $W/lib.sqlite
-```
-
-Never edit a library by hand either: the tools keep its tables, keys and search index
-consistent.
+Work on a branch, in the packages themselves. After a change, `make library` builds the file
+the checks, `verify` and the app read. Never edit a library file by hand, or import into the
+built one: the next build replaces it, and only the text is kept.
 
 ## Adding a lesson to a course
 
 1. **Plan it.** Add its entry to the course's syllabus: objective, scenario, exercise, check,
    difficulty, slug and type, in its place in the chapter. Anything new in the world (a
    person, a station, a number) goes into the bible first.
-2. **Export its chapter** to see its neighbors:
-   `go run ./cmd/author export $W/lib.sqlite --course <c> --chapter <ch> $W/packages/<ch>`.
-   A lesson whose code continues another's starts from that lesson's solution; in a guided
-   project every lesson does.
-3. **Write the package** in `$W/packages/<ch>/<lesson>/`, in the format `author help` prints:
-   front matter and readme, `starter/`, `solution/`, `hints.md`, `solution_note.md`, and
-   `expected_output.txt` or `quiz.md`. The style guide is the law. A pass in it comes from
-   `cmd/passes`, any other number from the bible or from running the code (see Calculating
-   the world).
-4. **Make room.** Positions count from 0 and each is used once in a chapter: `author lesson`
-   refuses a taken one. To put a lesson between two others, raise the `position:` of every
-   lesson after it in its package and import those again, the last one first.
-5. **Check it:** `scripts/pkgcheck.sh $W/packages/<ch>/<lesson>`, until it prints `ok`.
-6. **Import and check the copy:**
+2. **Read its neighbors** in its chapter's folder, `courses/apogee/<c>/<ch>/`. A lesson whose
+   code continues another's starts from that lesson's solution; in a guided project every
+   lesson does.
+3. **Write the package** in `courses/apogee/<c>/<ch>/<lesson>/`, in the format `author help`
+   prints: front matter and readme, `starter/`, `solution/`, `hints.md`, `solution_note.md`,
+   and `expected_output.txt` or `quiz.md`. Its front matter ends with `created:` and
+   `modified:`, both the time you write it, in UTC. The style guide is the law. A pass in it
+   comes from `cmd/passes`, any other number from the bible or from running the code (see
+   Calculating the world).
+4. **Make room.** Positions count from 0 and each is used once in a chapter. To put a lesson
+   between two others, raise the `position:` of every lesson after it, and set their
+   `modified:`.
+5. **Check it:** `scripts/pkgcheck.sh courses/apogee/<c>/<ch>/<lesson>`, until it prints `ok`.
+6. **Build and check the library:**
 
    ```sh
-   go run ./cmd/author lesson $W/lib.sqlite --course <c> --chapter <ch> $W/packages/<ch>/<lesson>
-   go run ./cmd/library check $W/lib.sqlite
-   go run ./cmd/library verify --course <c> --teaching $W/lib.sqlite
-   go run ./cmd/library drift --course <c> $W/lib.sqlite
+   make library
+   go run ./cmd/library check courses/apogee.sqlite
+   go run ./cmd/library verify --course <c> --teaching courses/apogee.sqlite
+   go run ./cmd/library drift --course <c> courses/apogee.sqlite
    ```
 
 7. **Tell the story.** A world word the readme uses for the first time needs a card in the
-   field guide; a lesson that now ends its chapter may need the debrief changed. Export the
-   story (`author export … --story $W/story`), edit `terms.md` or `chapters.md`, and import it
-   (`go run ./cmd/author story $W/lib.sqlite --course <c> $W/story`). See
+   field guide; a lesson that now ends its chapter may need the debrief changed. Edit
+   `terms.md` or `chapters.md` in `courses/apogee/<c>/story/`, then build again. See
    `docs/storytelling.md`.
 8. **See it in the app** (below).
-9. **Ship it.** `cp $W/lib.sqlite courses/apogee.sqlite`, note in the syllabus what changed
-   from its plan, then `make test`, `make check` and `make verify`. The syllabus, any bible
-   change and the library go into one branch and one pull request.
+9. **Ship it.** Note in the syllabus what changed from its plan, then `make test`, `make
+   check` and `make verify`. The syllabus, any bible change and the packages go into one
+   branch and one pull request, which shows every change as text.
 
 ## Adding a chapter
 
-`go run ./cmd/author chapter $W/lib.sqlite --course <c> --slug <ch> --title "<title>"
---description "<description>" --position <n>` with the syllabus's title and description, then
-each lesson as above, and a briefing and a debrief for the chapter in the story's
-`chapters.md` (at most 70 and 50 words; `docs/storytelling.md` says what they hold).
+A folder `courses/apogee/<c>/<ch>/`, named for the chapter's slug, with a `chapter.md`: its
+slug, title and position as front matter, then the syllabus's description (`author help`
+shows one). Then each lesson as above, and a briefing and a debrief for the chapter in the
+story's `chapters.md` (at most 70 and 50 words; `docs/storytelling.md` says what they hold).
+To put a chapter between two others, raise the `position:` of every chapter after it.
 
 ## Adding a course
 
@@ -113,7 +108,7 @@ Every Gosmos course is made the way Go Foundations was:
    an entry for every lesson. Keep Go Foundations' rhythm: chapters of 7 to 10 lessons, a quiz
    right after the idea it checks, a slightly larger lesson closing most chapters, difficulty
    rising gently from 1 to 10.
-2. **Calibrate.** Write the first chapter in full, import it and read it in the app before
+2. **Calibrate.** Write the first chapter in full, build it and read it in the app before
    anything else is written. What it teaches goes into the bible or the syllabus, so every
    later lesson starts right. A guided project builds its whole program and any hidden test
    harness first: each lesson's solution is then a cut of that program, with that lesson's
@@ -122,23 +117,23 @@ Every Gosmos course is made the way Go Foundations was:
    parallel). Each lesson is written as in Adding a lesson.
 4. **Review.** Someone who didn't write a chapter checks every lesson of it against the
    checklist below and fixes the packages.
-5. **Tell the story** as `docs/storytelling.md` says: `opening.md`, the pages before the
-   first lesson; `chapters.md`, a briefing and a debrief for each chapter; and `terms.md`, the
-   field guide. `author course` makes the course, `author story` imports its story.
-6. **Import** into the copy: `author course`, then `author chapter` for each chapter, then
-   `author lesson` for every package, then `author story`. Run `check`, `verify --teaching`
-   and `drift` on the copy. Importing a lesson again replaces it in place and keeps its uuid,
-   so learners keep their progress; importing the story again replaces the whole story.
+5. **Tell the story** as `docs/storytelling.md` says, in the course's `story/`: `opening.md`,
+   the pages before the first lesson; `chapters.md`, a briefing and a debrief for each
+   chapter; and `terms.md`, the field guide. The course itself is `course.md` in its folder,
+   `courses/apogee/<c>/`: slug, title, kind, position and short description as front matter,
+   then the description.
+6. **Build** with `make library`, and run `check`, `verify --teaching` and `drift`. Every uuid
+   comes from the slugs, so a lesson changed and built again keeps its uuid, and learners
+   keep their progress; never rename a slug that has shipped.
 7. **See it** in the app, every chapter.
 8. **Ship.** As for a lesson. Then write the syllabus's "Authoring status" and "Changes in
    writing and review", and bring the bible up to date with what writing and review settled.
 
 ## Fixing a lesson
 
-1. Export its chapter (and its story, if the fix touches it), edit the package, run
-   `pkgcheck`, import it into the copy, and run `check`, `verify --teaching` and `drift` for
-   the course. Importing replaces the lesson in place and keeps its uuid, so learners keep
-   their progress.
+1. Edit its package in `courses/apogee/<c>/<ch>/<lesson>/`, set its `modified:` to now, run
+   `pkgcheck`, then `make library`, and `check`, `verify --teaching` and `drift` for the
+   course. The lesson keeps its uuid, so learners keep their progress.
 2. **Code that carries forward.** When later lessons give this lesson's code as read-only or
    hidden files, or start from its solution (every lesson of a guided project does), the same
    fix goes into each of them: their starters and their solutions. `library drift --course
@@ -146,7 +141,7 @@ Every Gosmos course is made the way Go Foundations was:
 3. **Shared hidden files.** A harness hidden in many lessons, such as the capstone's
    `sim_*_test.go` files, stays byte for byte the same in every lesson that has it: change
    every copy, then verify the whole course.
-4. **The story.** `author export … --story`, edit, `author story`.
+4. **The story.** Edit the course's `story/` files, then build.
 5. **Say why.** A fix that changes what a lesson teaches or tests goes into the syllabus's
    "Changes in writing and review".
 
@@ -207,7 +202,7 @@ in them.
 
 ## Checks
 
-- **`scripts/pkgcheck.sh`**, on packages before import: the front matter; a readme of 60 to
+- **`scripts/pkgcheck.sh`**, on packages before a build: the front matter; a readme of 60 to
   200 words (a quiz's 60 to 120) with `## Your task` and no H1, picture or embed, its code
   lines at most 50 characters (the app's readme column wraps longer ones); 2 or 3 hints and a
   solution note of 1 to 3 sentences; gofmt; the solution passing 30 runs in a row (a tests
@@ -240,12 +235,12 @@ in them.
 ## Seeing it in the app
 
 Tests can't see how a lesson reads. Build the app once (`make app`), then draw any screen of a
-copy of it with your library:
+copy of it with the library as you last built it:
 
 ```sh
-L=$(sqlite3 $W/lib.sqlite "SELECT l.uuid FROM lesson l JOIN chapter ch ON ch.uuid = l.chapter_uuid
+L=$(sqlite3 courses/apogee.sqlite "SELECT l.uuid FROM lesson l JOIN chapter ch ON ch.uuid = l.chapter_uuid
   WHERE ch.slug = '<ch>' AND l.slug = '<lesson>'")
-QA_LIBRARY=$W/lib.sqlite app/scripts/snapshot.sh $W/shots/readme.png dark -GosmosOpenLesson $L
+QA_LIBRARY=courses/apogee.sqlite app/scripts/snapshot.sh $W/shots/readme.png dark -GosmosOpenLesson $L
 QA_DELAY=8 app/scripts/snapshot.sh $W/shots/submit.png dark -GosmosOpenLesson $L -GosmosLaunchAction submit
 app/scripts/snapshot.sh --clean
 ```
@@ -277,9 +272,9 @@ contradicts the story or an earlier lesson.
 
 - A new data folder starts in the first course's opening. To see another course's, give the
   copy a throwaway library holding only that course (`PRAGMA foreign_keys=ON; DELETE FROM
-  course WHERE slug <> '<c>'` on a copy of your copy). Mission Control with a chapter's
-  briefing needs the opening marked seen: the `openings_seen` setting (`<library uuid>/<course
-  uuid>`, one a line) in the data folder's `learner.sqlite`. The teaser after a pass, and the
+  course WHERE slug <> '<c>'` on a copy of the built library, `$W/one.sqlite`). Mission
+  Control with a chapter's briefing needs the opening marked seen: the `openings_seen` setting
+  (`<library uuid>/<course uuid>`, one a line) in the data folder's `learner.sqlite`. The teaser after a pass, and the
   debrief on the pass that finishes a chapter, show after `submit` once that `learner.sqlite`
   holds the lesson's solution files in `code_file` (and, for the debrief, the chapter's other
   lessons as done in `progress`).
@@ -287,23 +282,12 @@ contradicts the story or an earlier lesson.
   with dark labels) and the sidebar's list: judge those in the app itself. A light shot can
   come out with text missing: trust the dark one, or take it again.
 
-## Branches: the library is one binary file
+## Branches
 
-Git can't merge two branches that both change `courses/apogee.sqlite`. Keep one content branch
-open at a time. When two must overlap, base the second on the first and merge them in that
-order (retarget the second to `main` before the first's branch is deleted). To carry a fix
-from the lower branch into the higher one:
-
-1. `git merge --no-commit <lower>`, then `git checkout --ours courses/apogee.sqlite`.
-2. Import the same fixed packages and story into it (`author lesson`, `author story`, `author
-   chapter` or `author course` for a changed row).
-3. `git add courses/apogee.sqlite` again after importing (adding it before keeps the old
-   file), then commit.
-4. Check the committed file, not the working one: export it from `git show
-   <branch>:courses/apogee.sqlite` and compare with the fixed packages, then run `check` and
-   `verify`.
-
-A docs-only branch whose library is identical to its base's merges as usual.
+The lessons are text, so content branches diff, review and merge like code: two branches that
+change different lessons merge on their own, and a conflict is in the lines both changed.
+After a merge, `make library` builds the library from the merged text; run `check` and
+`verify` on it as on any change.
 
 ## Working in parallel
 
@@ -311,7 +295,8 @@ Writers, reviewers and readers can work at the same time, one chapter each. Each
 
 - this page, `docs/storytelling.md`, the bible and the course's syllabus to read first, and
   the shipped lessons of the course (exported) as the quality bar;
-- their chapter's syllabus entries and a fresh copy of the library to import into;
+- their chapter's syllabus entries and a branch or worktree of their own, whose
+  `courses/apogee/` they write in and build;
 - for a reviewer or a reader, the packages to check, fixed in place.
 
 Each hands back the packages (and story files: a chapter's `chapters.md` entries and its new

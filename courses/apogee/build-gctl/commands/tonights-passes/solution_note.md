@@ -1,0 +1,1 @@
+Cloning first leaves `s.passes` in the schedule's order, and `SortFunc` with `AOS.Compare` puts the copy in time order. Each line formats the two times with the `15:04` layout and the elevation with one decimal.

@@ -1,0 +1,1 @@
+The `select` waits for a worker only as long as the pass lasts, and the deferred receive gives the worker back whatever happens next, so no pass can hold one past its own LOS. With the context in `fly` and no goroutine, the radio stops at LOS too, and every failure now says why: `no ack before LOS` or `no free worker before LOS`.

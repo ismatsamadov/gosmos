@@ -1,0 +1,1 @@
+Help, misuse and failure each get their own stream and status, and the report reaches standard output only when the plan was made. Because the golden files hold every byte of a session, an extra newline or a message on the wrong stream fails as clearly as a wrong status.

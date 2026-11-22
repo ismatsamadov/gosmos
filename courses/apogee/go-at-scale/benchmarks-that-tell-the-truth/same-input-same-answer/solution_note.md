@@ -1,0 +1,1 @@
+Lists of different lengths can't hold the same contacts, so the lengths are compared first; after that, the first index whose pass ID or dish differs is the first place the two planners disagree, and returning there names it. Two lists that get through the loop hold the same contacts, in the same order, on the same dishes.

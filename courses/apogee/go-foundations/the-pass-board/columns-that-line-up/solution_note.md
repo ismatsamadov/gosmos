@@ -1,0 +1,1 @@
+`%-13s` pads every name to 13 characters on the right, so each mask starts in the same column, and `%5.1f` right-aligns the masks in 5 characters. The header uses the same widths, with `%5s` because `MASK` is a string.

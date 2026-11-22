@@ -1,0 +1,1 @@
+Adding up the lengths first lets `Grow` allocate one buffer that holds the whole report, so every `WriteString` copies its line in once, and `String` returns that buffer without copying it again. The `+=` version allocated a new string for every line and copied everything before it each time.

@@ -1,0 +1,1 @@
+Writing to the `stdout` parameter lets `main` hand in the real standard output and a test hand in a buffer, and returning the status instead of exiting keeps the test process alive to check it. The same function now runs as a program and under test.

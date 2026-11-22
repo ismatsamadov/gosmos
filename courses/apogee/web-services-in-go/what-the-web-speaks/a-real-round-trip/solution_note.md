@@ -1,0 +1,1 @@
+`http.Get` opens a real connection to the test server on `127.0.0.1`, and the deferred `Close` runs on every return after it, so the body is closed whether or not reading it worked. A 404 is still an answer: `Get` returns no error for it, and its status and plain-text body come back like any other.

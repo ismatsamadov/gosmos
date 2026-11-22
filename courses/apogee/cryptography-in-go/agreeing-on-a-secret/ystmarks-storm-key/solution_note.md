@@ -1,0 +1,1 @@
+Each end uses the other's share only after `readHello` has checked its signature against an identity key it already held, so the machine in the middle is refused before any session key is derived, let alone a DATA line sent. Both ends put the dialer's share first, so they derive the same session key from a secret nobody else holds, from shares made for this session alone.

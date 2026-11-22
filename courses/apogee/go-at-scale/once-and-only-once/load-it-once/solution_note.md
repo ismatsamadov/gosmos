@@ -1,0 +1,1 @@
+The first caller's `Do` runs the load while the other ninety-nine wait in theirs, and once each `Do` returns, the fields the load wrote are there for that caller to read. The error is kept the same way, so every screen hears that the file server is down, from one load.

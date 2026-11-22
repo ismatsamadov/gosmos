@@ -1,0 +1,1 @@
+`b.Loop` runs its body as many times as an accurate measurement needs, inside a single call of `benchPlan`, so the inputs built before the loop are built once and stay out of the time. Each round plans the same three hours, so the time per run is one plan's.

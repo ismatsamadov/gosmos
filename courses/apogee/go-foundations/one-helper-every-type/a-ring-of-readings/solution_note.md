@@ -1,0 +1,1 @@
+Until the ring fills, `Push` appends; after that, `next` always points at the oldest item, so writing there and advancing with `%` keeps the newest `size` items. `Items` reads from `next` to the end and then from the start, which puts them oldest first.

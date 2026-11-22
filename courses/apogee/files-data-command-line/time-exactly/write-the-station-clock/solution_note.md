@@ -1,0 +1,1 @@
+Each part of the layout is the same part of the reference time, so `Mon`, `2`, `Jan`, `2006` and `15:04` become the weekday, day, month, year, hour and minute of `t`. Format leaves the seconds out because the layout has none, and copies the comma and `UTC` as they are.

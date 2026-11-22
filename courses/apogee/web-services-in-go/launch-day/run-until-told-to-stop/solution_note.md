@@ -1,0 +1,1 @@
+The `select` blocks until one of two things happens, so `run` lives exactly as long as the server should. A failure of `Serve` returns at once, without waiting for a signal that may never come, and a canceled context leads to `stop`, which lets the requests in flight finish before `run` returns.

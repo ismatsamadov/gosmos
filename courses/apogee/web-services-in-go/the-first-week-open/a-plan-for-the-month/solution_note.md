@@ -1,0 +1,1 @@
+Taking the month from `now` in UTC starts every customer's count again at the same instant, midnight UTC on the 1st, whatever zone a clock reports, and comparing whole first instants keeps February 2029 apart from February 2028. A 403 that names the next month tells a client that asking again won't help before then, where a 429 would have it retrying every minute.

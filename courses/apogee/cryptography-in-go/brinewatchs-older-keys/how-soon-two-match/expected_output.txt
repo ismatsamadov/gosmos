@@ -1,0 +1,2 @@
+2 bytes: 48 and 307 share bc8c, 308 tries
+3 bytes: 20 and 4774 share f9f338, 4775 tries

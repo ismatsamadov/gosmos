@@ -1,0 +1,1 @@
+`runStow` follows the same path as every gctl command: its own flag set, help and flag mistakes handled by `parseFlags`, a usage error for the wrong number of codes, and `report` for either one record line with status 0 or one failure line with status 1. Flags come before the code, so a reason written after it leaves extra arguments and a usage error.

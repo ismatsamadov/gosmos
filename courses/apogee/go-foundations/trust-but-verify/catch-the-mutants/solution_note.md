@@ -1,0 +1,1 @@
+Each new case sits on a boundary of `seq > last`: a replay (equal) catches `>=`, the next command (one more) catches `> last+1`, and an old command (one less) catches `!=`, while the far-ahead case catches nothing.

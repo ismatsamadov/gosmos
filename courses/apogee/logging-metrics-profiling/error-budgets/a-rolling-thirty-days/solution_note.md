@@ -1,0 +1,1 @@
+The window's start is worked out once from the injected `now`, and each result counts only when it belongs to the station and its LOS is after the start and not after `now`. Counting everything that wasn't flown as lost catches skipped passes as well as failed ones.

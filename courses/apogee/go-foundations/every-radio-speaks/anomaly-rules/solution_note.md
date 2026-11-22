@@ -1,0 +1,1 @@
+Both rule types have a `Check(TelemetryFrame) (string, bool)` method, so both fit in one `[]Rule`, and `evaluate` calls each value's own `Check` in order. Strict comparisons leave readings exactly at a limit alone.

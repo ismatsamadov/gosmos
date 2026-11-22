@@ -1,0 +1,1 @@
+`CompareAndSwap` publishes `s` only if the schedule is still the one `Offer` compared against, so no offer can replace a newer plan that slipped in between the load and the store. When the swap fails the loop compares again, and whatever order the runs finish in, the newest plan is the one that stays.

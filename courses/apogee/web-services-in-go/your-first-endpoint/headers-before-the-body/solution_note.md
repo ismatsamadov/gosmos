@@ -1,0 +1,1 @@
+Marshaling first means a value that can't become JSON is found before anything is sent, while a 500 is still possible. After that, the header, the status and the body go out in the order the answer is written, so `Content-Type: application/json` and the status reach the client instead of being lost behind the first write.

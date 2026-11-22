@@ -1,0 +1,1 @@
+`pathLossDB` asks `slantRangeKm` for the distance instead of repeating its formula, so a fix to `slantRangeKm` reaches both. The two logarithm terms and 32.44 make up the free-space path loss for kilometers and megahertz.

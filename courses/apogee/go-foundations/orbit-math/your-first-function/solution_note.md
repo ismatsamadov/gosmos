@@ -1,0 +1,1 @@
+`orbitsPerDay` holds the formula once, and `main` calls it with each satellite's period, so the three figures can't drift apart again. Dividing the untyped constant `minutesPerDay` by a `float64` gives a `float64`, which `%.2f` prints with two decimals.

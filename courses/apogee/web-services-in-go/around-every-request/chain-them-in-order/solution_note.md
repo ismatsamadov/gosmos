@@ -1,0 +1,1 @@
+Wrapping from the end of the list puts the last middleware right around `h` and each earlier one around everything after it, so the first one listed ends up outermost and sees each request first. With no middlewares the loop doesn't run, and `chain` returns `h` itself.

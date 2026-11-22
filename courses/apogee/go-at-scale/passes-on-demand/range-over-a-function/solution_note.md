@@ -1,0 +1,1 @@
+The function `Days` returns runs when `main` ranges over it, and each call to `yield` runs the loop's body once, so every midnight is printed as soon as it's made. Returning when `yield` gives back false keeps `Days` right for a loop that stops early.

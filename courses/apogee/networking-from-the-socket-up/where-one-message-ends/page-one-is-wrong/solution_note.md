@@ -1,0 +1,1 @@
+Trimming the `\n` and then one `\r` leaves exactly the banner's words, whichever ending the controller used, so the shape checks see `PROTO 1` and pass. Anything else at the end, such as a space or a second `\r`, stays in the line and is refused.
