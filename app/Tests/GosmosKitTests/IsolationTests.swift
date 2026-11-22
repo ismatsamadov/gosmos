@@ -2,8 +2,9 @@ import Foundation
 import Testing
 
 /// Gosmos never uses the network: it is self-contained, and everything a lesson needs is on the
-/// Mac. These tests read the app's own code, every Swift file of app/Sources and of its local
-/// packages, and fail on anything that would reach outside it:
+/// Mac. These tests read every Swift file the app is built from, of app/Sources, of its own
+/// packages and of the third-party ones kept in app/Packages/Vendor, and fail on anything that
+/// would reach outside it:
 ///   - a networking framework or library imported: Network, SwiftNIO, FoundationNetworking,
 ///     CFNetwork and the like;
 ///   - a networking API used: URLSession, Network.framework's connections, listeners and path
@@ -34,19 +35,30 @@ import Testing
         Rule("hands a link to the system, which opens a web address in the browser", #"\.systemAction\b"#),
     ] }
 
-    /// The Swift files of the app: app/Sources and the sources of app/Packages.
+    /// The Swift files of the app: app/Sources, the sources of app/Packages, and the third-party
+    /// packages in app/Packages/Vendor, whole.
     static func appSources() throws -> [URL] {
         let app = Fixtures.repository.appendingPathComponent("app")
         var roots = [app.appendingPathComponent("Sources")]
         for package in try FileManager.default.contentsOfDirectory(at: app.appendingPathComponent("Packages"), includingPropertiesForKeys: nil) {
             roots.append(package.appendingPathComponent("Sources"))
         }
+        roots += try vendored()
         var files: [URL] = []
         for root in roots {
-            guard let walk = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
-            for case let file as URL in walk where file.pathExtension == "swift" { files.append(file) }
+            guard let walk = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey]) else { continue }
+            for case let file as URL in walk where file.pathExtension == "swift" {
+                // GRDB.swift is a folder.
+                if (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true { files.append(file) }
+            }
         }
         return files
+    }
+
+    /// The third-party packages kept in the repository: app/Packages/Vendor's folders.
+    static func vendored() throws -> [URL] {
+        let vendor = Fixtures.repository.appendingPathComponent("app/Packages/Vendor")
+        return try FileManager.default.contentsOfDirectory(at: vendor, includingPropertiesForKeys: nil).filter(\.hasDirectoryPath)
     }
 
     /// A line of Swift without its comment: the text before a `//` that is outside a string.
@@ -86,12 +98,21 @@ import Testing
         #expect(found.isEmpty, "Gosmos never uses the network:\n\(found.joined(separator: "\n"))")
     }
 
-    /// The app depends on no networking library either: SwiftPM resolves none for it.
-    @Test func noNetworkingPackage() throws {
-        let resolved = try String(contentsOf: Fixtures.repository.appendingPathComponent("app/Package.resolved"), encoding: .utf8)
-        for package in ["swift-nio", "async-http-client", "swift-nio-transport-services", "websocket-kit"] {
-            #expect(!resolved.contains("/\(package).git"), "app/Package.resolved pins \(package)")
+    /// The app fetches no package, a networking library least of all: every package it builds
+    /// with is a folder of the repository, whose code the test above reads too.
+    @Test func everyPackageIsInTheRepository() throws {
+        let app = Fixtures.repository.appendingPathComponent("app")
+        var manifests = [app.appendingPathComponent("Package.swift")]
+        for package in try FileManager.default.contentsOfDirectory(at: app.appendingPathComponent("Packages"), includingPropertiesForKeys: nil) + Self.vendored() {
+            let manifest = package.appendingPathComponent("Package.swift")
+            if FileManager.default.fileExists(atPath: manifest.path) { manifests.append(manifest) }
         }
+        #expect(manifests.count == 5, "found the manifests \(manifests.map(\.path))")
+        for manifest in manifests {
+            let text = try String(contentsOf: manifest, encoding: .utf8)
+            #expect(!text.contains(".package(url:"), "\(manifest.path) fetches a package")
+        }
+        #expect(!FileManager.default.fileExists(atPath: app.appendingPathComponent("Package.resolved").path), "app/Package.resolved pins a fetched package")
     }
 
     /// The rules catch what they are for, and let comments and local files be.
