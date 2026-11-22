@@ -54,6 +54,7 @@ never runs git and syncs nothing.
 | `cmd/passes/` | Go tool: the passes of the Apogee world, from the pass model every pass in its courses comes from |
 | `scripts/pkgcheck.sh` | Checks lesson packages before the library is built: readme rules, hints, 30 runs, `-race`, failing starters |
 | `app/` | The app: a Swift package with GosmosKit and the SwiftUI app |
+| `vendor/`, `app/Packages/Vendor/`, `reference/website/` | Every outside dependency, kept here so a clone builds with nothing fetched: the Go modules, the app's Swift packages, and golang/website's files for the Go reference |
 | `docs/library-format.md` | The library format: what any library must hold, and what the app checks |
 | `docs/architecture.md` | How the pieces fit together, and why |
 | `docs/design.md` | How the app looks and behaves |
@@ -67,6 +68,7 @@ never runs git and syncs nothing.
   works offline; you install nothing, and it never needs the internet.
 - To build it: the Xcode Command Line Tools (`xcode-select --install`) and Go 1.27 or later.
   `make app` builds the Go it runs with into the app; `GO_ROOT=<folder>` picks another Go.
+  Every dependency is in the repository, so once it is cloned, nothing is fetched.
 
 ## License
 
@@ -77,8 +79,9 @@ teaching others, redistribution, and publishing modified versions require a sepa
 license from Ismat Samadov. Learning skills for a future job is allowed, and your independently
 authored work remains yours.
 
-These terms cover Gosmos's original code and content. Third-party components and the Go
-reference retain their own licenses; see [the reference credits](docs/reference-format.md#credit).
+These terms cover Gosmos's original code and content. Third-party components, kept with their
+licenses in `vendor/`, `app/Packages/Vendor/` and `reference/website/`, and the Go reference
+retain their own licenses; see [the reference credits](docs/reference-format.md#credit).
 The full terms are in [LICENSE](LICENSE), also included in built apps at
 `Contents/Resources/LICENSE`. This is a restricted personal learning license, not an open source
 license.

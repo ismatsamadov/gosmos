@@ -16,8 +16,10 @@ let package = Package(
         .executable(name: "Gosmos", targets: ["Gosmos"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/groue/GRDB.swift.git", exact: "7.11.1"),
-        .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
+        // GRDB.swift 7.11.1 and swift-markdown 0.9.0, with the swift-cmark it uses, kept in the
+        // repository so the app builds offline (Packages/Vendor/README.md).
+        .package(path: "Packages/Vendor/GRDB.swift"),
+        .package(path: "Packages/Vendor/swift-markdown"),
         // The code editor (TextKit 2), and SyntaxCore: the highlighting types it shares with
         // the Go lexer (app/Packages/CodeEditor).
         .package(path: "Packages/CodeEditor"),

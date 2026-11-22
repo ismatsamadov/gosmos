@@ -78,9 +78,9 @@ LIMIT 50;
 ## How it is made
 
 `make reference` remakes the file, and `make check` checks it with `go run ./cmd/reference
-check reference/go.sqlite`. The tool uses no network: the Makefile fetches the three files it
-needs from golang/website (and the five small programs Effective Go quotes) once, at the
-commit `WEBSITE_COMMIT` names, from raw.githubusercontent.com into `$TMPDIR/godocs/website`.
+check reference/go.sqlite`. Nothing is fetched: the three files it needs from golang/website
+(and the five small programs Effective Go quotes), at the commit `WEBSITE_COMMIT` names, are
+kept in `reference/website/` with golang/website's license (its `README.md`).
 
 ```
 go run ./cmd/reference build --goroot <dir> --website <dir> --website-commit <sha> --out <file>
