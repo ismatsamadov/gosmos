@@ -51,7 +51,7 @@ func (f starterFile) editable() bool { return !f.hidden && !f.readonly }
 // verify checks the code lessons of the library at path, of one course if course is set, and
 // with teaching the hints, solution notes and quiz explanations too, printing one line per
 // problem. It reports whether there were none.
-func verify(ctx context.Context, path, course string, teaching bool, out io.Writer) (bool, error) {
+func verify(ctx context.Context, path, course string, teaching, slow bool, out io.Writer) (bool, error) {
 	goBin, err := osexec.LookPath("go")
 	if err != nil {
 		return false, errors.New("verify runs lessons with the go command, which is not on PATH")
@@ -83,7 +83,7 @@ func verify(ctx context.Context, path, course string, teaching bool, out io.Writ
 	}
 	problems := 0
 	for _, l := range ls {
-		for _, p := range verifyLesson(ctx, goBin, goMod, l) {
+		for _, p := range verifyLesson(ctx, goBin, goMod, l, slow) {
 			fmt.Fprintf(out, "%s: %s\n", l.name, p)
 			problems++
 		}
@@ -247,8 +247,9 @@ func (l *codeLesson) slowLimit() time.Duration {
 	return slowAfter
 }
 
-// verifyLesson returns the problems of one code lesson.
-func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson) []string {
+// verifyLesson returns the problems of one code lesson. On a slow machine, a run over its slow
+// limit is not one.
+func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson, slow bool) []string {
 	var problems []string
 	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	if len(l.solution) == 0 {
@@ -278,7 +279,7 @@ func verifyLesson(ctx context.Context, goBin, goMod string, l *codeLesson) []str
 		case r.timedOut:
 			add("%s did not finish within %s", what, runTimeout)
 			continue
-		case r.built && r.took > l.slowLimit():
+		case r.built && !slow && r.took > l.slowLimit():
 			add("%s took %s to run, over %s", what, r.took.Round(10*time.Millisecond), l.slowLimit())
 		}
 		switch {

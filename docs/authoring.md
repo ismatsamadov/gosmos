@@ -33,7 +33,7 @@ All run from the repository's folder.
 | `go run ./cmd/author course\|chapter\|lesson\|story <library> …` | Adds or replaces a course, a chapter, a lesson or a course's story in a library file, in place; for a scratch library, never the repository's, which is built |
 | `scripts/pkgcheck.sh <folder>` | Checks lesson packages (below); `QUICK=1` in front for a fast first pass |
 | `go run ./cmd/library check <library>` | The checks the app makes before it opens a library |
-| `go run ./cmd/library verify [--course <c>] --teaching <library>` | Runs every code lesson: it must pass with its solution and fail with its starter; also wants the hints, solution notes and quiz explanations |
+| `go run ./cmd/library verify [--course <c>] --teaching [--slow] <library>` | Runs every code lesson: it must pass with its solution and fail with its starter; also wants the hints, solution notes and quiz explanations. `--slow`, for a slower machine, reports only runs stopped at 10 s |
 | `go run ./cmd/library drift [--course <c>] [--accept <list>] [--diff] <library>` | Lists given code (read-only and hidden files) that changes between lessons without a lesson changing it, but for the changes the list accepts (`courses/apogee-drift.txt`) |
 | `go run ./cmd/passes --from <day> [--to <day>] [--sat <ids>] [--station <codes>]` | The passes of the Apogee world: pass ID, AOS, LOS, maximum elevation |
 | `app/scripts/snapshot.sh <out.png> <light\|dark> [launch arguments]` | Draws one screen of a copy of the app to a PNG |
