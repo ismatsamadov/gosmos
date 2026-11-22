@@ -1,0 +1,1 @@
+The record carries its own algorithm, count and salt, so a password can always be checked the way its key was made, whatever count new records use by then. Splitting into exactly four fields and checking each one's value and length means a damaged or unknown record is refused, never read as something it isn't.

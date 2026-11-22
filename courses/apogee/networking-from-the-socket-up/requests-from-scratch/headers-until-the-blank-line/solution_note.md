@@ -1,0 +1,1 @@
+Cutting at the first colon keeps everything after it in the value, ports included, and the lower-case name makes `X-A` and `x-a` one field whose values stay in order. The loop stops at the blank line, so the body's first bytes stay in the reader.

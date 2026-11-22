@@ -1,0 +1,1 @@
+Each size line says exactly how many bytes follow, so `io.ReadFull` takes the chunk and its CR LF together whatever bytes the chunk holds, and the last two are checked before the data is kept. The zero chunk hands over to `readHeader`, which reads the trailer's fields up to the blank line that ends the body.

@@ -1,0 +1,1 @@
+A timer in a `select` with `ctx.Done()` lets every waiting pass give up at the stop, and the pass contexts, children of `ctx`, hang up every open call in the same instant. Checking `ctx.Err()` only after every pass has returned puts the stop's line last, and `context.Cause(ctx)` returns the reason the run was stopped with.

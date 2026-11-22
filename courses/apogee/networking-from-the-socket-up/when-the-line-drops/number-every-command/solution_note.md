@@ -1,0 +1,1 @@
+Each command takes the link's next number and moves it on by one, so dishd's numbers only go up. After a HELLO, `max` moves the count past the controller's own when the controller is ahead, and leaves it alone when the controller is behind.

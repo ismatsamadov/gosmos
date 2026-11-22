@@ -1,0 +1,1 @@
+Starting from the first offset's own strength means any real reading can win, `<= toHz` includes the last offset in the sweep, and the strict `>` keeps the earlier offset when two are equally strong, as 3000 and 4000 Hz are.

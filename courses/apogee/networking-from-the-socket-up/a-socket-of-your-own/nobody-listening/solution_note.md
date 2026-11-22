@@ -1,0 +1,1 @@
+`errors.Is` unwraps the dial's error layer by layer until it meets `syscall.ECONNREFUSED`, so the check holds whatever address the message names. Every other failure keeps its own text, and a dial that works is closed at once.

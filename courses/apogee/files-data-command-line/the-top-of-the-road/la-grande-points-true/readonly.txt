@@ -1,0 +1,11 @@
+bookings.go
+cli.go
+day.go
+save.go
+settings.go
+stations.csv
+stations.go
+testdata/stick/bookings.csv
+testdata/stick/bookings.json
+testdata/stick/settings.json
+testdata/thursday.golden

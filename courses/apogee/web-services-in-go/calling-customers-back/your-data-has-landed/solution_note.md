@@ -1,0 +1,1 @@
+The store says which booking the file belongs to, and ownership of its satellite says which customer to tell, so an event only ever goes to the company whose data landed. An atomic counter gives every event its own number, even when two landings arrive at once, and `Deliver` keeps that ID on every attempt.

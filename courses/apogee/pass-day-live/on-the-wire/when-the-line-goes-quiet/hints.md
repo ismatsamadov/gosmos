@@ -1,0 +1,5 @@
+Wrap the connection in a small reader of your own whose `Read` sets `SetReadDeadline(time.Now().Add(IdleLimit))` on the connection and then reads, and build the `bufio.Reader` on it: every read, of the banner or of a frame, then gets its own 90 s. A read past its deadline fails like any other read, and ends the call.
+
+Make one call a function that says how it ended: the pass is over (LOS, a BYE, a refusal), the line was lost after a WELCOME, or the call failed before one. A loop around it dials again at once after a loss, and after a failure waits, counting the failures in a row; a WELCOME on a later call brings the line back, so the pass can still fly.
+
+Wait with the timer and `select` your passes use for their AOS, so the LOS or a stop ends the wait at once. If the tests report a wait out of range: the n-th failure in a row waits 1 s doubled n-1 times, at most 30 s, times a factor from 0.5 up to but not including 1, built from `math/rand/v2`'s `Float64`, which gives one from 0 up to 1.

@@ -1,0 +1,1 @@
+The refusal comes before any write, so `http.Error` can still set 400 and say which band was unknown, quoted with `%q`. A known band keeps only the stations that offer it, and since `Bands` lists only what a customer can book, the listen-only UHF antennas at Salar Quieto and Cape Wren stay out of `band=UHF`.

@@ -1,0 +1,1 @@
+The length is checked the moment it is known, so a damaged `ff ff` is refused before any slice is made or byte read, instead of waiting for bytes that never come. Wrapping `ErrBadLength` with `%w` gives the log the number while `errors.Is` still recognizes the error.

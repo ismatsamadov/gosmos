@@ -1,0 +1,1 @@
+The `loaded` flag makes later calls skip the loader, and leaving it false after an error makes the next call try again. The shell holds the loader as a function value, so nothing is read until the first `passes`.

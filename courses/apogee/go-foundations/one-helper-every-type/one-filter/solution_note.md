@@ -1,0 +1,1 @@
+`T` stands for whatever element type the caller's slice has, so one loop serves passes, ints and strings. The result starts as a slice of its own, so `items` stays untouched, and `append` adds only the items `keep` approves, in their order.

@@ -1,0 +1,1 @@
+Each satellite's lock is a channel with room for one: a pass takes it in the same `select` that reads its call, so it keeps reading while it waits, and lets go once its commands are answered or at LOS. The holder numbers each command one above both the WELCOME's `last` and the satellite's last number sent, so two stations never send one number twice.

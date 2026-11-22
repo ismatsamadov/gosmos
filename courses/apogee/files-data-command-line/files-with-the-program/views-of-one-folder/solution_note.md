@@ -1,0 +1,1 @@
+`fs.Stat` turns a missing templates folder into an `fs.ErrNotExist` error at once, and `fs.Sub` makes a view whose root is that folder. Through it the renderer opens `day.txt` and `notices/stow.txt`, and nothing outside templates.

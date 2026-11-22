@@ -1,0 +1,1 @@
+Converting both counts to `float64` before dividing keeps the fraction that integer division would drop. The two checks turn away the only counts that can't happen, so no NaN, and no availability above 1, ever leaves the function.

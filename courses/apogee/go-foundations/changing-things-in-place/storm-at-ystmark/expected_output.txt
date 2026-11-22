@@ -1,0 +1,6 @@
+02:00 wind 64 km/h: tracking
+03:00 wind 75 km/h: stowed
+04:00 wind 58 km/h: tracking
+05:00 wind 81 km/h: stowed
+dish 1 stowed 2 times
+dish 2 stowed 2 times

@@ -1,0 +1,1 @@
+Each half gets the guards that fit what its callers show: a cookie travels by itself, so the page refuses other origins' forms and tells the browser how to treat it, while a token never does, so the API only tells one trusted origin's scripts that they may read. With the headers outermost, even a refusal carries the page's rules to the browser.

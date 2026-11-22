@@ -1,0 +1,1 @@
+The report is written into a temporary sibling, so a failure partway through never touches the plan at `path`, and the deferred removal deletes the partial file. Only after the report function and `Close` succeed does `Rename` put the complete report in place in one step.

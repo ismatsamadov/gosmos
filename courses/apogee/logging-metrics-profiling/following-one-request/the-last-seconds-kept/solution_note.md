@@ -1,0 +1,1 @@
+The snapshot is written only after `run` has failed, so a flown pass costs nothing on disk, and the recorder keeps running for the next one. `errors.Join` returns the pass's error with any error from saving the snapshot, so `errors.Is` still finds why the pass failed even when the disk refused the file.

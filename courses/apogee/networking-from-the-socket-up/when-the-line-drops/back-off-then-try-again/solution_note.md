@@ -1,0 +1,1 @@
+Each failed dial raises `l.attempt` before the wait, so the waits double from one second up to the 30-second cap, each with its own jitter. Setting the count back to 0 on a working dial makes the next outage start from the shortest wait again.

@@ -1,0 +1,1 @@
+`formatLine` writes each frame one way only, so a line that doesn't come back unchanged is a second way of writing some frame, however good its values. The round trip catches `+7.91`, `07.91`, `+00:00` and `02214` with one comparison, and any form nobody has thought of yet.

@@ -1,0 +1,1 @@
+A flag set of its own parses only the arguments it is given and, with `ContinueOnError`, returns a mistake instead of ending the program. Its messages go to the writer chosen with `SetOutput`, so a caller decides where they land.

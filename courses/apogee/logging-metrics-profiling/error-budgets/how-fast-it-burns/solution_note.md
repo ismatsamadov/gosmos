@@ -1,0 +1,1 @@
+Dividing the share lost by the share allowed says how many times faster than planned the budget is going, so 50 empties a 30-day budget in 14.4 hours. Returning 0 when nothing was booked or lost keeps NaN out, and float division by the zero share of a 10000 target gives `+Inf` by itself.

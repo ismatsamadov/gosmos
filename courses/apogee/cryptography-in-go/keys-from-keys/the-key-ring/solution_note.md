@@ -1,0 +1,1 @@
+Every line of the file is either a note or a version, and a line that doesn't parse, or repeats an ID, stops the load with its line number, so uplinkd never runs on a half-read key file. `SatKey` derives only from versions the file names, which is why `k-2027-03`, never in the file, is refused from now on.

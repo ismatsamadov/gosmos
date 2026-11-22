@@ -1,0 +1,1 @@
+`Lookup` returns a key's value without the key or the quotes, and reports whether the key is there, so `Note`'s `Text` field, with only a `json` tag, gets `no check`. A field whose tag read `check:""` would print its empty rules, which `Get` alone could not tell from a missing key.

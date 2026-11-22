@@ -1,0 +1,1 @@
+Listening on `127.0.0.1:0` keeps the service on this Mac and lets the system pick a free port, which `ln.Addr()` reports. `Serve` runs in its own goroutine and sends its result on `served`, so `start` returns at once, and `stopFunc` can close the server and wait for that result before saying it stopped cleanly.

@@ -1,0 +1,1 @@
+Each tag tells `xml.Unmarshal` where a field's value sits: `,attr` reads an attribute of the element the struct stands for, `files>file` gathers every `file` inside `files` into the slice, and `,chardata` takes an element's own text. The `<firmware>` element matches no field, so it is skipped.

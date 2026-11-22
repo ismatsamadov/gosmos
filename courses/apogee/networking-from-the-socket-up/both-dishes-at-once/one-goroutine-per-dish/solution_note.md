@@ -1,0 +1,1 @@
+Each goroutine asks one dish and writes only its own element of `results`, so both questions are on the line at once and no two goroutines share memory. `wg.Wait` holds `pollAll` until both answers are stored, so the results come back in the order of `clients`, whichever dish answered first.

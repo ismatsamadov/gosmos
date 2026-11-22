@@ -1,0 +1,1 @@
+Each of the six sub-benchmarks plans one window with one planner on the same network and settings, with only the planner in its loop, so its line is that planner's cost at that size and nothing else. `b.ReportAllocs` in each puts the allocations beside the time, where the two planners can be read side by side.

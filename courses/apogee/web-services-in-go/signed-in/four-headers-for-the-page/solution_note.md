@@ -1,0 +1,1 @@
+Setting the headers before `next` puts them on every answer the page writes, its redirects and refusals included. The browser then keeps the page out of other sites' frames, never second-guesses a type, keeps the page's address to the service, and for a year comes back only over HTTPS.

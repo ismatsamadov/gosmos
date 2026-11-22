@@ -1,0 +1,1 @@
+`SortFunc` calls the function literal on pairs of passes and orders them by its result. The time comparison decides unless the two AOS times are equal; then `cmp.Compare` on the station codes puts `LAN` before `YST`.

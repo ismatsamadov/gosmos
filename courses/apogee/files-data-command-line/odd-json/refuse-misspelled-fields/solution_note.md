@@ -1,0 +1,1 @@
+With unknown fields disallowed, the decoder stops treating a misspelled name as noise and returns an error that names it. Returning empty settings with that error keeps the caller from planning passes with a file that failed.

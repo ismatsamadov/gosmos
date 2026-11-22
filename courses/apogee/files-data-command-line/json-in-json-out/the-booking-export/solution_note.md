@@ -1,0 +1,1 @@
+`Unmarshal` matches each key to a field ignoring case, parses the times from their text, and reports broken JSON and wrong value types as errors. Returning the zero `Booking` on an error keeps a partly decoded booking out of the plan.

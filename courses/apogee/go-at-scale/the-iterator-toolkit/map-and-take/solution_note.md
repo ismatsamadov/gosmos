@@ -1,0 +1,1 @@
+`Map` calls `f` on each value on its way through, so its values are made as the loop reads them. `Take` returns right after yielding its `n`th value, which ends its range loop and stops the source before it makes another, and its count starts at zero in every loop over it.

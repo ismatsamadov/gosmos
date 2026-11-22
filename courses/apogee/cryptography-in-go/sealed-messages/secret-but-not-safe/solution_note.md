@@ -1,0 +1,1 @@
+GCM still hides the command with counter mode, but it also works out a 16-byte tag from the key, the nonce and every sealed byte, and `Open` recomputes it before returning anything. Flipped bits, a changed or missing tag byte and another key all give a different tag, so `Open` returns an error instead of a command nobody sent.

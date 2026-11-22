@@ -1,0 +1,1 @@
+The JSON and text handlers ask any value that implements `slog.LogValuer` for its `LogValue` before they write it, so the key comes out as `furrowlight.[redacted]` in every record, group and `With`, whoever writes the call. Keeping the customer ID still tells a reader whose key it was.

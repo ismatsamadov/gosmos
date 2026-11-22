@@ -1,0 +1,1 @@
+The `//go:embed` directive makes `go build` copy `stations.csv` into the string variable, so the table is part of the program and found from any folder. `stationTable` returns that variable instead of reading the disk.

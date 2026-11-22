@@ -1,0 +1,4 @@
+"HTTP/1.1 200 OK\r\n"
+"HTTP/1.1 201 Created\r\n"
+"HTTP/1.1 404 Not Found\r\n"
+"HTTP/1.1 413 Request Entity Too Large\r\n"

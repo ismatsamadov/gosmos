@@ -1,0 +1,1 @@
+A datagram counts as the answer only when it came from the recorder's own address and begins with this question's `STATUS <n>` and a space, so strays, late answers to older questions and question 70's answer are all refused. The space after the number is what keeps 7 from matching 70.

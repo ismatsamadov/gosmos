@@ -1,0 +1,1 @@
+Each station gets its own `Slots` the first time it is asked for, so Calidra Atoll's two uploads never hold up Varsk Island's. The mutex guards only the map, never an upload, and the deferred `Release` gives the slot back even when the upload fails.

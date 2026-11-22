@@ -1,0 +1,1 @@
+One `select` waits on the three things that can happen to a running Board: a tick to refresh, a server that failed, and the end of its context. Shutting down on a fresh 2-second context gives the streams time to say goodbye, and `ErrServerClosed` is the expected end of `Serve`, so `run` returns nil.

@@ -1,0 +1,1 @@
+Each turn of the loop in `main` pops one pass, the earliest left, so the queue hands over Cape Wren's passes in AOS order without sorting them. When `main` breaks after five, `yield` returns false and `Drain` returns, leaving the other 22 candidates in the queue.

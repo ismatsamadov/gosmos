@@ -1,0 +1,1 @@
+The slice keeps the five codes in order, so the first sits at index 0 and the last at `len(codes)-1`. Both the last index and the count come from `len`, so a sixth station needs only a sixth value in the literal.

@@ -1,0 +1,1 @@
+Each turn of the loop is one attempt, signed with its own timestamp, and `retryable` decides whether a failure deserves another. A canceled context returns before any retry decision, so the attempts made stay in `d` for the next process, and only a real failure, or the 8th attempt, wraps `ErrUndelivered`.

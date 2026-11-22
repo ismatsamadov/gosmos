@@ -1,0 +1,1 @@
+The function `At` returns walks the schedule's contacts each time it's ranged over, so every loop starts at the first contact, and it hands the loop two values per call of `yield`. Returning when `yield` gives back false lets the panel stop after the lines it has room for.

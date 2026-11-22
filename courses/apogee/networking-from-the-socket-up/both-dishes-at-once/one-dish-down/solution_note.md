@@ -1,0 +1,1 @@
+Each `Result` keeps its own dish's `Status` or `Err`, so Dish 2's reboot shows up as one `DOWN` line while Dish 1's status still reaches every screen. How a failure looks is the caller's choice, here `watchLine`'s; `pollAll` only reports it.

@@ -1,0 +1,1 @@
+Each call now XORs its message with bytes no earlier call touched and moves `used` past them, so the two secrets are hidden by different random bytes and XORing the sealed ones together leaves only noise. Brinewatch's copy, used in the same order, steps through the same bytes and opens each message, and a message the pad can't cover is refused before a byte is spent.

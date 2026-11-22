@@ -1,0 +1,5 @@
+Pipit-2 over Salar Quieto
+Period: 95.50 min
+Slant range at 10 deg: 1815.08 km
+Doppler at -6.5 km/s: +48.68 kHz
+Path loss at 10 deg: 164.64 dB

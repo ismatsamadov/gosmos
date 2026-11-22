@@ -1,0 +1,1 @@
+The buffer has to hold a whole record, so letting it grow to 256 KiB lets the 200 KiB sweep through. Keeping a limit means a file without newlines still ends in `bufio.ErrTooLong` instead of taking all the memory there is.

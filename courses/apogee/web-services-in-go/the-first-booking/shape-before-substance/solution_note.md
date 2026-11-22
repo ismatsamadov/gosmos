@@ -1,0 +1,1 @@
+The `switch` tries the rules from the top and returns at the first one broken, so a booking with two problems hears about the first only. `IsZero` catches a missing time, `!After` catches an LOS at or before the AOS, and counting runes measures the note in characters, however many bytes each takes.

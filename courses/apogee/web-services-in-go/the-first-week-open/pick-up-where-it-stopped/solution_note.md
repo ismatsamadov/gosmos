@@ -1,0 +1,1 @@
+`http.ServeContent` reads the `Range` header and answers 206 with only the bytes asked for and a `Content-Range` that says which, or 416 for a range past the end. Given the file's modification time, it also sends `Last-Modified` and honors `If-Range`, so a resume never stitches two versions of a file together.

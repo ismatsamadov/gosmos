@@ -1,0 +1,1 @@
+Each field's rules go to `checkRule` in tag order and each struct field goes back into `Validate`, so a nested struct's problems keep its own type's name and come in field order. `errors.Join` drops the `nil` results, so a struct with no problems gives `nil`, and skipping unexported fields keeps `Interface` from panicking.

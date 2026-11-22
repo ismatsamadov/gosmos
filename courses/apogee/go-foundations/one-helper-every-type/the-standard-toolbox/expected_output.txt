@@ -1,0 +1,3 @@
+has SQT: true
+index of LAN: 3
+highest mask: 8

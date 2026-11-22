@@ -1,0 +1,1 @@
+`Read` waits until the simulator's first bytes arrive, copies them into `buf` and returns how many: the 21 bytes of its first line, which it writes all at once. Printing `buf[:n]` shows exactly those bytes, and `%q` makes the two at the end visible.

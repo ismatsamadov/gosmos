@@ -46,10 +46,17 @@ cp "$repo/LICENSE" "$new/Contents/Resources/LICENSE"
 # learner.sqlite on first launch.
 cp "$repo/db/learner.sql" "$new/Contents/Resources/learner.sql"
 
-# The course libraries built into the app, opened read-only and immutable.
+# The course libraries built into the app, opened read-only and immutable: each built from its
+# folder of text, courses/<name>/ into courses/<name>.sqlite (make library).
 mkdir -p "$new/Contents/Resources/Courses"
-for course in "$repo"/courses/*.sqlite; do
-	if [ -e "$course" ]; then cp "$course" "$new/Contents/Resources/Courses/"; fi
+for text in "$repo"/courses/*/library.txt; do
+	[ -e "$text" ] || continue
+	course=${text%/library.txt}.sqlite
+	if [ ! -f "$course" ]; then
+		echo "bundle.sh: $course is missing; make library builds it" >&2
+		exit 1
+	fi
+	cp "$course" "$new/Contents/Resources/Courses/"
 done
 
 # The Go documentation the app shows offline, when the repository has it.

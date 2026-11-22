@@ -1,0 +1,1 @@
+Closing the listener ends the accept loop, closing the watchers ends each watcher's read and so its goroutine (one still being greeted is closed as soon as it is added), and closing the clients hangs up on both controllers. Only then can `s.wg.Wait` return, and `s.once` makes every later call do nothing.

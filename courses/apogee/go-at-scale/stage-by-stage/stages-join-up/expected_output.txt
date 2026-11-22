@@ -1,0 +1,4 @@
+pipit-1 6203 NOMINAL 7.94 V
+pipit-1 6204 SAFE 7.93 V
+cirrine-1 9003 NOMINAL 8.04 V
+cirrine-1 9005 NOMINAL 8.03 V

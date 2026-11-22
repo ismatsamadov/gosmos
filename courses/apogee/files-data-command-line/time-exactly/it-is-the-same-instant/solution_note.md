@@ -1,0 +1,1 @@
+`UTC` keeps the instant and changes only its location, so formatting it writes the network's clock, date included. Every equivalent reading of one moment, whatever its offset, comes out as the same text.

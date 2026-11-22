@@ -1,0 +1,5 @@
+02:00:24 furrow-a/OST/23203 dish 1
+02:47:33 furrow-b/OST/23201 dish 1
+03:35:27 furrow-a/OST/23204 dish 1
+04:26:40 furrow-a/VSK/23205 dish 1
+05:00:58 furrow-b/CAL/23203 dish 1

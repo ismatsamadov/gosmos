@@ -1,0 +1,1 @@
+`slices.Clone` gives the sort its own slice, so the caller's order survives. `Compare` orders the instants whatever offset they were written in, and `cmp.Or` falls back to the booking ID only when two passes begin at the same moment, which makes the order the same on every run.

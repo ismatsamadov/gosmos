@@ -1,0 +1,1 @@
+The version now moves only when the JSON does, so a screen that sends back the tag it has gets a bodiless 304 until the Board really changes. Reading the view and its bytes under one lock keeps the tag and the data from two different refreshes apart.

@@ -1,0 +1,1 @@
+`NewKeyFromSeed` works the whole key out of the seed alone, so the same 32 bytes always give the same key, and Ed25519 signs without randomness, so the signature is the same on every run too. The signature covers every byte of the message: change one, and `Verify` says false.

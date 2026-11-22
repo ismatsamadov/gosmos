@@ -1,0 +1,4 @@
+plaintext: 13 bytes
+sealed: 29 bytes
+nonce: 12 bytes, tag: 16 bytes
+tampered: cipher: message authentication failed

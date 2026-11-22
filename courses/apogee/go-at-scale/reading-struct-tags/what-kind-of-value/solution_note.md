@@ -1,0 +1,1 @@
+`reflect.TypeOf` returns `Config`'s type, and `Fields` yields its eight fields in order. A field's type prints as declared, `time.Duration`, while its kind names what it is built from, `int64`, which is why the four durations show both.

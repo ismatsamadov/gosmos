@@ -1,0 +1,1 @@
+The trace runs exactly while `work` does: `trace.Start` begins writing into the file, and `trace.Stop` returns only once every event is written, so closing the file after it keeps the whole trace. Returning early when the file can't be created means no trace is left running and nothing is replayed without a record.

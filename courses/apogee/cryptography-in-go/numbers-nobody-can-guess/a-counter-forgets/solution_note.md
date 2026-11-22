@@ -1,0 +1,1 @@
+Random bytes depend on nothing the program remembers, so a restart can't hand out an old nonce again: two runs repeat one with odds of about one in 2^96^. A `Noncer` without fields still has its `Nonce` method, so code that already calls it keeps working.

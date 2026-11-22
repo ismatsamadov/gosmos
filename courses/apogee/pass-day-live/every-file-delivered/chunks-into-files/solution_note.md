@@ -1,0 +1,1 @@
+Chunks are kept by number, one map per file, so their order and repeats don't matter, and a FILE sent again on a redial finds the file it began. Only at END, with every chunk there and their CRC-32 in number order matching, is the file saved, whole, through a temporary sibling and a rename.

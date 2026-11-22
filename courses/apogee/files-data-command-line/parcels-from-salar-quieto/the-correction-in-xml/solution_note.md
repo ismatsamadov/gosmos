@@ -1,0 +1,1 @@
+The `XMLName` tag renames the root from `Correction` to `correction`, `MarshalIndent` writes one element per line with two spaces for each level, and `xml.Header` supplies the `<?xml …?>` line that marshaling never writes. Together they reproduce the controller's own `correction.xml` byte for byte.

@@ -1,0 +1,1 @@
+Each line is read strictly, so a bad line stops the check instead of being guessed at, and each file is opened once: its size is checked first, at no cost, and only a file of the right size is hashed, with the hash its own digest names. The report keeps the manifest's order, one line per file.

@@ -1,0 +1,3 @@
+GET /passes HTTP/1.1
+POST /bookings HTTP/1.1
+DELETE /bookings/bk-4494 HTTP/1.1

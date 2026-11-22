@@ -1,0 +1,1 @@
+A session ID from `rand.Text` says nothing about its customer, so editing a cookie can only produce an ID the service never kept. Keeping each session's end beside its customer, and moving it on every use under the lock, lets a busy session last while an abandoned one ends 30 minutes after its last use.

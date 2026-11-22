@@ -1,0 +1,1 @@
+Every pass of a day has its AOS in that day, so the days, each sorted, follow one another in AOS order, and the next day is predicted only after the loop has taken every pass of this one. A loop that stops on 1 July costs that day's predictions and no more.

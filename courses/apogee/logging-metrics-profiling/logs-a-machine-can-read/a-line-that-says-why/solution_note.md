@@ -1,0 +1,1 @@
+The record keeps its message fixed and the station under a key of its own, so a search can find every `pass failed` and then read where each one happened. The text handler writes it to standard output as `key=value` pairs, quoting the message because it holds a space.

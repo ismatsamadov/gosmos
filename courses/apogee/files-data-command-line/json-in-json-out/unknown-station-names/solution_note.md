@@ -1,0 +1,1 @@
+A map takes whatever station codes the summary holds, and its `int` values refuse fractions and text. Keys with 0 stay in the map, and returning nil on an error keeps a half-read summary from looking complete.

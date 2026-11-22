@@ -1,0 +1,1 @@
+An empty name sends the stream that is already open, standard input, to the same reader a file uses, so the recorder's pipe and a file from the stick give the same bookings. Only the file gctl opened is closed, and a missing file comes back as its open error.

@@ -1,0 +1,1 @@
+Decoding over a value that already holds the defaults keeps every default the file leaves out and every value it states, zero included. The decoder refuses unknown fields, the second `Decode` proves nothing follows the object, and parsing the day makes sure it is a real date before it ever becomes part of a file name.

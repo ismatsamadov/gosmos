@@ -1,0 +1,1 @@
+A fresh salt hashed in front of each password makes every record different, even for the same password, so a table worked out before the salt existed matches nothing and each record has to be attacked on its own. The salt goes into the record in the open, because checking a password needs it again.

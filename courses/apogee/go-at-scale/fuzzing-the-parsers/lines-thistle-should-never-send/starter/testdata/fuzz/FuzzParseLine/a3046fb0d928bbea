@@ -1,0 +1,2 @@
+go test fuzz v1
+string("a\t0\t0000-01-01T00:00:00Z\tbatt_v=0.00\ttemp_c=0.0\tmode=LEOP")

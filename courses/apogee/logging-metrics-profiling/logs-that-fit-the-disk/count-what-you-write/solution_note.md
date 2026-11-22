@@ -1,0 +1,1 @@
+`n` is what the inner writer really took, even when it returns an error, so adding it on every call keeps `c.n` equal to the file's size; adding `len(p)` would count bytes a full disk never stored. Returning the error unchanged leaves the caller free to check it with `errors.Is`.

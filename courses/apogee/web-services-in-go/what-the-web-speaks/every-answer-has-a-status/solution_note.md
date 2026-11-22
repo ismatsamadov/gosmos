@@ -1,0 +1,1 @@
+The `switch` tries its cases from the top, so 429 is caught before the wider case for 400 to 499, and each range includes both of its ends. Anything outside the three classes, such as 302 or 600, falls through to `default`.

@@ -1,0 +1,1 @@
+The two length bytes say exactly how many bytes the frame has left, so `io.ReadFull` reads them all, newlines and zeros included, however the stream delivers them. A stream that ends between frames gives `io.EOF` at the length, and one that ends inside a frame gives `io.ErrUnexpectedEOF`.

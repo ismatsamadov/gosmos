@@ -1,0 +1,1 @@
+With `UseNumber`, the decoder keeps each number's digits as a `json.Number`, so the ID never passes through a `float64` and keeps its last digit. `Int64` then converts the text exactly and refuses fractions and numbers too large for an `int64`.

@@ -1,0 +1,1 @@
+`errors.Is` and `errors.AsType` look through every layer of wrapping, so a lost line is recognized however much context the error carries. Everything not on the list, a NAK above all, returns false, so dishd redials only when the line itself has failed.

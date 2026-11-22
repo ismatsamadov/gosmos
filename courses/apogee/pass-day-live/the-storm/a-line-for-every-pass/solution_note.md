@@ -1,0 +1,1 @@
+Each log is a `slog.NewJSONHandler` whose `ReplaceAttr` stamps every record with `w.Now()`, writing through a mutex into a temporary file that is renamed into place once the week ends, stopped or not. A pass logs its start at AOS and how it ended at LOS from its outcome, which now carries the error behind it, and dlinkd logs each landing and each delivery as it happens.

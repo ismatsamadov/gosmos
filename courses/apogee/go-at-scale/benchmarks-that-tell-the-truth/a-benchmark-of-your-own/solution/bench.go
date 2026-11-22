@@ -1,0 +1,15 @@
+package main
+
+import (
+	"testing"
+	"time"
+)
+
+// benchPlanDay measures planDay on Cape Wren's candidates for
+// take-over day.
+func benchPlanDay(b *testing.B) {
+	cwr, day := stationDay("CWR", june28)
+	for b.Loop() {
+		planDay(day, []Site{cwr}, 2*time.Minute)
+	}
+}

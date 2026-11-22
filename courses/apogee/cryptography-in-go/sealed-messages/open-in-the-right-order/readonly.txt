@@ -1,0 +1,3 @@
+command.go
+satellite.go
+seal.go

@@ -1,0 +1,1 @@
+`ReadFile` supplies the bytes or an operating-system error. Returning that error unchanged preserves information such as a missing path, and converting successful bytes to a string preserves the schedule exactly.

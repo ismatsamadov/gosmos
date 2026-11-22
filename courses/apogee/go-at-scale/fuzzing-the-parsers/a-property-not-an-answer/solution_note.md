@@ -1,0 +1,1 @@
+Each check states something true of every real frame, so it holds for lines nobody has seen, which is what a fuzzer feeds it. `math.IsNaN` catches the one value that slips past both range comparisons, and returning on an error lets the parser refuse a line in its own words.

@@ -1,0 +1,1 @@
+A path that starts with exactly one slash and holds no backslash can only be read by a browser as a page of this site, and parsing it first refuses the tabs and line breaks a browser would quietly drop. Anything else goes to the guide, and the log records where the browser was sent, never the address a link asked for.

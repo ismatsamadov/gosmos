@@ -1,0 +1,1 @@
+`Accept` now changes nothing until the signature checks out and the number is new, so a forged command, whatever its number, is refused without moving the guard. Only commands Apogee signed can raise a satellite's last number, which is the replay guard's whole promise.

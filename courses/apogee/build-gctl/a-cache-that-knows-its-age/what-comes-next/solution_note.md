@@ -1,0 +1,1 @@
+Sorting a copy by AOS makes the first pass after now the next one, whatever order the schedule file used. `After` leaves out a pass that begins exactly now, and `Sub` gives the wait as a `Duration`, which prints as `12m0s`.

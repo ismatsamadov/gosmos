@@ -1,0 +1,1 @@
+Collecting the flag set's output first lets one parse serve both outcomes: asked-for help goes to standard output with status 0, and a mistake's message and usage go to standard error with status 2. A clean parse writes nothing and lets the command continue.

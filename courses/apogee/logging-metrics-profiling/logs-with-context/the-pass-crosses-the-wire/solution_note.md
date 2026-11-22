@@ -1,0 +1,1 @@
+The transport copies the pass from the context into a header on its own clone of the request, so the caller's request stays as it was, and the middleware on the station turns the header back into a context value before any handler runs. Each side keeps to its own program's context, and the header is the only thing that crosses.

@@ -1,0 +1,1 @@
+A canceled context is caught first, so stopping never counts as a failure. Without an answer the error alone decides; with one, only its status does: 408, 429 and the 5xx can change when asked again later, and every other status won't.

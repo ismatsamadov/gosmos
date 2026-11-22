@@ -1,0 +1,1 @@
+`r.Cookie` finds the session cookie among whatever else the browser sends, and `http.ErrNoCookie` only means a browser that never signed in. Every path that misses a live session or a known customer returns false, so `page` sends the browser to sign in and shows nobody's bookings.

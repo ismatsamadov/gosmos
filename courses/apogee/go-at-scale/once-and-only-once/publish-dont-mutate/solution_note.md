@@ -1,0 +1,1 @@
+Every `Update` publishes a schedule nobody will change again, so a reader holding an older one keeps exactly what it read, and a reader that loads after the `Store` sees the new one whole. `slices.Clone` gives the schedule contacts of its own, out of reach of the caller's slice.

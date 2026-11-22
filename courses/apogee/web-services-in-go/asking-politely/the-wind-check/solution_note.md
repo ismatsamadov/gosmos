@@ -1,0 +1,1 @@
+Each check returns as soon as it applies, so their order is the table's: a 503 found with `errors.AsType`, any other failure (the client's timeout included), a reading over 15 minutes old, then the wind from the stow limit down. `>=` puts exactly 50 and exactly 72 km/h in the bands they start, and `>` keeps a reading exactly 15 minutes old fresh.

@@ -1,0 +1,1 @@
+With `requestID` outermost, every middleware inside it, and `writeError` deep in a handler, reads the same ID from the request's context. `logRequests` wraps `recoverPanics`, so a panic has already become a 500 when `logRequests` writes its line, and the request that broke on Monday is logged like any other.

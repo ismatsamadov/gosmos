@@ -1,0 +1,1 @@
+The first `select` sends when there is room and never waits; when there is none, the second takes the oldest schedule out of the queue, again without waiting, and the loop tries the send again. The Board's queue keeps the newest schedules in order, and passplan never waits for a slow screen.

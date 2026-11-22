@@ -1,0 +1,1 @@
+`DialTimeout` gives up after a second instead of waiting as long as the system would, and the deferred `Close` hangs up on every return after the dial. The name comes from the controller's own banner, so the same code describes YST-1 and YST-2.

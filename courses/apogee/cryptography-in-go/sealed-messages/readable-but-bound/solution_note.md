@@ -1,0 +1,1 @@
+The tag now covers the header as well as the sealed bytes, so the same bytes under any other version, satellite, number or key fail to open, while the station still reads every header field. Mirela's renumbered command can get past the number check, but it never opens.

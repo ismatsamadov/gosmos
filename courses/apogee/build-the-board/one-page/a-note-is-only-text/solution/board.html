@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Board</title>
+<style>
+body { margin: 2rem; background: #0b1622; color: #e8eef4; font: 1.4rem system-ui, sans-serif; }
+h1 { font-size: 2rem; font-weight: 600; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 0.3rem 1.2rem 0.3rem 0; text-align: left; }
+th, .none, .oncall { color: #8aa0b4; font-weight: 400; }
+.weather { display: flex; flex-wrap: wrap; gap: 1rem; padding: 0; list-style: none; }
+.panel { padding: 0.5rem 1rem; border-radius: 0.4rem; background: #1d3347; }
+.warn { background: #6b4e00; }
+.stow { background: #7a1f1f; }
+</style>
+</head>
+<body>
+<h1>The Board · {{.Now.UTC.Format "15:04"}} UTC</h1>
+<table class="passes">
+<thead><tr><th>AOS</th><th>LOS</th><th>Station</th><th>Satellite</th><th>Booking</th><th>Note</th></tr></thead>
+<tbody>
+{{range .Passes}}<tr class="pass"><td>{{.AOS.UTC.Format "15:04"}}</td><td>{{.LOS.UTC.Format "15:04"}}</td><td>{{.Station}}</td><td>{{.SatID}}</td><td>{{.ID}}</td><td>{{.Note}}</td></tr>
+{{end}}</tbody>
+</table>
+{{template "script"}}
+</body>
+</html>

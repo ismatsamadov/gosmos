@@ -1,0 +1,1 @@
+`sha256.Sum256` digests the 29 bytes of each text into 32, and `%x` prints the first 8 of them as 16 hex digits. The texts differ in one character, yet their digests look unrelated, which is what lets a digest stand for a whole file.

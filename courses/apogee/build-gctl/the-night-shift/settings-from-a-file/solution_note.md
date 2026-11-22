@@ -1,0 +1,1 @@
+Decoding over the defaults keeps every field the file leaves out, and `decodeStrict` turns misspellings, extra values and bad durations into errors instead of quiet defaults. `apply` puts each setting where the shell reads it, so `passes` alone shows the default station.

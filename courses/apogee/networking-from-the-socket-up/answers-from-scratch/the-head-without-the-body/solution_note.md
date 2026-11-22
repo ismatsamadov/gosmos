@@ -1,0 +1,1 @@
+The fields are computed from the recording's real size before anything is dropped, so HEAD reports `Content-Length: 4096` and its CRC exactly as GET does, and only the body stays home. A client that reads the head then finds the next answer, not 4,096 stray bytes.

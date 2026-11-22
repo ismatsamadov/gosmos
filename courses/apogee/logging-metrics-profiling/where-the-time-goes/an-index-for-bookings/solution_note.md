@@ -1,0 +1,1 @@
+Building the map costs one step per booking, and each pass then costs one lookup instead of a walk through all 2,000, so the work grows with passes plus bookings rather than their product. Unix seconds name the same instant in any time zone, and storing only the first ID for a key keeps the scan's rule for a pass booked twice.

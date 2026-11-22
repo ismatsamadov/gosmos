@@ -1,0 +1,1 @@
+Both digests are always 32 bytes, so `subtle.ConstantTimeCompare` never meets two lengths and always looks at every byte, whatever was typed. Its time says nothing about how close a wrong phrase came, or how long the right one is.

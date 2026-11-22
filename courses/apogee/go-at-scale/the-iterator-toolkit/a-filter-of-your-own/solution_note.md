@@ -1,0 +1,1 @@
+The function that `Filter` returns ranges over `seq` and calls `yield` only for the values `keep` keeps, so each value passes through as soon as `seq` makes it. Returning when `yield` gives back false ends that range loop, which makes `seq`'s own `yield` return false: the source stops as soon as the loop reading the filter does.

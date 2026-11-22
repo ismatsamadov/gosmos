@@ -1,0 +1,1 @@
+The pool hands out scratches that went back after earlier stations, so a round of get, fill and put allocates nothing once the pool has one, and `sync.Pool` is safe for twelve slots at once. Pooling a pointer keeps `Put` from boxing a slice header each time, and refusing scratches over `maxScratch` keeps an outsized one from holding its memory in the pool.

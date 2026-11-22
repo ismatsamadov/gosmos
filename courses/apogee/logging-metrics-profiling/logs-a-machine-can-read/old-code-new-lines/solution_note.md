@@ -1,0 +1,1 @@
+The logger from `slog.NewLogLogger` writes into a small writer that turns each line into a record for `h`, so bookingd's code calls `Printf` as before and the text arrives as the record's message, without its final newline. Nothing goes to standard error any more.

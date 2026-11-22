@@ -1,0 +1,1 @@
+The JSON handler writes the same record as the text handler, as one JSON object per line, so a program decodes it with no guessing about spaces or quotes. Keeping the options keeps `dropTime`, so the lines still carry no time.

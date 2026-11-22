@@ -1,0 +1,3 @@
+12......3333333344444444555567..
+32 bytes, aligned to 8
+613496 candidates: 19631872 bytes

@@ -1,0 +1,1 @@
+Counting at the top of the loop numbers every line the scanner returns, so the number matches the file even though notes and blank lines are skipped. `%w` adds that number to the message and keeps the original error reachable for `errors.Is`.

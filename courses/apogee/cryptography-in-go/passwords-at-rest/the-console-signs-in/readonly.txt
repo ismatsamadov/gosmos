@@ -1,0 +1,3 @@
+console.go
+password.go
+random.go

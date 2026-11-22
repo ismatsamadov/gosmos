@@ -1,0 +1,1 @@
+Every booking the rehearsal answers for counts at its station, and it is lost when its contact wasn't flown or when no contact matched it, so skipped and unplanned bookings cost as much as failed ones. Integer budgets and the exact formats make the investors' week match its golden file byte for byte.

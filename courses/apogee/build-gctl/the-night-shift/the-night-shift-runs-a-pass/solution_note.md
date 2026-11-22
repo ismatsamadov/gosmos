@@ -1,0 +1,1 @@
+Asking the station table each time a command runs means a stow typed at 04:40 changes the very next `passes` and `next`. The transcripts then check every feature of the week at once, as the night shift sees it on screen.

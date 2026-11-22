@@ -1,0 +1,1 @@
+`rand.Read` takes its bytes from the operating system's secure source, which takes no seed from anyone, so no clock reading or guess can make the same 12 bytes again. It never fails and always fills the slice, so the nonce is complete without an error check.

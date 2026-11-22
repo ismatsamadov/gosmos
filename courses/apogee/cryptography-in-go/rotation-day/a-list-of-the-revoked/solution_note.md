@@ -1,0 +1,1 @@
+A list counts only when the stations CA's key signed it and its dates cover the moment, so a forged or stale list produces an error and the caller refuses the certificate instead of trusting what it can't check. Comparing serial numbers with `Cmp` finds 1005 among the entries, while 1105, issued for Rotation Day, isn't there.

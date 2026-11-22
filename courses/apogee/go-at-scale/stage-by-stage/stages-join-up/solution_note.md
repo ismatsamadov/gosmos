@@ -1,0 +1,1 @@
+`parse` receives from `read`'s channel while `read` is still sending, and each stage closes its channel when its input ends, so the loop in `main` ends after the last frame. The garbled line never reaches `main`: `parseLine` refuses it and `parse` drops it.

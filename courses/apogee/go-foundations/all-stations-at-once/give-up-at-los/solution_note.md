@@ -1,0 +1,1 @@
+The `select` waits on the acknowledgment and the timer together. An acknowledgment that is already waiting, or arrives in time, wins; otherwise the timer's channel delivers once `limit` has passed and `waitAck` returns `ErrNoAck`, so the uplink never waits past LOS.

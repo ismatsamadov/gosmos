@@ -1,0 +1,1 @@
+Every call after a pair's first finds its counter under `RLock`, which many goroutines share, so counting never waits on another count. A missing pair is added under `Lock` after a second look, so two goroutines that both missed it still end up with the same `*Counter`, and no count goes to a counter nobody keeps.

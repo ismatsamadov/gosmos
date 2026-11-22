@@ -1,0 +1,1 @@
+The satellite and the station are checked against the service's own lists first, then the booking must match one catalog pass exactly, with `Equal` comparing instants so that a time written at +01:00 still matches. The pass closes at its AOS minus ten minutes, and `!now.Before(closes)` treats that very second as closed.

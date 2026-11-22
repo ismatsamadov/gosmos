@@ -1,0 +1,1 @@
+Each stow event gives `r.stows` a new slice, so a run in flight keeps the list it started with, and every new run plans with every stow heard of, the ended ones included. Filling in the open stow's `To` rather than adding a second stow lets Cape Wren's passes back after 13:23, while the six that overlap the stow stay out.

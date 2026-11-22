@@ -1,0 +1,1 @@
+Deciding before each `Write` means a record lands whole in one file, and checking that the file isn't empty lets a record longer than the limit go alone into a fresh one instead of rotating forever. Renaming under `r.n+1` and opening again through `r.open` keeps the names counting up within the day, with no byte copied.

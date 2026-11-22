@@ -1,0 +1,6 @@
+data.go
+main.go
+testdata/friday.golden
+testdata/friday.in
+testdata/mistakes.golden
+testdata/mistakes.in

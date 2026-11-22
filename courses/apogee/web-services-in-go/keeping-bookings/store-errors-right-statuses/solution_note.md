@@ -1,0 +1,1 @@
+`writeError` now decides every store error's status in one place, so `cancelBooking`, whose special case Tuesday's tidy-up dropped, answers a missing booking with 404 like the others. Checking for an `*APIError` first keeps the rules' answers exactly as they were, and any other error is still a 500 that hides its text.

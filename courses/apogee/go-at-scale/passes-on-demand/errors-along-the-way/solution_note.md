@@ -1,0 +1,1 @@
+Yielding the error and returning ends the sequence at the bad line, so the loop learns which line failed and never sees a pass after it. `sc.Err()` is nil at a clean end of the input, so after the loop the only error left to yield is a failed read.

@@ -1,0 +1,1 @@
+Each station's reading is kept with the time it was fetched, on the Board's own clock, so it is reused for less than a minute and asked for again at exactly sixty seconds. Failures are never stored, so a silent mast gets another try at the next refresh while the other stations keep their readings.

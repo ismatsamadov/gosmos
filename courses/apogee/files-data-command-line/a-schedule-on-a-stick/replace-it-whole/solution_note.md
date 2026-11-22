@@ -1,0 +1,1 @@
+The destination is touched only after the staged file has been written and closed. A deferred removal cleans failed attempts; a successful rename makes the complete new file visible at the destination.

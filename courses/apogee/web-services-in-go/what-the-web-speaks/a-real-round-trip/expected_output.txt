@@ -1,0 +1,2 @@
+200 OK {"code":"PEL","name":"Port Ellery"}
+404 Not Found no station "ZZZ"

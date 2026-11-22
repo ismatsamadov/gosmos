@@ -1,0 +1,1 @@
+`b[2:]` is exactly the type, seq and body, so the CRC covers what the protocol names, and appending it big-endian puts it on the wire as the controller reads it. The controller computes the same number over the same bytes, so the POINT is accepted.

@@ -1,0 +1,1 @@
+HKDF mixes the master, the salt and the info into every byte it returns, so Pipit-2's key and Cirrine-1's are unrelated, and neither leads back to the master. A key read out of one flight computer now signs for that one satellite only.

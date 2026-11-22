@@ -1,0 +1,1 @@
+`validate` now runs every check and appends each problem to a slice, and `errors.Join` turns the slice into one error with a line per problem. `errors.Is` and `errors.AsType` still find each one inside, and an empty slice joins to `nil`.

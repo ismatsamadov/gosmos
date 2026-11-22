@@ -1,0 +1,1 @@
+Each call of `Sign` makes, fills and sums its own HMAC, so no signature can carry bytes of an earlier command, and goroutines signing at once never touch the same hash. The key is only read, so sharing it is safe.

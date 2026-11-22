@@ -1,0 +1,1 @@
+Every place the goroutine can wait is now a `select` that also waits on `ctx.Done()`, so a cancel reaches it whether it is waiting for a line or for a reader. The deferred `close(out)` runs on that way out too, so the stage after `parse` learns that it has stopped.

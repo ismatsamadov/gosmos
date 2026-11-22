@@ -1,0 +1,1 @@
+Embedding the folder puts all four templates, the nested ones too, into `bundled` under names that begin with `templates/`. `path.Join` builds that slash-separated name, and returning `ReadFile`'s error unchanged lets a caller recognize a missing template with `errors.Is`.

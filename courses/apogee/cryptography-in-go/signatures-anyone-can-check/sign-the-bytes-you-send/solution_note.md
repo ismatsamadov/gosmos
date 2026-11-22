@@ -1,0 +1,1 @@
+The signature is now checked over exactly the bytes that arrived, so a field added inside them, or a single space, fails it, and nothing in a receipt is read before Apogee's signature vouches for it. Strict decoding then refuses a field `Receipt` doesn't have, so even a signed receipt can't carry something a checker would quietly drop.

@@ -1,0 +1,1 @@
+Sorting by AOS lets one walk push the candidate past every pass it would collide with, and the first pass it fits before ends the search, since every later pass starts later still. A start is always `from` or some LOS plus 5 minutes, because any earlier start collides with the pass that pushed it.

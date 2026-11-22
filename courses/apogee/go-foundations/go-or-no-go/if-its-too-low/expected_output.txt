@@ -1,0 +1,4 @@
+Pass 1: max 42.0 deg
+Pass 2: max 7.5 deg
+  low pass: expect a weak signal
+Pass 3: max 15.2 deg

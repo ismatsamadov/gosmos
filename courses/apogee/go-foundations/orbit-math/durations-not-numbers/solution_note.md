@@ -1,0 +1,1 @@
+`time.Duration(minutes) * time.Minute` turns a count of minutes into the matching number of nanoseconds, and the seconds get the same treatment. Their sum is a `Duration`, so `%v` prints it as `9m12s` instead of a bare number.

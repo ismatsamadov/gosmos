@@ -1,0 +1,1 @@
+Every heap operation leaves the smallest value at index 0, so `Peek` reads it without moving anything, and the queue keeps all its values. `var zero T` gives the right empty answer for any `T`: 0 for the ints, "" for the station codes.

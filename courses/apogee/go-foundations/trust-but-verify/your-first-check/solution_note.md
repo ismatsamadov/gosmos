@@ -1,0 +1,1 @@
+Checking each threshold from both sides catches a `>` where `>=` belongs (8.2 V reads OK, or 6.6 V reads CRITICAL) and a threshold in the wrong place (7.19 V reads OK, not LOW), while the real `batteryBand` passes every case and `t.Errorf` stays silent.

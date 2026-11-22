@@ -1,0 +1,1 @@
+The function `Archive` returns ends on every way out of the loop over it, and its deferred `Close` runs whichever way that is. Deferring only after a successful `open` means a failed one closes nothing.

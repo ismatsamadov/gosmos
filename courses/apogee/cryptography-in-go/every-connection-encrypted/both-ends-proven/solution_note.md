@@ -1,0 +1,1 @@
+`RequireAndVerifyClientCert` ends the handshake of any client that sends no certificate, or one that doesn't chain to `ClientCAs` for client use, so the impostor's certificate and Ystmark's server certificate both fail. uplinkd's chain, sent from `Certificates`, passes because Apogee's CA issued it for exactly that use.

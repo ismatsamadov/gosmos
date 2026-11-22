@@ -1,0 +1,1 @@
+With the four timeouts set, the server hangs up on a client that is slow to send its headers, its body or to take its answer, and on a kept-alive connection nobody uses, so no slow client holds a connection for minutes. `MaxHeaderBytes` caps how much of a request's headers the server will read before answering 431.

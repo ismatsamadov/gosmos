@@ -1,0 +1,1 @@
+With `authenticate` first, `limit` always finds the customer and counts only requests that proved who sent them, so Brinewatch's flood empties Brinewatch's bucket alone and a forged token spends nothing. The deadline sits right around the mux, so the request ID, the log line and the panic recovery outside it still see every answer, the 503 included.

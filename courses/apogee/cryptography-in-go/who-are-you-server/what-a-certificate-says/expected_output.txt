@@ -1,0 +1,6 @@
+subject: yst.apogee.internal
+issuer: Apogee Stations CA 2028
+serial: 1001
+valid: 2028-09-22 to 2028-12-21
+names: [yst.apogee.internal]
+CA: false

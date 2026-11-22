@@ -1,0 +1,2 @@
+Pipit-1 battery 7.91 V
+Pipit-1 mode NOMINAL

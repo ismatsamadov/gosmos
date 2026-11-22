@@ -1,0 +1,1 @@
+Each time `c.br` needs more bytes it calls `idleReader.Read`, which moves the deadline to `c.Timeout` from now, so a STATUS arriving a byte every 0.4 s never comes near it. A line that brings nothing for 5 seconds still fails, as a dead one should.

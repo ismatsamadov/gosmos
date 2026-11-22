@@ -1,0 +1,1 @@
+The smaller network holds only the operator's satellites, so `Catalog` never predicts another, and it keeps its laziness: a day is predicted only when the loop reaches it. Choosing the satellites costs one walk over eighty before the first day is predicted.

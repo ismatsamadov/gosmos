@@ -1,0 +1,1 @@
+`Indirect` gives the struct a pointer points to, and only that struct and its exported fields report `CanSet`; a struct passed by value can't, so it is refused before anything panics. `Lookup` keeps fields without a `default` tag, such as `Feeds`, out of `setText`, and `IsZero` keeps every value someone set, such as six slots.

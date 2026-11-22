@@ -1,0 +1,1 @@
+Shadowing `ctx` with the task's context hands the task to everything after it, so the `select` and `fly` record their work under the pass's task, and the deferred `End` closes the task on every return. With no trace running, `NewTask`, `Log` and `End` record nothing, so runPass returns exactly what it did before.

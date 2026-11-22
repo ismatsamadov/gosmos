@@ -1,0 +1,6 @@
+Q4 2028  booked  lost  avail  budget  left
+YST        2208     2  99.91      11     9
+PEL        1104     1  99.91       5     4
+SQT        1288     3  99.77       6     3
+LAN        1199    22  98.17      11   -11
+CWR         920     4  99.57       4     0

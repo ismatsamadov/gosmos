@@ -1,0 +1,1 @@
+`math.Round` turns 114.99999999999999 into 115 before the conversion can drop the fraction, so 1.15° is `00 73`, and the range checks run on the rounded values the controller will actually see. `AppendUint16` writes each value big-endian, the most significant byte first.

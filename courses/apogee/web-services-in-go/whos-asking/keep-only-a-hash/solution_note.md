@@ -1,0 +1,1 @@
+The same key always hashes to the same 64 hex digits, so hashing what a caller sends and comparing the result with `KeyHash` recognizes every real key. The table itself holds nothing worth sending: a hash sent as a key is hashed again, and the hash of a hash is a different hash.

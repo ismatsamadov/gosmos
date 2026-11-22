@@ -1,0 +1,1 @@
+With a method in each pattern, the mux matches a request on its method as well as its path, and for a path it knows under another method it answers 405 itself, listing the methods that work in `Allow`. A `GET` pattern also serves HEAD, which is why `Allow` names both.

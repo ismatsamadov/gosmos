@@ -1,0 +1,1 @@
+`ReadSlice` works inside the reader's 1024 bytes, so a line with no end is refused after at most 1024 bytes instead of growing without limit. Requiring CR LF at the end and no CR anywhere else refuses an LF alone and a lone CR, and the string conversion copies the line out before the next read reuses the buffer.

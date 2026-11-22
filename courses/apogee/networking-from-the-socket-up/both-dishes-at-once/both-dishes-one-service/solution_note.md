@@ -1,0 +1,1 @@
+`Run`'s loop polls both dishes at once on every tick and writes their lines in Dish 1, Dish 2 order, while the watch port's goroutines greet and serve watchers beside it. When the context ends, `Shutdown` closes the listener, every watcher and both clients and waits for every goroutine, so `Run` returns with nothing left behind.

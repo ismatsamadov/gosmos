@@ -1,0 +1,1 @@
+With a fixed width, the reader flags each short or long row with an error naming its line but keeps reading, so one pass finds every bad row. Joining those errors gives Hollis the whole list in one message, and a sheet without bad rows still returns `nil`.

@@ -1,0 +1,1 @@
+With the separator and the comment character set, the reader splits cells at semicolons, skips lines that start with `#`, and still honors quotes, so a quoted semicolon stays inside its cell. Commas become ordinary text.

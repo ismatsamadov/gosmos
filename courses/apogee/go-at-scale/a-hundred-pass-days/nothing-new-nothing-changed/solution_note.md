@@ -1,0 +1,1 @@
+Contacts before `at` are kept as they were, and the hand-over frees each dish exactly when `cur` frees it, so with nothing new `Plan` gives the passes from `at` on the same dishes they had. `slices.Concat` copies both parts into a new slice, so the published schedule's contacts are never written over.

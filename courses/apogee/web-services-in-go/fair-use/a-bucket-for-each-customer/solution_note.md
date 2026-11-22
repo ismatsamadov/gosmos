@@ -1,0 +1,1 @@
+One mutex covers the whole of `Allow`, so finding or making a bucket and taking a token from it happen as one step even when 20 requests arrive together, and each customer's bucket is its own. Rounding the wait up means a client that waits exactly as told always finds a whole token.

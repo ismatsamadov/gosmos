@@ -1,0 +1,1 @@
+`io.ReadFull` keeps calling `Read` until all `n` bytes are in, however the line cut them up, so a PONG arriving three bytes at a time still comes back whole. A stream that ends early gives `io.ErrUnexpectedEOF`, or `io.EOF` when nothing arrived at all.

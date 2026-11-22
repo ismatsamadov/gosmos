@@ -1,0 +1,1 @@
+`stationDay` now runs once, before the loop, and `b.Loop` resets the clock and the allocation count the first time it's called, so the prediction counts for nothing. Each turn spends only `planDay`'s own 9 allocations instead of 2,600, and its time is the planning's alone.

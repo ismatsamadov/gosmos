@@ -1,0 +1,1 @@
+Each check guards the next: only valid hex gives bytes, only exactly 12 bytes are sure to be a whole beacon, and the `AP` sync bytes show the frame starts where you think it does; `binary.BigEndian.Uint16` then reads each number high byte first.

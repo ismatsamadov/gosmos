@@ -1,0 +1,177 @@
+package main
+
+import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"testing"
+)
+
+// The chapter's RSA test keys, made once with rsa.GenerateKey and kept here as PEM, because
+// making an RSA key takes too long for a test. They are public on purpose: never use them for
+// anything but tests.
+const (
+	// receivePEM is Brinewatch's test receiving key, 3,072 bits: secrets are locked to it.
+	receivePEM = `
+-----BEGIN PRIVATE KEY-----
+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
+9LXsoogktPwLWH0L2Z/EEETefw==
+-----END PRIVATE KEY-----
+`
+
+	// signPEM is Brinewatch's test signing key, 3,072 bits: its security office signs with it.
+	signPEM = `
+-----BEGIN PRIVATE KEY-----
+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
+ce9kok3bJ9ydXMhVrQfi/8ywcg==
+-----END PRIVATE KEY-----
+`
+
+	// oldPEM is the test stand-in for the key Brinewatch has used since 2021: 1,024 bits.
+	oldPEM = `
+-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAK54MyR/dXoOB4v2
+6vsopaf9u03IvMiQcwbLQT9cqrUY9Kj3CC4mCkw9QNn1tlK03eqFh2I5CsWufM0M
+4O5qL3Buo+VGHBShUjhmmXbfrIlf5/b2lbO64q5Y2QfxnwNpOAABE/an7jJQ6yXH
+BYUW6+E/K9p3Wz9YqXchhFrOTPZJAgMBAAECgYAPZT9YeaZzekumyXrYmRbt7FRv
+NToyopiCR95LY14TwMHm+EGKPPezD/aqJRlAUoIaOn7RwPUKSgiGQAKU10O1pvVV
+sF0WVUjv7Q0zP/M1dXqhwuSx8LKxYxR9+u+YOrN8x2VO4MJiw4GudLPli5T3V0eQ
+oR5hBnwATAsWKrZ5zwJBANYZSCiZYMFSm1eQC3ttpLYf2eE/C9FsseaAOxl2rQdC
+ucw6kq3XYhHDRyQoB1/34p9kpHiXDyh8ZRbUmRfI0+cCQQDQnWzR9POF8FK/lLkW
+LswgaJjbYbrhcVNSWgczQEqzZ3CDWSjHu5CnN2ZxgDbRVe8lei6BhYfovKfMlvL1
+vZ5PAkEAyMUijrfuLLwbYkx5CAD0sblCp2Bo47XrSf077pAEiEeBVkwjGpRcqc2W
+3AgRimQ5h0FonpEBrPSiE3vAKLayRwJAAsAQjzQLgdiJPr1XM1OqnULDwSCothAo
+aQ2GysYuNe9HLHQgdYGjhpDUaOqnzlqzrGrP8iUwhYD3NVtIGLVHQQJASz929cv0
+mfkf9s8XXFrWB6Z7Wl4jZroqs1OoMgQKhROvFgrQoaDrdJ2zm62RdbLiGpd7KrdI
+fPT7aVRGZwvwTQ==
+-----END PRIVATE KEY-----
+`
+
+	// impostorPEM is someone else's key, 2,048 bits.
+	impostorPEM = `
+-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDGrk5pFv+WRkSF
+noFplCWEUP2L9m3RyvAt0+nQzEk+IpU+FP07PrWIK5X1r06C4wmb0blUpp8Ff01S
+GBPUqiEOEjqAC9WWWrcuFLTZye+378yPyZz9BsHAvT2AGYSN+B0FdDxd3mEQu2KY
+4iSk/vQbHzC62MZdwQBMKI1vrtyAnpWZ8r25aPWFpMYFtyElTW3J+cRipXNNI0Ml
+Tu7V77+0ohqnpMqeEGXTBMGzSc4/SDAvGIohuUnz5vUWqzepJJsrm7//E96JWwI/
+GLOO+vm072jzlw/95s6p+41oQSYKqhhHl0bcHQ2WaBhxAXDRNylCWFmmKY6dfFfT
+ZnGa0wyBAgMBAAECggEAIOcc9Spp3r55pTyVZ0wG1TLUdSlfu9lFN/xa7HPobUcs
+5WsfGitNxOSdoQ0MjisrRt1548We8Dofg/OY1SSXn3eareSdKpk7XNZGXQr5jWyZ
+DqGaQ2JVvqWYWcPgFTgnFjrPBHyfdos8eN/P/G3R30FQa0vFuMu4UOR7sn3dkS8R
+6D6xPjzWY83ebJzZTYyleawf3tEvVH0bLJ5hfmjI5TRVSGePshNh9gPnjzne4+bU
+wJ/wv0O9bxt0K+y5ifLZdgS33ObxDGwBySY9m3Cxi47DTf2Tz+Jr9V/RjrKT7Uml
+0KBv/hnLk7P6Y+5P/trFvEIHaw8Vz9wwWdfvvgokQQKBgQDyYlthLtXuapLsOASh
+yT3MW9esrt8wv90jfU1fydZTkzxn8/nK1bAjV+vFV070lPZMum92i6N3Sc4Cerv3
+6SajkoQv+P0+rnX3nv+b7/KrZdErEFHsb0CfRgMriRtSxe/hwtKYPlg3VmrB5pgP
+D+z2UEORwrO/JTnmz700g1G6XwKBgQDR13eP8IQzPvKZpo9CmvIfVM9X+pL6VeF+
+JzbxHroFRlJUTdh5E6gfCRyQukuIExnUb4SQBQ87w81kKC3Ej8VHBPG/SSrM7/j1
+vzuHCgBTbe53E66D+pAkg4T8w8B+3F8v/IG+H71P9MXHstbcGRhGR1CzM1CNs7cN
+PVU7EFplHwKBgQCf/3csnpsPR4B2t7+vAEVv6cxjrAeeiXgzXho+OeDlyFJemHly
+gD5GBlqXKLvwzYgMPCEp0qF0M97uWhBMZLZh0Wy6shSRVN6AN4+pYuoAZDR/xcUe
+Wo4A1VlwWpATwp9HmrAjWTwoQz4zgsEraCrWqUMBK9I1QiCHkOfniyve5wKBgCeU
+FUf/3F9yCv3yDWlJoktIiscUSu6OjjZmHRXDbuCZz+N4v1Cu5XHdHRcrHB3xRFju
+I7mqSqJCHxY6Ac/mMhZgF1y15y26QWHQjOC+gSs7O9QX0T2xX8iTSd0G6uLCm+2I
+GcyLXgCbsUYmNCJVVV/ECbOTBSmE8Qy9ObsnLXWPAoGBALJ4JJ6cc7TmvpRjk/J5
+DcYGhdJ0y7+IL9Bw/wXJXLFGP8mCYp9yVkK4jx9588cpZAWYpd/2yeoI8dVehiwb
+pMof9ybIZ0BrdkPPGwTVFnWi63BF5rSjohwXhMr3A0jt1ZpsJCTayFKOYkzN5QoZ
+tQk8JCbt555QJBPZmIOxsMCz
+-----END PRIVATE KEY-----
+`
+)
+
+// rsaKey parses one of the test keys above.
+func rsaKey(t *testing.T, text string) *rsa.PrivateKey {
+	t.Helper()
+	block, _ := pem.Decode([]byte(text))
+	if block == nil {
+		t.Fatal("test key: no PEM block")
+	}
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return key.(*rsa.PrivateKey)
+}
+
+// publicPEM writes pub as a PEM PUBLIC KEY block, as Brinewatch emails its keys.
+func publicPEM(t *testing.T, pub any) []byte {
+	t.Helper()
+	der, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})
+}

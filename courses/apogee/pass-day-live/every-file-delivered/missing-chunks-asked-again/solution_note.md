@@ -1,0 +1,1 @@
+Every pass bringing a file down holds it, from its FILE or its DUMP_FILE to the file's END or the pass's LOS, so a satellite's next contact asks only for what no pass is still sending: the missing chunks by number, or the whole file after a CRC mismatch. The chunks asked for land the file like any others, and its event keeps the booking it first came down for.

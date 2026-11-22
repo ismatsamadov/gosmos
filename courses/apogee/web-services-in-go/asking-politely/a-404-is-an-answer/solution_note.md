@@ -1,0 +1,1 @@
+`Do` returns a nil error for every answer the server sends, so `Reading` now looks at the status itself and turns anything but 200 into an error that names the station and the status. The decoder only ever sees the body of a 200, so plain text such as `no station "CRW"` never reaches it.

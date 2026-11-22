@@ -1,0 +1,1 @@
+Comparing frame numbers instead of arrival order keeps each satellite's newest frame whichever station relayed it and whenever, and `parseLine` refuses a `nan` reading before it can be kept. The report is written after every contact has ended, in the network's order, through `saveWhole`, and only when the week ran to its end.

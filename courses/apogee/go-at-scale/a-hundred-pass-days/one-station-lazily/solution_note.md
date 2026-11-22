@@ -1,0 +1,1 @@
+The sequence pulls candidates from the merged streams one at a time, so `assign` gets them in AOS order without a slice of the day, and the check at every 1,000th candidate stops the pulling soon after a cancel. The last `ctx.Err()` decides the result: a canceled run returns its error and no contacts, whatever `assign` was given.

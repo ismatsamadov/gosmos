@@ -1,0 +1,5 @@
+NOMINAL: proceed
+SAFE: recovery pass
+DETUMBLE: beacon only
+LEOP: beacon only
+REBOOTING: hold

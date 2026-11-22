@@ -1,0 +1,1 @@
+A reset now ends the first time it is used or the moment its 30 minutes are up, whichever comes first. Every refusal gives the same error and leaves the reset as it was, so a wrong guess neither learns which check failed nor cancels the real link.

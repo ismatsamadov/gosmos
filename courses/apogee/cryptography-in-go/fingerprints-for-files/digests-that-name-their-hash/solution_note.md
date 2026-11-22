@@ -1,0 +1,1 @@
+Each check refuses one way the text could be read two ways: no name, a name nobody agreed on, or digits that aren't exactly what the hash produced. Only text that passes all three is decoded, so every accepted digest has one meaning: one hash and 32 bytes.

@@ -1,0 +1,1 @@
+Counting the fields before indexing them means no line can make `parseLine` read past the end of its fields: four, none or seven all get an error instead of a panic. The corpus file now runs on every plain `go test`, so Saturday's line can never crash tlmd again without a test failing first.

@@ -1,0 +1,1 @@
+A verifier only asks whether a version may still be trusted: held, not revoked and not retired, so `k-2028-07` keeps working through the seven-day overlap and the command sealed two seconds before midnight is accepted after it. `Activate` matters only to signers, which is why the new version is accepted the week before it seals anything.

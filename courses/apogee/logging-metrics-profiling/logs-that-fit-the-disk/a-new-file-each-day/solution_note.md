@@ -1,0 +1,1 @@
+Comparing UTC days as text in `2006-01-02` form rotates exactly when the clock's day passes the file's, whatever zone its times come in, and never when the clock steps back. `rotate` names the old file by its own day before `open` gives the fresh one today's, and an empty file isn't renamed, so no day ever gets an empty file.

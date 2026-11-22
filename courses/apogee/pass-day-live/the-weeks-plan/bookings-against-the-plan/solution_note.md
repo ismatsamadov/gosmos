@@ -1,0 +1,1 @@
+Keying contacts by satellite, station and AOS to the second matches a booking only to the very pass it names, so one a second off is `no such pass`. The reasons are tried in the readme's order, so each booking gets the first that fits, and the count includes every booking the rehearsal answers for, matched or not.

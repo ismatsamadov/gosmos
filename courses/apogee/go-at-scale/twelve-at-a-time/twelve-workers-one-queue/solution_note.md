@@ -1,0 +1,1 @@
+Exactly `workers` goroutines exist however many jobs there are, and each takes the next job from the channel only after finishing the last, so no more than `workers` jobs run at once. The loops end when `jobs` is closed and drained, and `wg.Wait` returns after the last job, with the first error kept by `fail`.

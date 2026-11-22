@@ -1,0 +1,1 @@
+The function `sync.OnceFunc` returns runs the close on its first call only, and every later call, from any goroutine, waits for that one and returns without closing again. So the Board's shutdown and a newer plan can both stop a run, in any order or at the same moment, and `Done` is closed exactly once.

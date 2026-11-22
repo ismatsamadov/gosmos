@@ -1,0 +1,1 @@
+The group runs at most `cfg.Slots` stations at once, and each job writes its own index, so no two goroutines touch the same element. `MergeBy` keeps one contact of each station's sorted list in its queue and always yields the earliest, so the twenty lists become one schedule in order without sorting it.

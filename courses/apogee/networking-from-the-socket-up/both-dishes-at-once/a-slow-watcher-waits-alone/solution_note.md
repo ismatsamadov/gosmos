@@ -1,0 +1,1 @@
+Each write now gives up after `w.Timeout`, so the sleeping laptop costs one timeout and is removed and closed, while the screens that read get every line. Setting the deadline just before each write gives every watcher the same full allowance, whatever came before it in the loop.

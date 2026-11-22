@@ -1,0 +1,1 @@
+Every silence has an `Until`, so `silenced` turns false at 11:00 by itself, and nobody has to remember to unmute the station. The pager keeps moving each rule's state during the silence, so a problem that outlasts it pages at 11:00, and one that cleared before then never wakes anyone.

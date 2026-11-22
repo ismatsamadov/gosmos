@@ -1,0 +1,1 @@
+The file now holds only digests, and `Redeem` hashes whatever arrives before comparing, so a digest copied from the file hashes to something else and is refused, while the real token, which only the email carried, hashes to the kept digest. The comparison takes as long whichever byte differs, as the console's checks of secrets do.

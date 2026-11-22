@@ -1,0 +1,1 @@
+`Printf` copies the format string to the output, putting `name` where `%s` stands and `passes` where `%d` stands. The `\n` at the end finishes the line, which `Printf` never does on its own; without it, the first AOS would run on after the 4.

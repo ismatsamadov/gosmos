@@ -1,0 +1,1 @@
+The `atomic.Uint64`'s `Add` reads, adds and writes in one step that no other goroutine can split, so 50 goroutines adding at once never read the same old value and lose a pass. Its zero value is ready to use, so a `Counter` needs no constructor.

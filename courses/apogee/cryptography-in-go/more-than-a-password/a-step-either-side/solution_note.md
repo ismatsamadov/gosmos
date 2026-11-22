@@ -1,0 +1,1 @@
+Three steps accept a code from a clock up to 30 seconds off, typing time included, and still refuse every other code, so a single guess has three chances in a million instead of one. The check for a missing secret keeps an account without a phone from accepting the code anyone can make from an empty one.

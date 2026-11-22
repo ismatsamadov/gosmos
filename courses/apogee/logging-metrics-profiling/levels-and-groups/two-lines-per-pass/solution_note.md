@@ -1,0 +1,1 @@
+The `switch` keeps every level decision in one function, so each call site writes its event at the same level and the night shift's view follows one rule: at INFO a pass is two lines, where it starts and how it ends, with any warnings beside them. Every step in between stays at DEBUG, written only on the night someone turns the station up.

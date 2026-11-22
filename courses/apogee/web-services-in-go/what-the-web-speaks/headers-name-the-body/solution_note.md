@@ -1,0 +1,1 @@
+`Get` matches the header's name in any letter case, and `ParseMediaType` drops the parameters and lowercases the type, so every spelling of JSON compares equal to `application/json` while `application/jsonp` does not. A missing or broken value comes back with an error, which counts as not JSON.

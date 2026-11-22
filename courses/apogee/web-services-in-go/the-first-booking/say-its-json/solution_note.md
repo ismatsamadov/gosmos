@@ -1,0 +1,1 @@
+`ParseMediaType` drops the parameters and lowercases the type, so every way of writing JSON compares equal to `application/json`, while a form, plain text, JSONP or a missing header is refused. The check runs before the decoder exists, so a body in the wrong format is never read at all.

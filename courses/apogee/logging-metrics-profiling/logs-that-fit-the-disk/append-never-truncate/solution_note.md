@@ -1,0 +1,1 @@
+`O_APPEND` sends every write to the end of the file, so a restart adds to what the day has written instead of emptying it, and `O_CREATE` with `0640` makes a missing file readable only by its owner and its group. Without `O_TRUNC`, opening an existing file never shortens it.

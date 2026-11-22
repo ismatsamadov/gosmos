@@ -1,0 +1,1 @@
+The cases run from the top and the first true one returns, so a station that is down reports `station down` whatever the wind. `>=` makes a wind of exactly 72 km/h a NO-GO, while the strict `<` keeps a pass peaking at exactly 3° and a battery at exactly 6.6 V a GO.

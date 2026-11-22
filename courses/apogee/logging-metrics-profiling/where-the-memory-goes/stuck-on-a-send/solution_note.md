@@ -1,0 +1,1 @@
+With room for one, `done <- result{rep, err}` finishes whether or not `runPass` is still waiting, so the goroutine reaches its end, and the deferred receive gives the worker back on the way out. A failed pass still holds its worker until the radio gives up, 15 minutes after its last line, but nothing stays stuck forever.

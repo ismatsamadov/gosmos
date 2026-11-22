@@ -1,0 +1,1 @@
+`readFeed` gives its error to the run's cancel, which records it as the cause before any stage stops, so `context.Cause` names the broken feed and still wraps the reader's error for `errors.Is`. A parent canceled from outside leaves `context.Canceled` as the cause, and a run whose feeds all end cleanly has none.

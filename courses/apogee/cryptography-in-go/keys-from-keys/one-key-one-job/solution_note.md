@@ -1,0 +1,1 @@
+With the purpose in the info, one master gives every satellite two unrelated keys, so nothing either job reveals about its key can help against the other. Refusing unknown purposes and satellites before deriving means a typo gets an error instead of a key nobody holds.

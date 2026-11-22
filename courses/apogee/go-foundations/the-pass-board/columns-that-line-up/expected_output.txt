@@ -1,0 +1,4 @@
+STATION        MASK
+Ystmark         5.0
+Salar Quieto    3.0
+Lantern Atoll   8.0

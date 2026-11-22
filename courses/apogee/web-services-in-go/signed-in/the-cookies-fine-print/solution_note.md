@@ -1,0 +1,1 @@
+The cookie now goes back only to addresses under `/account`, only over HTTPS, never to a script, and never with a form another site posts, and its `MaxAge` of 1800 seconds lets the browser keep it exactly as long as an unused session lasts. `http.SetCookie` turns those fields into the one header line the browser reads.

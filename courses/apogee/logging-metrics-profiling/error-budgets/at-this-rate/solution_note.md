@@ -1,0 +1,1 @@
+A budget at 0 or below is already spent, so its answer is now, whatever the week's losses; with some left and none lost there is no rate, so no date. Multiplying the remaining passes by a whole week before dividing keeps the answer exact to the nanosecond: 5 passes at 3 a week last 11 days and 16 hours.

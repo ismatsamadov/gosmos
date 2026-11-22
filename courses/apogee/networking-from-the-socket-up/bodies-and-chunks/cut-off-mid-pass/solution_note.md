@@ -1,0 +1,1 @@
+Only the zero chunk followed by the trailer's blank line returns a body; every read that meets the stream's end on the way, wherever it stops, becomes the same 400. The server never calls `put` for a refused request, so a cut pass is never stored or listed.

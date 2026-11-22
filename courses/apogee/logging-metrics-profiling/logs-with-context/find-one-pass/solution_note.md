@@ -1,0 +1,1 @@
+The scanner splits the stream at newlines, and decoding into `Line` picks out only the six shared keys, so a line from any program can be compared by its pass ID. A line that isn't JSON is counted and skipped, a stream that fails ends the loop with its error in `sc.Err()`, and `Raw` keeps each line exactly as it was written for whoever reads the result.

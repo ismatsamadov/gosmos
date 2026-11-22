@@ -1,0 +1,1 @@
+`filepath.IsLocal` works out where a name leads from its text alone, so `log/../correction.xml` passes while `/etc/hosts`, `../gctl` and `log/../../.profile` are refused. Returning at the first unsafe name lets the caller turn the whole parcel away before a single file is written.

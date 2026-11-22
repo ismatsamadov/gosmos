@@ -1,0 +1,1 @@
+Cutting at the `;` and trimming the end leaves only what should be the hex digits, and checking their count and characters refuses the signs `strconv` would read and the 17th digit it would quietly accept. `ParseInt` in base 16 then turns `c` into 12 and `1000` into 4,096.

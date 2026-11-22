@@ -1,0 +1,1 @@
+Each chunk carries its own size and is flushed at once, so the collector reads a line the moment its recording is stored, though the answer has no length. When the store closes the channel, the zero chunk tells the collector the stream ended rather than broke, and a write that fails ends the feed with its error.

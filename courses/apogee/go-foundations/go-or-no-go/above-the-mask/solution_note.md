@@ -1,0 +1,1 @@
+`>=` counts a pass that peaks exactly at its mask as clearing it, so (5, 5) is GO, and comparing with `maskDeg` rather than a fixed 5 makes 4.5° a GO over Salar Quieto's 3° mask. Exactly one of the two blocks runs, so `call` always holds GO or NO-GO by the time the `Sprintf` adds the numbers.

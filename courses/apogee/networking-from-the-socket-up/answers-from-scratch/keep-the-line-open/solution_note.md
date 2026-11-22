@@ -1,0 +1,1 @@
+Each turn waits for one request at most `Idle`, answers it and goes on only when nothing can be left over on the line: a 2xx to a request that kept the line open. Every other answer says `Connection: close`, so Go's client never sends a second request on a connection the server is about to drop.

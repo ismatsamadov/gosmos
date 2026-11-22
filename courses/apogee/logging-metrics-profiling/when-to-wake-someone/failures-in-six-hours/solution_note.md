@@ -1,0 +1,1 @@
+`After` leaves the window's start out and `!After` keeps its end, so each failure is inside for exactly `d` from its LOS, and the rule sees the night's first failure leave at 01:41:28 and the last at 08:44:57. Checking the station and the outcome keeps other stations' passes, flown ones and skipped ones out of the count.

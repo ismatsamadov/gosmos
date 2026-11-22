@@ -1,0 +1,16 @@
+data.go
+main.go
+script.html
+testdata/events.golden
+testdata/json-0358.golden
+testdata/json-0440.golden
+testdata/lobby-0358.golden
+testdata/lobby-0500.golden
+testdata/lobby-0900.golden
+testdata/lobby-events.golden
+testdata/lobby-json-0358.golden
+testdata/lobby-json-0900.golden
+testdata/night.txt
+testdata/page-0358.golden
+testdata/page-0430.golden
+testdata/page-0440.golden

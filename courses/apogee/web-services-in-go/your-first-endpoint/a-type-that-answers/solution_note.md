@@ -1,0 +1,1 @@
+Having `ServeHTTP` is what makes `stationList` an `http.Handler`, and encoding the receiver writes the list as a JSON array, each station under the names its struct tags give, such as `lat_deg`. An empty list that isn't nil encodes as `[]`.

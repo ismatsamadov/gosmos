@@ -1,0 +1,1 @@
+Each ELEV cell goes through `strconv.ParseFloat`, and a failure comes back wrapped with the row and column Hollis sees in his spreadsheet. Counting records rather than lines keeps the row right after a note that spans two lines, and `%w` keeps the `strconv` error inside for callers that check it.

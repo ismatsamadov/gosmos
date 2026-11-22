@@ -1,0 +1,1 @@
+Each feed gets its own forwarding goroutine, so a silent station never holds up the others, and the WaitGroup counts them. The closer goroutine waits for every forwarder before closing `out`, which lets `merge` return at once and still close the stream exactly once, after the last value.

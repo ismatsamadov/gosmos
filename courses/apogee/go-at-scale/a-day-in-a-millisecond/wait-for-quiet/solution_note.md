@@ -1,0 +1,1 @@
+The first message starts the one timer and each later message pushes it back, so `fire` runs once, five seconds after the last message of a burst; once it has run, `Reset` arms the same timer for the next burst. The mutex keeps two stations' messages from both making a timer, and `Stop` turns off a fire still waiting.

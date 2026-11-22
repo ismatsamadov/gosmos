@@ -1,0 +1,1 @@
+Each step's error stops the day at once, so a missing or cut-off file can no longer become an empty plan. Wrapping with `%w` puts the file's role in front of the message for Paz and keeps the original error for `errors.Is`, and validating before `newPlan` refuses a bad booking before anything is planned.

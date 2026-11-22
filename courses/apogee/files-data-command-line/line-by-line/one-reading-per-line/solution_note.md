@@ -1,0 +1,1 @@
+`Scan` returns true once for every line, blank ones and an unterminated last one included, so counting the loop's turns counts the lines. The scanner reads through a small buffer, so memory stays small whatever the size of the log.

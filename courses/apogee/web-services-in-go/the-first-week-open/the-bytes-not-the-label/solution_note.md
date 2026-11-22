@@ -1,0 +1,1 @@
+The sniffer judges the bytes the station would send up, so a PDF labeled `text/plain` is refused and a text file labeled `application/octet-stream` is kept. Comparing the whole type, charset included, lets through only what the sniffer calls plain UTF-8 text, and the message tells the customer what their file looked like instead.

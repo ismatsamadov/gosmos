@@ -1,0 +1,1 @@
+Everything is checked before anything is signed, so a receipt never exists for the wrong booking or for a digest no checker could read. Truncating the clock to the second makes `signed_at` exactly the time the guide shows customers, and `wrapReceipt` signs the very bytes the envelope carries.

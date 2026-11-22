@@ -1,0 +1,2 @@
+Orbits to full: 10
+Battery: 8200 mV

@@ -1,0 +1,1 @@
+With `CurrentTime` taken from the injected clock, the test can ask at any instant, and `Verify` accepts every time from `NotBefore` to `NotAfter`, both included, and refuses a second either side. Lantern Atoll's refusal came from its clock, not from the certificate: the same check on the right time accepts it.

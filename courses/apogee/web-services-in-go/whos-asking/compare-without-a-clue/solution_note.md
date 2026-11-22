@@ -1,0 +1,1 @@
+The ID before the dot picks the one stored key worth comparing, and `ConstantTimeCompare` takes the same time for any two keys of the same length, wherever they differ, so how long the check takes no longer tells a guesser how much of a guess was right.

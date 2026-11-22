@@ -1,0 +1,1 @@
+The client trusts Apogee's root alone and checks Ystmark's name, and the server accepts only clients whose chains Apogee's CA issued for client use, both on TLS 1.3, so every party on the path is proven and every byte between them is encrypted. The sealed line inside stays sealed: Ystmark queues it unread, and only Cirrine-1's stand-in, holding the seal key, opens it.

@@ -1,0 +1,1 @@
+`slices.Values(day)` makes a sequence that ranges the whole day each time `assign` ranges it, so every turn plans Cape Wren's 76 contacts. Their sum over `b.N` turns, reported as `contacts/op`, puts that count on the benchmark's line, where an empty input shows at once.

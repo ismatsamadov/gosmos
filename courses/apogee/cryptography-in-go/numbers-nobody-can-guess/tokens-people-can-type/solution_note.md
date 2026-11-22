@@ -1,0 +1,1 @@
+`rand.Text` draws 26 characters from `crypto/rand`, 5 bits each, 130 bits in all, so nothing about the login, its time included, helps anyone guess the token. Its alphabet of `A` to `Z` and `2` to `7` leaves out the digits that look like letters, so people can read and paste it safely.

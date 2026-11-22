@@ -1,0 +1,1 @@
+With every field read and written under `c.mu`, a refresh and a command never touch the cache at the same moment. `reload` holds the shared work without locking, so `passes` never waits on itself, and the copies keep the cache's slice its own.

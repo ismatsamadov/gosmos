@@ -1,0 +1,1 @@
+A zip's directory names every file it holds, so the loop finds `manifest.xml` wherever the packer put it, and `Open` unpacks that one file alone. Every error, from a parcel that isn't on the stick or isn't a zip to a manifest that `readManifest` refuses, reaches the caller.

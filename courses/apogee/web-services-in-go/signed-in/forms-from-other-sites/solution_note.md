@@ -1,0 +1,1 @@
+The guard trusts what the browser itself reports about where a request came from, so a form on any other origin, on the same site or not, is refused before `cancel` or `signIn` runs. A program sends neither header and passes, but a program never carries a browser's cookie unless someone hands it one.

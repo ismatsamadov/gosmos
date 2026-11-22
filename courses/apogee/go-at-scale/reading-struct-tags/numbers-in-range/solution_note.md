@@ -1,0 +1,1 @@
+The duration case comes first because a `time.Duration` is an integer kind as well, and only its type says to read `10m` as ten minutes. Returning each value as its own type lets `%v` print an int as `64`, a float as `15.5` and a duration as `10m0s`, and a bound that doesn't parse makes the rule a misfit.

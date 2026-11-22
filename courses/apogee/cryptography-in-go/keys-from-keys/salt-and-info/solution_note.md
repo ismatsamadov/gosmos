@@ -1,0 +1,1 @@
+With each label as its info, HKDF derives four unrelated keys from one master and one salt: even `sign|cirrine-1` and `seal|cirrine-1`, a word apart, share nothing. That is why one master can serve the whole fleet without one satellite's key leading to another's.

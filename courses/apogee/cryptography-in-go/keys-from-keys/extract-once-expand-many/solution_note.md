@@ -1,0 +1,1 @@
+`hkdf.Key` is `Extract` followed by `Expand`, so one extraction and fourteen expansions give exactly the keys fourteen calls of `hkdf.Key` would, while the master goes through the extract step a single time. Each info still names one key, so the fourteen keys stay unrelated to each other.

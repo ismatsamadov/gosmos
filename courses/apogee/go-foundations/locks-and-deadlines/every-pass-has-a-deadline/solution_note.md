@@ -1,0 +1,1 @@
+`context.WithDeadline` ties the pass's context to the clock: a pass still running at LOS ends there, with `context.DeadlineExceeded`. Building it on `parent` keeps the pass inside its shift, so canceling the parent ends the pass too.

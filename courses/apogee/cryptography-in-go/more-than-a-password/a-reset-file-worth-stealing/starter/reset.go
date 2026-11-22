@@ -1,0 +1,34 @@
+package main
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"time"
+)
+
+// resetFor is how long a reset link works after the console sends it.
+const resetFor = 30 * time.Minute
+
+// errInvalidReset is the console's one answer to a reset link it won't take.
+var errInvalidReset = errors.New("invalid or expired reset link")
+
+// Reset is one pending password reset, as the console keeps it.
+type Reset struct {
+	Hash    string    // hex SHA-256 of the link's token
+	Expires time.Time // the link is refused from this instant
+}
+
+// Resets holds the ops console's pending password resets, one per account.
+type Resets struct {
+	pending map[string]Reset         // user → their pending reset
+	now     func() time.Time         // the console's clock
+	known   func(user string) bool   // whether user has an account
+	send    func(user, token string) // queues an email to user with the reset link
+}
+
+// tokenDigest returns the hex SHA-256 of a token: what the console keeps instead of it.
+func tokenDigest(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}

@@ -1,0 +1,1 @@
+Each symbol picked at random from n choices is worth log2(n) bits, the number of doublings that take 1 to n, so a secret's bits are its length times log2 of its alphabet. That puts six digits at 19.9 bits, far below Apogee's floor of 128, and `rand.Text` two bits above it, at 130.

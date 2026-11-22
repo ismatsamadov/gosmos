@@ -1,0 +1,1 @@
+Printed as a plain string, a note goes through the same escaping as every other value, so `<`, `>`, `&` and quotes reach the screen as text. Only `template.HTML` skipped that escaping, and nothing turns a note into one any more.

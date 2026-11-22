@@ -1,0 +1,1 @@
+Every handler's context now descends from a context `run` controls, so one call reaches every stuck request at once, and the store, which checks its context, gives up. Canceling only after `Shutdown` fails keeps the graceful part graceful, and wrapping with `%w` lets the caller still recognize the timeout.

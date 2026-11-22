@@ -1,0 +1,1 @@
+A damaged frame still carried the right length, so reading on after it starts at the next frame, while a length out of range leaves no way to find where any frame starts, so the line is lost. Checking the pass's context first keeps the hang-up at LOS from counting as a loss.

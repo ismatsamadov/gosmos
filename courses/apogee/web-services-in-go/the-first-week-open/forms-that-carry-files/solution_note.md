@@ -1,0 +1,1 @@
+With the body behind `http.MaxBytesReader`, no read gets past 65,536 bytes, so the 1.9 GB image costs 64 KiB and ends in a `*http.MaxBytesError` the service can answer with 413. `MultipartReader` hands over the form a part at a time, so the command file is found by its name without holding the rest.

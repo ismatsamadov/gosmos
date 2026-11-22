@@ -1,0 +1,1 @@
+The decoder reads the body as a stream and fills `b` by its JSON names, and an error returns before `Create`, so a broken body is answered with 400 and never kept. `Create` gives the booking the next ID, and the 201 carries that stored booking back to the caller.

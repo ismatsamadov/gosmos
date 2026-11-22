@@ -1,0 +1,1 @@
+The HMAC ties each code to the secret and the counter, its own last byte picks which 4 bytes become the number, and clearing the top bit keeps that number the same however a language reads signed values. Formatted with `%06d`, the result is what every authenticator app shows for the same secret and step, as the RFCs' own vectors confirm.

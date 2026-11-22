@@ -1,0 +1,1 @@
+The highest sequence number marks the newest frame whatever order the frames arrive in, so the result is the same for every order. Checking `ok` first stores a satellite's first frame even when its number is 0, which a comparison with the map's zero value would drop.

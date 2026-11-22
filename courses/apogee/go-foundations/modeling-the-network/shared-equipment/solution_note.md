@@ -1,0 +1,1 @@
+Embedding `Dish` promotes its fields, so `report.go` reads `yst.DiameterM` and `van.XBand` without naming the dish. In the literals, the embedded field is named after its type, so the key is `Dish`, though Go 1.27 also accepts `DiameterM` and `XBand` as keys.

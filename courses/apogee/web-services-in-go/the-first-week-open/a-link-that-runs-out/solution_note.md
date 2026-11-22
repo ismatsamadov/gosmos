@@ -1,0 +1,1 @@
+The signature covers the path and the expiry together, so a link edited to open another booking's file or to last longer fails the comparison, which `hmac.Equal` makes in constant time. Only a genuine link reaches the expiry check, which ends it at its expiry's very second, as tokens end.

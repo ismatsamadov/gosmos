@@ -1,0 +1,1 @@
+Taken in the deferred function, the stack still holds the frames of the code that panicked, and as one string attribute it leaves the JSON handler on the failure's single line, each line break written as `\n`. One search now finds the pass, its error and where it broke, while the station flies on.

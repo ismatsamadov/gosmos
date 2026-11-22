@@ -1,0 +1,1 @@
+Counting before `f` makes goroutines that were already running cancel out, and checking again every millisecond gives goroutines that are about to end up to a second to do it, so only the ones still running then count. `max(left, 0)` turns a count that fell below the start into 0, since nothing was left behind.

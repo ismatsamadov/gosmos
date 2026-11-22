@@ -1,0 +1,1 @@
+`p.LOS.Sub(p.AOS)` subtracts the start of the pass from its end and returns a `time.Duration`. Both fields are full instants with a date, so Thistle's pass across midnight still comes out as 9 minutes.

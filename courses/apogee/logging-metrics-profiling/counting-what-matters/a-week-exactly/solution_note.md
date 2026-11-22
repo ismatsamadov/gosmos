@@ -1,0 +1,1 @@
+Adding the increase between each pair of readings counts every pass exactly once, before the restart and after it, and treating a drop as a fresh start keeps the passes counted since. Nothing is ever subtracted below 0, so the `uint64` can't wrap around, and the week adds up to Brine-3's 23 flown and 1 failed.

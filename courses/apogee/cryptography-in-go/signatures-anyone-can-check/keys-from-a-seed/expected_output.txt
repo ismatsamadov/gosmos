@@ -1,0 +1,4 @@
+public key: 32 bytes, ba6c6226d2c3c056
+signature: 64 bytes
+verifies: true
+one byte changed: false

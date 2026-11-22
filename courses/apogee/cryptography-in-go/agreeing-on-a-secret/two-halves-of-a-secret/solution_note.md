@@ -1,0 +1,1 @@
+X25519 takes your private key with their share, or theirs with yours, to the same 32 bytes, while, with today's computers, the two shares alone give nobody the secret. `NewPublicKey` checks only a share's length, so `ECDH` can still refuse a share, and `agree` passes on the error of either.

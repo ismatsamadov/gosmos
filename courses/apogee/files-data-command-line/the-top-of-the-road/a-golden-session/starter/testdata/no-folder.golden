@@ -1,0 +1,5 @@
+[stdout]
+[stderr]
+day needs one folder, after its flags
+usage: gctl day [-format json|csv] dir
+[exit 2]

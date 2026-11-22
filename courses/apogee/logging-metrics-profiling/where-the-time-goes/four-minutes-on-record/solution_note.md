@@ -1,0 +1,1 @@
+The profile is written to the file when it stops, so `StopCPUProfile` comes before `Close`, and the close returns the last error the disk can give. Returning at each failure leaves `work` unrun, and no profile running, when the file or the profiler can't start.

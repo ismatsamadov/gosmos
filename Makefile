@@ -1,14 +1,19 @@
 # Gosmos: build and install the app, run every test, check the library.
-.PHONY: app install test check verify reference
+.PHONY: app install test check verify reference library
 
 APP := build/Gosmos.app
 LIBRARY := courses/apogee.sqlite
 REFERENCE := reference/go.sqlite
 PACKAGES := CodeEditor
 
+# The Apogee library, built from its text in courses/apogee/: the same text makes the same
+# file, and a file already the same is left alone.
+library:
+	go run ./cmd/author build courses/apogee $(LIBRARY)
+
 # The app, with the Go toolchain lessons run with built in: the one `go env GOROOT` names, or
 # GO_ROOT=<folder>. app/scripts/bundle.sh trims and signs it.
-app:
+app: library
 	swift build -c release --package-path app --product Gosmos
 	app/scripts/bundle.sh "$$(swift build -c release --package-path app --show-bin-path)/Gosmos" $(APP)
 
@@ -25,14 +30,14 @@ test:
 	swift test --package-path app
 	for p in $(PACKAGES); do swift test --package-path app/Packages/$$p || exit 1; done
 
-check:
+check: library
 	go run ./cmd/library check $(LIBRARY)
 	go run ./cmd/reference check $(REFERENCE)
 
 # Runs every code lesson of the library: each reference solution passes, each starter fails.
 # Also wants 2 or 3 hints and a solution note for every code lesson, and an explanation for
 # every quiz answer.
-verify:
+verify: library
 	go run ./cmd/library verify --teaching $(LIBRARY)
 
 # Makes the Go reference anew: the standard library of the Go that `go env GOROOT` names, its

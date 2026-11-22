@@ -1,0 +1,1 @@
+With `ctx` passed from `runPass` through `sendCommand` to `transmit`, the 30 ms deadline reaches the `select` that waits on the radio, which gives up and returns `context.DeadlineExceeded`. `sendCommand` wraps that error with `%w`, so the log names the command as well as the reason.

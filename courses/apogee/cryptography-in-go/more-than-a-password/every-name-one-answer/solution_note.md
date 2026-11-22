@@ -1,0 +1,1 @@
+The answer no longer depends on the name, so the form reads out nobody's account, while a reset starts and its link is queued only for an account that exists. The token travels only in the email to the account's owner, and the console keeps its digest.

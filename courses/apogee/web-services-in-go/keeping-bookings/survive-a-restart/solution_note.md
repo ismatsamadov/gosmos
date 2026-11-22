@@ -1,0 +1,1 @@
+Every `newService` reads `bookings.json` from the same folder, so the next process starts with each booking the last one saved and continues the IDs after the highest. A broken file fails `OpenFileStore`, and `newService` passes that error on instead of starting a service that would save over the file.

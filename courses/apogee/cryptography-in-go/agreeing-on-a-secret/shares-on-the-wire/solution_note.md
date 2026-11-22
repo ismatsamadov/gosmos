@@ -1,0 +1,1 @@
+Decoding and then encoding again accepts only the one lowercase spelling of each 32-byte share, and the length check refuses lines cut short or run long. `ECDH` refuses the all-zero secret a degenerate share forces, and passing its error on ends the agreement there, instead of leaving both ends a key anybody could compute.

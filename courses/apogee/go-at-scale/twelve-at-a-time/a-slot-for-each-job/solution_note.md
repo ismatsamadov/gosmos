@@ -1,0 +1,1 @@
+The channel's room is the number of slots, so the thirteenth send waits until a `Release` takes a value back out, and `predictAll` never has more than twelve predictions running. The `select` lets a waiting `Acquire` give up with the context's error when the run is canceled, without taking a slot.

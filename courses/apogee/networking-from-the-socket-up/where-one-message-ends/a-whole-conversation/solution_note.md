@@ -1,0 +1,1 @@
+The controller answers in the order frames arrive, so reading one answer per frame sent pairs each answer with its request. Stopping at the first error, a BYE or the end of the stream, returns exactly the answers that came before it and never mistakes the controller hanging up for an answer.

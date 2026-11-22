@@ -1,0 +1,1 @@
+`slices.Contains`, `slices.Index` and `slices.Max` are generic, so they work on the `[]string` and the `[]float64` alike, and each replaces a loop with its own bug: a result that later items overwrote, an index counted from 1 and a comparison facing the wrong way.

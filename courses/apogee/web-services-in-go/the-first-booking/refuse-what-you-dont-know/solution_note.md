@@ -1,0 +1,1 @@
+With unknown fields refused, a misspelled name fails instead of leaving a field empty, and the second `Decode` returns `io.EOF` only when white space alone follows the value, so a second object or stray bytes are refused too. An empty body makes the first `Decode` return `io.EOF`, which `bodyError` turns into a message a person can act on.

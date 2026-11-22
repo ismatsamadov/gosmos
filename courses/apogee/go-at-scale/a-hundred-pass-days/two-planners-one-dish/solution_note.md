@@ -1,0 +1,1 @@
+Each dish ends up with the latest time any of its contacts frees it, so `Plan` gives it no pass before the old planner has finished with it and the dish has settled. Contacts that rise at `at` or later are the new planner's to plan, so the loop stops at the first of them.

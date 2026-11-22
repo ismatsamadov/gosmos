@@ -1,0 +1,1 @@
+Trimming spaces and tabs from the left reveals the first character that matters, so indented notes and lines of white space are recognized. Appending the untrimmed line keeps each reading exactly as the controller wrote it.

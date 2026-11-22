@@ -1,0 +1,1 @@
+Each landing becomes one `data.landed` event with the next ID, sent on its own goroutine: the body is `json.Marshal`'s bytes, and the signature covers the attempt's Unix second, a dot and exactly those bytes. The run waits for every delivery before it says `week done`.

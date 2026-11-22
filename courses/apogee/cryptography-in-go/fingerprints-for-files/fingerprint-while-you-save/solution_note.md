@@ -1,0 +1,1 @@
+`io.MultiWriter` hands every piece `io.Copy` reads to both the file and the hash, so the image is read once and its digest is ready the moment the last byte is saved. When the folder fails, the copy's error comes back with no digest, since the saved file isn't whole.

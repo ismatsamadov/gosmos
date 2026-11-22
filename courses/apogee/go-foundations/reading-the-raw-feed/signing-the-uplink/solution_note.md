@@ -1,0 +1,1 @@
+Both functions compute the same HMAC-SHA256 of the canonical command under the key, so the solution keeps it in one helper: `sign` sends it as hex, and `verify` decodes what it received and compares the bytes with `hmac.Equal`, so a changed command, signature or key, or text that isn't hex, never verifies.

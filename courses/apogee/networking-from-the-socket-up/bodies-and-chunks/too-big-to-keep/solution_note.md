@@ -1,0 +1,1 @@
+The size line arrives before its chunk, so comparing the size with the room left refuses a chunk that would pass the limit after reading only its size line, and never allocates it. The comparison can't overflow, and since the server hangs up after the 413, the unread bytes are never read as a request.

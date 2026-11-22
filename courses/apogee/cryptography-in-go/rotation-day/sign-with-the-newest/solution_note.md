@@ -1,0 +1,1 @@
+Choosing by `Activate` rather than by position makes the answer independent of the key file's order, and checking `Revoked` and `Retire` first means a revoked `k-2028-10` hands sealing back to `k-2028-07` until it retires. With nothing left to seal with, an error is the only safe answer: a guessed key would seal commands no satellite accepts.

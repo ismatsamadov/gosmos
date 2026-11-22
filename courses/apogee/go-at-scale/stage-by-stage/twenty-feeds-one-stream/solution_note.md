@@ -1,0 +1,1 @@
+Each feed has a forwarder of its own, so a quiet feed holds nobody up, and the closer waits for all of them, so `out` closes only once every feed is done. Because every forwarder also watches `ctx.Done()`, a cancel ends them all, and then the closer.

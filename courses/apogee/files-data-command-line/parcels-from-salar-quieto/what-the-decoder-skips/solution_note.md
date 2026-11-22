@@ -1,0 +1,1 @@
+`xml.Unmarshal` succeeds on a manifest that leaves out `<dish>`, so the zero values it leaves behind are the only sign of a gap, and checking them after decoding turns that silence into an error that names it. Unknown elements such as `<firmware>` stay harmless, since no field asks for them.

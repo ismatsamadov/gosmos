@@ -1,0 +1,1 @@
+Refusing a request that carries both fields means no two programs can disagree on where its body ends, so nothing can hide behind it. Codings that don't end in `chunked` leave the body's end unknown, hence 400, and any coding before `chunked` is one the server can't decode, hence 501; everything else still goes through `contentLength`, as before.

@@ -1,0 +1,1 @@
+`cmp.Or` returns the AOS comparison whenever it isn't zero, so the pass ID decides only between passes that rise in the same second. No two passes share an ID, so two different passes never compare equal, and every sort of Sunday's passes gives Port Ellery's dish to Brine-3.

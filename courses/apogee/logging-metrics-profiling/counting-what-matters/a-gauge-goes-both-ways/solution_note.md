@@ -1,0 +1,1 @@
+The deferred `g.Add(-1)` runs when `track` returns, whichever way it returns, so a failed pass takes its 1 away exactly as a flown one does. The gauge then counts only the passes still inside `run`: 20 while all twenty are, and 0 once they have ended.

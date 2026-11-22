@@ -1,0 +1,1 @@
+The goroutine is the channel's only sender, so it alone knows when the last line has gone, and `defer close(out)` closes the channel as it returns. Every `range` over the channel then ends after the last line, even for a feed longer than the channel's room for 16.

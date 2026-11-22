@@ -1,0 +1,7 @@
+[stdout]
+usage: gctl <command> [flags] [arguments]
+
+commands:
+  day [-format json|csv] dir  run a calibration day from dir
+[stderr]
+[exit 0]

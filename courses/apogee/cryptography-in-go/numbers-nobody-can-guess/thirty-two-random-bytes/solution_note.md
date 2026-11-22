@@ -1,0 +1,1 @@
+Thirty-two bytes from `crypto/rand` are 256 bits, one of 2^256^ possible keys. `hex.DecodeString` alone accepts any even number of digits, so checking for exactly 64 before decoding is what keeps a damaged line from loading as a shorter key.

@@ -1,0 +1,1 @@
+Each round yields the smaller head and pulls one value to replace it, so the merge holds one value from each sequence and what it yields stays sorted. Taking `a`'s head when `cmp` returns 0 keeps ties in order, and the deferred stops end both sequences when the loop over `Merge` breaks.

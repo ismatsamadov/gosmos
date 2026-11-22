@@ -1,0 +1,1 @@
+HMAC hashes the key with the message, then hashes that result with the key again, so carrying on from its output never makes another message's HMAC: Mirela's extended tag matches nothing. It is also the tag Pipit-2 has always checked, so the lab bench's signature from 2027 comes out unchanged.

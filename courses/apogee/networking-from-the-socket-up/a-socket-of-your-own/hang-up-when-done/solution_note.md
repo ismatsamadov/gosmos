@@ -1,0 +1,1 @@
+The deferred `Close` runs once `readBannerLine` has returned, whichever way `bannerOf` ends, so every connection is closed and the simulator sees dishd hang up. Placed after the error check, it only ever runs on a real connection.

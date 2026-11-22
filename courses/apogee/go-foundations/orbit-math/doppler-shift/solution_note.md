@@ -1,0 +1,1 @@
+Multiplying the frequency by the range rate and dividing by the speed of light gives the shift in hertz. The minus sign turns an approaching satellite's negative range rate into a positive shift, which is why the beacon comes in high as it rises.

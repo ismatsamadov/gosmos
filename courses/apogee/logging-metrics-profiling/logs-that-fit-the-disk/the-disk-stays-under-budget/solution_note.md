@@ -1,0 +1,1 @@
+`stamp` sets each record's time before the `Sampler` counts it, so minutes follow the bench clock, and the sampled lines, about five thousand instead of 180,000, rotate at 64 KiB. Because the rotator prunes each time it opens a file, at start and after every rotation, the oldest files go first and the rotated files stay inside their budget, with only the current file beside them.

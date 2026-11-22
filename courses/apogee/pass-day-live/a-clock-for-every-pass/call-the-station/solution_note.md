@@ -1,0 +1,1 @@
+A `bufio.Reader`'s `ReadString` waits for the whole banner however the station splits it, and trimming the LF and then a CR accepts both endings, while comparing the whole line refuses any other station or protocol. Holding the call until the pass's context ends, then closing it, hangs up at exactly LOS.

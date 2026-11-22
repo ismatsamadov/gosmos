@@ -1,0 +1,1 @@
+The PKIX form names the kind of key it holds, so any tool that reads PEM knows it has an Ed25519 key, and the type assertion checks the same thing from Go's side. Refusing another kind of block, and anything after the one block, means a copy holding a private key or a second key is refused rather than read in part.

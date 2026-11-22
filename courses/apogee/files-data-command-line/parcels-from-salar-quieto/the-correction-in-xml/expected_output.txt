@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<correction dish="LG">
+  <az_offset_deg>0.18</az_offset_deg>
+  <el_offset_deg>-0.06</el_offset_deg>
+</correction>

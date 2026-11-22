@@ -1,0 +1,1 @@
+A Cirrine satellite's commands are sealed under its own seal key, from the same master its signature would use: the header travels in the clear and, as associated data, can't be changed, while the operation goes inside. Every seal draws a new 12-byte nonce from `crypto/rand`, so no nonce repeats under a key.

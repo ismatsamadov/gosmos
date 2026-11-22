@@ -1,0 +1,2 @@
+level=WARN msg="carrier lost" site=LAN
+level=ERROR msg="pass failed" site=LAN

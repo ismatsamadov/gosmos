@@ -1,0 +1,68 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"sync"
+)
+
+// FileStore keeps bookings in a MemStore and saves all of them to a file after every change.
+type FileStore struct {
+	mu   sync.Mutex // held through each change and its save, so saves happen in order
+	mem  *MemStore
+	path string
+}
+
+// OpenFileStore returns a store that saves its bookings to path. For now it always starts empty.
+func OpenFileStore(path string) (*FileStore, error) {
+	return &FileStore{mem: NewMemStore(), path: path}, nil
+}
+
+// Create keeps b and saves; when saving fails, it forgets b again and returns the error.
+func (f *FileStore) Create(ctx context.Context, b Booking) (Booking, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	b, err := f.mem.Create(ctx, b)
+	if err != nil {
+		return Booking{}, err
+	}
+	if err := f.save(); err != nil {
+		f.mem.Delete(context.WithoutCancel(ctx), b.ID)
+		return Booking{}, err
+	}
+	return b, nil
+}
+
+// Get returns the booking with this ID, or ErrNotFound.
+func (f *FileStore) Get(ctx context.Context, id string) (Booking, error) {
+	return f.mem.Get(ctx, id)
+}
+
+// List returns every booking, ordered by AOS and then ID, in a new slice.
+func (f *FileStore) List(ctx context.Context) ([]Booking, error) {
+	return f.mem.List(ctx)
+}
+
+// Delete removes the booking and saves; when saving fails, it puts the booking back and returns the error.
+func (f *FileStore) Delete(ctx context.Context, id string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	b, err := f.mem.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if err := f.mem.Delete(ctx, id); err != nil {
+		return err
+	}
+	if err := f.save(); err != nil {
+		f.mem.load([]Booking{b})
+		return err
+	}
+	return nil
+}
+
+// save writes every booking to the file as one JSON array, replacing the file whole.
+func (f *FileStore) save() error {
+	_ = json.Marshal
+	return nil
+}

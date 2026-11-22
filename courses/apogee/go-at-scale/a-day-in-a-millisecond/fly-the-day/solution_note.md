@@ -1,0 +1,1 @@
+Each wait ends at its contact's AOS, so the contacts fly in their own order at their own seconds, and two with the same AOS fly one after the other at that instant. The cancel at noon ends the wait for the 12:00:01 contact, and `flyDay` returns `context.Canceled` with exactly the 992 contacts before noon flown.

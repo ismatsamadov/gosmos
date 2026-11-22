@@ -1,0 +1,1 @@
+Checking and claiming under one lock means the second of two requests sent at once finds the first one's claim and is told to wait. A kept answer is replayed only for the same fingerprint, so a reused key never hands one request's booking to another, and after 24 hours on the service's clock the key is free again.

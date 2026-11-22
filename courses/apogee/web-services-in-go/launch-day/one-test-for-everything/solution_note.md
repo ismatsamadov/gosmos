@@ -1,0 +1,1 @@
+Each check is something a customer would notice: a retried booking that comes back as a conflict, another customer's booking that answers, a flood nobody slows, an error a program can't read. The test talks to the service only over HTTP, so it catches each of those bugs wherever it hides in the code, and the planted services prove that it does.

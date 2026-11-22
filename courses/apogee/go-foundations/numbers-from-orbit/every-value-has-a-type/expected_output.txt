@@ -1,0 +1,4 @@
+Name: Pipit-1
+Altitude km: 525
+Beacon MHz: 437.25
+Deployed: true

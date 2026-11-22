@@ -1,0 +1,1 @@
+Each attribute knows its type, so the JSON handler writes the elevation and the line count as numbers a search can compare with 30, and the ID as a string. An elevation turned into text first would arrive in quotes, and no comparison with a number would ever match it.

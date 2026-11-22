@@ -1,0 +1,1 @@
+With room for 513 bytes, a datagram that fits never fills the slice, so a full slice can only mean one that was cut, which `readDatagram` refuses with `ErrTooBig`. The rest of a cut datagram is gone, which is why the next `ReadFrom` returns the next datagram whole.

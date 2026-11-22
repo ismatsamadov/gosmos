@@ -1,0 +1,1 @@
+`heapOf[T]` gives `container/heap` the five methods it needs, and `Queue[T]` keeps the `any` inside, so callers push and pop `T`s and never write a type assertion. The same code orders passes by `byAOS` and gusts by `cmp.Compare`, because each queue carries its own comparison.

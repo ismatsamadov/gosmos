@@ -1,0 +1,1 @@
+Saving the whole list each time makes the file complete after every change, and `replaceFile` swaps it in by renaming a finished temporary file, which keeps the 0600 mode `os.CreateTemp` gave it. Because every error comes back, `Create` and `Delete` undo their change when a save fails, so a booking is in memory only if it is on disk.

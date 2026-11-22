@@ -1,0 +1,4 @@
+7.91: stored
+6.20: rejected: battery too low
+7.40: stored
+stored 2 of 3

@@ -1,0 +1,1 @@
+With `MinVersion` at 1.3, the server ends any handshake that offers only 1.2 before a request is read, and every connection it keeps is TLS 1.3, with the hybrid key exchange whenever the client offers it, as Go's clients do. Setting the one field through the pointer leaves the certificates and the clock as `serverConfig` made them.

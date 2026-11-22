@@ -1,0 +1,1 @@
+Closing the listener and the waiting connections leaves only work that has already begun, and `Store.Close` ends each feed with its last chunk, so waiting on `s.wg` waits exactly for the requests in flight. The goroutine turns `Wait` into a channel that `select` can set against `ctx`, and when the context wins, closing everything makes that last wait short.

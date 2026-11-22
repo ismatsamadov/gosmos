@@ -1,0 +1,64 @@
+{{define "script"}}<script>
+// Given, and never checked. It keeps a screen up to date without loading the whole page
+// again: it follows /events, and while that doesn't answer it asks /board.json every
+// 15 seconds. Until /board.json answers too, it loads the page again every 15 seconds.
+(function () {
+  var query = location.search;
+  function hhmm(t) { return new Date(t).toISOString().slice(11, 16); }
+  function item(tag, className, text) {
+    var e = document.createElement(tag);
+    e.className = className;
+    e.textContent = text;
+    return e;
+  }
+  function show(view) {
+    document.querySelector("h1").textContent = "The Board · " + hhmm(Date.now()) + " UTC";
+    var rows = document.querySelector("table.passes tbody");
+    rows.replaceChildren();
+    view.passes.forEach(function (p) {
+      var row = item("tr", "pass", "");
+      [hhmm(p.aos), hhmm(p.los), p.station, p.sat_id, p.id, p.note || ""].forEach(function (text) {
+        row.insertCell().textContent = text;
+      });
+      rows.appendChild(row);
+    });
+    var panels = document.querySelector("ul.weather");
+    if (panels) {
+      panels.replaceChildren();
+      view.weather.forEach(function (w) {
+        var text = w.weather ? " wind " + w.weather.wind_kmh.toFixed(0) + " km/h, gusts " + w.weather.gust_kmh.toFixed(0) : " no reading";
+        panels.appendChild(item("li", "panel " + w.call, w.station + text));
+      });
+    }
+    var onCall = document.querySelector("p.oncall");
+    if (onCall) {
+      onCall.textContent = "On call: " + view.on_call;
+    }
+  }
+  var polling = false;
+  function poll() {
+    if (polling) {
+      return;
+    }
+    polling = true;
+    setInterval(function () {
+      fetch("/board.json" + query).then(function (answer) {
+        if (answer.ok) {
+          answer.json().then(show);
+        } else if (answer.status === 404) {
+          location.reload();
+        }
+      }, function () {
+        // The Board is restarting: ask again in 15 seconds.
+      });
+    }, 15000);
+  }
+  var events = new EventSource("/events" + query);
+  events.addEventListener("board", function (e) { show(JSON.parse(e.data)); });
+  events.onerror = function () {
+    if (events.readyState === EventSource.CLOSED) {
+      poll();
+    }
+  };
+})();
+</script>{{end}}

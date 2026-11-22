@@ -1,0 +1,1 @@
+Returning from the function that `Passes` returns leaves both loops at once, so `yield` is never called after it gave back false and no later day is predicted. The loop's `break` is what made it give back false.

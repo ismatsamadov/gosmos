@@ -1,0 +1,1 @@
+`Accept` hands back a connection for the one watcher; the greeting written to it reaches the watcher, and the deferred `Close` ends the stream, so the watcher's read stops at `io.EOF`. On a closed listener `Accept` fails at once, and its error, which matches `net.ErrClosed`, goes back to the caller unchanged.

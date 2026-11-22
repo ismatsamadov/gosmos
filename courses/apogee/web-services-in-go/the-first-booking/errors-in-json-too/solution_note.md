@@ -1,0 +1,1 @@
+`errors.AsType` walks the chain of wrapped errors until it finds an `*APIError`, so an error that says exactly what the caller gets keeps its status however many times it was wrapped. Every other error gets the same fixed 500, so nothing from inside the service reaches a customer.

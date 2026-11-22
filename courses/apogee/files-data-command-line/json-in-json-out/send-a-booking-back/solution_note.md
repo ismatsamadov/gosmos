@@ -1,0 +1,1 @@
+`Marshal` names the keys from the tags, escapes the quotes in the note and refuses a time it cannot write as RFC 3339 text. Returning its results unchanged hands both the bytes and any failure to the caller.

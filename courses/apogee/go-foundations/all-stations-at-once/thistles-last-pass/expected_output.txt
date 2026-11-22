@@ -1,0 +1,5 @@
+9001 heard by CWR LAN
+9002 heard by CWR LAN PEL
+9003 heard by PEL SQT
+9004 heard by SQT
+last beacon: 9004

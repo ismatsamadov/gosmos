@@ -1,0 +1,1 @@
+`Scan` reads one line at a time and returns `false` when the input ends, so the loop hands every line to `dispatch` exactly once. Writing the prompt before the loop and after each answer puts one in front of every line and one more at the end, even when nothing was typed.

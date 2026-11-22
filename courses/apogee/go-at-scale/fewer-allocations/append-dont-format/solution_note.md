@@ -1,0 +1,1 @@
+Every part is written straight into `dst`, so no string is made along the way: `AppendFormat` and `AppendInt` format into the slice they're given, and while it has room, `append` only copies bytes. The `fmt` version made both times as strings, boxed three values as `any` and made the whole line as one more string, six allocations a line.

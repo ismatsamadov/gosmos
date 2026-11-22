@@ -1,0 +1,1 @@
+`b.Loop` returns true once for every turn the run asks for, so the call in its body plans Cape Wren's day 20 times, while `stationDay` above it predicts once and isn't measured. `testing.Benchmark` calls a `b.Loop` benchmark only once, so `planDay` runs exactly as often as the loop turns.

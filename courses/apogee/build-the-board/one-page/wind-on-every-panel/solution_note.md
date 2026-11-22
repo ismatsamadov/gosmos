@@ -1,0 +1,1 @@
+The `panel` template holds one panel's markup, and `range` runs it once for each station, in the order the view keeps them. `if` turns on the reading's pointer, so a station without one says `no reading`, and `printf "%.0f"` prints the wind in whole kilometers per hour.

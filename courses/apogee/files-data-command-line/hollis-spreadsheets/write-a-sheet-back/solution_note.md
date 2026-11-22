@@ -1,0 +1,1 @@
+The writer quotes each cell that holds a comma, a quote or a line break, so Hollis's spreadsheet reads the notes back exactly. Flushing sends the buffered rows, and `Error` reports a destination that failed, which a buffered `Write` cannot.

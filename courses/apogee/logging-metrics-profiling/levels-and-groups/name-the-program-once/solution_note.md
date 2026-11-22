@@ -1,0 +1,1 @@
+`With` returns a new logger whose handler already holds the two attributes, and that handler writes them on every record before the record's own, so no call can forget them. The base logger is left as it was, which is why one base can make a logger for each program and each station without their lines mixing.

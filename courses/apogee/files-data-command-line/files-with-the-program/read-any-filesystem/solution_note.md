@@ -1,0 +1,1 @@
+`fs.ReadFile` works on any `fs.FS`, so the same function reads the table built into gctl and a table a test keeps in memory. Its error passes through unchanged, which keeps `fs.ErrNotExist` visible for a missing table.

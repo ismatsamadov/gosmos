@@ -1,0 +1,1 @@
+`st.sent` remembers when the problem last reached someone, so a rule that stays firing stays quiet until `Repeat` has passed, and a `Repeat` of 0 never sends a second FIRING. Resetting the state on RESOLVED ends the problem once, and a Warning, which went to the morning list and woke nobody, ends without a message.

@@ -1,0 +1,1 @@
+With the radius named once, every line adds the same 6371 km to its satellite's altitude, so the tools can't disagree again. And since nothing can change a constant, no line can drift away from it later.

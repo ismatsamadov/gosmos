@@ -1,0 +1,3 @@
+Thistle: 93 min per orbit, 1440 min per day
+Full orbits: 15
+Minutes left: 45

@@ -1,0 +1,1 @@
+The format the caller names picks the reader, so each file is read by exactly one decoder and fails with that decoder's own error. Any other name is refused before a byte is read, and the reader's errors come back unchanged for `errors.Is`.

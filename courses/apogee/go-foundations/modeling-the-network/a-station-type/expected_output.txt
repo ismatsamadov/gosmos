@@ -1,0 +1,1 @@
+{Code:PEL Name:Port Ellery LatDeg:46.9 MaskDeg:5}

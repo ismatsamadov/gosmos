@@ -1,0 +1,1 @@
+Appending every group first and sorting once costs one sort of 600 passes instead of 600 sorts of a growing day, and `earlier` gives the same order as before, ties included. The day is a new slice, so sorting it never reorders a caller's group.

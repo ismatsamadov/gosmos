@@ -1,0 +1,1 @@
+Each account's last accepted step only grows, and only when a code matches, so a code read over a shoulder, or any older one, is refused for the rest of its window while the next step's code still works. Refusals leave `last` alone, so nobody can use up an account's codes without knowing them.

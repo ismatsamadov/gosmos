@@ -1,0 +1,1 @@
+Each line goes into the datagram being filled unless it would take it past 512 bytes counting the newline before it, and then that datagram is finished and a new one starts with the line. So every datagram holds whole lines in order, and a lost one takes only its own frames with it.

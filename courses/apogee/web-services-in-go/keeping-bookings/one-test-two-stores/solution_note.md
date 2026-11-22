@@ -1,0 +1,1 @@
+Each subtest opens a new store and checks one promise, so each planted bug breaks the case written for it: the second booking of a pass, the order of `List`, or a `Get` after `Delete`. Because it only uses `Store`'s methods, the same function can check `FileStore` next, through the `open` it is given.

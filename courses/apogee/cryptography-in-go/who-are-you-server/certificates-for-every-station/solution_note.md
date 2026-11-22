@@ -1,0 +1,1 @@
+Every certificate is issued and encoded in memory before the first file is written, so a CA that can't sign fails on the first holder and leaves the folder empty. Each `.pem` carries its chain, its own certificate first, which is the order `tls.X509KeyPair` reads, and each key reaches disk through `saveFile` with mode 0600, whole or not at all.

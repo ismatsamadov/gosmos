@@ -1,0 +1,1 @@
+The `wait for worker` region starts right before the `select` and ends on both of its ways out, so it covers exactly the wait; the `fly` region wraps the call to the radio. Both regions are in the pass's task, so `go tool trace` shows for each failed pass whether its time went to waiting for a worker or to flying.

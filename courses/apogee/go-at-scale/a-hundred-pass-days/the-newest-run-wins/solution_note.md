@@ -1,0 +1,1 @@
+Numbers taken in arrival order make the newest event's run the highest, so `Offer`'s compare-and-swap keeps it whatever order the runs end in, and canceling the run in progress stops work whose plan the news has already made stale. Waiting for the runs before returning means a closed `events` still gets its last plan published, and no goroutine outlives `Run`.

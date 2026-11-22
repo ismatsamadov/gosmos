@@ -1,0 +1,1 @@
+The deferred function runs while the panic unwinds, and `recover` stops it there, so the handler returns normally after writing a 500 through `writeError` and a line that names the request. `http.ErrAbortHandler` is panicked again because the server must see it to cut the connection, as the handler asked.

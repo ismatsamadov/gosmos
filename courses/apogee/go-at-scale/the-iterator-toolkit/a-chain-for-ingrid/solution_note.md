@@ -1,0 +1,1 @@
+Building the chain runs nothing; collecting it draws Monday's contacts one at a time through `Filter`, `Map` and `Take`, and `Take` stops the whole chain after its fifth line, at 05:00:58, so the rest of the day is never read.

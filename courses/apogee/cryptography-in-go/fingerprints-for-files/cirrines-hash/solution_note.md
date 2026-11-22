@@ -1,0 +1,1 @@
+`fingerprintAs` only writes and sums through `hash.Hash`, so one more `case` gives it a second hash without changing a line of it. Names outside the two still end in an error, which `fingerprintAs` checks before reading a byte.

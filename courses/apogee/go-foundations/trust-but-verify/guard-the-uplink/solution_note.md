@@ -1,0 +1,1 @@
+Each forgery changes one thing about a validly signed command, so each mutant fails the case it can't handle: the empty signature, the changed last digit, a different key, a different command, any forgery at all for the one that accepts everything, and the valid command for the one that refuses everything.

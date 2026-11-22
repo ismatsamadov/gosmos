@@ -1,0 +1,1 @@
+Each send waits while the loader's queue is full, so a slow line holds `feed` back instead of letting contacts pile up in memory, and the order is the order of the loop. The `select` beside `ctx.Done()` lets a canceled run stop waiting, with exactly the contacts the queue has taken handed over.

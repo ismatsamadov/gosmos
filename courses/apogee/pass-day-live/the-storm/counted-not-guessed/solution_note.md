@@ -1,0 +1,1 @@
+Atomic counters, and maps of them made under a lock, are bumped where each thing happens: a pass at its LOS line, a frame as it is read, a command when its answer comes, a file as it lands, an event when it is delivered or given up. The histogram puts each wait under the first bound at least as long, and `metrics.json` writes every snapshot once the week is done.
