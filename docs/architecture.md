@@ -235,11 +235,22 @@ internet. macOS 27 runs only on Apple silicon, so one darwin/arm64 toolchain is 
   `BuiltInGoTests` runs a program, tests and Format through `GoRunner` with the built app's
   Go, PATH set to `/usr/bin:/bin` and HOME an empty folder, as on a Mac with no Go installed.
 - **Signing**: each program in the toolchain (`bin/go`, `bin/gofmt` and the tools in
-  `pkg/tool`) is signed with the app's identity before the app itself; today that is ad hoc. A
-  Developer ID build for notarization must sign each of them, and then the app, with the
-  Developer ID identity, the hardened runtime (`--options runtime`) and a secure timestamp
-  (`--timestamp`), then notarize and staple the app. The race detector's `.syso` files in
-  `src/runtime/race` are object files, not programs, and are not signed.
+  `pkg/tool`) is signed with the app's identity before the app itself. `make app` signs ad
+  hoc, which only the Mac that built it trusts. To hand the app to other Macs:
+  1. `SIGN_IDENTITY="Developer ID Application: <name> (<team>)" make app` signs every
+     program and the app with that certificate from the keychain, the hardened runtime
+     (`--options runtime`) and a secure timestamp (`--timestamp`), as notarization wants.
+  2. `xcrun notarytool store-credentials gosmos` saves, once, the Apple ID, team and
+     app-specific password the notary service takes.
+  3. `make notarize` zips the app, sends it to the notary service and waits, staples the
+     ticket to the app, zips it again as `build/Gosmos.zip`, and checks it with `spctl`
+     (`NOTARY_PROFILE` names other saved credentials).
+
+  No entitlements are needed: the toolchain's programs are static, and the programs a lesson
+  builds are signed ad hoc by Go's linker and run as children, outside the app's hardened
+  runtime. `HARDENED=1 make app` signs ad hoc with the hardened runtime, to try the app under
+  it without a certificate. The race detector's `.syso` files in `src/runtime/race` are object
+  files, not programs, and are not signed.
 - **Which Go runs**: the built-in Go, unless Settings › Go chose another with Choose…, an
   option for advanced use; Use Built-in Go goes back. Nothing else is looked for: not PATH,
   the login shell or the usual install locations. A Go that doesn't run is reported, never

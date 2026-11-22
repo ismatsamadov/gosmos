@@ -1,5 +1,5 @@
 # Gosmos: build and install the app, run every test, check the library.
-.PHONY: app install test check verify reference library
+.PHONY: app install test check verify reference library notarize
 
 APP := build/Gosmos.app
 LIBRARY := courses/apogee.sqlite
@@ -16,6 +16,25 @@ library:
 app: library
 	swift build -c release --package-path app --product Gosmos
 	app/scripts/bundle.sh "$$(swift build -c release --package-path app --show-bin-path)/Gosmos" $(APP)
+
+# Sends a Developer ID build (SIGN_IDENTITY="Developer ID Application: …" make app) to Apple's
+# notary service, staples the ticket to the app, and zips it as build/Gosmos.zip to hand out.
+# NOTARY_PROFILE names the notarytool credentials kept in the keychain, which
+# `xcrun notarytool store-credentials <profile>` saves once (docs/architecture.md, "Signing").
+NOTARY_PROFILE ?= gosmos
+notarize:
+	@codesign -dv --verbose=2 $(APP) 2>&1 | grep -q '^Authority=Developer ID Application' || \
+		{ echo "notarize: $(APP) is not signed with a Developer ID; make app with SIGN_IDENTITY set" >&2; exit 1; }
+	@codesign -dv $(APP) 2>&1 | grep -q '^CodeDirectory.*flags=.*runtime' || \
+		{ echo "notarize: $(APP) is not signed with the hardened runtime" >&2; exit 1; }
+	codesign --verify --deep --strict $(APP)
+	rm -f build/Gosmos.zip
+	ditto -c -k --keepParent $(APP) build/Gosmos.zip
+	xcrun notarytool submit build/Gosmos.zip --keychain-profile $(NOTARY_PROFILE) --wait
+	xcrun stapler staple $(APP)
+	rm -f build/Gosmos.zip
+	ditto -c -k --keepParent $(APP) build/Gosmos.zip
+	spctl --assess --type execute -vv $(APP)
 
 # Checks this repository's library and installs the app. The app's settings are left alone.
 install: app check
