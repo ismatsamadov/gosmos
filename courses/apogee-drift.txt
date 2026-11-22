@@ -13,6 +13,9 @@ files-data-command-line/json-in-json-out/send-a-booking-back: booking.go gives t
 files-data-command-line/json-in-json-out/the-round-trip: booking.go gives type Booking
   Its readme: "`omitempty` drops an empty note", as Hollis asked in optional-notes: "NO EMPTY
   NOTES".
+files-data-command-line/odd-json/the-changing-report: report.go gives func decodeOne
+  Its readme: "`decodeOne` now takes the value to fill, so it reads any JSON as strictly as it
+  read the settings": the envelope here, then the payload.
 
 # build-gctl
 
