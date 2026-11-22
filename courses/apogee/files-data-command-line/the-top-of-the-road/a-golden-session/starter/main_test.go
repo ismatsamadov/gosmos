@@ -39,6 +39,7 @@ func TestGoldenSessions(t *testing.T) {
 	}{
 		{"export", []string{"day", "testdata/stick"}},
 		{"sheet", []string{"day", "-format", "csv", "testdata/stick"}},
+		{"wrong-station", []string{"day", "testdata/wrong-station"}},
 		{"no-folder", []string{"day"}},
 		{"day-help", []string{"day", "-h"}},
 		{"help", []string{"-h"}},

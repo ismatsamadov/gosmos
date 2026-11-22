@@ -1,4 +1,9 @@
 [stdout]
+Calibration day 2027-10-21 at SQT (Salar Quieto)
+Booked passes (UTC): 4
+14:02:10-14:13:52 furrow-a bk-3410 PRIORITY, FIELD 7
+15:40:05-15:51:31 brine-3 bk-3413
+15:40:05-15:52:10 cirrine-1 bk-3414
+17:22:40-17:35:02 cirrine-1 bk-3417
 [stderr]
-gctl: bookings: booking bk-3422: unknown station "SQX"
-[exit 1]
+[exit 0]

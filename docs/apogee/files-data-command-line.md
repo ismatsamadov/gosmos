@@ -826,5 +826,7 @@ Where the lessons as built differ from the entries above:
   `templateFS` checks the folder with `fs.Stat` before `fs.Sub`; `loadResources` falls back to
   the built-in `calibration.json` only when the stick has none.
 - **11.5, 11.7–11.9** `saveDay(path, report func(io.Writer) error)`; chapter 11's gctl has the
-  `day` command only, checked by golden sessions; 11.8's error paths are in `planDay`; 11.9 is
-  `runDay(dir, format, stdout)`.
+  `day` command only, checked by golden sessions; 11.8's error paths are in `planDay`, which
+  11.7 gives without them (it drops the read errors and never calls `validateBookings`, so a
+  broken stick plans an empty day, and its failing session is a stick set for station SQX);
+  11.9 is `runDay(dir, format, stdout)`.
