@@ -6,7 +6,7 @@ position: 5
 difficulty: 7
 topics: files, maps, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:21:59Z
 ---
 Mirela reviews the notice gctl prints when Cape Wren parks its dish safely in high wind, which the team calls a stow. Her rule: a test brings its own small disk and never reads the laptop's.
 

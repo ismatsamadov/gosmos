@@ -6,7 +6,7 @@ position: 8
 difficulty: 8
 topics: errors, files, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:21:59Z
 ---
 On Monday the van reaches Salar Quieto. Paz's stick holds `calibration.json`: how far the van's own dish pointed off when it was checked at Port Ellery before the trip. gctl's default is zero. If the stick's file is broken, quietly using zero would copy the van dish's error into La Grande.
 

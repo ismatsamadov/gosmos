@@ -6,7 +6,7 @@ position: 6
 difficulty: 7
 topics: files, interfaces, testing
 created: 2026-11-06T16:34:05Z
-modified: 2026-11-06T16:34:05Z
+modified: 2026-11-22T10:21:59Z
 ---
 The report renderer asks for `day.txt`, but among gctl's built-in files it is `templates/day.txt`. Nkem would rather hand the renderer a view of that one folder than teach it the prefix.
 

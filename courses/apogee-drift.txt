@@ -30,6 +30,16 @@ files-data-command-line/flags-and-subcommands/three-useful-commands: main.go giv
 files-data-command-line/flags-and-subcommands/three-useful-commands: stations.go gives func runStations
   errors-belong-on-stderr's readme: "Mirela wants every gctl command to end the same way,
   through one `report` function"; this one's: "`report` for the result or the failure".
+files-data-command-line/files-with-the-program/read-any-filesystem: stations.go gives type Station
+  The station gains the table's mask and bands, which the given parseStations reads: the
+  briefing, "Paz wants gctl to carry its table and report templates inside itself", and the
+  bible's table, "code,name,lat_deg,lon_deg,mask_deg,bands".
+files-data-command-line/files-with-the-program/walk-the-templates: resources.go gives var resources
+  The templates join the station table: its readme, "Paz wants gctl to list every template it
+  carries".
+files-data-command-line/files-with-the-program/the-offline-resource-pack: resources.go gives var resources
+  The default calibration joins them: its readme, "gctl's default is zero"; the bible, "gctl
+  also carries report templates ... and a default `calibration.json`".
 
 # build-gctl
 
