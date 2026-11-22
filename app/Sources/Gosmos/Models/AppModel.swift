@@ -149,18 +149,6 @@ final class AppModel {
     var selection: SidebarItem?
     /// Open chapters and guided projects, as "<library>/<chapter or course>".
     var expanded: Set<String> = []
-    var searchText = "" {
-        didSet {
-            // Text copied from a readme carries the characters that lay out its inline code
-            // (PastedText); search for what it says.
-            if PastedText.needsCleaning(searchText) { searchText = PastedText.clean(searchText) }
-            searchChanged()
-        }
-    }
-    private(set) var searchResults: [SearchHit] = []
-    /// Excerpts for the results, by lesson.
-    private(set) var searchSnippets: [LessonRef: [Snippet.Part]] = [:]
-    private(set) var searching = false
     var banner: AppError?
     /// A library you chose that can't be added: the alert names the problems.
     var libraryError: AppError?
@@ -173,8 +161,6 @@ final class AppModel {
     private(set) var docs: DocsModel?
     /// The standard library's names, for links in readmes and Quick Help.
     private(set) var docNames = DocNames.empty
-    /// What search found in the documentation, below the lessons.
-    private(set) var docSearchResults: [DocSearchHit] = []
     /// The opening on screen, over the whole window: the course it opens, and its page.
     private(set) var opening: Opening?
     /// The name on your badge, the one the team calls you; empty until you give one.
@@ -247,6 +233,8 @@ final class AppModel {
     }
     /// The place on screen and the places visited, for Back and Forward.
     let navigation = NavigationModel()
+    /// The sidebar's search, through the shelf and the documentation.
+    let search = SearchModel()
     var editorFontSize: Double = 13
     var showLineNumbers = true
     /// Set while the app saves before it quits.
@@ -260,10 +248,7 @@ final class AppModel {
     let workspace: Workspace
     private let resources: AppResources
     private let readmes = ReadmeCache()
-    /// Readmes as plain text, for search excerpts; made ahead of time for every library.
-    private let readmeTexts = ReadmeTexts()
     private var observeTask: Task<Void, Never>?
-    private var searchTask: Task<Void, Never>?
     private var loadTask: Task<Void, Never>?
     /// Finds the Go to run code with; only the latest check counts (Settings › Go).
     private let toolchainWork = LatestWork<Toolchain>()
@@ -275,6 +260,7 @@ final class AppModel {
         self.resources = resources
         workspace = Workspace(root: preferences.dataFolder?.appendingPathComponent("work", isDirectory: true) ?? Workspace.defaultRoot)
         navigation.docLocation = { [weak self] in self?.docs?.location }
+        search.app = self
     }
 
     // MARK: Launch
@@ -338,7 +324,7 @@ final class AppModel {
             if storyAction == nil { self.opening = openingAtLaunch }
         }
         phase = .ready
-        let texts = readmeTexts, databases = shelf.compactMap(\.database)
+        let texts = search.texts, databases = shelf.compactMap(\.database)
         Task.detached(priority: .utility) {
             for db in databases {
                 do { try await texts.warm(db) } catch { Log.app.notice("Search excerpts: \(error.localizedDescription, privacy: .public)") }
@@ -504,7 +490,7 @@ final class AppModel {
             return
         }
         if let unreadable = shelf.firstIndex(where: { $0.id == db.info.uuid }) { shelf[unreadable] = entry } else { shelf.append(entry) }
-        let texts = readmeTexts
+        let texts = search.texts
         Task.detached(priority: .utility) { try? await texts.warm(db) }
         if let first = entry.catalog.firstLesson { open(LessonRef(library: entry.id, lesson: first.id)) }
     }
@@ -622,7 +608,7 @@ final class AppModel {
             Task { [weak self] in
                 for end in query.indices {
                     try? await Task.sleep(for: .milliseconds(120))
-                    self?.searchText = String(query[...end])
+                    self?.search.text = String(query[...end])
                 }
             }
             return
@@ -1066,51 +1052,6 @@ final class AppModel {
             return true
         case nil:
             return false
-        }
-    }
-
-    // MARK: Search
-
-    private func searchChanged() {
-        searchTask?.cancel()
-        let text = searchText
-        let databases = shelf.compactMap(\.database)
-        let reference = docs?.reference
-        guard !databases.isEmpty || reference != nil, !text.trimmingCharacters(in: .whitespaces).isEmpty else {
-            searchResults = []
-            docSearchResults = []
-            searching = false
-            // The place search found stays on screen, as the documentation.
-            if case .doc? = selection { selection = .documentation }
-            return
-        }
-        searching = true
-        let texts = readmeTexts
-        searchTask = Task { [weak self] in
-            let interval = self?.signposter.beginInterval("Search")
-            let started = ContinuousClock.now
-            // The index's hits that show a match, with their excerpts, from the readmes as
-            // the app renders them, through every library in the sidebar's order.
-            let found: (hits: [SearchHit], snippets: [LessonRef: [Snippet.Part]])
-            do {
-                found = try await texts.search(text, in: databases)
-            } catch {
-                found = ([], [:])
-                self?.report(error)
-            }
-            // The documentation's best matches, below the lessons.
-            var docHits: [DocSearchHit] = []
-            if let reference {
-                do { docHits = try await reference.search(text, limit: 8) } catch { self?.report(error) }
-            }
-            guard let self, !Task.isCancelled else { return }
-            self.searchResults = found.hits
-            self.docSearchResults = docHits
-            self.searchSnippets = found.snippets
-            self.searching = false
-            if let interval { self.signposter.endInterval("Search", interval) }
-            let ms = (ContinuousClock.now - started).milliseconds
-            Log.app.notice("Timing search \(String(format: "%.1f", ms), privacy: .public) ms for \(text.count, privacy: .public) characters")
         }
     }
 
