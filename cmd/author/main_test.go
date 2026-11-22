@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jobloom/gosmos/db"
-	"github.com/jobloom/gosmos/internal/authoring"
+	"github.com/ismatsamadov/gosmos/db"
+	"github.com/ismatsamadov/gosmos/internal/authoring"
 )
 
 func example(name string) string {

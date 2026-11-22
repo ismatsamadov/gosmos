@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 const (

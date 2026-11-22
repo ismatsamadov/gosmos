@@ -1,4 +1,4 @@
-module github.com/jobloom/gosmos
+module github.com/ismatsamadov/gosmos
 
 go 1.27.3
 

@@ -23,10 +23,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jobloom/gosmos/db"
-	"github.com/jobloom/gosmos/internal/authoring"
-	"github.com/jobloom/gosmos/internal/media"
-	"github.com/jobloom/gosmos/internal/store"
+	"github.com/ismatsamadov/gosmos/db"
+	"github.com/ismatsamadov/gosmos/internal/authoring"
+	"github.com/ismatsamadov/gosmos/internal/media"
+	"github.com/ismatsamadov/gosmos/internal/store"
 )
 
 const usage = `usage:

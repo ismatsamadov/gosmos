@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 // counts is what a reference holds.

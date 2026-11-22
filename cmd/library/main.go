@@ -25,7 +25,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 const usage = `usage:

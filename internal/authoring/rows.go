@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/jobloom/gosmos/internal/store"
+	"github.com/ismatsamadov/gosmos/internal/store"
 )
 
 // lessonType maps a package type to the library's lesson type, and back.

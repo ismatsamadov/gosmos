@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jobloom/gosmos/db"
+	"github.com/ismatsamadov/gosmos/db"
 )
 
 func storyExample() string { return filepath.Join("testdata", "story") }
