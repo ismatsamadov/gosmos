@@ -1,9 +1,7 @@
 import AppKit
-import CodeEditor
 import GosmosKit
 import Observation
 import os
-import SwiftUI
 
 /// What the sidebar can select: Mission Control, the review, the field guide, the Go
 /// documentation, a lesson, or a place in the documentation that search found.
@@ -16,9 +14,10 @@ enum SidebarItem: Hashable {
     case doc(DocLink)
 }
 
-/// The app's state: the learner database, the libraries in the sidebar with your progress,
-/// the lesson on screen, search, review, and the services lessons use. Views read it from the
-/// environment.
+/// The app's state: the learner database, the lesson on screen, the review, the documentation
+/// and the services lessons use, and the models it owns and connects: the shelf with your
+/// progress, the place on screen with its history, the story, search and settings. It starts
+/// the app, loads lessons and goes from place to place; views read it from the environment.
 @Observable @MainActor
 final class AppModel {
     enum Phase: Equatable {
@@ -403,7 +402,7 @@ final class AppModel {
         }
     }
 
-    // MARK: Story
+    // MARK: Field guide
 
     /// Shows the field guide, with `term` in view; `remember` adds the place on screen to the
     /// back history. A lesson on screen is saved and left, as when another opens.
