@@ -5,9 +5,9 @@ wrote the shared simulator (`sim.go`, hidden and byte-identical in every lesson 
 was read in the app in light and dark before the rest was written; chapters 2–8 and 10 were
 written from this plan two chapters at a time and each pair independently reviewed. Chapter
 9, Without a Connection, was added later, in the free week before the finale, which became
-chapter 10, and read in the app in light and dark. The lessons in `courses/apogee.sqlite` are
-the source of truth, and the larger changes from this plan are listed under "Changes in
-writing and review" at the end.
+chapter 10, and read in the app in light and dark. The lessons in
+`courses/apogee/networking-from-the-socket-up/` are the source of truth, and the larger changes
+from this plan are listed under "Changes in writing and review" at the end.
 
 Season 4 of Apogee, March to June 2028, at Ystmark. The station's new dish controllers speak raw
 bytes across an island line that drops in every storm; the learner writes dishd, which talks to

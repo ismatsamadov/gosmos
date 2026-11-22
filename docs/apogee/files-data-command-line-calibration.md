@@ -1,6 +1,6 @@
 # Files, Data and the Command Line: calibration chapter
 
-This is the first chapter, authored and imported before the rest of Season 2. The complete lesson assets live in `courses/apogee.sqlite`; export `files-data-command-line` / `a-schedule-on-a-stick` with the author tool to inspect starters, read-only tests, solutions, hints and quiz answers.
+This is the first chapter, authored and imported before the rest of Season 2. The complete lessons live in `courses/apogee/files-data-command-line/a-schedule-on-a-stick/`: starters, read-only tests, solutions, hints and quiz answers.
 
 ## Calibration decisions
 

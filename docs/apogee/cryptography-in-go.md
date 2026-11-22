@@ -12,8 +12,8 @@ from this plan two chapters at a time and every chapter independently reviewed. 
 (which became chapter 12) and as the season's epilogue, and read in the app in light and dark.
 The world, the characters and the writing rules are in `story.md`, whose section "Season 5:
 keeping secrets" (`story/season-5.md`) fixes every key, format, vector and message. The
-lessons in `courses/apogee.sqlite` are the source of truth, and the larger changes from this
-plan are listed under "Changes in writing and review" at the end.
+lessons in `courses/apogee/cryptography-in-go/` are the source of truth, and the larger
+changes from this plan are listed under "Changes in writing and review" at the end.
 
 - **Title:** Cryptography in Go
 - **Slug:** `cryptography-in-go` · **Kind:** Course

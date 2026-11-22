@@ -4,8 +4,8 @@ The first course of the Apogee series. The world, the characters, the code and t
 rules are in `story.md`; lessons 1.1 to 1.5 are written in full in `sample-chapter-1.md`.
 
 This is the plan the lessons were written from. The lessons themselves, in
-`courses/apogee.sqlite`, are the source of truth: writing and review changed details such as
-numbers, times and extra test cases. `go run ./cmd/author export` writes them out to read.
+`courses/apogee/go-foundations/`, are the source of truth: writing and review changed details
+such as numbers, times and extra test cases.
 
 - **Title:** Go Foundations
 - **Slug:** `go-foundations` · **Kind:** Course

@@ -5,8 +5,8 @@ the app in light and dark before the rest was written; chapters 2–12 were writ
 a chapter or two at a time, and every chapter was independently reviewed. Chapters 2–12 were then
 read in the app in light and dark, in six parts. Every pass comes from the orbit model
 Seasons 3 to 6 use, ported to Go (`model.go`), with Pipit-2 fitted in Season 4. The lessons in
-`courses/apogee.sqlite` are the source of truth, and the larger changes from this plan are listed
-under "Changes in writing and review" at the end.
+`courses/apogee/go-at-scale/` are the source of truth, and the larger changes from this plan are
+listed under "Changes in writing and review" at the end.
 
 Season 7 of Apogee, March to June 2029. Apogee grows from five stations to twenty and from
 eight satellites to eighty, and the learner leads the rewrite of passplan, which must plan a

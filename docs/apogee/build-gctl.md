@@ -6,9 +6,8 @@ gctl project" (`story/gctl-project.md`) fixes the program's behavior.
 
 This is the plan the lessons were written from. All 19 are implemented: chapter 1 was read in
 the app before the rest was written, and an independent review checked every lesson. The
-lessons in `courses/apogee.sqlite` are the source of truth, and the larger differences from
-this plan are listed under "Changes in writing and review" at the end.
-`go run ./cmd/author export` writes them out to read.
+lessons in `courses/apogee/build-gctl/` are the source of truth, and the larger differences
+from this plan are listed under "Changes in writing and review" at the end.
 
 - **Title:** Build gctl
 - **Slug:** `build-gctl` · **Kind:** Guided Project
