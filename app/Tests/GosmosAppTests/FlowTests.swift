@@ -94,6 +94,37 @@ import Testing
         await app.prepareToQuit()
     }
 
+    /// While the opening covers the window, no command acts on what it covers: here a lesson
+    /// still on screen behind it, as when Replay the Opening leaves one that waits to be saved.
+    /// They come back once the opening ends.
+    @Test func theOpeningTurnsOffTheCommandsBehindIt() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        app.open(fixture.ref("optional"))
+        try await fixture.wait { app.lesson?.ref == fixture.ref("optional") && app.lesson?.code?.isLoaded == true }
+        // Format needs a Go with gofmt, which a test may not have; the others need nothing.
+        let editing: [EditorCommand] = [.toggleComment, .indent, .outdent]
+        var commands = app.commands
+        #expect(commands.run && commands.submit && commands.nextLesson && commands.previousLesson && commands.back)
+        #expect(commands.review && commands.markDone && commands.resetToStarter && editing.allSatisfy(commands.editor))
+        #expect(commands.missionControl && commands.replayOpening)
+
+        app.showOpening("course", in: "flow-library")
+        commands = app.commands
+        #expect(commands.covered && app.lesson?.ref == fixture.ref("optional"))
+        #expect(!commands.run && !commands.submit && !commands.nextLesson && !commands.previousLesson && !commands.back && !commands.forward)
+        #expect(!commands.review && !commands.markDone && !commands.resetToStarter && !editing.contains(where: commands.editor))
+        #expect(!commands.missionControl && !commands.fieldGuide && !commands.replayOpening)
+
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        #expect(app.commands.run && app.commands.back)
+        await app.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
