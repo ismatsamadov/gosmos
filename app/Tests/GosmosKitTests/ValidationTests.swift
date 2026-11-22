@@ -78,16 +78,8 @@ import Testing
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appendingPathComponent(Fixtures.libraryName)
         try Fixtures.makeDatabase(at: url)
-        // Another program holds the file locked for a while.
-        let holder = try DatabaseQueue(path: url.path)
-        let holding = Task.detached {
-            try await holder.writeWithoutTransaction { db in
-                try db.execute(sql: "BEGIN EXCLUSIVE")
-                Thread.sleep(forTimeInterval: 1.0)
-                try db.execute(sql: "ROLLBACK")
-            }
-        }
-        try await Task.sleep(for: .milliseconds(150))
+        // Another program holds the file locked, readers out too, until it is done.
+        let lock = try WriteLock(url, exclusive: true)
         do {
             _ = try AppDatabase(url: url, immutable: false, busyTimeout: 0.2)
             Issue.record("opened a locked file")
@@ -96,8 +88,12 @@ import Testing
             #expect(error.title == "Library Busy")
         }
         // Waiting longer than the lock lasts: the library opens.
+        let releasing = Task.detached {
+            try await Task.sleep(for: .milliseconds(300))
+            try lock.release()
+        }
         _ = try AppDatabase(url: url, immutable: false, busyTimeout: 5)
-        try await holding.value
+        try await releasing.value
     }
 
     /// A write cut short leaves a hot journal. Rolling it back is a write, which the app never
