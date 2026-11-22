@@ -80,9 +80,7 @@ struct EditorPane: View {
                     CodeLoadFailed(message: error, session: session)
                 } else {
                     FileEditor(buffer: file, session: session)
-                        // A new editor, with its own undo history, for each file, and for a
-                        // redo's copy of it.
-                        .id("\(session.lesson.id)/\(session.isReview ? "redo" : "lesson")/\(file.name)")
+                        .id(session.editorIdentity(of: file))
                         // Until your code has loaded, and while a choice in a conflict is saved,
                         // the editor shows the code but takes no typing; a small spinner says
                         // why, in a corner, so nothing moves.

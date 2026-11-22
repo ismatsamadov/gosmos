@@ -125,6 +125,36 @@ import Testing
         await app.prepareToQuit()
     }
 
+    /// A redo for review, then Back to the lesson it redoes: the lesson's views and its editor
+    /// are made anew, never the redo's kept with its undo history, whose Undo would walk back
+    /// through the redo's typing and save it as the lesson's code.
+    @Test func aRedoThenBackGivesTheLessonViewsOfItsOwn() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        app.showReview()
+        try await fixture.wait { app.showsReview }
+        app.redo(fixture.ref("first"))
+        try await fixture.wait { app.lesson?.isReview == true && app.lesson?.code?.isLoaded == true }
+        let redo = try #require(app.lesson?.code)
+        let redoFile = try #require(redo.activeFile)
+        let redoViews = try #require(app.lesson?.viewIdentity), redoEditor = redo.editorIdentity(of: redoFile)
+        redoFile.text = "package main // typed in the redo\n"
+
+        app.goBack()
+        try await fixture.wait { app.lesson?.isReview == false && app.lesson?.code?.isLoaded == true }
+        let lesson = try #require(app.lesson)
+        let code = try #require(lesson.code)
+        let file = try #require(code.activeFile)
+        #expect(lesson.ref == fixture.ref("first"))
+        #expect(lesson.viewIdentity != redoViews && code.editorIdentity(of: file) != redoEditor)
+        #expect(file !== redoFile && file.text == "package main\n\nfunc main() {}\n")
+        await app.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }

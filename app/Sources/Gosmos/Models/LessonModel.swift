@@ -64,6 +64,10 @@ final class LessonModel {
     var ref: LessonRef { detail.ref }
     var isDone: Bool { app?.isDone(ref) ?? false }
 
+    /// The lesson's views' identity. A redo and the lesson itself are different views: going
+    /// from one to the other never keeps the other's editor, undo history or scroll position.
+    var viewIdentity: [String] { [ref.library, ref.lesson, isReview ? "redo" : "lesson"] }
+
     /// The attempts whose failure unlocks the last hint: Submits, or a quiz's answers.
     var submitKind: AttemptKind { quiz != nil ? .answer : .submit }
 
@@ -277,6 +281,12 @@ final class CodeSession {
         set { buffers.activeIndex = newValue }
     }
     var activeFile: FileBuffer? { files.indices.contains(activeIndex) ? files[activeIndex] : nil }
+
+    /// The identity of `file`'s editor: a new editor, with its own undo history, for each file,
+    /// and for a redo's copy of it.
+    func editorIdentity(of file: FileBuffer) -> String {
+        "\(lesson.id)/\(isReview ? "redo" : "lesson")/\(file.name)"
+    }
     /// True once the editor holds your code as code_file and the lesson folder have it, and
     /// saving is ready: the editor takes typing from then on. Until then it shows a load
     /// under way, or `loadError` when the load failed.
