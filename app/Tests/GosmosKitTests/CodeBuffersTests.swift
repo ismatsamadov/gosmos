@@ -8,6 +8,11 @@ import Testing
     var files: [String: Bool] = [:]
 }
 
+/// Whether something happened yet, such as the lesson closing.
+@MainActor private final class Flag {
+    var isSet = false
+}
+
 /// Holds a database's write lock on a connection of its own, as another process writing would,
 /// so the app's next write waits (its busy timeout is 10 s) until `release`. SQLite's own API:
 /// GRDB ends every access with no transaction left open.
@@ -175,6 +180,42 @@ private final class WriteLock {
         #expect(try await saving.value == true)
         #expect(main.text == "package main // theirs\n" && buffers.conflict == nil && !buffers.isResolving)
         #expect(try await bench.stored() == "package main // theirs\n" && bench.onDisk() == "package main // theirs\n")
+    }
+
+    /// Leaving the lesson while a conflict is asked about: a choice can leave another to make
+    /// (here the text changed while the first landed), and the lesson stays until every choice
+    /// is made, so nothing typed goes with it.
+    @Test @MainActor func leavingWaitsForEveryChoice() async throws {
+        let bench = try await Bench()
+        defer { try? FileManager.default.removeItem(at: bench.dir) }
+        let gate = Gate()
+        await gate.open()
+        let buffers = bench.buffers(gate: gate)
+        await buffers.load()
+        let main = try #require(buffers.files.first { $0.name == "main.go" })
+        main.text = "package main // mine\n"
+        try "package main // theirs\n".write(to: bench.file, atomically: true, encoding: .utf8)
+        let left = Flag()
+        let leaving = Task { () throws -> [String] in
+            let kept = try await buffers.settle(within: nil)
+            left.isSet = true
+            return kept
+        }
+        while buffers.conflict == nil { await Task.yield() }
+
+        let lock = try WriteLock(bench.dir.appendingPathComponent("learner.sqlite"))
+        let resolving = try #require(buffers.resolveConflict(keepMine: false))
+        try await Task.sleep(for: .milliseconds(100))
+        let typed = "package main // typed after choosing\n"
+        main.text = typed
+        try lock.release()
+        #expect(try await resolving.value == false && buffers.conflict == "main.go")
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(!left.isSet) // still there, asking
+
+        #expect(try await buffers.resolveConflict(keepMine: true)?.value == true)
+        #expect(try await leaving.value.isEmpty)
+        #expect(try await bench.stored() == typed && bench.onDisk() == typed)
     }
 
     /// Without typing, the load takes in the other editor's newer edit, as before.

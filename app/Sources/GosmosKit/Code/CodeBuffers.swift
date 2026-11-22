@@ -252,9 +252,11 @@ public final class CodeBuffers {
     public func settle(within limit: Duration?) async throws -> [String] {
         if !isLoaded, loading != nil || files.contains(where: \.isEdited) { await load() }
         guard !(try await flush()), let saver else { return [] }
-        if await saver.waitUntilSettled(within: limit) {
-            try await flush() // edits made while the alert was up
-            return []
+        // After each choice, the edits made while the alert was up are saved. That save can
+        // find another file in conflict, or the one just settled changed while the choice
+        // landed: closing waits for that choice too.
+        while await saver.waitUntilSettled(within: limit) {
+            if try await flush() { return [] }
         }
         // A review keeps nothing: the next redo starts over in a new folder.
         guard learner != nil else { return [] }
