@@ -59,11 +59,12 @@ Each lesson is one idea. The entry gives its slug, type and difficulty (1 to 10)
 - **Scenario:** the story beat, in one sentence.
 - **Exercise:** what the starter has and what the learner writes.
 - **Check:** the expected output (`code`), the test cases (`code_tests`) or the right
-  answers (quiz). Numbers come from the formulas and constants in `story.md`; floats are
+  answers (quiz). Numbers come from the formulas and constants in `story/world.md`; floats are
   checked to within 0.01 unless an entry says otherwise.
 
 Starters fail for the lesson's reason and build, except where an entry names the compiler
-message the lesson is about. Readmes stay within 60 to 200 words (`story.md`, Style guide).
+message the lesson is about. Readmes stay within 60 to 200 words (`story/style.md`,
+Style guide).
 
 ---
 
@@ -1351,7 +1352,7 @@ Pipit-2, which Mirela reviews line by line.
 - **Exercise:** `decodeBeacon(hexText string) (seq, battMV uint16, err error)` returns
   zeros; you decode with `hex.DecodeString`, check the length and the `"AP"` sync bytes, and
   read bytes 3–4 and 6–7 with `binary.BigEndian.Uint16`.
-- **Check:** A valid beacon (format in `story.md`) → 4182 and 7910 mV; bad hex → error;
+- **Check:** A valid beacon (format in `story/world.md`) → 4182 and 7910 mV; bad hex → error;
   8 bytes → error; wrong sync bytes → error.
 
 #### 14.10 Signing the Uplink

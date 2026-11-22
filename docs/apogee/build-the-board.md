@@ -2,7 +2,8 @@
 
 The guided project after Season 3 of the Apogee series, story time 7–11 February 2028. The
 world, the characters, the code and the writing rules are in `story.md`, whose section "The
-Board project" fixes the program's behavior, and Season 3's section fixes the types it reuses.
+Board project" (`story/board-project.md`) fixes the program's behavior, and Season 3's section
+(`story/season-3.md`) fixes the types it reuses.
 
 **Authoring status:** all four chapters are implemented as 17 lessons. One writer designed the
 whole program and wrote chapter 1, which was read in the app in light and dark before chapters

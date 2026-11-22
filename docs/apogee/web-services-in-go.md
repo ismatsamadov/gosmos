@@ -11,8 +11,8 @@ from this plan two chapters at a time and each pair independently reviewed. Chap
 Signed In and The First Week Open, were added later, before Launch Day (which became chapter
 12) and as the season's epilogue, and read in the app in light and dark. The world, the
 characters and the writing rules are in `story.md`, whose section "Season 3: open for business"
-fixes every shared type, route, header, message and number. The lessons in
-`courses/apogee.sqlite` are the source of truth: writing and review changed details such as
+(`story/season-3.md`) fixes every shared type, route, header, message and number. The lessons
+in `courses/apogee.sqlite` are the source of truth: writing and review changed details such as
 function signatures, exercises and test cases, and the larger changes are listed under "Changes
 in writing and review" at the end.
 

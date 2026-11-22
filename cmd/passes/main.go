@@ -9,10 +9,10 @@
 // included, is a day after --from unless given. Without --sat or --station every satellite or
 // station counts.
 //
-// The model is the one docs/apogee/story.md writes out under "The pass model", copied unchanged
-// from the lessons that carry it: model.go from Season 7's, network.go (the twenty stations and
-// the eighty satellites' elements) from the capstone's, and types.go, the types they use, from
-// Season 7's. Change them only together with the bible and those lessons.
+// The model is the one docs/apogee/story/season-7.md writes out under "The pass model", copied
+// unchanged from the lessons that carry it: model.go from Season 7's, network.go (the twenty
+// stations and the eighty satellites' elements) from the capstone's, and types.go, the types
+// they use, from Season 7's. Change them only together with the bible and those lessons.
 //
 // The elements describe each satellite from 1 January 2029, or from its deployment. The six
 // whose elements were fitted to passes the stations recorded (network.go says which) also fly

@@ -13,8 +13,8 @@ func passes(t *testing.T, args ...string) (code int, out, errOut string) {
 	return code, o.String(), e.String()
 }
 
-// The pass docs/apogee/story.md quotes for Season 7's take-over: the model must still give it
-// to the second and the tenth of a degree.
+// The pass docs/apogee/story/season-7.md quotes for Season 7's take-over: the model must still
+// give it to the second and the tenth of a degree.
 func TestThePassTheBibleQuotes(t *testing.T) {
 	code, out, errOut := passes(t, "--sat", "furrow-a", "--station", "SQT", "--from", "2029-06-28")
 	want := "furrow-a/SQT/24534 2029-06-28T14:02:10Z 2029-06-28T14:12:04Z 47.9\n"
@@ -23,8 +23,8 @@ func TestThePassTheBibleQuotes(t *testing.T) {
 	}
 }
 
-// The capstone's investors' week, as docs/apogee/story.md counts it: 933 passes of the five
-// satellites fitted in Season 3 over the five original stations, and 213 of Pipit-2's.
+// The capstone's investors' week, as docs/apogee/story/capstone.md counts it: 933 passes of the
+// five satellites fitted in Season 3 over the five original stations, and 213 of Pipit-2's.
 func TestTheInvestorsWeek(t *testing.T) {
 	week := []string{"--from", "2029-07-23", "--to", "2029-07-30", "--station", "YST,PEL,SQT,LAN,CWR"}
 	for _, c := range []struct {
@@ -74,7 +74,7 @@ func TestUsageMistakes(t *testing.T) {
 }
 
 // Run back from 2029, the fitted satellites fly as Season 3's model had them: its reference
-// passes in docs/apogee/story.md's Season 3 section, and Pipit-2's gctl-night pass of Season 2
+// passes in docs/apogee/story/season-3.md, and Pipit-2's gctl-night pass of Season 2
 // (YST, AOS 04:31, 47.2°). The catalog there keeps the two Furrow passes a few seconds shorter
 // than the model gives (14:11:52 and 14:58:58), and Season 3's lessons print the catalog's.
 func TestSeasonThreesModel(t *testing.T) {

@@ -2,7 +2,7 @@
 
 The guided project after Season 2 of the Apogee series, story time 25–29 October 2027. The
 world, the characters, the code and the writing rules are in `story.md`, whose section "The
-gctl project" fixes the program's behavior.
+gctl project" (`story/gctl-project.md`) fixes the program's behavior.
 
 This is the plan the lessons were written from. All 19 are implemented: chapter 1 was read in
 the app before the rest was written, and an independent review checked every lesson. The
