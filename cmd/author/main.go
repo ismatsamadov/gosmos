@@ -587,6 +587,13 @@ func build(ctx context.Context, args []string, out io.Writer) error {
 	if err := d.Close(); err != nil {
 		return err
 	}
+	// A write to the old file that was cut off leaves its journal beside it, which SQLite
+	// would play back into the new file.
+	for _, suffix := range []string{"-journal", "-wal", "-shm"} {
+		if err := os.Remove(file + suffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
 	if same, err := sameBytes(built, file); err != nil {
 		return err
 	} else if same {

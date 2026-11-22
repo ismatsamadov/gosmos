@@ -608,6 +608,60 @@ func TestBuildsAtOnce(t *testing.T) {
 	}
 }
 
+// A write to the library that was cut off leaves its journal beside the file, and SQLite plays a
+// journal back into whatever file then has that name. A build moves a new file in, so it
+// clears the old file's journal first.
+func TestBuildClearsAnOldJournal(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	folder := filepath.Join(t.TempDir(), "apogee")
+	mustAuthor(t, "export", path, folder)
+	built := filepath.Join(t.TempDir(), "apogee.sqlite")
+	mustAuthor(t, "build", folder, built)
+
+	// A write cut off halfway: SQLite has spilled changed pages into the file, and the
+	// journal holds what they were.
+	d, err := db.Open(built)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.SetMaxOpenConns(1)
+	if _, err := d.Exec(`PRAGMA cache_size = 1`); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := d.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`UPDATE lesson SET readme = readme || ?`, strings.Repeat("A longer readme. ", 2000)); err != nil {
+		t.Fatal(err)
+	}
+	journal, err := os.ReadFile(built + "-journal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx.Rollback()
+	d.Close()
+
+	if err := os.RemoveAll(filepath.Join(folder, "learn-launches", "1-countdown", "mission-quiz")); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{built + "-journal", built + "-wal", built + "-shm"} {
+		if err := os.WriteFile(name, journal, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustAuthor(t, "build", folder, built)
+	for _, name := range []string{built + "-journal", built + "-wal", built + "-shm"} {
+		if _, err := os.Stat(name); err == nil {
+			t.Errorf("the build left %s beside the library", filepath.Base(name))
+		}
+	}
+	if problems, err := db.Validate(context.Background(), open(t, built)); err != nil || len(problems) > 0 {
+		t.Fatalf("the library built beside an old journal: %v %v", problems, err)
+	}
+}
+
 // dump renders the rows a query returns, one line each, sorted.
 func dump(t *testing.T, path, query string) string {
 	t.Helper()
