@@ -82,7 +82,7 @@ final class StoryModel {
            app.story(of: course.id, in: ref.library)?.hasOpening == true {
             return (ref.library, course.id)
         }
-        for library in app.shelf {
+        for library in app.shelf.libraries {
             for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true { return (library.id, course.id) }
         }
         return nil

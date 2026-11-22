@@ -95,11 +95,11 @@ extension AppModel {
         if let requested = preferences.defaults.string(forKey: LaunchArguments.openLesson) {
             let parts = requested.split(separator: "/").map(String.init)
             let ref = parts.count == 2 ? LessonRef(library: parts[0], lesson: parts[1])
-                : shelf.lazy.compactMap { lib in lib.catalog.summary(requested).map { _ in LessonRef(library: lib.id, lesson: requested) } }.first
+                : shelf.libraries.lazy.compactMap { lib in lib.catalog.summary(requested).map { _ in LessonRef(library: lib.id, lesson: requested) } }.first
             if let ref, summary(ref) != nil { return ref }
         }
         if let last = resumeLesson, summary(last) != nil { return last }
-        for library in shelf {
+        for library in shelf.libraries {
             if let first = library.catalog.firstLesson { return LessonRef(library: library.id, lesson: first.id) }
         }
         return nil
@@ -112,7 +112,7 @@ extension AppModel {
             showFieldGuide(remember: false)
             return
         }
-        for library in shelf {
+        for library in shelf.libraries {
             for course in library.catalog.courses where library.stories[course.id]?.hasOpening == true {
                 story.showOpening(course.id, in: library.id, page: Int(action.dropFirst("opening:".count)) ?? 0)
                 return

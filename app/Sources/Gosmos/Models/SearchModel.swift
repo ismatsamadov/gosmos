@@ -32,7 +32,7 @@ final class SearchModel {
     private func changed() {
         task?.cancel()
         let text = text
-        let databases = app?.shelf.compactMap(\.database) ?? []
+        let databases = app?.shelf.libraries.compactMap(\.database) ?? []
         let reference = app?.docs?.reference
         guard !databases.isEmpty || reference != nil, !text.trimmingCharacters(in: .whitespaces).isEmpty else {
             results = []

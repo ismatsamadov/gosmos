@@ -5,20 +5,6 @@ import Observation
 import os
 import SwiftUI
 
-/// A library in the sidebar: built into the app, or one you opened.
-struct ShelfLibrary: Identifiable {
-    /// The library's uuid; the file's location while it can't be read.
-    let id: String
-    let title: String
-    let url: URL
-    let isBuiltIn: Bool
-    var database: AppDatabase?
-    var catalog: Catalog = .empty
-    /// The stories of its courses, by course uuid.
-    var stories: [String: CourseStory] = [:]
-    var error: AppDatabaseError?
-}
-
 /// What the sidebar can select: Mission Control, the review, the field guide, the Go
 /// documentation, a lesson, or a place in the documentation that search found.
 enum SidebarItem: Hashable {
@@ -44,15 +30,7 @@ final class AppModel {
 
     private(set) var phase: Phase = .starting
     private(set) var learner: LearnerDatabase?
-    /// The sidebar's libraries: the ones built into the app first, then those you opened.
-    private(set) var shelf: [ShelfLibrary] = [] { didSet { updateLearningProgress() } }
-    /// Finished lessons, by library.
-    private(set) var done: [String: Set<String>] = [:] { didSet { updateLearningProgress() } }
-    /// XP, rank and badges, from `done` over the shelf's catalogs: made again when either
-    /// changes, so the dashboard, the sidebar, the inspector and Settings all read one value.
-    private(set) var learningProgress = LearningProgress(libraries: [], done: [:])
     private(set) var lesson: LessonModel?
-    private(set) var resumeLesson: LessonRef?
     private(set) var isLoadingLesson = false
     var selection: SidebarItem?
     /// Open chapters and guided projects, as "<library>/<chapter or course>".
@@ -73,39 +51,12 @@ final class AppModel {
     var shownTerm: CourseStory.Term?
     /// The term the field guide brings into view when it opens.
     private(set) var fieldGuideFocus: String?
-    /// Lessons' story beats, the first paragraph of each readme, for the teaser after a pass.
-    @ObservationIgnored private var beats: [LessonRef: [MDInline]] = [:]
 
     /// The review is on screen: selected, with no lesson still leaving.
     var showsReview: Bool { selection == .review && lesson == nil }
 
     /// The field guide is on screen: selected, with no lesson still leaving.
     var showsFieldGuide: Bool { selection == .fieldGuide && lesson == nil }
-
-    private func updateLearningProgress() {
-        learningProgress = LearningProgress(libraries: shelf.map { .init(id: $0.id, catalog: $0.catalog) }, done: done)
-    }
-
-    /// The lesson Mission Control offers: the one you opened last while it is unfinished, else
-    /// the next unfinished one in its course, so finishing a lesson moves you on from it; else
-    /// the first unfinished one on the shelf.
-    var recommendedLesson: LessonRef? {
-        if let ref = resumeLesson, let catalog = library(ref.library)?.catalog, catalog.summary(ref.lesson) != nil {
-            if !isDone(ref) { return ref }
-            let finished = done[ref.library] ?? []
-            if let next = catalog.nextUnfinished(after: ref.lesson, isDone: { finished.contains($0) }) {
-                return LessonRef(library: ref.library, lesson: next.id)
-            }
-        }
-        for library in shelf {
-            for course in library.catalog.courses {
-                if let lesson = firstUnfinished(course.lessons, in: library.id) {
-                    return LessonRef(library: library.id, lesson: lesson.id)
-                }
-            }
-        }
-        return nil
-    }
 
     /// The documentation is on screen: selected, with no lesson still leaving.
     var showsDocumentation: Bool {
@@ -133,6 +84,8 @@ final class AppModel {
         get { access(keyPath: \.showInspector); return preferences.defaults.bool(forKey: "ShowInspector") }
         set { withMutation(keyPath: \.showInspector) { preferences.defaults.set(newValue, forKey: "ShowInspector") } }
     }
+    /// The sidebar's libraries and your progress through them.
+    let shelf = ShelfModel()
     /// The place on screen and the places visited, for Back and Forward.
     let navigation = NavigationModel()
     /// The sidebar's search, through the shelf and the documentation.
@@ -154,7 +107,6 @@ final class AppModel {
     let workspace: Workspace
     private let resources: AppResources
     private let readmes = ReadmeCache()
-    private var observeTask: Task<Void, Never>?
     private var loadTask: Task<Void, Never>?
     private let signposter = OSSignposter(subsystem: Log.subsystem, category: .pointsOfInterest)
     private var launchInterval: OSSignpostIntervalState?
@@ -165,6 +117,7 @@ final class AppModel {
         self.resources = resources
         workspace = Workspace(root: preferences.dataFolder?.appendingPathComponent("work", isDirectory: true) ?? Workspace.defaultRoot)
         navigation.docLocation = { [weak self] in self?.docs?.location }
+        shelf.app = self
         search.app = self
         story.app = self
         settings.app = self
@@ -202,17 +155,17 @@ final class AppModel {
             return
         }
         self.learner = learner
-        await loadShelf(learner)
+        await shelf.load(builtIn: resources.libraries, learner: learner)
         AppModel.logPhase("open (learner database and libraries)", since: opened)
         do {
-            done = try await learner.done()
+            try await shelf.readDone(from: learner)
             try await settings.load(from: learner)
             try await story.load(from: learner)
-            resumeLesson = try await learner.lastOpened()
+            shelf.resumeLesson = try await learner.lastOpened()
         } catch {
             report(error)
         }
-        observeDone(learner)
+        shelf.observeDone(learner)
         // Mission Control is the place on screen before the window can take a click, so nothing
         // chosen while the launch finishes is undone; a scripted run opens its lesson below.
         let action = preferences.defaults.string(forKey: LaunchArguments.action)
@@ -226,7 +179,7 @@ final class AppModel {
             if storyAction == nil { story.showOpeningAtLaunch() }
         }
         phase = .ready
-        let texts = search.texts, databases = shelf.compactMap(\.database)
+        let texts = search.texts, databases = shelf.libraries.compactMap(\.database)
         Task.detached(priority: .utility) {
             for db in databases {
                 do { try await texts.warm(db) } catch { Log.app.notice("Search excerpts: \(error.localizedDescription, privacy: .public)") }
@@ -248,58 +201,6 @@ final class AppModel {
         } else {
             finishLaunch()
         }
-    }
-
-    /// The libraries built into the app, then the ones you opened, each opened read-only and
-    /// checked off the main actor. One that can't be read stays in the sidebar with why.
-    private func loadShelf(_ learner: LearnerDatabase) async {
-        var libraries: [ShelfLibrary] = []
-        for file in BuiltInLibraries.files(in: resources.libraries) {
-            var entry = await AppModel.openLibrary(file, builtIn: true)
-            if let info = entry.database?.info {
-                do {
-                    try await learner.registerLibrary(info, location: BuiltInLibraries.location(of: file))
-                } catch {
-                    report(error)
-                }
-                if libraries.contains(where: { $0.id == info.uuid }) { entry = ShelfLibrary(id: file.path, title: file.lastPathComponent, url: file, isBuiltIn: true, error: .sqlite("another built-in library has the same uuid")) }
-            }
-            libraries.append(entry)
-        }
-        do {
-            for row in BuiltInLibraries.opened(from: try await learner.libraries()) {
-                let url = URL(fileURLWithPath: row.location)
-                var entry = await AppModel.openLibrary(url, builtIn: false)
-                if let info = entry.database?.info, info.uuid != row.uuid {
-                    // Another library now sits at that path.
-                    entry = ShelfLibrary(id: row.uuid, title: row.title, url: url, isBuiltIn: false,
-                                         error: .sqlite("\(url.path) now holds another library, \(info.title)."))
-                } else if entry.database == nil {
-                    entry = ShelfLibrary(id: row.uuid, title: row.title, url: url, isBuiltIn: false, error: entry.error)
-                }
-                libraries.append(entry)
-            }
-        } catch {
-            report(error)
-        }
-        shelf = libraries
-    }
-
-    /// Opens and checks a library off the main actor, with its catalog.
-    private static func openLibrary(_ url: URL, builtIn: Bool) async -> ShelfLibrary {
-        await Task.detached(priority: .userInitiated) { () -> ShelfLibrary in
-            do {
-                let db = try AppDatabase(url: url, immutable: builtIn)
-                let catalog = try await db.catalog()
-                let stories = try await db.stories()
-                return ShelfLibrary(id: db.info.uuid, title: db.info.title, url: url, isBuiltIn: builtIn, database: db, catalog: catalog, stories: stories)
-            } catch let e as AppDatabaseError {
-                return ShelfLibrary(id: url.path, title: url.deletingPathExtension().lastPathComponent, url: url, isBuiltIn: builtIn, error: e)
-            } catch {
-                return ShelfLibrary(id: url.path, title: url.deletingPathExtension().lastPathComponent, url: url, isBuiltIn: builtIn,
-                                    error: .sqlite(error.localizedDescription))
-            }
-        }.value
     }
 
     private func finishLaunch() {
@@ -325,20 +226,6 @@ final class AppModel {
         return Date(timeIntervalSince1970: Double(t.tv_sec) + Double(t.tv_usec) / 1_000_000)
     }()
 
-    /// Follows finished lessons as the app records them.
-    private func observeDone(_ learner: LearnerDatabase) {
-        observeTask?.cancel()
-        observeTask = Task { [weak self] in
-            do {
-                for try await done in learner.doneUpdates() {
-                    self?.done = done
-                }
-            } catch {
-                self?.report(error)
-            }
-        }
-    }
-
     // MARK: Libraries
 
     /// File › Open Library…: adds a library file to the sidebar, after its checks.
@@ -359,12 +246,12 @@ final class AppModel {
         guard let learner, !isAddingLibrary else { return }
         isAddingLibrary = true
         defer { isAddingLibrary = false }
-        let entry = await AppModel.openLibrary(url, builtIn: false)
+        let entry = await ShelfLibrary.open(url, builtIn: false)
         guard let db = entry.database else {
             libraryError = .database(entry.error ?? .missing(path: url.path))
             return
         }
-        if let existing = shelf.first(where: { $0.id == db.info.uuid }), existing.database != nil {
+        if let existing = shelf.library(db.info.uuid), existing.database != nil {
             if let first = existing.catalog.firstLesson { open(LessonRef(library: existing.id, lesson: first.id)) }
             return
         }
@@ -375,17 +262,13 @@ final class AppModel {
             report(error)
             return
         }
-        if let unreadable = shelf.firstIndex(where: { $0.id == db.info.uuid }) { shelf[unreadable] = entry } else { shelf.append(entry) }
+        shelf.add(entry)
         let texts = search.texts
         Task.detached(priority: .utility) { try? await texts.warm(db) }
         if let first = entry.catalog.firstLesson { open(LessonRef(library: entry.id, lesson: first.id)) }
     }
 
-    func library(_ id: String) -> ShelfLibrary? { shelf.first { $0.id == id } }
-
     // MARK: Lessons
-
-    func summary(_ ref: LessonRef) -> LessonSummary? { library(ref.library)?.catalog.summary(ref.lesson) }
 
     /// Shows a lesson; `remember` adds the one on screen to the back history.
     func open(_ ref: LessonRef, remember: Bool = true) {
@@ -449,7 +332,7 @@ final class AppModel {
                 // its code included: a lesson folder from before the folders' records is measured
                 // against this time when it is next prepared (Workspace.recordAppsCopies).
                 if !review && !Task.isCancelled && model.code?.loadError == nil {
-                    self.resumeLesson = ref
+                    self.shelf.resumeLesson = ref
                     do { try await learner.pendingWrites.start { try await learner.markOpened(ref) }.value } catch { self.report(error) }
                 }
                 self.performLaunchAction(on: model)
@@ -469,7 +352,7 @@ final class AppModel {
     /// opened last from now on, as it would have been had it loaded at once.
     func codeLoaded(_ ref: LessonRef) {
         guard let learner, lesson?.ref == ref, lesson?.isReview == false else { return }
-        resumeLesson = ref
+        shelf.resumeLesson = ref
         learner.pendingWrites.start { [weak self] in
             do { try await learner.markOpened(ref) } catch { self?.report(error) }
         }
@@ -493,38 +376,6 @@ final class AppModel {
         if lesson.isReview { showReview() }
         else if nextLesson != nil { openNext() }
         else { showDashboard() }
-    }
-
-    func isDone(_ ref: LessonRef) -> Bool { done[ref.library]?.contains(ref.lesson) ?? false }
-
-    func setDone(_ ref: LessonRef, _ value: Bool) {
-        guard let learner else { return }
-        if value { done[ref.library, default: []].insert(ref.lesson) } else { done[ref.library]?.remove(ref.lesson) }
-        learner.pendingWrites.start { [weak self] in
-            do { try await learner.setDone(ref, value) } catch { self?.report(error) }
-        }
-    }
-
-    /// Finished lessons out of required ones, for a course's ring.
-    func progress(of course: Course, in library: String) -> (done: Int, total: Int) {
-        let required = course.requiredLessons
-        let finished = done[library] ?? []
-        return (required.filter { finished.contains($0.id) }.count, required.count)
-    }
-
-    func estimate(of course: Course, in library: String) -> StudyEstimate {
-        StudyEstimate(lessons: course.lessons, completed: done[library] ?? [])
-    }
-
-    func doneCount(_ chapter: Chapter, in library: String) -> Int {
-        let finished = done[library] ?? []
-        return chapter.lessons.filter { finished.contains($0.id) }.count
-    }
-
-    /// The first of `lessons` not done yet, in their order.
-    func firstUnfinished(_ lessons: [LessonSummary], in library: String) -> LessonSummary? {
-        let finished = done[library] ?? []
-        return lessons.first { !finished.contains($0.id) }
     }
 
     // MARK: Mission Control
@@ -554,36 +405,6 @@ final class AppModel {
 
     // MARK: Story
 
-    func story(of course: String, in library: String) -> CourseStory? { self.library(library)?.stories[course] }
-
-    /// The story of the course a lesson is in.
-    func story(for ref: LessonRef) -> CourseStory? {
-        library(ref.library)?.catalog.course(of: ref.lesson).flatMap { story(of: $0.id, in: ref.library) }
-    }
-
-    /// A chapter's part in its course's story.
-    func chapterStory(_ chapter: Chapter, in library: String) -> CourseStory.ChapterStory? {
-        story(of: chapter.courseID, in: library)?.chapters[chapter.id]
-    }
-
-    /// Whether the field guide has a word to show: a course on the shelf has terms.
-    var hasFieldGuide: Bool { shelf.contains { $0.stories.values.contains { !$0.terms.isEmpty } } }
-
-    /// A chapter whose required lessons are all done, as the chapter milestone counts it.
-    func isComplete(_ chapter: Chapter, in library: String) -> Bool {
-        let required = chapter.lessons.filter(\.required)
-        return !required.isEmpty && required.allSatisfy { isDone(LessonRef(library: library, lesson: $0.id)) }
-    }
-
-    /// Whether `ref` is the one required lesson of its chapter not done yet, so passing it
-    /// finishes the chapter.
-    func isLastToDo(_ ref: LessonRef) -> Bool {
-        guard let chapter = library(ref.library)?.catalog.chapter(of: ref.lesson) else { return false }
-        let required = chapter.lessons.filter(\.required)
-        return required.contains { $0.id == ref.lesson }
-            && required.allSatisfy { $0.id == ref.lesson || isDone(LessonRef(library: ref.library, lesson: $0.id)) }
-    }
-
     /// Shows the field guide, with `term` in view; `remember` adds the place on screen to the
     /// back history. A lesson on screen is saved and left, as when another opens.
     func showFieldGuide(focus term: String? = nil, remember: Bool = true) {
@@ -605,16 +426,6 @@ final class AppModel {
             self.lesson = nil
             self.review = nil
         }
-    }
-
-    /// A lesson's story beat, the first paragraph of its readme, for the teaser after a pass.
-    func beat(of ref: LessonRef) async -> [MDInline]? {
-        if let beat = beats[ref] { return beat }
-        guard let db = library(ref.library)?.database,
-              let row = try? await db.readmes([ref.lesson]).first else { return nil }
-        guard case .paragraph(let inlines)? = Readme.parse(row.readme, droppingTitle: row.title).first else { return nil }
-        beats[ref] = inlines
-        return inlines
     }
 
     // MARK: Review

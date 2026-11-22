@@ -9,7 +9,7 @@ struct SidebarView: View {
         Group {
             if !app.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                 SearchResultsList()
-            } else if app.shelf.isEmpty {
+            } else if app.shelf.libraries.isEmpty {
                 ContentUnavailableView {
                     Label("No Courses Yet", systemImage: "books.vertical")
                 } description: {
@@ -36,7 +36,7 @@ struct SidebarView: View {
                                     .tag(SidebarItem.documentation)
                             }
                         }
-                        ForEach(app.shelf) { library in
+                        ForEach(app.shelf.libraries) { library in
                             LibrarySection(library: library)
                         }
                     }
