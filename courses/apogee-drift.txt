@@ -26,6 +26,99 @@ go-foundations/locks-and-deadlines/pass-day: schedule.go gives type Pass
 
 # web-services-in-go
 
+web-services-in-go/asking-politely/decode-the-reading: weather.go gives func (WeatherClient).Reading
+  Its readme: "Write `decodeWeather`, which `Reading` calls with the body".
+web-services-in-go/your-first-endpoint/a-type-that-answers: stations.go gives type Station
+  The booking service's own Station, where the stand-in's had "the two fields the stand-in
+  shows": the syllabus's check wants "the five stations in table order with their JSON names
+  (`code`, `lat_deg`, `bands`)".
+web-services-in-go/your-first-endpoint/headers-before-the-body: stations.go gives func (Service).listStations
+  Its readme: "`listStations` already answers through `writeJSON`".
+web-services-in-go/your-first-endpoint/the-guide-beside-the-service: service.go gives type Service
+  Its readme: "Register a handler at `/guide/` that serves `s.Guide`".
+web-services-in-go/an-address-for-every-pass/pass-ids-are-paths: service.go gives type Service
+  Its readme: "the ID it looks for in `s.Catalog`".
+web-services-in-go/an-address-for-every-pass/filters-in-the-query: service.go gives func (Service).routes
+  Its readme: "Furrowlight's program asks for `/passes?sat=furrow-a&station=SQT` and gets back
+  every pass".
+web-services-in-go/an-address-for-every-pass/a-week-at-a-time: passes.go gives func (Service).listPasses
+  Its readme: "`listPasses` lists the passes starting at or after `from` and before `from` plus
+  `days` days".
+web-services-in-go/an-address-for-every-pass/a-week-at-a-time: service.go gives type Service
+  The service's clock: the syllabus reads the window "with defaults from the service's injected
+  clock", `from` defaulting to `s.Now()`.
+web-services-in-go/an-address-for-every-pass/two-methods-one-address: service.go gives type Service
+  Its readme: "delete the booking with `s.Store.Delete(r.Context(), id)`".
+web-services-in-go/the-first-booking/read-the-booking: service.go gives func (Service).routes
+  Its readme: "Furrowlight's program will send it to `POST /bookings`".
+web-services-in-go/the-first-booking/errors-in-json-too: bookings.go gives func (Service).cancelBooking
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: bookings.go gives func (Service).createBooking
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: bookings.go gives func (Service).getBooking
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: passes.go gives func (Service).getPass
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: stations.go gives func (Service).getStation
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: passes.go gives func (Service).listPasses
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/the-first-booking/errors-in-json-too: stations.go gives func (Service).listStations
+  Its readme: "Nkem has sent every handler's errors through one function, `writeError`".
+web-services-in-go/around-every-request/every-request-gets-an-id: errors.go gives func writeError
+  Its readme: "Nkem has made `writeError` copy it into `request_id`".
+web-services-in-go/around-every-request/every-request-gets-an-id: errors.go gives type ErrorBody
+  Its readme: every request gets an ID "in its answer's `X-Request-Id` header and in every error
+  body".
+web-services-in-go/around-every-request/one-bug-no-outage: passes.go gives func (Service).getPass
+  Monday's bug, planted: "Nkem held back the fix for Monday's bug in `getPass`, so the
+  middleware meets the real thing".
+web-services-in-go/keeping-bookings/one-interface-for-bookings: passes.go gives func (Service).getPass
+  Monday's bug fixed, back to the text before it: chapter 6's debrief, "Nkem's fix for the
+  short orbit number ships with Monday's deploy".
+web-services-in-go/whos-asking/trade-keys-for-tokens: service.go gives type Service
+  The customers and the token key: its readme, "It sends its API key to `POST /tokens`"; its
+  hints, "Hand the key to `checkKey` with `s.Customers`"; the bible's Service, "(chapter 8)".
+web-services-in-go/whos-asking/fail-closed: service.go gives func (Service).routes
+  Its readme: "`routes` puts `authenticate` around every private route"; `POST /tokens` is
+  trade-keys-for-tokens': "It sends its API key to `POST /tokens`".
+web-services-in-go/fair-use/the-flood-test: service.go gives type Service
+  Its readme: "make `private` list `authenticate` before `limit`" and "make `handler` list
+  `withDeadline(s.Timeouts.Handler)` last"; the bible's Service has both fields, "chapter 9".
+web-services-in-go/calling-customers-back/deliver-with-retries: auth.go gives type Customer
+  A customer's webhook: tell-them-it-landed's readme, "an address the customer chose", and
+  sign-what-you-send's, "under the customer's webhook secret".
+web-services-in-go/launch-day/run-until-told-to-stop: server.go gives type Timeouts
+  Its readme: "return `stop(srv, t.Shutdown)`"; draining-not-down's: "for `t.Drain`, `/health`
+  answers `503`". The bible's Timeouts has both.
+web-services-in-go/launch-day/draining-not-down: app.go gives type App
+  Its readme: "set `app.Service.draining`".
+web-services-in-go/launch-day/draining-not-down: service.go gives type Service
+  Its readme: "set `app.Service.draining`"; "The flag that `run` sets and every health check
+  reads is an `atomic.Bool`".
+web-services-in-go/launch-day/one-test-for-everything: webhook.go gives func (Notifier).Landed
+  The outbox: the-outbox-survives' readme, "The outbox keeps every delivery not yet made, and
+  the number of the next event"; the bible, from chapter 12 "the count is kept in the outbox".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives func (Service).routes
+  Its readme: "books the first one twice with one `Idempotency-Key`"; the bible: "`POST
+  /bookings` adds `idempotent` inside them (chapter 10)".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives func newService
+  Its readme: "run against the whole service"; the syllabus: "the assembled service (`newApp`,
+  read-only)".
+web-services-in-go/launch-day/one-test-for-everything: app.go gives type App
+  Its readme: "run against the whole service"; the bible: "`App` (chapter 12) is the assembled
+  service: `Service *Service`, `Notifier *Notifier` and `Handler http.Handler`".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives type Config
+  Its readme: "run against the whole service"; the bible: "Config is everything the service is
+  built from", its data folder holding bookings.json and outbox.json.
+web-services-in-go/launch-day/one-test-for-everything: webhook.go gives type Notifier
+  The outbox and Stop: the bible, "`Notifier` holds the `Store`, the customers, the `Sender`
+  and (chapter 12) the `Outbox`" and "deliveries run under the notifier's own context, which
+  `Stop` cancels"; the-outbox-survives' readme, "The outbox keeps every delivery not yet made".
+web-services-in-go/launch-day/one-test-for-everything: service.go gives type Service
+  Its readme: "books the first one twice with one `Idempotency-Key`"; the bible's Service:
+  "Keys *keyStore // idempotency keys (chapter 10)".
+
 # networking-from-the-socket-up
 
 networking-from-the-socket-up/bodies-and-chunks/exactly-that-many-bytes: routes.go gives func (Server).route
