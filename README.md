@@ -18,6 +18,38 @@ your badge, a briefing and a debrief for every chapter, a mission patch for each
 finish, and a field guide that explains every word of that world in plain language. Everything
 in them is written for Gosmos. The path from here to production Go is ismatsamadov/gosmos#18.
 
+## A look inside
+
+Every course starts with a story. Early in Go Foundations' opening you get your Apogee badge,
+made out in the name you give it:
+
+![The opening of Go Foundations: your Apogee badge](docs/images/badge.png)
+
+Mission Control shows where you left off: the next assignment with its chapter's briefing,
+your experience, rank and mission patches, and every course with what is left of it.
+
+![Mission Control](docs/images/mission-control.png)
+
+A lesson is its readme beside your code. A chapter's first lesson opens with the chapter's
+briefing, and the world's words link to the field guide. Submit builds and runs your code with
+the Go built into the app, and compares what it prints with what it should, line by line:
+
+![A code lesson after a Submit that failed](docs/images/lesson.png)
+
+A quiz explains every answer, the right one and each wrong one:
+
+![A quiz, answered](docs/images/quiz.png)
+
+The Go documentation is built in and works offline: the standard library with its examples,
+the spec, the memory model, Effective Go, the FAQ and How to Write Go Code.
+
+![The Go documentation, at fmt.Printf](docs/images/documentation.png)
+
+The field guide explains every word of Apogee's world in plain language, and a lesson links
+each word the first time it uses it:
+
+![The field guide](docs/images/field-guide.png)
+
 ## Two databases
 
 - A **library** is content only: courses, chapters and lessons, starter and solution files,
@@ -60,6 +92,7 @@ never runs git and syncs nothing.
 | `docs/design.md` | How the app looks and behaves |
 | `docs/apogee/` | The Apogee courses: their world, their Go syllabus, a sample chapter |
 | `docs/authoring.md` | How lessons, chapters and courses are added and fixed: the tools, the steps, the checks, the world's numbers, seeing it in the app (`app/scripts/snapshot.sh`) |
+| `docs/images/` | The pictures above, drawn by the app itself with `app/scripts/snapshot.sh` (dark appearance, a 1600×1000 window, the sidebar cropped off) |
 | `Makefile` | `make install` builds and installs the app; `make library` builds the courses; `make test`, `make check`, `make verify` |
 
 ## Requirements
