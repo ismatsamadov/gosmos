@@ -155,6 +155,55 @@ import Testing
         await app.prepareToQuit()
     }
 
+    /// Text copied from a readme carries the word joiners that keep its inline code on one line,
+    /// unseen. Pasted into Search, it searches for what it says.
+    @Test func aSearchForTextCopiedFromAReadmeFindsWhatItSays() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        let app = fixture.app()
+        await app.start()
+        app.searchText = "Print\u{2060} hel\u{2060}lo"
+        #expect(app.searchText == "Print hello")
+        try await fixture.wait { !app.searching && !app.searchResults.isEmpty }
+        #expect(app.searchResults.map(\.ref).contains(fixture.ref("first")))
+        await app.prepareToQuit()
+    }
+
+    /// An update changes a lesson between two launches: a new starter, and a test file it no
+    /// longer gives. Its folder, where you never typed, takes the new starter, and the dropped
+    /// file goes, where go would still build it.
+    @Test func aLessonChangedBetweenLaunchesGivesItsNewStarter() async throws {
+        let fixture = try FlowFixture()
+        defer { fixture.remove() }
+        try fixture.changeLibrary("""
+            INSERT INTO starter_file (lesson_uuid, name, position, content, is_hidden, is_readonly)
+              VALUES ('first', 'extra_test.go', 1, 'package main\n', 0, 1);
+            """)
+        let app = fixture.app()
+        await app.start()
+        app.finishOpening()
+        try await fixture.wait { app.lesson?.ref == fixture.ref("first") && app.lesson?.code?.isLoaded == true }
+        let folder = try #require(app.lesson?.code?.folder)
+        let extra = folder.appendingPathComponent("extra_test.go")
+        #expect(FileManager.default.fileExists(atPath: extra.path))
+        await app.prepareToQuit()
+
+        let starter = "package main\n\nfunc main() { /* the new starter */ }\n"
+        try fixture.changeLibrary("""
+            UPDATE starter_file SET content = '\(starter)' WHERE lesson_uuid = 'first' AND name = 'main.go';
+            DELETE FROM starter_file WHERE lesson_uuid = 'first' AND name = 'extra_test.go';
+            """)
+        let reopened = fixture.app()
+        await reopened.start()
+        reopened.open(fixture.ref("first"))
+        try await fixture.wait { reopened.lesson?.ref == fixture.ref("first") && reopened.lesson?.code?.isLoaded == true }
+        #expect(reopened.lesson?.code?.files.map(\.text) == [starter])
+        #expect(try String(contentsOf: folder.appendingPathComponent("main.go"), encoding: .utf8) == starter)
+        #expect(!FileManager.default.fileExists(atPath: extra.path))
+        #expect(try await reopened.learner?.codeFiles(for: fixture.ref("first")).isEmpty == true)
+        await reopened.prepareToQuit()
+    }
+
     @Test func continueResumesBeforeAnyLessonHasBeenCompleted() async throws {
         let fixture = try FlowFixture()
         defer { fixture.remove() }
@@ -417,6 +466,13 @@ import Testing
     }
 
     func ref(_ lesson: String) -> LessonRef { LessonRef(library: "flow-library", lesson: lesson) }
+
+    /// Changes the library, as an update brings a new version of it.
+    func changeLibrary(_ sql: String) throws {
+        let queue = try DatabaseQueue(path: resources.libraries!.appendingPathComponent("practice.sqlite").path)
+        try queue.write { try $0.execute(sql: sql) }
+        try queue.close()
+    }
 
     func wait(_ condition: () -> Bool) async throws {
         for _ in 0..<500 {
