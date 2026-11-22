@@ -291,7 +291,7 @@ func TestAuthorRefuses(t *testing.T) {
 		{"no chapter flag", []string{"lesson", path, "--course", "learn-launches", example("launch-window")}, 2, "--course and --chapter are required"},
 		{"an unknown kind", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Lecture", "--short", "S", "--description", "D"}, 2, `--kind "Lecture" is not Course or Guided Project`},
 		{"a bad course slug", []string{"course", path, "--slug", "Learn Orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "D"}, 2, "is not lowercase letters"},
-		{"a picture in a description", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "![orbit](https://example.com/orbit.png)"}, 1, "--description holds pictures"},
+		{"a picture in a description", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "![orbit](https://example.com/orbit.png)"}, 1, "--description holds 1 picture, which"},
 		{"a course position taken", []string{"course", path, "--slug", "learn-orbits", "--title", "Orbits", "--kind", "Course", "--short", "S", "--description", "D", "--position", "0"}, 1, "position 0 is taken by course learn-launches"},
 		{"a chapter of no course", []string{"chapter", path, "--course", "learn-orbits", "--slug", "1-ellipses", "--title", "Ellipses", "--description", "D"}, 1, "the library has no course learn-orbits"},
 		{"an unknown command", []string{"publish", path}, 2, `unknown command "publish"`},

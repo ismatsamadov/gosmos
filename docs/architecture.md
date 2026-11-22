@@ -15,7 +15,7 @@ the files themselves. Everything lives in this one repository.
 | `db/schema.sql` | A library's schema (format in `user_version`); `db/` also holds the Go package that creates, opens and checks libraries, with the schema embedded, and `db/history/` the learner database's first schema, for the test of the app's step from it |
 | `db/learner.sql` | The learner database's schema |
 | `cmd/library/` | The library tool, for any library: `create`, `check`, `verify`, `drift` |
-| `cmd/author/`, `internal/` | The authoring tool: writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` refuses pictures, videos and embeds |
+| `cmd/author/`, `internal/` | The authoring tool: writes lessons into a library from lesson packages and exports them back; `internal/store` writes a lesson's rows, `internal/media` finds the pictures and HTML it refuses |
 | `app/` | The Swift package: `GosmosKit` (library) and `Gosmos` (the app) |
 | `app/Packages/` | The app's own package: `CodeEditor` (the editor, plus `SyntaxCore`) |
 | `docs/library-format.md` | The library format: what a library holds and what the app checks on open |

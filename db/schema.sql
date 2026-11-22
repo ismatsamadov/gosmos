@@ -26,8 +26,8 @@
 --   * This file makes a new, empty library; it is never run against an existing one. A change
 --     raises user_version, and libraries are made again with the new tools: the app and the
 --     tools open only the version they were built for.
---   * No pictures, videos or interactive widgets: producers leave them out (cmd/author refuses
---     them), so none lands here.
+--   * No pictures or HTML: producers leave them out (cmd/author refuses them), so none lands
+--     here.
 
 PRAGMA foreign_keys = ON;
 

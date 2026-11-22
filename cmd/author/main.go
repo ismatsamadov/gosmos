@@ -133,11 +133,11 @@ func write(ctx context.Context, file string, fn func(tx *sql.Tx) error) error {
 	return tx.Commit()
 }
 
-// noMedia refuses pictures, videos and widgets in text the app shows.
+// noMedia refuses pictures and HTML in text the app shows.
 func noMedia(texts map[string]string) error {
 	for _, k := range slices.Sorted(maps.Keys(texts)) {
-		if _, st := media.Strip(texts[k]); st.Total() > 0 {
-			return fmt.Errorf("%s holds pictures, videos or widgets, which the app never shows; leave them out", k)
+		if found := media.Find(texts[k]); found.Total() > 0 {
+			return fmt.Errorf("%s holds %s, which the app never shows; leave them out", k, found)
 		}
 	}
 	return nil
