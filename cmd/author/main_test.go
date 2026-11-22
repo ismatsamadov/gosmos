@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -514,4 +516,82 @@ func TestHelp(t *testing.T) {
 		!strings.Contains(out, "chapters.md holds the briefing") || !strings.Contains(out, "terms.md holds the field guide's terms") {
 		t.Errorf("help does not describe the story package: %q", out[max(0, len(out)-300):])
 	}
+}
+
+// A whole library out to a library folder and back: build makes the same rows from it, the
+// same file every time, and moves a new file into place only once it passes its checks.
+func TestBuildALibrary(t *testing.T) {
+	path := library(t)
+	importAll(t, path)
+	mustAuthor(t, "story", path, "--course", "learn-launches", storyExample())
+	folder := filepath.Join(t.TempDir(), "apogee")
+	if msg := mustAuthor(t, "export", path, folder); !strings.Contains(msg, "1 course, 1 chapter and 3 lessons") {
+		t.Errorf("export of the whole library: %q", msg)
+	}
+	built := filepath.Join(t.TempDir(), "built.sqlite")
+	if msg := mustAuthor(t, "build", folder, built); !strings.Contains(msg, "built "+built+" from "+folder) {
+		t.Errorf("build: %q", msg)
+	}
+	for _, query := range []string{
+		`SELECT * FROM library_info`, `SELECT * FROM course`, `SELECT * FROM chapter`,
+		`SELECT uuid, chapter_uuid, position, slug, title, type, required, difficulty, readme, created_at, last_mod FROM lesson`,
+		`SELECT * FROM lesson_topic`, `SELECT * FROM lesson_hint`, `SELECT * FROM code_lesson`, `SELECT * FROM starter_file`,
+		`SELECT * FROM solution_file`, `SELECT * FROM quiz_lesson`, `SELECT * FROM quiz_question`, `SELECT * FROM quiz_answer`,
+		`SELECT * FROM story_page`, `SELECT * FROM story_card`, `SELECT * FROM chapter_story`, `SELECT * FROM story_term`,
+	} {
+		if got, want := dump(t, built, query), dump(t, path, query); got != want {
+			t.Errorf("%s:\n%s\nwant\n%s", query, got, want)
+		}
+	}
+
+	// The same folder makes the same file.
+	before, _ := os.ReadFile(built)
+	if msg := mustAuthor(t, "build", folder, built); !strings.Contains(msg, built+" is up to date") {
+		t.Errorf("a second build: %q", msg)
+	}
+	again := filepath.Join(t.TempDir(), "again.sqlite")
+	mustAuthor(t, "build", folder, again)
+	if b, _ := os.ReadFile(again); !bytes.Equal(b, before) {
+		t.Error("two builds of the same folder made different files")
+	}
+
+	// A folder that is refused leaves the file as it was, and nothing beside it.
+	if err := os.WriteFile(filepath.Join(folder, "notes.md"), []byte("to do\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errOut := author(t, "build", folder, built); code != 1 || !strings.Contains(errOut, "notes.md does not belong in a library folder") {
+		t.Errorf("build of a refused folder: %d %q", code, errOut)
+	}
+	if b, _ := os.ReadFile(built); !bytes.Equal(b, before) {
+		t.Error("a refused build changed the file")
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(built)); len(entries) != 1 {
+		t.Errorf("a refused build left %d files beside the library", len(entries)-1)
+	}
+	if code, _, errOut := author(t, "export", path, "--chapter", "1-countdown", t.TempDir()); code != 2 || !strings.Contains(errOut, "--chapter and --story need --course") {
+		t.Errorf("export of a chapter without its course: %d %q", code, errOut)
+	}
+}
+
+// dump renders the rows a query returns, one line each, sorted.
+func dump(t *testing.T, path, query string) string {
+	t.Helper()
+	rows, err := open(t, path).Query(query)
+	if err != nil {
+		t.Fatalf("%s: %v", query, err)
+	}
+	defer rows.Close()
+	cols, _ := rows.Columns()
+	var lines []string
+	for rows.Next() {
+		vals := make([]any, len(cols))
+		ptrs := make([]any, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		rows.Scan(ptrs...)
+		lines = append(lines, fmt.Sprintln(vals...))
+	}
+	slices.Sort(lines)
+	return strings.Join(lines, "")
 }

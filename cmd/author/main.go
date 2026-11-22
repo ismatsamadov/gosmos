@@ -8,12 +8,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"os"
 	"os/signal"
@@ -34,7 +36,8 @@ const usage = `usage:
   author chapter <file> --course S --slug S --title T --description D [--position N]
   author lesson <file> --course S --chapter S <package folder>
   author story <file> --course S <story folder>
-  author export <file> --course S [--chapter S | --story] <out folder>
+  author export <file> [--course S [--chapter S | --story]] <out folder>
+  author build <library folder> <file>
   author help
 
 course and chapter add or update one by its slug; a position left out keeps the one it has,
@@ -43,7 +46,10 @@ course, chapter and slug in place, with its uuid. story imports a course's story
 place of the whole story the course had; a folder with none of its files clears it. export
 writes a course's lessons, or one chapter's, as packages: <out>/<chapter>/<lesson>/, or
 <out>/<lesson>/ for one chapter; with --story, it writes the course's story package into
-<out> instead.`
+<out> instead; without --course, it writes the whole library as a library folder. build
+makes the library file from a library folder, the same file from the same folder: a new
+library, written aside and moved into place once it passes its checks, and left alone when
+the file there is already the same.`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -60,10 +66,10 @@ func run(ctx context.Context, args []string, out, errOut io.Writer) int {
 		return 2
 	}
 	commands := map[string]func(context.Context, []string, io.Writer) error{
-		"course": course, "chapter": chapter, "lesson": lesson, "story": story, "export": export,
+		"course": course, "chapter": chapter, "lesson": lesson, "story": story, "export": export, "build": build,
 	}
 	if args[0] == "help" {
-		fmt.Fprintf(out, "%s\n\n%s\n\n%s\n", usage, authoring.Layout, authoring.StoryLayout)
+		fmt.Fprintf(out, "%s\n\n%s\n\n%s\n\n%s\n", usage, authoring.Layout, authoring.StoryLayout, authoring.LibraryLayout)
 		return 0
 	}
 	cmd, ok := commands[args[0]]
@@ -453,8 +459,8 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	switch {
-	case *courseSlug == "":
-		return usageError{errors.New("--course is required")}
+	case *courseSlug == "" && (*chapterSlug != "" || *wantStory):
+		return usageError{errors.New("--chapter and --story need --course")}
 	case *wantStory && *chapterSlug != "":
 		return usageError{errors.New("--chapter and --story do not go together: the story is the whole course's")}
 	}
@@ -476,6 +482,17 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 	}
 	if version != db.Version {
 		return fmt.Errorf("%s is of format %d, not %d; make it again with this version's tools", file, version, db.Version)
+	}
+	if *courseSlug == "" {
+		l, err := authoring.LoadLibrary(d)
+		if err != nil {
+			return err
+		}
+		if err := l.Write(outDir); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "exported %s to %s: %s\n", file, outDir, l.Summary())
+		return nil
 	}
 	courseUUID, err := courseBySlug(d, *courseSlug)
 	if err != nil {
@@ -533,4 +550,78 @@ func export(ctx context.Context, args []string, out io.Writer) error {
 	}
 	fmt.Fprintf(out, "exported %d lessons of %s to %s\n", written, *courseSlug, outDir)
 	return nil
+}
+
+// ---- build ----
+
+func build(ctx context.Context, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("build", flag.ContinueOnError)
+	pos, err := parse(fs, args, 2)
+	if err != nil {
+		return err
+	}
+	folder, file := pos[0], pos[1]
+	l, err := authoring.ReadLibrary(folder)
+	if err != nil {
+		return fmt.Errorf("library folder %s: %w", folder, err)
+	}
+	built := filepath.Join(filepath.Dir(file), "."+filepath.Base(file)+".new")
+	os.Remove(built)
+	defer os.Remove(built)
+	d, err := db.Create(built, l.Info)
+	if err != nil {
+		return err
+	}
+	if err := fill(ctx, d, l); err != nil {
+		d.Close()
+		return fmt.Errorf("nothing was written: %w", err)
+	}
+	if err := d.Close(); err != nil {
+		return err
+	}
+	if same, err := sameBytes(built, file); err != nil {
+		return err
+	} else if same {
+		fmt.Fprintf(out, "%s is up to date: %s\n", file, l.Summary())
+		return nil
+	}
+	if err := os.Rename(built, file); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "built %s from %s: %s\n", file, folder, l.Summary())
+	return nil
+}
+
+// fill writes the library's rows in one transaction, which commits only if the library then
+// passes its checks.
+func fill(ctx context.Context, d *sql.DB, l authoring.Library) error {
+	tx, err := d.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := l.Put(tx); err != nil {
+		return err
+	}
+	problems, err := db.Validate(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if err := problems.Err(); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// sameBytes reports whether the files at a and b hold the same bytes; a missing b is not.
+func sameBytes(a, b string) (bool, error) {
+	x, err := os.ReadFile(a)
+	if err != nil {
+		return false, err
+	}
+	y, err := os.ReadFile(b)
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	return err == nil && bytes.Equal(x, y), err
 }
